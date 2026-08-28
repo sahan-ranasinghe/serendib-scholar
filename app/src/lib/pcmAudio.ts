@@ -1,0 +1,133 @@
+/**
+ * Mic capture (AudioWorklet -> 16kHz PCM16) and playback (24kHz PCM16 queue)
+ * for the Gemini Live duplex audio stream. Gemini Live speaks in raw PCM16
+ * mono chunks, base64-encoded inside the WebSocket JSON frames — no browser
+ * codec is involved on either side.
+ */
+
+export const INPUT_SAMPLE_RATE = 16000;
+export const OUTPUT_SAMPLE_RATE = 24000;
+
+export function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  let binary = "";
+  const bytes = new Uint8Array(buffer);
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+  }
+  return btoa(binary);
+}
+
+export function base64ToArrayBuffer(base64: string): ArrayBuffer {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes.buffer;
+}
+
+export interface PcmRecorderHandle {
+  stop: () => void;
+}
+
+/**
+ * Starts capturing microphone audio and invokes `onChunk` with base64-encoded
+ * PCM16 frames at 16kHz, ready to send as `realtimeInput.audio.data`.
+ */
+export async function startPcmRecorder(
+  stream: MediaStream,
+  onChunk: (base64Pcm16: string) => void,
+): Promise<PcmRecorderHandle> {
+  const audioContext = new AudioContext({ sampleRate: INPUT_SAMPLE_RATE });
+  await audioContext.audioWorklet.addModule("/worklets/pcm-recorder-worklet.js");
+
+  const source = audioContext.createMediaStreamSource(stream);
+  const worklet = new AudioWorkletNode(audioContext, "pcm-recorder-worklet");
+
+  worklet.port.onmessage = (event: MessageEvent<ArrayBuffer>) => {
+    onChunk(arrayBufferToBase64(event.data));
+  };
+
+  source.connect(worklet);
+  // The worklet doesn't need to reach the speakers — connect to a muted
+  // destination-less path so the graph stays alive without echoing input.
+  const silentGain = audioContext.createGain();
+  silentGain.gain.value = 0;
+  worklet.connect(silentGain);
+  silentGain.connect(audioContext.destination);
+
+  return {
+    stop: () => {
+      worklet.port.onmessage = null;
+      source.disconnect();
+      worklet.disconnect();
+      silentGain.disconnect();
+      void audioContext.close();
+    },
+  };
+}
+
+/**
+ * Schedules incoming 24kHz PCM16 chunks back-to-back for gapless playback,
+ * and supports immediate interruption (barge-in) when the model is cut off
+ * by the child speaking again.
+ */
+export class PcmPlayer {
+  private audioContext: AudioContext;
+  private nextStartTime = 0;
+  private activeSources = new Set<AudioBufferSourceNode>();
+
+  constructor() {
+    this.audioContext = new AudioContext({ sampleRate: OUTPUT_SAMPLE_RATE });
+  }
+
+  async resume(): Promise<void> {
+    if (this.audioContext.state === "suspended") {
+      await this.audioContext.resume();
+    }
+  }
+
+  enqueue(base64Pcm16: string): void {
+    const buffer = base64ToArrayBuffer(base64Pcm16);
+    const pcm16 = new Int16Array(buffer);
+    const audioBuffer = this.audioContext.createBuffer(
+      1,
+      pcm16.length,
+      OUTPUT_SAMPLE_RATE,
+    );
+    const channel = audioBuffer.getChannelData(0);
+    for (let i = 0; i < pcm16.length; i++) {
+      channel[i] = pcm16[i] / (pcm16[i] < 0 ? 0x8000 : 0x7fff);
+    }
+
+    const source = this.audioContext.createBufferSource();
+    source.buffer = audioBuffer;
+    source.connect(this.audioContext.destination);
+
+    const startAt = Math.max(this.nextStartTime, this.audioContext.currentTime);
+    source.start(startAt);
+    this.nextStartTime = startAt + audioBuffer.duration;
+
+    this.activeSources.add(source);
+    source.onended = () => this.activeSources.delete(source);
+  }
+
+  /** Stops and clears any queued/playing audio — used on barge-in interruption. */
+  clear(): void {
+    for (const source of this.activeSources) {
+      try {
+        source.stop();
+      } catch {
+        // already stopped
+      }
+    }
+    this.activeSources.clear();
+    this.nextStartTime = this.audioContext.currentTime;
+  }
+
+  close(): void {
+    this.clear();
+    void this.audioContext.close();
+  }
+}
