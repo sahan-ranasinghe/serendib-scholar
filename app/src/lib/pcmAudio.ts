@@ -77,9 +77,18 @@ export class PcmPlayer {
   private audioContext: AudioContext;
   private nextStartTime = 0;
   private activeSources = new Set<AudioBufferSourceNode>();
+  private onPlaybackStateChange?: (isPlaying: boolean) => void;
 
-  constructor() {
+  /**
+   * `onPlaybackStateChange`, if given, fires true the instant audio starts
+   * actually playing through the speaker and false the instant it's fully
+   * drained (last source ended) or cleared (barge-in) — used to drive the
+   * character's "talking" visual state on real playback, not just on
+   * network chunk arrival (which runs ahead of what's actually audible).
+   */
+  constructor(options?: { onPlaybackStateChange?: (isPlaying: boolean) => void }) {
     this.audioContext = new AudioContext({ sampleRate: OUTPUT_SAMPLE_RATE });
+    this.onPlaybackStateChange = options?.onPlaybackStateChange;
   }
 
   async resume(): Promise<void> {
@@ -109,12 +118,28 @@ export class PcmPlayer {
     source.start(startAt);
     this.nextStartTime = startAt + audioBuffer.duration;
 
+    const wasEmpty = this.activeSources.size === 0;
     this.activeSources.add(source);
-    source.onended = () => this.activeSources.delete(source);
+    if (wasEmpty) this.onPlaybackStateChange?.(true);
+
+    source.onended = () => {
+      this.activeSources.delete(source);
+      if (this.activeSources.size === 0) this.onPlaybackStateChange?.(false);
+    };
   }
 
-  /** Stops and clears any queued/playing audio — used on barge-in interruption. */
+  /**
+   * Stops and clears any queued/playing audio — used on barge-in
+   * interruption. `activeSources` is cleared synchronously (not left to the
+   * async `onended` cascade) so an `enqueue()` called immediately after —
+   * e.g. the model resuming speech right after being interrupted — always
+   * sees an empty set and correctly fires onPlaybackStateChange(true)
+   * again, rather than a stale entry suppressing it. Each stopped source's
+   * own `onended` still fires (guaranteed by the Web Audio API spec) and
+   * harmlessly no-ops against the now-empty set.
+   */
   clear(): void {
+    const wasPlaying = this.activeSources.size > 0;
     for (const source of this.activeSources) {
       try {
         source.stop();
@@ -124,6 +149,7 @@ export class PcmPlayer {
     }
     this.activeSources.clear();
     this.nextStartTime = this.audioContext.currentTime;
+    if (wasPlaying) this.onPlaybackStateChange?.(false);
   }
 
   close(): void {

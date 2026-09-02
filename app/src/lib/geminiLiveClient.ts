@@ -123,6 +123,25 @@ export class GeminiLiveClient {
     });
   }
 
+  /**
+   * Sends a complete text turn from the user — e.g. an answer typed/tapped
+   * on the board instead of spoken (see submit_blank_answer's UI
+   * counterpart in LessonComponents.tsx). Uses `clientContent` (a discrete,
+   * turn-complete conversational turn) rather than `realtimeInput` (for
+   * continuous low-latency streaming like mic audio) since this is a
+   * one-shot input the model should respond to immediately, not a
+   * streaming fragment. The concurrent mic audio stream is unaffected —
+   * the Live API accepts mixed text/audio input within one session.
+   */
+  sendTextInput(text: string): void {
+    this.send({
+      clientContent: {
+        turns: [{ role: "user", parts: [{ text }] }],
+        turnComplete: true,
+      },
+    });
+  }
+
   sendToolResponse(functionResponses: Array<{ id?: string; name?: string; response: Record<string, unknown> }>): void {
     this.send({ toolResponse: { functionResponses } });
   }

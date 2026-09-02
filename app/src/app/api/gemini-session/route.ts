@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { GoogleGenAI, Modality } from "@google/genai";
-import { SYSTEM_PROMPT } from "@/lib/prompt";
+import { buildSystemPrompt } from "@/lib/prompt";
 import { GEMINI_LIVE_TOOLS } from "@/lib/geminiLiveTools";
+import { getAvailableSubjects, type AvailableSubject } from "@/lib/availableSubjects";
 
 export const GEMINI_LIVE_MODEL =
   process.env.GEMINI_LIVE_MODEL ?? "gemini-3.1-flash-live-preview";
@@ -26,6 +27,17 @@ export async function POST() {
 
   const ai = new GoogleGenAI({ apiKey, httpOptions: { apiVersion: "v1alpha" } });
 
+  // Fail safe: if this lookup fails, treat it as "nothing available" rather
+  // than falling back to some default subject list — claiming coverage that
+  // doesn't exist is exactly the bug this is meant to prevent.
+  let availableSubjects: AvailableSubject[] = [];
+  try {
+    availableSubjects = await getAvailableSubjects();
+  } catch (error) {
+    console.error("[gemini-session] Failed to look up available subjects:", error);
+  }
+  const systemPrompt = buildSystemPrompt(availableSubjects);
+
   const tokenConfig = {
     uses: 1,
     expireTime: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
@@ -34,7 +46,7 @@ export async function POST() {
       model: GEMINI_LIVE_MODEL,
       config: {
         responseModalities: [Modality.AUDIO],
-        systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+        systemInstruction: { parts: [{ text: systemPrompt }] },
         tools: [{ functionDeclarations: GEMINI_LIVE_TOOLS }],
         outputAudioTranscription: {},
         inputAudioTranscription: {},

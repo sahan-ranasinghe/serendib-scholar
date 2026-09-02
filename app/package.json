@@ -6,24 +6,32 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "ingest:syllabus": "tsx scripts/ingest-syllabus.ts",
+    "test:ingest": "tsx --test scripts/ingest-syllabus.test.ts",
+    "test:page-reference": "tsx --test src/lib/pageReferenceDetection.test.ts",
+    "infer:printed-page-numbers": "tsx scripts/infer-printed-page-numbers.ts"
   },
   "dependencies": {
     "@google/genai": "^2.19.0",
     "@supabase/supabase-js": "^2.109.0",
     "next": "16.3.3",
+    "pdf-parse": "^2.4.5",
     "react": "19.2.8",
     "react-dom": "19.2.8",
-    "server-only": "^0.0.1"
+    "server-only": "^0.0.1",
+    "ws": "^8.21.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/ws": "^8.18.1",
     "eslint": "^9",
     "eslint-config-next": "16.3.3",
     "tailwindcss": "^4",
+    "tsx": "^4.23.12",
     "typescript": "^5"
   }
 }

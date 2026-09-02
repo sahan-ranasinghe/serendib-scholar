@@ -38,4 +38,7 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
+
+# scripts/ingest-syllabus.ts working output — regenerated fresh each run
+/scripts/skipped-chunks.log
 next-env.d.ts

@@ -1,35 +1,162 @@
--- Serendib Scholar — starter schema. Run this in the Supabase SQL editor.
--- The syllabus_chunks table isn't populated yet (that's handled separately);
--- search_syllabus falls back to a plain text match until embeddings exist.
+-- Serendib Scholar — starter schema. Run this in the Supabase SQL editor
+-- (or let scripts/ingest-syllabus.ts's prerequisites doc point you here —
+-- the script itself only reads/writes rows, it doesn't run DDL).
 
 create extension if not exists vector;
+create extension if not exists pgcrypto;
 
+-- If you ran an earlier version of this schema, syllabus_chunks already
+-- exists with an incompatible shape (bigint id, no grade/medium/
+-- source_reference columns) — it was always documented as an unpopulated
+-- placeholder, so this drop should be safe. If you've since ingested real
+-- data you care about, back it up before running this file.
+drop table if exists syllabus_chunks;
+
+-- syllabus_chunks: populated by scripts/ingest-syllabus.ts. Each row is one
+-- retrievable excerpt of syllabus content, embedded with Gemini's
+-- gemini-embedding-001 (truncated to 768 dimensions) for semantic search
+-- via search_syllabus (src/app/api/tools/search-syllabus/route.ts).
 create table if not exists syllabus_chunks (
-  id bigint generated always as identity primary key,
+  id uuid primary key default gen_random_uuid(),
   subject text not null,
+  grade int not null,
   topic text not null,
+  medium text not null check (medium in ('sinhala', 'tamil', 'english')),
   content text not null,
+  source_reference text not null,
+  -- Null for a worksheet-only chunk (see scripts/ingest-syllabus.ts —
+  -- isWorksheetOnlyChunk): there's no real prose to embed, but the row is
+  -- still kept (with page_number/image_url) so the page stays findable via
+  -- show_page_image. match_syllabus_chunks excludes these from semantic
+  -- search results.
   embedding vector(768),
+  -- The page this chunk's content was extracted/transcribed from (always
+  -- known — see the Chunk.pageNumber threading through
+  -- scripts/ingest-syllabus.ts). Used with source_reference by
+  -- show_page_image (src/app/api/tools/show-page-image/route.ts) to look up
+  -- image_url for a specific page within a merged multi-chunk passage.
+  page_number int not null,
+  -- The page number printed in the textbook's own footer (e.g. "66"), which
+  -- differs from page_number (the raw PDF page index) once front matter —
+  -- cover, foreword, contents — precedes the numbered pages. Parsed from
+  -- the transcribed text near the recurring footer phrase (see
+  -- extractPrintedPageNumber in scripts/ingest-syllabus.ts); null where it
+  -- couldn't be confidently found (e.g. front-matter pages, or any english
+  -- chunk — this is only ever parsed from sinhala/tamil vision output).
+  -- Shown to the child (e.g. show_page_image's "Page 66") in place of the
+  -- raw page_number when present; internal image lookups always use
+  -- page_number, which is unaffected by this column.
+  printed_page_number int,
+  -- True when printed_page_number was NOT read from this row's own
+  -- transcribed footer, but back-filled by scripts/infer-printed-page-numbers.ts
+  -- from the file's dominant (page_number - printed_page_number) offset —
+  -- a one-time post-processing pass run manually after ingestion, not part
+  -- of ingest-syllabus.ts itself. Lets a real transcription miss be told
+  -- apart from an inferred value later, in case something needs
+  -- re-checking. Always false for a row whose printed_page_number came
+  -- directly from extractPrintedPageNumber.
+  printed_page_number_inferred boolean not null default false,
+  -- Public URL of the real rasterized page image for page_number, stored in
+  -- the "textbook-images" Storage bucket (see below). Populated for every
+  -- sinhala/tamil chunk (every page is uploaded, not just ones with a
+  -- diagram); always null for english chunks (no rasterization happens for
+  -- those — see scripts/ingest-syllabus.ts file header comment).
+  image_url text,
   created_at timestamptz not null default now()
 );
 
-create index if not exists syllabus_chunks_subject_topic_idx
-  on syllabus_chunks (subject, topic);
+create index if not exists syllabus_chunks_subject_idx
+  on syllabus_chunks (subject);
 
--- Once syllabus_chunks.embedding is populated, switch search_syllabus (in
--- src/app/api/tools/search-syllabus/route.ts) to a similarity query, e.g.:
---
--- create or replace function match_syllabus_chunks(
---   query_embedding vector(768),
---   match_subject text,
---   match_count int default 3
--- ) returns setof syllabus_chunks
--- language sql stable as $$
---   select * from syllabus_chunks
---   where subject = match_subject
---   order by embedding <-> query_embedding
---   limit match_count;
--- $$;
+create index if not exists syllabus_chunks_source_reference_idx
+  on syllabus_chunks (source_reference);
+
+-- HNSW over ivfflat: builds incrementally and doesn't need a representative
+-- row count up front to tune list size, which suits a syllabus corpus that
+-- starts small and grows via repeated ingestion runs. vector_cosine_ops
+-- matches the cosine-distance query in match_syllabus_chunks below.
+create index if not exists syllabus_chunks_embedding_idx
+  on syllabus_chunks using hnsw (embedding vector_cosine_ops);
+
+-- Similarity search RPC used by search-syllabus/route.ts via
+-- supabaseAdmin.rpc('match_syllabus_chunks', { query_embedding, ... }).
+-- Subject filtering is case-insensitive exact match; if the model's subject
+-- string doesn't line up with what's stored, pass match_subject as null to
+-- fall back to an unfiltered semantic search. Worksheet-only chunks (null
+-- embedding — see syllabus_chunks.embedding comment above) are excluded:
+-- there's nothing meaningful to match against, and they'd otherwise sort
+-- arbitrarily since `<=>` against a null embedding is null.
+create or replace function match_syllabus_chunks(
+  query_embedding vector(768),
+  match_subject text default null,
+  match_count int default 5
+)
+returns table (
+  id uuid,
+  subject text,
+  grade int,
+  topic text,
+  medium text,
+  content text,
+  source_reference text,
+  page_number int,
+  printed_page_number int,
+  image_url text,
+  similarity float
+)
+language sql stable
+as $$
+  select
+    syllabus_chunks.id,
+    syllabus_chunks.subject,
+    syllabus_chunks.grade,
+    syllabus_chunks.topic,
+    syllabus_chunks.medium,
+    syllabus_chunks.content,
+    syllabus_chunks.source_reference,
+    syllabus_chunks.page_number,
+    syllabus_chunks.printed_page_number,
+    syllabus_chunks.image_url,
+    1 - (syllabus_chunks.embedding <=> query_embedding) as similarity
+  from syllabus_chunks
+  where syllabus_chunks.embedding is not null
+    and (match_subject is null or lower(syllabus_chunks.subject) = lower(match_subject))
+  order by syllabus_chunks.embedding <=> query_embedding
+  limit match_count;
+$$;
+
+-- Distinct (subject, grade, medium) combinations currently ingested. Used
+-- by src/lib/availableSubjects.ts, called once per session before the
+-- ephemeral Gemini token is minted (src/app/api/gemini-session/route.ts) so
+-- the system prompt only ever claims the subject coverage that actually
+-- exists — never more. A plain `select distinct` computed in Postgres
+-- rather than a PostgREST `.select()` deduped in JS, since the latter is
+-- subject to PostgREST's default row cap and could silently miss subjects
+-- once syllabus_chunks grows past it.
+create or replace function available_syllabus_subjects()
+returns table (
+  subject text,
+  grade int,
+  medium text
+)
+language sql stable
+as $$
+  select distinct subject, grade, medium
+  from syllabus_chunks
+  order by subject, grade, medium;
+$$;
+
+-- Public bucket for the real, already-rasterized textbook page images saved
+-- during vision transcription — every sinhala/tamil page, not just ones
+-- with a diagram (see scripts/ingest-syllabus.ts and image_url above).
+-- Public because these are non-sensitive textbook page scans referenced by
+-- public image_url values — the service-role key ingestion uses bypasses
+-- RLS for uploads regardless, and marking the bucket public is what makes
+-- those URLs work for reads from the browser (via show_page_image) without
+-- needing a signing step.
+insert into storage.buckets (id, name, public)
+values ('textbook-images', 'textbook-images', true)
+on conflict (id) do nothing;
 
 create table if not exists child_progress (
   id bigint generated always as identity primary key,
