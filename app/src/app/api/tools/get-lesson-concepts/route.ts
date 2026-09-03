@@ -30,12 +30,10 @@ const VIDEO_SOURCE_TIMESTAMP = /^dp-video:(\d{2}):(\d{2}):(\d{2})$/;
 const TEXTBOOK_SOURCE_STEP = /^textbook:[^:]+:step-(\d+)/;
 
 /**
- * The catch-all bucket populate-content-bank.ts assigns when a problem
- * matches no concept pattern. Not a thing to teach, so it's never offered
- * as one — its rows stay reachable through find_teaching_content if the
- * model asks for that tag by name.
+ * Buckets that are content but not concepts to teach: populate's catch-all,
+ * and the video's opening segment (LESSON_GOALS material).
  */
-const NOT_A_TEACHABLE_CONCEPT = "unclassified";
+const NOT_TEACHABLE = new Set(["unclassified", "lessonOpening"]);
 
 function videoTimestampSeconds(source: string): number | null {
   const match = VIDEO_SOURCE_TIMESTAMP.exec(source);
@@ -88,7 +86,7 @@ export async function POST(request: NextRequest) {
     { explanations: number; problems: number; earliestVideoSeconds: number; earliestTextbookStep: number }
   >();
   for (const row of data ?? []) {
-    if (row.concept_tag === NOT_A_TEACHABLE_CONCEPT) continue;
+    if (NOT_TEACHABLE.has(row.concept_tag)) continue;
     const entry = byConcept.get(row.concept_tag) ?? {
       explanations: 0,
       problems: 0,

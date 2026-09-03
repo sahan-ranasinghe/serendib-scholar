@@ -63,7 +63,36 @@ function boardForItem(item: { id: string; component_type: string; component_prop
  * is told to say so honestly rather than fill the gap itself.
  */
 export async function POST(request: NextRequest) {
-  const { concept_tag, difficulty, exclude_ids } = await request.json();
+  const { concept_tag, difficulty, exclude_ids, item_id } = await request.json();
+
+  // Deterministic staging for the lesson orchestrator: it already chose
+  // which item this beat works through when the script was built (see
+  // buildLessonScript.ts), so it asks for that exact row rather than
+  // re-rolling the random pick below and getting a different one.
+  if (typeof item_id === "string" && item_id.trim()) {
+    const { data, error } = await supabaseAdmin
+      .from("content_bank")
+      .select("id, concept_tag, difficulty, component_type, component_props, answer, explanation, source")
+      .eq("id", item_id)
+      .eq("verified", true)
+      .maybeSingle();
+    if (error) {
+      console.error("[find-teaching-content] Supabase error:", error.message);
+      return NextResponse.json({ ok: false, error: "Lookup failed" }, { status: 500 });
+    }
+    if (!data) {
+      return NextResponse.json({ ok: true, found: false, reason: "No verified item with that id." });
+    }
+    const isExplanation = data.component_type === "explanation";
+    const board = isExplanation ? null : boardForItem(data);
+    return NextResponse.json({
+      ok: true,
+      found: true,
+      ...(isExplanation ? { explanation: data } : { item: data }),
+      ...(board ? { board } : {}),
+      remaining: { problems: 0, explanations: 0 },
+    });
+  }
 
   if (typeof concept_tag !== "string" || !concept_tag.trim()) {
     return NextResponse.json({ ok: false, error: "concept_tag (non-empty string) is required" }, { status: 400 });

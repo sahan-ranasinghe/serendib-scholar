@@ -8,6 +8,14 @@
  * model already has (transcribed text/tables, or a real stored page image)
  * — never anything AI-generated.
  *
+ * What is NOT here is as important as what is. Choosing lesson content,
+ * staging it, filling blanks in and judging answers all used to be tools on
+ * this list; they are now driven by the lesson orchestrator (see
+ * src/lib/lessonOrchestrator.ts), which stages the board itself and then
+ * tells the model what to say about it. What remains is emphasis the model
+ * may reach for mid-sentence — pointing, zooming, marking — plus the
+ * syllabus search and the progress/safety signals.
+ *
  * Kept as plain JSON Schema via `parametersJsonSchema` so the same object can
  * be embedded directly in the ephemeral token's `liveConnectConstraints` on
  * the server, and in the raw WebSocket `setup` message shape on the client.
@@ -24,159 +32,6 @@ export interface GeminiFunctionDeclaration {
 }
 
 export const GEMINI_LIVE_TOOLS: GeminiFunctionDeclaration[] = [
-  {
-    name: "get_lesson_concepts",
-    description:
-      "Lists the concepts a lesson covers, in the order the real recorded lesson taught them, with how much verified material the content bank holds for each (explanations and practice problems). Call this once at the start of a session to see what you're teaching. This is not a checklist and carries no step numbers — it tells you what the lesson is made of, not a sequence of items to get through. Only concepts with verified material are listed, since those are the only ones find_teaching_content can give you anything for.",
-    parametersJsonSchema: {
-      type: "object",
-      properties: {
-        subject: {
-          type: "string",
-          description: 'The subject, e.g. "maths".',
-        },
-        grade: {
-          type: "number",
-          description: "The grade, e.g. 5.",
-        },
-        lesson: {
-          type: "number",
-          description: "Which lesson within that subject and grade, e.g. 1.",
-        },
-      },
-      required: ["subject", "grade", "lesson"],
-    },
-  },
-  {
-    name: "check_answer",
-    description:
-      "Compares the child's spoken answer against the expected answer, deterministically — use this before responding to any answer the child gives on a specific blank/question, instead of judging correctness yourself. Do the underlying arithmetic/place-value reasoning yourself to work out `expected`, then let this tool do the actual comparison (it's normalized against formatting differences like a thousands-separator space). Returns whether it was correct and the expected value, so you can praise or gently guide accordingly.",
-    parametersJsonSchema: {
-      type: "object",
-      properties: {
-        expected: {
-          type: "string",
-          description: "The correct answer, as you've worked it out (a number or Sinhala text).",
-        },
-        given: {
-          type: "string",
-          description: "The child's answer, as they said it.",
-        },
-      },
-      required: ["expected", "given"],
-    },
-  },
-  {
-    name: "submit_blank_answer",
-    description:
-      "Marks one specific blank on the board as answered — call this right after check_answer confirms the child's answer is correct, so the board updates that one cell from a dashed placeholder to a filled, confirmed cell. Never call this for a wrong answer; only once the child has the right answer for that specific blank. Only works while a content bank item with blanks (PlaceValueTable, ExpansionExercise, or SequenceTable) is on the board.",
-    parametersJsonSchema: {
-      type: "object",
-      properties: {
-        item_id: {
-          type: "string",
-          description:
-            "The `id` of the content bank item this blank belongs to — the id find_teaching_content gave you for the item currently on the board.",
-        },
-        row_index: {
-          type: "number",
-          description: "Which row (0-indexed) the blank is in, within that component's rows/questions array.",
-        },
-        field: {
-          type: "string",
-          description:
-            'Which cell within the row — "number"/"numberName" for a numberName-variant PlaceValueTable; "digit"/"place"/"placeValue"/"valueRepresented" for a breakdown-variant PlaceValueTable; "part0", "part1", etc. (0-indexed position within that row\'s `parts` array) for ExpansionExercise; "before"/"number"/"after" for SequenceTable.',
-        },
-        value: {
-          type: "string",
-          description: "The confirmed correct value now filling this blank, exactly as it should display.",
-        },
-      },
-      required: ["item_id", "row_index", "field", "value"],
-    },
-  },
-  {
-    name: "find_teaching_content",
-    description:
-      "Fetches verified teaching material from the content bank, which holds items taken from the real textbook and from recordings of a real teacher teaching this lesson. Use this whenever you need an example: to demonstrate a concept, to give the child something to practise, and especially when they're struggling and need a different or easier item on the same concept. Never make up a problem yourself; ask here instead. The response may include `item` (a problem to work through) and/or `explanation` — the real teacher's own explanation of this concept, including `transcriptExcerpt`, her actual Sinhala words. An explanation is returned while the concept hasn't been taught yet this session; use it to shape your MODE 1 demonstration. Returns found: false when the bank has nothing suitable — say so honestly and work with what it does have.",
-    parametersJsonSchema: {
-      type: "object",
-      properties: {
-        concept_tag: {
-          type: "string",
-          description:
-            "Which concept you need material for — the concept_tag you are teaching, from get_lesson_concepts, e.g. \"placeValueBreakdown\", \"numberExpansion\", \"numberSequence\".",
-        },
-        difficulty: {
-          type: "string",
-          enum: ["intro", "standard", "challenge"],
-          description:
-            'Optional. "intro" for a worked example to demonstrate with, "standard" for normal practice, "challenge" for a harder one. Omit to accept any. Drop to "intro" when a child is struggling.',
-        },
-        exclude_ids: {
-          type: "array",
-          items: { type: "string" },
-          description:
-            "Optional. Ids of items you've already used this session, so you don't repeat the same problem at the child. Pass back the `id` from each item you've been given.",
-        },
-      },
-      required: ["concept_tag"],
-    },
-  },
-  {
-    name: "reveal_answer",
-    description:
-      "Writes the correct value into one blank YOURSELF, while you explain that part — the child does not answer it. Use this when demonstrating: call it for each part as you talk through that specific part, so the child watches the answer being built piece by piece, the way a teacher writes on the board mid-sentence. The value appears in your own colour, so it stays clear which answers you wrote and which the child got. This is NOT for recording a child's answer — that is submit_blank_answer.",
-    parametersJsonSchema: {
-      type: "object",
-      properties: {
-        item_id: {
-          type: "string",
-          description:
-            "The `id` of the content bank item this blank belongs to — the id find_teaching_content gave you for the item currently on the board.",
-        },
-        row_index: {
-          type: "number",
-          description: "Which row (0-indexed) the blank is in, within that component's rows/questions array.",
-        },
-        field: {
-          type: "string",
-          description:
-            'Which cell within the row — same field naming as submit_blank_answer: "number"/"numberName" for a numberName-variant PlaceValueTable; "digit"/"place"/"placeValue"/"valueRepresented" for a breakdown-variant PlaceValueTable; "part0", "part1", etc. for ExpansionExercise; "before"/"number"/"after" for SequenceTable.',
-        },
-        value: {
-          type: "string",
-          description: "The correct value to write into this blank, exactly as it should display.",
-        },
-      },
-      required: ["item_id", "row_index", "field", "value"],
-    },
-  },
-  {
-    name: "set_active_blank",
-    description:
-      "Highlights one specific blank on the board as the one you're currently asking the child about — call this right before (or as) you ask the specific question for that blank, so the board visually distinguishes it from other still-empty blanks. Call it again for the next blank once you move on; no need to clear it manually after a correct answer (submit_blank_answer does that automatically).",
-    parametersJsonSchema: {
-      type: "object",
-      properties: {
-        item_id: {
-          type: "string",
-          description:
-            "The `id` of the content bank item this blank belongs to — the id find_teaching_content gave you for the item currently on the board.",
-        },
-        row_index: {
-          type: "number",
-          description: "Which row (0-indexed) the blank is in, within that component's rows/questions array.",
-        },
-        field: {
-          type: "string",
-          description:
-            'Which cell within the row — same field naming as submit_blank_answer: "number"/"numberName" for a numberName-variant PlaceValueTable; "digit"/"place"/"placeValue"/"valueRepresented" for a breakdown-variant PlaceValueTable; "part0", "part1", etc. for ExpansionExercise; "before"/"number"/"after" for SequenceTable.',
-        },
-      },
-      required: ["item_id", "row_index", "field"],
-    },
-  },
   {
     name: "search_syllabus",
     description:

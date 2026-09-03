@@ -158,6 +158,19 @@ insert into storage.buckets (id, name, public)
 values ('textbook-images', 'textbook-images', true)
 on conflict (id) do nothing;
 
+-- One row per child using the tutor. Created directly in Supabase by the
+-- project owner; recorded here so this file stays the full schema. The
+-- active child is resolved server-side from DEV_CHILD_ID for now (see
+-- src/lib/activeChild.ts) until a real login/onboarding flow replaces it.
+create table if not exists children (
+  id uuid primary key default gen_random_uuid(),
+  display_name text not null,
+  grade int not null,
+  medium text not null,
+  parent_contact text,
+  consent_given_at timestamptz
+);
+
 create table if not exists child_progress (
   id bigint generated always as identity primary key,
   child_id text not null,
@@ -229,3 +242,54 @@ create index if not exists content_bank_subject_grade_concept_idx
 
 create index if not exists content_bank_concept_tag_idx
   on content_bank (concept_tag);
+
+-- The lesson orchestrator's cached beat lists (see src/lib/buildLessonScript.ts).
+-- One row per lesson. `content_fingerprint` is a hash of the verified
+-- content_bank row ids the script was built from, so verifying more rows (or
+-- repopulating the bank) invalidates the cache automatically instead of
+-- serving a lesson that ignores the new material.
+create table if not exists lesson_scripts (
+  id uuid primary key default gen_random_uuid(),
+  subject text not null,
+  grade int not null,
+  lesson int not null,
+  -- The full LessonScript: concepts, each with its ordered beat list.
+  script jsonb not null,
+  content_fingerprint text not null,
+  built_at timestamptz not null default now(),
+  unique (subject, grade, lesson)
+);
+
+-- Every beat the orchestrator ran, for the simulator and the later parent
+-- report (see src/lib/lessonOrchestrator.ts's BeatLogEntry). Append-only:
+-- one row per beat, written as the beat ends.
+create table if not exists session_log (
+  id uuid primary key default gen_random_uuid(),
+  -- Groups one sitting. Generated client-side when a session starts.
+  session_id uuid not null,
+  -- The child this sitting belongs to — resolved server-side (see
+  -- src/lib/activeChild.ts), never client-supplied.
+  child_id uuid not null references children (id),
+  -- Position within the session, so a trace can be replayed in order even
+  -- if two beats share a timestamp.
+  sequence int not null,
+  beat_id text not null,
+  beat_type text not null,
+  concept_tag text,
+  mode int,
+  -- What was on the board when the beat ran (the BoardContent, trimmed).
+  board_state jsonb,
+  -- The exact [DIRECTOR] line sent to the voice model.
+  director_text text,
+  -- Real playback duration of the model's speech for this beat, in ms.
+  output_audio_ms int,
+  child_transcript text,
+  -- { understood, next, reason } from the planner, on ASK beats.
+  planner_decision jsonb,
+  started_at timestamptz not null,
+  ended_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists session_log_session_idx on session_log (session_id, sequence);
+create index if not exists session_log_child_idx on session_log (child_id, created_at desc);

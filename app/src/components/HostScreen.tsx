@@ -14,7 +14,9 @@ const STATUS_COPY: Record<string, string> = {
   error: "Oops, something went wrong.",
 };
 
-export default function HostScreen({ childId = "demo-child" }: { childId?: string }) {
+// Which child is present is resolved server-side (src/lib/activeChild.ts) —
+// no identity ever comes from the client.
+export default function HostScreen() {
   const {
     status,
     error,
@@ -27,7 +29,7 @@ export default function HostScreen({ childId = "demo-child" }: { childId?: strin
     stop,
     notifyManualBoardInteraction,
     submitTypedAnswer,
-  } = useGeminiLive({ childId });
+  } = useGeminiLive();
   const isActive = status === "listening" || status === "connecting";
 
   // idle covers not-yet-started, connecting, and error alike — those are

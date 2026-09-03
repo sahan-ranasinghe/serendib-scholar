@@ -8,6 +8,36 @@ import { DEFAULT_PAGE_IMAGE_VIEW } from "@/lib/board";
 // TEMPORARY PROOF-OF-CONCEPT import — see src/data/lessons/lesson1-numbers.ts's module doc.
 import type { FilledAnswer } from "@/data/lessons/lesson1-numbers";
 import { extractMentionedPageNumbers } from "@/lib/pageReferenceDetection";
+import {
+  advance,
+  beatSpec,
+  buildConfirmBeat,
+  buildDirectorLine,
+  buildFeedbackBeat,
+  buildWaitBeat,
+  conceptSummary,
+  createInitialState,
+  currentBeat as beatAt,
+  isLessonComplete,
+  ASK_SILENCE_TIMEOUT_MS,
+  FRAMING_CONCEPT,
+  type Beat,
+  type DirectorContext,
+  type LessonScript,
+  type OrchestratorState,
+  type PlannerDecision,
+} from "@/lib/lessonOrchestrator";
+import { answersMatch } from "@/lib/answerCheck";
+import {
+  classifyConfirmation,
+  fetchRecapBeats,
+  fetchResumePoint,
+  logBeat,
+  looksLikeAnswerAttempt,
+  recordAnswer,
+  runPlanner,
+  stageBeatBoard,
+} from "@/lib/directorRuntime";
 
 export type SessionStatus =
   | "idle"
@@ -16,9 +46,7 @@ export type SessionStatus =
   | "error";
 
 const TOOL_ENDPOINTS: Record<string, string> = {
-  get_lesson_concepts: "/api/tools/get-lesson-concepts",
   check_answer: "/api/tools/check-answer",
-  find_teaching_content: "/api/tools/find-teaching-content",
   submit_blank_answer: "/api/tools/submit-blank-answer",
   reveal_answer: "/api/tools/reveal-answer",
   set_active_blank: "/api/tools/set-active-blank",
@@ -57,10 +85,6 @@ const TOOL_ENDPOINTS: Record<string, string> = {
 //   on the board (the routes are stateless), so they return a `viewPatch`
 //   that gets merged onto whatever's already displayed.
 const FULL_CONTENT_BOARD_TOOL_NAMES = new Set([
-  // Stages the content bank item it returns — since the 12-step lesson
-  // structure was removed this is the only thing that puts lesson material
-  // on the board (see find-teaching-content/route.ts's boardForItem).
-  "find_teaching_content",
   "search_syllabus",
   "show_page_image",
   "next_page",
@@ -105,7 +129,11 @@ interface ViewPatchToolResponse {
   viewPatch: ViewPatch;
 }
 
-/** One concept a lesson covers, as returned by get_lesson_concepts (see its route). */
+/**
+ * One concept a lesson covers, for the progress bar. Derived from the lesson
+ * script the app fetched (see buildLessonScript.ts) rather than from a tool
+ * response — the model has no say in what the lesson contains any more.
+ */
 export interface LessonConcept {
   concept_tag: string;
   description: string | null;
@@ -113,22 +141,19 @@ export interface LessonConcept {
   problems_available: number;
 }
 
-function readLessonConcepts(response: unknown): LessonConcept[] | null {
-  if (typeof response !== "object" || response === null) return null;
-  const concepts = (response as { concepts?: unknown }).concepts;
-  return Array.isArray(concepts) && concepts.length > 0 ? (concepts as LessonConcept[]) : null;
-}
-
-/**
- * Which concept the material just handed back belongs to — the item and the
- * explanation always carry the same concept_tag (find_teaching_content
- * queries both by it), so either one answers it.
- */
-function readServedConceptTag(response: unknown): string | null {
-  if (typeof response !== "object" || response === null) return null;
-  const served = (response as { item?: { concept_tag?: unknown }; explanation?: { concept_tag?: unknown } });
-  const tag = served.item?.concept_tag ?? served.explanation?.concept_tag;
-  return typeof tag === "string" ? tag : null;
+function conceptsFromScript(script: LessonScript): LessonConcept[] {
+  return script.concepts.map((summary) => {
+    const beats = script.beats
+      .slice(summary.firstBeat, summary.lastBeat + 1)
+      .filter((beat) => beat.conceptTag === summary.conceptTag);
+    return {
+      concept_tag: summary.conceptTag,
+      description: summary.description,
+      explanations_available: beats.filter((beat) => beat.type === "EXPLAIN").length,
+      problems_available: new Set(beats.filter((beat) => beat.itemId && beat.type === "SHOW_BOARD").map((b) => b.itemId))
+        .size,
+    };
+  });
 }
 
 /** The shape of one search_syllabus result relevant to board tracking (see search-syllabus/route.ts). */
@@ -223,16 +248,18 @@ function applyViewPatch(current: BoardContent | null, patch: ViewPatch): BoardCo
   return current;
 }
 
-async function executeToolCall(call: FunctionCall, childId: string) {
+async function executeToolCall(call: FunctionCall) {
   const endpoint = call.name ? TOOL_ENDPOINTS[call.name] : undefined;
   if (!endpoint) {
     return { error: `Unknown tool: ${call.name}` };
   }
   try {
+    // No child id in the body: any route that needs the active child
+    // resolves it server-side (see src/lib/activeChild.ts).
     const res = await fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...call.args, child_id: childId }),
+      body: JSON.stringify(call.args ?? {}),
     });
     return await res.json();
   } catch (error) {
@@ -242,11 +269,23 @@ async function executeToolCall(call: FunctionCall, childId: string) {
 }
 
 export interface UseGeminiLiveOptions {
-  /** Identifies whose progress/safety events get logged. */
-  childId: string;
+  /** Which lesson the orchestrator should run. */
+  subject?: string;
+  grade?: number;
+  lesson?: number;
 }
 
-export function useGeminiLive({ childId }: UseGeminiLiveOptions) {
+/** How long to let a child react to a non-question beat before moving on. */
+const PAUSE_BEAT_GRACE_MS = 2000;
+
+/** 24kHz mono PCM16 — 48 bytes per millisecond of audio. */
+const PCM_BYTES_PER_MS = 48;
+
+export function useGeminiLive({
+  subject = "maths",
+  grade = 5,
+  lesson = 1,
+}: UseGeminiLiveOptions = {}) {
   const [status, setStatus] = useState<SessionStatus>("idle");
   const [error, setError] = useState<string | null>(null);
   const [outputTranscript, setOutputTranscript] = useState("");
@@ -258,17 +297,46 @@ export function useGeminiLive({ childId }: UseGeminiLiveOptions) {
   // "talking" visual state (see CharacterState.tsx).
   const [isAiTalking, setIsAiTalking] = useState(false);
   // What the lesson covers and where in it we are, for the always-visible
-  // progress bar (LessonProgress.tsx). Concepts come from the model's
-  // opening get_lesson_concepts call; the current one follows whatever
-  // find_teaching_content last served material for. Both deliberately
-  // persist even if the board later shows something else (e.g. briefly
-  // cleared), rather than disappearing and reappearing.
+  // progress bar (LessonProgress.tsx). Both come from the orchestrator now:
+  // the concept list from the fetched lesson script, the current concept
+  // from orchestrator state.
   //
   // Note this tracks which concept is being taught, NOT how many are
-  // "done" — a concept is finished when the child can do it, which the UI
-  // has no way to know and shouldn't pretend to.
+  // "done" — a concept is finished when the child answers two unaided, and
+  // the orchestrator (not the bar) is what knows that.
   const [lessonConcepts, setLessonConcepts] = useState<LessonConcept[]>([]);
   const [currentConceptTag, setCurrentConceptTag] = useState<string | null>(null);
+
+  // --- Lesson orchestrator -------------------------------------------
+  // The teacher's brain (see lessonOrchestrator.ts). Refs rather than
+  // state because every one of these is read and written inside WebSocket
+  // handlers that fire outside React's render cycle; the only pieces
+  // mirrored into state are the ones the UI actually draws.
+  const scriptRef = useRef<LessonScript | null>(null);
+  const orchStateRef = useRef<OrchestratorState>(createInitialState());
+  const activeBeatRef = useRef<Beat | null>(null);
+  /** False for beats the orchestrator inserted live (WAIT, FEEDBACK) rather than ones from the script. */
+  const activeBeatScriptedRef = useRef(true);
+  /** Beats to speak before returning to the script — feedback on an answer, and nothing else so far. */
+  const pendingBeatsRef = useRef<Beat[]>([]);
+  /** Set while an interjection (a WAIT check-in) is speaking: the ASK to return to afterwards. */
+  const interjectionReturnRef = useRef<Beat | null>(null);
+  /** "speaking" = the model is delivering a beat; "awaiting_child" = the beat is delivered and it's the child's turn. */
+  const phaseRef = useRef<"idle" | "speaking" | "awaiting_child">("idle");
+  const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const childTranscriptForBeatRef = useRef("");
+  const beatStartedAtRef = useRef<string>(new Date().toISOString());
+  const beatAudioBytesRef = useRef(0);
+  const beatSequenceRef = useRef(0);
+  const sessionIdRef = useRef<string>("");
+  /** One check-in per ASK — a child who stays quiet twice needs a different beat, not another nudge. */
+  const waitIssuedForBeatRef = useRef<string | null>(null);
+  /** A doubtful number hearing awaiting the child's yes/no (see buildConfirmBeat). */
+  const confirmPendingRef = useRef<{ askBeatId: string; heard: string } | null>(null);
+  /** When the current chat beat's free-conversation window closes. */
+  const chatDeadlineRef = useRef(0);
+  /** What actually happened this sitting — feeds CLOSE_SESSION's director context. */
+  const sessionStatsRef = useRef({ concepts: new Set<string>(), correct: 0, asked: 0 });
 
   const clientRef = useRef<GeminiLiveClient | null>(null);
   const playerRef = useRef<PcmPlayer | null>(null);
@@ -312,6 +380,14 @@ export function useGeminiLive({ childId }: UseGeminiLiveOptions) {
   const childInteractedManuallyRef = useRef(false);
 
   const stop = useCallback(() => {
+    if (silenceTimerRef.current) {
+      clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = null;
+    }
+    phaseRef.current = "idle";
+    activeBeatRef.current = null;
+    pendingBeatsRef.current = [];
+    interjectionReturnRef.current = null;
     recorderRef.current?.stop();
     recorderRef.current = null;
     streamRef.current?.getTracks().forEach((track) => track.stop());
@@ -334,13 +410,16 @@ export function useGeminiLive({ childId }: UseGeminiLiveOptions) {
     childInteractedManuallyRef.current = true;
   }, []);
 
-  // TEMPORARY PROOF-OF-CONCEPT — lets the child type/tap an answer on the
-  // board (see AnswerCell in LessonComponents.tsx) instead of speaking it.
-  // Sent as a real text turn (GeminiLiveClient.sendTextInput), so the model
-  // receives and reacts to it exactly as it would a transcribed spoken
-  // answer — same check_answer/submit_blank_answer flow, no separate code
-  // path. See src/data/lessons/lesson1-numbers.ts's module doc.
+  // Lets the child type/tap an answer on the board (see AnswerCell in
+  // LessonComponents.tsx) instead of speaking it. Recorded as this beat's
+  // child transcript so the planner judges it exactly like a spoken answer,
+  // and also sent to the model so it can react in the conversation.
   const submitTypedAnswer = useCallback((text: string) => {
+    childTranscriptForBeatRef.current += (childTranscriptForBeatRef.current ? " " : "") + text;
+    if (silenceTimerRef.current) {
+      clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = null;
+    }
     clientRef.current?.sendTextInput(text);
   }, []);
 
@@ -359,8 +438,66 @@ export function useGeminiLive({ childId }: UseGeminiLiveOptions) {
     setIsAiTalking(false);
     setLessonConcepts([]);
     setCurrentConceptTag(null);
+    scriptRef.current = null;
+    orchStateRef.current = createInitialState();
+    activeBeatRef.current = null;
+    activeBeatScriptedRef.current = true;
+    pendingBeatsRef.current = [];
+    interjectionReturnRef.current = null;
+    phaseRef.current = "idle";
+    childTranscriptForBeatRef.current = "";
+    beatAudioBytesRef.current = 0;
+    beatSequenceRef.current = 0;
+    waitIssuedForBeatRef.current = null;
+    confirmPendingRef.current = null;
+    chatDeadlineRef.current = 0;
+    sessionStatsRef.current = { concepts: new Set<string>(), correct: 0, asked: 0 };
+    sessionIdRef.current = crypto.randomUUID();
+    if (silenceTimerRef.current) {
+      clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = null;
+    }
 
     try {
+      // The lesson plan is fetched before the socket opens: without a
+      // script there is nothing to direct, and starting a voice session
+      // that then has nothing to say is worse than failing here.
+      const scriptRes = await fetch("/api/lesson-script", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subject, grade, lesson }),
+      });
+      const scriptJson = await scriptRes.json();
+      if (scriptJson?.ok && scriptJson.found) {
+        scriptRef.current = scriptJson.script as LessonScript;
+        setLessonConcepts(conceptsFromScript(scriptRef.current));
+      } else {
+        throw new Error("No lesson is ready to teach yet.");
+      }
+
+      // Resume where this child left off: their last logged beat anchors
+      // the position; an id the current script no longer contains falls
+      // back to the start (re-teaching is cheap, skipping is not).
+      const script = scriptRef.current;
+      const resume = await fetchResumePoint();
+      let startIndex = 0;
+      if (resume.lastBeatId) {
+        const lastIndex = script.beats.findIndex((beat) => beat.id === resume.lastBeatId);
+        if (lastIndex !== -1) startIndex = Math.min(lastIndex + 1, script.beats.length);
+      }
+      orchStateRef.current = createInitialState(startIndex);
+
+      // Landing in the middle of a concept means it was left unfinished —
+      // review it before continuing (spec: unfinished concepts get a RECAP
+      // first).
+      const landing = script.beats[startIndex];
+      if (landing && landing.conceptTag !== FRAMING_CONCEPT) {
+        const summary = conceptSummary(script, landing.conceptTag);
+        if (summary && startIndex > summary.firstBeat) {
+          pendingBeatsRef.current.push(...(await fetchRecapBeats({ conceptTags: [landing.conceptTag] })));
+        }
+      }
+
       const sessionRes = await fetch("/api/gemini-session", { method: "POST" });
       if (!sessionRes.ok) {
         throw new Error("Could not start a study session. Please try again.");
@@ -424,10 +561,10 @@ export function useGeminiLive({ childId }: UseGeminiLiveOptions) {
 
           if (!canAutoStage || !passage) continue;
           pendingAutoStagePagesRef.current.add(page);
-          executeToolCall(
-            { name: "show_page_image", args: { source_reference: passage.sourceReference, page_number: page } },
-            childId,
-          )
+          executeToolCall({
+            name: "show_page_image",
+            args: { source_reference: passage.sourceReference, page_number: page },
+          })
             .then((response) => {
               if (isBoardToolResponse(response)) {
                 boardContentRef.current = response.board;
@@ -439,6 +576,260 @@ export function useGeminiLive({ childId }: UseGeminiLiveOptions) {
         }
       }
 
+      // ---- The director loop ------------------------------------------
+      //
+      // One beat at a time: stage the board, hand the model a single
+      // instruction with a sentence budget, let it speak, then decide what
+      // happens next in code. The model never chooses what comes next, and
+      // never sees more of the lesson than the beat it is currently
+      // speaking — which is exactly why it can no longer race ahead.
+
+      const clearBeatTimers = () => {
+        if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+        silenceTimerRef.current = null;
+      };
+
+      /** Runtime context for director lines that reference what actually happened (CLOSE_SESSION). */
+      const directorContext = (): DirectorContext => ({
+        sessionSummary: {
+          conceptsWorked: [...sessionStatsRef.current.concepts],
+          correctAnswers: sessionStatsRef.current.correct,
+          totalAsked: sessionStatsRef.current.asked,
+        },
+      });
+
+      const finishBeatLog = async (beat: Beat, decision: PlannerDecision | null) => {
+        beatSequenceRef.current += 1;
+        await logBeat({
+          sessionId: sessionIdRef.current,
+          sequence: beatSequenceRef.current,
+          beat,
+          directorText: buildDirectorLine(beat, directorContext()),
+          boardState: boardContentRef.current,
+          childTranscript: childTranscriptForBeatRef.current.trim() || null,
+          plannerDecision: decision,
+          outputAudioMs: Math.round(beatAudioBytesRef.current / PCM_BYTES_PER_MS),
+          startedAt: beatStartedAtRef.current,
+          endedAt: new Date().toISOString(),
+        });
+      };
+
+      const runBeat = async (beat: Beat, options: { scripted: boolean; returnTo?: Beat | null }) => {
+        clearBeatTimers();
+        activeBeatRef.current = beat;
+        activeBeatScriptedRef.current = options.scripted;
+        interjectionReturnRef.current = options.returnTo ?? null;
+        childTranscriptForBeatRef.current = "";
+        beatStartedAtRef.current = new Date().toISOString();
+        beatAudioBytesRef.current = 0;
+        if (beat.conceptTag !== FRAMING_CONCEPT) setCurrentConceptTag(beat.conceptTag);
+        // A new sitting starts at its opener — the close should describe
+        // this sitting, not everything ever.
+        if (beat.type === "CHAT_OPENER") {
+          sessionStatsRef.current = { concepts: new Set<string>(), correct: 0, asked: 0 };
+        }
+
+        // Board FIRST, then the words about it — the ordering is the whole
+        // reason board and narration can no longer drift apart. The action
+        // comes from the beat-type registry (default: the beat's own).
+        try {
+          const staged = await stageBeatBoard(beatSpec(beat.type).boardAction(beat));
+          if (staged.board) {
+            boardContentRef.current = staged.board;
+            setBoardContent(staged.board);
+            childInteractedManuallyRef.current = false;
+          } else if (staged.viewPatch) {
+            const patched = applyViewPatch(boardContentRef.current, staged.viewPatch as ViewPatch);
+            boardContentRef.current = patched;
+            setBoardContent(patched);
+          }
+        } catch (err) {
+          console.error("[useGeminiLive] Board staging failed for beat", beat.id, err);
+        }
+
+        phaseRef.current = "speaking";
+        clientRef.current?.sendTextInput(buildDirectorLine(beat, directorContext()));
+      };
+
+      const runNextBeat = async () => {
+        const queued = pendingBeatsRef.current.shift();
+        if (queued) {
+          await runBeat(queued, { scripted: false });
+          return;
+        }
+        const script = scriptRef.current;
+        if (!script) return;
+        if (isLessonComplete(script, orchStateRef.current)) {
+          phaseRef.current = "idle";
+          activeBeatRef.current = null;
+          return;
+        }
+        const next = beatAt(script, orchStateRef.current);
+        if (!next) {
+          phaseRef.current = "idle";
+          activeBeatRef.current = null;
+          return;
+        }
+        await runBeat(next, { scripted: true });
+      };
+
+      const concludeBeat = async () => {
+        const beat = activeBeatRef.current;
+        const script = scriptRef.current;
+        if (!beat || !script) return;
+
+        const said = childTranscriptForBeatRef.current.trim();
+        const scripted = activeBeatScriptedRef.current;
+        const handling = beatSpec(beat.type).onChildResponse;
+        let decision: PlannerDecision | null = null;
+
+        // A CONFIRM just resolved: the child answered "did you say X?"
+        const pendingConfirm = confirmPendingRef.current;
+        if (pendingConfirm && pendingConfirm.askBeatId === beat.id && said) {
+          const verdict = classifyConfirmation(said);
+          confirmPendingRef.current = null;
+          if (verdict === "yes") {
+            const correct = beat.expectedAnswer !== undefined && answersMatch(beat.expectedAnswer, pendingConfirm.heard);
+            decision = {
+              understood: correct,
+              next: correct ? "advance" : "another_example",
+              reason: `Child confirmed saying "${pendingConfirm.heard}".`,
+            };
+          } else if (verdict === "no") {
+            // Misheard entirely — ask the question again, judging nothing.
+            await finishBeatLog(beat, null);
+            await runBeat(beat, { scripted });
+            return;
+          }
+          // "other": usually a restated answer — falls through to a fresh judging.
+        }
+
+        if (!decision && handling === "judge" && said) {
+          if (!looksLikeAnswerAttempt(beat, said)) {
+            // A tangent is not a wrong answer. The model already responded
+            // to it naturally; put the question back.
+            await finishBeatLog(beat, null);
+            await runBeat(beat, { scripted });
+            return;
+          }
+          decision = await runPlanner(beat, said);
+          if (decision.ambiguousNumber && beat.expectedAnswer !== undefined) {
+            // Doubtful hearing: never judged wrong — confirmed first.
+            confirmPendingRef.current = { askBeatId: beat.id, heard: decision.ambiguousNumber };
+            await runBeat(buildConfirmBeat(beat, decision.ambiguousNumber), { scripted: false, returnTo: beat });
+            return;
+          }
+        }
+
+        if (decision) {
+          sessionStatsRef.current.asked += 1;
+          if (decision.understood) sessionStatsRef.current.correct += 1;
+          if (beat.conceptTag !== FRAMING_CONCEPT) sessionStatsRef.current.concepts.add(beat.conceptTag);
+          // Mastery data for next session's RECAP.
+          void recordAnswer(beat, decision.understood);
+          pendingBeatsRef.current.push(buildFeedbackBeat(beat, decision.understood, beat.expectedAnswer));
+        }
+
+        await finishBeatLog(beat, decision);
+
+        // Runtime-inserted beats (WAIT, FEEDBACK, CONFIRM, recap questions)
+        // never move the script position.
+        if (!scripted) {
+          await runNextBeat();
+          return;
+        }
+
+        // A scripted RECAP is a placeholder — expand it into real review
+        // questions picked from this child's progress.
+        if (beat.type === "RECAP") {
+          pendingBeatsRef.current.push(...(await fetchRecapBeats({ excludeSessionId: sessionIdRef.current })));
+        }
+
+        const result = advance(script, orchStateRef.current, decision);
+        orchStateRef.current = result.state;
+
+        if (beat.type === "CLOSE_SESSION") {
+          // The sitting is over. State already points at the next session's
+          // opener, and session_log's last row is this close — so the next
+          // visit resumes exactly there.
+          stop();
+          return;
+        }
+        await runNextBeat();
+      };
+
+      const handleModelTurnComplete = () => {
+        const beat = activeBeatRef.current;
+        if (!beat) return;
+        const handling = beatSpec(beat.type).onChildResponse;
+
+        if (phaseRef.current === "speaking") {
+          // The model has finished delivering this beat.
+          const returnTo = interjectionReturnRef.current;
+          if (returnTo) {
+            // A check-in or confirm just spoke; hand the turn back to the
+            // child on the original question.
+            interjectionReturnRef.current = null;
+            activeBeatRef.current = returnTo;
+            activeBeatScriptedRef.current = true;
+            phaseRef.current = "awaiting_child";
+            silenceTimerRef.current = setTimeout(() => {
+              if (phaseRef.current === "awaiting_child") void concludeBeat();
+            }, ASK_SILENCE_TIMEOUT_MS);
+            return;
+          }
+          phaseRef.current = "awaiting_child";
+
+          if (handling === "chat") {
+            // Free conversation until the beat's time is spent (or the
+            // child goes quiet) — then the lesson continues.
+            chatDeadlineRef.current = Date.now() + beatSpec(beat.type).estimateSeconds * 1000;
+            silenceTimerRef.current = setTimeout(() => {
+              if (phaseRef.current === "awaiting_child") void concludeBeat();
+            }, ASK_SILENCE_TIMEOUT_MS);
+            return;
+          }
+
+          if (beat.endBy === "asking") {
+            silenceTimerRef.current = setTimeout(() => {
+              const asked = activeBeatRef.current;
+              if (!asked || phaseRef.current !== "awaiting_child") return;
+              if (handling !== "judge") {
+                // A check-in question nobody answered — just carry on.
+                void concludeBeat();
+                return;
+              }
+              if (waitIssuedForBeatRef.current === asked.id) {
+                // Already nudged once; let the planner route to something easier.
+                void concludeBeat();
+                return;
+              }
+              waitIssuedForBeatRef.current = asked.id;
+              void runBeat(buildWaitBeat(asked), { scripted: false, returnTo: asked });
+            }, ASK_SILENCE_TIMEOUT_MS);
+          } else {
+            // Nothing was asked, so nothing is owed — a short pause, then on.
+            silenceTimerRef.current = setTimeout(() => {
+              if (phaseRef.current === "awaiting_child") void concludeBeat();
+            }, PAUSE_BEAT_GRACE_MS);
+          }
+          return;
+        }
+
+        if (phaseRef.current === "awaiting_child") {
+          // The model has just replied to something the child said.
+          clearBeatTimers();
+          if (handling === "chat" && Date.now() < chatDeadlineRef.current) {
+            // Still inside the chat window — keep the conversation going.
+            silenceTimerRef.current = setTimeout(() => {
+              if (phaseRef.current === "awaiting_child") void concludeBeat();
+            }, ASK_SILENCE_TIMEOUT_MS);
+            return;
+          }
+          void concludeBeat();
+        }
+      };
+
       const client = new GeminiLiveClient({
         onReady: async () => {
           setStatus("listening");
@@ -446,10 +837,27 @@ export function useGeminiLive({ childId }: UseGeminiLiveOptions) {
             client.sendAudioChunk(chunk);
           });
           recorderRef.current = recorder;
+          // The lesson starts itself. Nothing waits on the child to ask —
+          // a teacher who has planned a lesson opens it.
+          if (scriptRef.current) void runNextBeat();
         },
-        onAudioChunk: (chunk) => player.enqueue(chunk),
+        onAudioChunk: (chunk) => {
+          player.enqueue(chunk);
+          // Base64 -> bytes -> milliseconds of speech, for the session log's
+          // record of how long the model actually talked for on this beat.
+          beatAudioBytesRef.current += Math.floor((chunk.length * 3) / 4);
+        },
         onInterrupted: () => player.clear(),
-        onInputTranscript: (text) => setInputTranscript((prev) => prev + text),
+        onInputTranscript: (text) => {
+          setInputTranscript((prev) => prev + text);
+          // The child is talking: they are not silent, so cancel the
+          // check-in timer and collect what they say for the planner.
+          childTranscriptForBeatRef.current += text;
+          if (silenceTimerRef.current) {
+            clearTimeout(silenceTimerRef.current);
+            silenceTimerRef.current = null;
+          }
+        },
         onOutputTranscript: (text) => {
           setOutputTranscript((prev) => prev + text);
           outputTranscriptForTurnRef.current += text;
@@ -462,6 +870,7 @@ export function useGeminiLive({ childId }: UseGeminiLiveOptions) {
           pageNavigationCalledThisTurnRef.current = false;
           warnedPagesThisTurnRef.current.clear();
           pendingAutoStagePagesRef.current.clear();
+          handleModelTurnComplete();
         },
         onToolCall: async (calls) => {
           // next_page/previous_page are declared with no parameters (the
@@ -490,25 +899,13 @@ export function useGeminiLive({ childId }: UseGeminiLiveOptions) {
           const executed = await Promise.all(
             augmentedCalls.map(async (call) => ({
               call,
-              response: await executeToolCall(call, childId),
+              response: await executeToolCall(call),
             })),
           );
 
           for (const { call } of executed) {
             if (call.name && PAGE_NAVIGATION_TOOL_NAMES.has(call.name)) {
               pageNavigationCalledThisTurnRef.current = true;
-            }
-          }
-          // Lesson progress (LessonProgress.tsx) rides along on the two
-          // tools that already carry the information, rather than the UI
-          // fetching the lesson's shape separately.
-          for (const { call, response } of executed) {
-            if (call.name === "get_lesson_concepts") {
-              const concepts = readLessonConcepts(response);
-              if (concepts) setLessonConcepts(concepts);
-            } else if (call.name === "find_teaching_content") {
-              const tag = readServedConceptTag(response);
-              if (tag) setCurrentConceptTag(tag);
             }
           }
           for (const { call, response } of executed) {
@@ -611,7 +1008,7 @@ export function useGeminiLive({ childId }: UseGeminiLiveOptions) {
       stop();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [childId, stop]);
+  }, [stop, subject, grade, lesson]);
 
   useEffect(() => stop, [stop]);
 

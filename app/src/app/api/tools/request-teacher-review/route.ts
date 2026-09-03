@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseClient";
+import { getActiveChildId } from "@/lib/activeChild";
 
 /**
  * Executes the model's request_teacher_review tool call — flags the session
@@ -7,17 +8,18 @@ import { supabaseAdmin } from "@/lib/supabaseClient";
  * conversation; it's a fire-and-forget safety signal.
  */
 export async function POST(request: NextRequest) {
-  const { child_id, reason } = await request.json();
+  const { reason } = await request.json();
 
-  if (!child_id || !reason) {
+  if (!reason) {
     return NextResponse.json(
-      { error: "child_id and reason are required" },
+      { error: "reason is required" },
       { status: 400 },
     );
   }
 
   const { error } = await supabaseAdmin.from("teacher_review_flags").insert({
-    child_id,
+    // See activeChild.ts — identity is resolved server-side, never client-supplied.
+    child_id: getActiveChildId(),
     reason,
   });
 

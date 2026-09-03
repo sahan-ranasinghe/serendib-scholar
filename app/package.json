@@ -13,7 +13,9 @@
     "extract:teaching-style": "node --env-file=.env.local ./node_modules/.bin/tsx scripts/extract-teaching-style.ts",
     "test:ingest": "tsx --test scripts/ingest-syllabus.test.ts",
     "test:page-reference": "tsx --test src/lib/pageReferenceDetection.test.ts",
-    "infer:printed-page-numbers": "tsx scripts/infer-printed-page-numbers.ts"
+    "infer:printed-page-numbers": "tsx scripts/infer-printed-page-numbers.ts",
+    "dry-run:lesson": "node --env-file=.env.local ./node_modules/.bin/tsx scripts/dry-run-lesson.ts",
+    "test:orchestrator": "tsx --test src/lib/lessonOrchestrator.test.ts"
   },
   "dependencies": {
     "@google/genai": "^2.19.0",
