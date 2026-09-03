@@ -293,3 +293,14 @@ create table if not exists session_log (
 
 create index if not exists session_log_session_idx on session_log (session_id, sequence);
 create index if not exists session_log_child_idx on session_log (child_id, created_at desc);
+
+-- What we know about each child outside the maths: interests gleaned from
+-- chat (see /api/extract-interest), which opener topics were used recently
+-- (so CHAT_OPENER never repeats the last three — stored newest-first as a
+-- comma-separated list of opener ids), and free-form notes.
+create table if not exists child_profile (
+  child_id uuid primary key references children (id),
+  interests jsonb not null default '[]'::jsonb,
+  last_opener_topic text,
+  notes text
+);

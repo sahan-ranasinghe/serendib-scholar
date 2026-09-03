@@ -27,13 +27,15 @@ const SCRIPT_FORMAT_VERSION = "2";
  * builder's output shape invalidates it automatically rather than silently
  * serving a stale lesson.
  */
-export function fingerprintRows(rows: { id: string }[], overrideJson = ""): string {
+export function fingerprintRows(rows: { id: string; component_type?: string }[], overrideJson = ""): string {
   const hash = createHash("sha256");
   hash.update(`format:${SCRIPT_FORMAT_VERSION};`);
   // The override file shapes the script just as much as the rows do —
   // editing it must invalidate the cache, not require deleting the row.
   hash.update(`override:${overrideJson};`);
-  for (const id of rows.map((row) => row.id).sort()) hash.update(id);
+  // id + component_type, so a migration that restructures rows in place
+  // (see scripts/migrate-content-bank-visuals.ts) also invalidates.
+  for (const key of rows.map((row) => `${row.id}:${row.component_type ?? ""}`).sort()) hash.update(key);
   return hash.digest("hex").slice(0, 32);
 }
 
@@ -85,7 +87,10 @@ export async function buildLessonScript(
 
   const descriptions = await conceptDescriptions();
   const blueprintOverride = parseBlueprintOverride(overrideJson);
-  const script = buildScriptFromRows(rows, descriptions, normalizedSubject, grade, lesson, { blueprintOverride });
+  const script = buildScriptFromRows(rows, descriptions, normalizedSubject, grade, lesson, {
+    blueprintOverride,
+    lessonTitle: await lessonTitle(),
+  });
 
   const { error: upsertError } = await supabaseAdmin.from("lesson_scripts").upsert(
     {
@@ -113,6 +118,11 @@ export async function buildLessonScript(
  * Imported lazily so this server module doesn't pull the lesson data into
  * every bundle that touches the orchestrator types.
  */
+async function lessonTitle(): Promise<string> {
+  const { LESSON_1_NUMBERS_TITLE } = await import("@/data/lessons/lesson1-numbers");
+  return LESSON_1_NUMBERS_TITLE;
+}
+
 async function conceptDescriptions(): Promise<Map<string, string>> {
   const { LESSON_1_NUMBERS_STEPS } = await import("@/data/lessons/lesson1-numbers");
   return new Map(LESSON_1_NUMBERS_STEPS.map((step) => [step.conceptTag, step.conceptDescription]));

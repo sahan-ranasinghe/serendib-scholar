@@ -113,6 +113,13 @@ function BoardContentView({
       return <ExerciseView questionText={content.questionText} subparts={content.subparts} />;
     case "vocabulary_card":
       return <VocabularyCardView word={content.word} meaning={content.meaning} language={content.language} />;
+    case "title_card":
+      return (
+        <div className="flex min-h-[16rem] flex-col items-center justify-center gap-4 rounded-2xl bg-gradient-to-br from-amber-100 to-orange-100 p-8 text-center">
+          {content.emoji && <span className="text-6xl">{content.emoji}</span>}
+          <span className="text-3xl font-bold text-orange-900">{content.title}</span>
+        </div>
+      );
     // One content bank item (see find-teaching-content/route.ts).
     case "lesson_content":
       return (

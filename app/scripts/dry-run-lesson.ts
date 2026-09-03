@@ -18,9 +18,10 @@
  */
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+import assert from "node:assert/strict";
 import { supabaseAdmin } from "../src/lib/supabaseAdmin";
 import { buildScriptFromRows, type BankRow } from "../src/lib/lessonScriptBuilder";
-import { LESSON_1_NUMBERS_STEPS } from "../src/data/lessons/lesson1-numbers";
+import { LESSON_1_NUMBERS_STEPS, LESSON_1_NUMBERS_TITLE } from "../src/data/lessons/lesson1-numbers";
 import {
   advance,
   beatSpec,
@@ -82,6 +83,8 @@ function describeBoardAction(beat: Beat): string {
       return `write "${beat.board.value}" into row ${beat.board.rowIndex} ${beat.board.field}`;
     case "set_active_blank":
       return `highlight row ${beat.board.rowIndex} ${beat.board.field}`;
+    case "title_card":
+      return `title card "${`${beat.board.emoji ?? ""} ${beat.board.title}`.trim()}"`;
     case "none":
       return "unchanged";
   }
@@ -274,12 +277,86 @@ async function main() {
 
   const descriptions = new Map(LESSON_1_NUMBERS_STEPS.map((step) => [step.conceptTag, step.conceptDescription]));
   const blueprintOverride = await loadOverride("maths", 5, 1);
-  const script = buildScriptFromRows(rows, descriptions, "maths", 5, 1, { blueprintOverride });
+  const script = buildScriptFromRows(rows, descriptions, "maths", 5, 1, { blueprintOverride, lessonTitle: LESSON_1_NUMBERS_TITLE });
 
   printSessionPlan(script);
   printBlueprint(script);
   printSessionBeats(script, SESSION);
   dryRun(script, script.sessions[SESSION]?.firstBeat ?? 0);
+  await runAssertions(script, rows);
+}
+
+/**
+ * Structural invariants, checked on every dry run so regressions announce
+ * themselves here instead of in a live session with a child.
+ */
+async function runAssertions(script: LessonScript, rows: (BankRow & { verified: boolean })[]): Promise<void> {
+  console.log(`\n${"=".repeat(78)}`);
+  console.log("ASSERTIONS");
+  console.log("=".repeat(78));
+
+  // 1. Every non-chat beat runs against a non-empty board: it either
+  //    stages something (item, cell patch, title card) or inherits content
+  //    staged earlier in the same session. Sessions start empty.
+  let sessionIndex = -1;
+  let boardHasContent = false;
+  for (const beat of script.beats) {
+    if (beat.sessionIndex !== sessionIndex) {
+      sessionIndex = beat.sessionIndex;
+      boardHasContent = false;
+    }
+    if (beat.board.kind === "stage_item" || beat.board.kind === "title_card") boardHasContent = true;
+    const isChat = beat.type === "CHAT_OPENER" || beat.type === "BREAK_CHAT";
+    if (!isChat) {
+      assert.ok(
+        boardHasContent,
+        `beat ${beat.id} (${beat.type}) would run against an EMPTY board — every non-chat beat needs a visual`,
+      );
+    }
+  }
+  console.log("  PASS  every non-chat beat has board content (staged or inherited within its session)");
+
+  // 2. Concept 1's first SHOW_BOARD stages a real abacus with real digits.
+  const firstConcept = script.concepts[0];
+  const firstShow = script.beats
+    .slice(firstConcept.firstBeat, firstConcept.lastBeat + 1)
+    .find((beat) => beat.type === "SHOW_BOARD");
+  assert.ok(firstShow && firstShow.board.kind === "stage_item", "concept 1 has a SHOW_BOARD staging an item");
+  const stagedRow = rows.find((row) => firstShow.board.kind === "stage_item" && row.id === firstShow.board.itemId);
+  assert.ok(stagedRow, "the staged item exists in content_bank");
+  assert.equal(
+    stagedRow!.component_type,
+    "AbacusDiagram",
+    `concept 1's first SHOW_BOARD must stage an AbacusDiagram (got ${stagedRow!.component_type})`,
+  );
+  const digits = (stagedRow!.component_props as { digits?: unknown }).digits;
+  assert.ok(
+    Array.isArray(digits) && digits.length >= 3 && digits.every((d) => typeof d === "number"),
+    "the staged abacus has a real digits array",
+  );
+  console.log(
+    `  PASS  concept 1's first SHOW_BOARD stages AbacusDiagram with digits [${(digits as number[]).join(", ")}]`,
+  );
+
+  // 3. The director channel never touches the caption path: director text
+  //    goes out only as a next_beat tool result — the runtime must contain
+  //    no clientContent send of it, and the caption renders only model
+  //    output transcription.
+  await assertDirectorChannel();
+}
+
+async function assertDirectorChannel(): Promise<void> {
+  const hook = await readFile(path.join(process.cwd(), "src/hooks/useGeminiLive.ts"), "utf8");
+  assert.ok(
+    !/sendTextInput\([^)]*buildDirectorLine/.test(hook),
+    "useGeminiLive must never send director text as clientContent",
+  );
+  assert.ok(/handleNextBeat/.test(hook) && /call\.name === "next_beat"/.test(hook), "director text flows via the next_beat tool result");
+  const host = await readFile(path.join(process.cwd(), "src/components/HostScreen.tsx"), "utf8");
+  assert.ok(/\{outputTranscript\}/.test(host), "the caption renders outputTranscript");
+  assert.ok(!/\{inputTranscript\}/.test(host), "the caption never renders input/client text");
+  assert.ok(!host.includes("[DIRECTOR]"), "no [DIRECTOR] text in the caption component");
+  console.log("  PASS  no [DIRECTOR] text in the caption path (tool-result channel only, caption = model speech)");
 }
 
 main().then(

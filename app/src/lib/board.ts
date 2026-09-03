@@ -91,6 +91,10 @@ export type BoardContent =
       /** Which blank (if any) the AI is currently asking the child about — see set_active_blank. Null once answered or when no blank is currently being discussed. */
       activeBlank: { rowIndex: number; field: string } | null;
     }
+  // A big friendly card for beats that have no exercise on screen (lesson
+  // goals, transitions, session close, a concept's opening explanation) —
+  // the board is never just empty during a lesson.
+  | { type: "title_card"; title: string; emoji?: string }
   | { type: "empty" };
 
 /** True when there's real content to show — used by TeachingBoard.tsx to render/collapse, and HostScreen.tsx's mobile character/board view toggle. */

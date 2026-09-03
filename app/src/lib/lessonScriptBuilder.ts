@@ -370,6 +370,7 @@ function buildConceptBeats(
   description: string | null,
   rows: BankRow[],
   skipOpeningEntries: boolean,
+  lessonTitle: string,
 ): Beat[] {
   const conceptTag = blueprint.conceptTag;
   const explanations = rows
@@ -400,13 +401,23 @@ function buildConceptBeats(
         `Before any maths, open with this everyday example: ` +
         `${blueprint.hookExample}. Make it about the child's own life, and end with a small wondering question.`,
       maxSentences: SENTENCE_BUDGET.HOOK,
-      boardDescription: "nothing yet",
-      board: { kind: "none" },
+      boardDescription: `a title card: ${lessonTitle}`,
+      board: { kind: "title_card", title: lessonTitle, emoji: "🤔" },
       endBy: "asking",
     });
   }
 
-  beats.push(...buildExplainBeats(conceptTag, explanations, blueprint, skipOpeningEntries));
+  const explainBeats = buildExplainBeats(conceptTag, explanations, blueprint, skipOpeningEntries);
+  // The board must never be empty while an idea is introduced: if nothing
+  // is staged yet (no hook), the first explain beat raises a title card.
+  if (!blueprint.hookExample && explainBeats.length > 0) {
+    explainBeats[0] = {
+      ...explainBeats[0],
+      boardDescription: `a title card: ${lessonTitle}`,
+      board: { kind: "title_card", title: lessonTitle, emoji: "🧮" },
+    };
+  }
+  beats.push(...explainBeats);
 
   const used = new Set<string>();
   let segmentIndex = 0;
@@ -427,8 +438,8 @@ function buildConceptBeats(
     segmentIndex: -1,
     goal: "Wrap this idea up in one warm sentence and say what you'll look at next.",
     maxSentences: SENTENCE_BUDGET.TRANSITION,
-    boardDescription: "the last example",
-    board: { kind: "none" },
+    boardDescription: "a bright well-done card",
+    board: { kind: "title_card", title: "⭐", emoji: "⭐" },
     endBy: "pausing",
   });
 
@@ -445,6 +456,7 @@ function framingBeat(
   type: Beat["type"],
   goal: string,
   endBy: Beat["endBy"],
+  board: Beat["board"],
   referenceWording?: string,
 ): Beat {
   return {
@@ -457,8 +469,9 @@ function framingBeat(
     segmentIndex: -1,
     goal,
     maxSentences: SENTENCE_BUDGET[type] ?? 2,
-    boardDescription: "nothing (the board is not part of this)",
-    board: { kind: "none" },
+    boardDescription:
+      board.kind === "title_card" ? `a title card: ${board.title}` : "whatever is already showing",
+    board,
     referenceWording,
     endBy,
   };
@@ -470,7 +483,7 @@ function isBoundary(beat: Beat | undefined): boolean {
   return beat.type === "SHOW_BOARD" || beat.type === "EXPLAIN" || beat.type === "HOOK" || beat.type === "TRANSITION";
 }
 
-function buildLessonGoalsBeat(openingRows: BankRow[], orderedTags: string[], descriptions: Map<string, string>): Beat | null {
+function buildLessonGoalsBeat(openingRows: BankRow[], orderedTags: string[], descriptions: Map<string, string>, lessonTitle: string): Beat | null {
   const primary = [...openingRows].sort((a, b) => a.source.localeCompare(b.source))[0];
   if (!primary) return null;
   const payload = payloadOf(primary);
@@ -479,16 +492,16 @@ function buildLessonGoalsBeat(openingRows: BankRow[], orderedTags: string[], des
     .map((tag) => descriptions.get(tag))
     .filter((d): d is string => !!d)
     .slice(0, 4);
-  const beat = framingBeat(
+  return framingBeat(
     0,
     "lesson-goals",
     "LESSON_GOALS",
     `Tell the child what this whole lesson is about, in a child's terms — the way the real teacher opened it: ` +
       `working with big numbers up to 100,000 (${goals.join("; ")}). Make it sound like an adventure ahead, not a syllabus.`,
     "pausing",
+    { kind: "title_card", title: lessonTitle, emoji: "📚" },
     transcript ? excerptForReference(transcript) : undefined,
   );
-  return beat;
 }
 
 /**
@@ -500,6 +513,7 @@ function assembleSessions(
   work: Beat[],
   lessonGoals: Beat | null,
   descriptions: Map<string, string>,
+  lessonTitle: string,
 ): { beats: Beat[]; sessions: SessionPlan[] } {
   // First: cut the work into per-session slices by estimated teaching time.
   const slices: Beat[][] = [];
@@ -537,6 +551,9 @@ function assembleSessions(
         "CHAT_OPENER",
         "Ask how their day was — school, friends, something they did today.",
         "asking",
+        // Chat has no lesson visual; the runtime may swap this goal for a
+        // personalised opener (see /api/opener).
+        { kind: "title_card", title: lessonTitle, emoji: "👋" },
       ),
     );
     if (sessionIndex === 0 && lessonGoals) {
@@ -552,6 +569,7 @@ function assembleSessions(
           "RECAP",
           "Tell the child you'll quickly look back together at what they worked on last time, before the new part.",
           "pausing",
+          { kind: "title_card", title: lessonTitle, emoji: "🔄" },
         ),
       );
     }
@@ -573,6 +591,7 @@ function assembleSessions(
             "BREAK_CHAT",
             "Ask what they like doing when schoolwork is done, or let them tell you anything at all.",
             "asking",
+            { kind: "title_card", title: lessonTitle, emoji: "⛱️" },
           ),
         );
         breakPlaced = true;
@@ -587,7 +606,11 @@ function assembleSessions(
       ? (descriptions.get(nextConcept) ?? nextConcept)
       : "how far they've come through the whole lesson";
     beats.push(
-      framingBeat(sessionIndex, "close", "CLOSE_SESSION", `Next time: ${preview}.`, "pausing"),
+      framingBeat(sessionIndex, "close", "CLOSE_SESSION", `Next time: ${preview}.`, "pausing", {
+        kind: "title_card",
+        title: lessonTitle,
+        emoji: "🌟",
+      }),
     );
 
     const lastBeat = beats.length - 1;
@@ -610,6 +633,8 @@ function assembleSessions(
 export interface BuildOptions {
   /** Hand-edited per-concept blueprint entries, merged FIELD BY FIELD over the derived ones by conceptTag. */
   blueprintOverride?: LessonBlueprintOverride | null;
+  /** Shown on title cards (lesson goals, transitions, session close). */
+  lessonTitle?: string;
 }
 
 export function buildScriptFromRows(
@@ -661,7 +686,8 @@ export function buildScriptFromRows(
     ...(unmatchedOverrideTags.length > 0 ? { unmatchedOverrideTags } : {}),
   };
 
-  const lessonGoals = buildLessonGoalsBeat(openingRows, orderedTags, descriptions);
+  const lessonTitle = options.lessonTitle ?? `${subject} — lesson ${lesson}`;
+  const lessonGoals = buildLessonGoalsBeat(openingRows, orderedTags, descriptions, lessonTitle);
 
   const work: Beat[] = [];
   blueprint.concepts.forEach((conceptBlueprint, conceptIndex) => {
@@ -673,11 +699,12 @@ export function buildScriptFromRows(
       // LESSON_GOALS already delivers the welcome + goals; don't have the
       // first concept's explain run say them again.
       conceptIndex === 0 && lessonGoals !== null,
+      lessonTitle,
     );
     // A concept with nothing but a TRANSITION isn't teachable.
     if (conceptBeats.some((beat) => beat.type !== "TRANSITION")) work.push(...conceptBeats);
   });
-  const { beats, sessions } = assembleSessions(work, lessonGoals, descriptions);
+  const { beats, sessions } = assembleSessions(work, lessonGoals, descriptions, lessonTitle);
 
   const concepts: ConceptSummary[] = orderedTags
     .map((conceptTag) => {

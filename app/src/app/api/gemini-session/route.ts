@@ -8,6 +8,14 @@ export const GEMINI_LIVE_MODEL =
   process.env.GEMINI_LIVE_MODEL ?? "gemini-3.1-flash-live-preview";
 
 /**
+ * Experimental: keep the API's own voice-activity detection on, so the two
+ * chat beat types can run open-mic. Default OFF: automatic detection is
+ * disabled and the client marks the child's turns explicitly
+ * (push-to-talk), so mic noise can never interrupt a teaching beat.
+ */
+const OPEN_MIC_CHAT = process.env.OPEN_MIC_CHAT === "true";
+
+/**
  * Mints a short-lived ephemeral token the browser can use to open a Live API
  * WebSocket session directly with Gemini — the real GEMINI_API_KEY never
  * leaves this server. The model, system prompt, tools, and voice config are
@@ -50,6 +58,9 @@ export async function POST() {
         tools: [{ functionDeclarations: GEMINI_LIVE_TOOLS }],
         outputAudioTranscription: {},
         inputAudioTranscription: {},
+        ...(OPEN_MIC_CHAT
+          ? {}
+          : { realtimeInputConfig: { automaticActivityDetection: { disabled: true } } }),
       },
     },
     // Deliberately omitted: `lockAdditionalFields`. Leaving it unset locks
@@ -74,6 +85,10 @@ export async function POST() {
       token: token.name,
       model: GEMINI_LIVE_MODEL,
       expireTime: token.expireTime,
+      // Tells the client whether the session runs manual turn-taking
+      // (push-to-talk everywhere) or the experimental open-mic-for-chat
+      // mode — the mic gating differs (see useGeminiLive.ts).
+      openMicChat: OPEN_MIC_CHAT,
     });
   } catch (error) {
     console.error("[gemini-session] Failed to mint ephemeral token:", error);

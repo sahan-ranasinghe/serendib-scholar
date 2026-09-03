@@ -65,6 +65,9 @@ export async function stageBeatBoard(action: BeatBoardAction): Promise<StagedBoa
       const viewPatch = response.viewPatch as Record<string, unknown> | undefined;
       return viewPatch ? { viewPatch } : {};
     }
+    case "title_card":
+      // Purely presentational and fully determined by the beat — no route.
+      return { board: { type: "title_card", title: action.title, ...(action.emoji ? { emoji: action.emoji } : {}) } };
     case "none":
       return {};
   }

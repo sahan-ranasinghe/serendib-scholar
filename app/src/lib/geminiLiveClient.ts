@@ -142,6 +142,21 @@ export class GeminiLiveClient {
     });
   }
 
+  /**
+   * Manual turn-taking (used when the session disables automatic activity
+   * detection — see /api/gemini-session): the app marks exactly when the
+   * child's speech starts (push-to-talk press) and ends (release). An
+   * empty start/end pulse with no audio in between is also how the app
+   * hands the model a turn when the child stays silent.
+   */
+  sendActivityStart(): void {
+    this.send({ realtimeInput: { activityStart: {} } });
+  }
+
+  sendActivityEnd(): void {
+    this.send({ realtimeInput: { activityEnd: {} } });
+  }
+
   sendToolResponse(functionResponses: Array<{ id?: string; name?: string; response: Record<string, unknown> }>): void {
     this.send({ toolResponse: { functionResponses } });
   }

@@ -33,6 +33,20 @@ export interface GeminiFunctionDeclaration {
 
 export const GEMINI_LIVE_TOOLS: GeminiFunctionDeclaration[] = [
   {
+    // Handled entirely client-side (see useGeminiLive.ts) — the lesson
+    // controller answers it with the next beat's instructions. A tool
+    // RESULT, unlike a clientContent turn, never shows up in transcription
+    // and is far less likely to be read aloud — which is exactly why the
+    // director channel moved here.
+    name: "next_beat",
+    description:
+      "Asks the lesson controller what to do next. Call this at the start of every turn, and again whenever you finish speaking. The result is instructions from the lesson controller for your next beat of speech — follow it exactly. It is never something to read to the child.",
+    parametersJsonSchema: {
+      type: "object",
+      properties: {},
+    },
+  },
+  {
     name: "search_syllabus",
     description:
       "Searches the official Grade 5 Scholarship Exam syllabus database for a given subject and topic using semantic search, and returns the most relevant excerpts. If the top result covers a single page and has a real page image, it is automatically shown on the board as part of this call — you don't need a separate action to display it. If the top result's content spans more than one page (its `pages` list has more than one number), no image is auto-shown, because there's no way to know in advance which of those pages you'll actually be narrating from — the content is labeled with \"[Page N]\" markers per part, so call show_page_image yourself with the exact page number matching whatever you're currently discussing. Only call this for a subject listed in your current subject coverage (see your system instructions) — never for a subject outside that list, and never answer an in-coverage academic question from memory alone without calling this first.",

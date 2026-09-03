@@ -36,6 +36,9 @@ export type BeatBoardAction =
   | { kind: "stage_item"; itemId: string }
   | { kind: "reveal_part"; itemId: string; rowIndex: number; field: string; value: string }
   | { kind: "set_active_blank"; itemId: string; rowIndex: number; field: string }
+  // A big friendly card (see board.ts) — used so no non-chat beat ever
+  // runs against an empty board.
+  | { kind: "title_card"; title: string; emoji?: string }
   | { kind: "none" };
 
 export interface Beat {

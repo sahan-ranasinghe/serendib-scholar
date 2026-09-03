@@ -29,6 +29,8 @@ export default function HostScreen() {
     stop,
     notifyManualBoardInteraction,
     submitTypedAnswer,
+    startTalking,
+    stopTalking,
   } = useGeminiLive();
   const isActive = status === "listening" || status === "connecting";
 
@@ -73,10 +75,36 @@ export default function HostScreen() {
         >
           <CharacterState state={characterVisualState} onClick={isActive ? stop : start} />
 
+          {/* Push-to-talk: mic audio flows ONLY while this is held (see
+              useGeminiLive's recorder gating), so noise can never interrupt
+              a teaching beat. Pointer events cover mouse + touch. */}
+          {status === "listening" && (
+            <button
+              type="button"
+              onPointerDown={startTalking}
+              onPointerUp={stopTalking}
+              onPointerLeave={stopTalking}
+              onPointerCancel={stopTalking}
+              onContextMenu={(event) => event.preventDefault()}
+              disabled={isAiTalking}
+              className={`select-none touch-none rounded-full px-10 py-5 text-xl font-bold shadow-lg transition active:scale-95 ${
+                isAiTalking
+                  ? "cursor-not-allowed bg-stone-200 text-stone-400"
+                  : "bg-rose-500 text-white active:bg-rose-600"
+              }`}
+            >
+              🎤 අල්ලාගෙන කතා කරන්න
+            </button>
+          )}
+
           <p className="min-h-8 text-lg font-medium text-orange-900">
             {error ?? STATUS_COPY[status]}
           </p>
 
+          {/* CAPTION CONTRACT: this renders outputTranscript ONLY — the
+              model's own speech transcription. Never tool results, never
+              director text, never anything the client sent (typed answers
+              included). See useGeminiLive's onOutputTranscript. */}
           {outputTranscript && (
             <p className="rounded-2xl bg-white/70 px-5 py-4 text-lg leading-relaxed text-orange-950 shadow-sm">
               {outputTranscript}
