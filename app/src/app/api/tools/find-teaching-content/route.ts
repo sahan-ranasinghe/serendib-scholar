@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseClient";
+import type { BoardContent } from "@/lib/board";
+import type { LessonComponent } from "@/data/lessons/lesson1-numbers";
 
 // Fetched-then-picked rather than ordered in SQL: PostgREST has no random
 // ordering, and asking for a random row via an RPC would be a schema change
@@ -7,6 +9,46 @@ import { supabaseAdmin } from "@/lib/supabaseClient";
 // here means repeated calls for the same concept don't hand back the same
 // item every time.
 const CANDIDATE_POOL_SIZE = 20;
+
+/**
+ * The board component types content_bank rows can carry — the same set
+ * LessonComponentView renders (see src/components/lesson/LessonComponents.tsx).
+ * 'explanation' rows are deliberately absent: they hold the teacher's words,
+ * not a component to draw.
+ */
+const RENDERABLE_COMPONENT_TYPES = new Set([
+  "DigitPickerPuzzle",
+  "PlaceValueTable",
+  "AbacusDiagram",
+  "ExampleBox",
+  "ExpansionExercise",
+  "NumberedQuestionList",
+  "SequenceTable",
+]);
+
+/**
+ * Puts the picked problem on the board. This is why the tool is a
+ * board tool at all: since the 12-step lesson structure was removed, the
+ * content bank is the only source of material, so staging has to happen
+ * here — nothing else creates a lesson_content board any more.
+ *
+ * Returns null for a row whose component_type isn't renderable, rather than
+ * staging something the board can't draw; the model still gets the item in
+ * the tool response either way.
+ */
+function boardForItem(item: { id: string; component_type: string; component_props: unknown }): BoardContent | null {
+  if (!RENDERABLE_COMPONENT_TYPES.has(item.component_type)) return null;
+  return {
+    type: "lesson_content",
+    itemId: item.id,
+    // Safe by construction: component_type is checked against the union's
+    // own tags above, and component_props was written from real
+    // LessonComponent props by scripts/populate-content-bank.ts.
+    components: [{ type: item.component_type, props: item.component_props } as LessonComponent],
+    filledAnswers: [],
+    activeBlank: null,
+  };
+}
 
 /**
  * Executes the model's find_teaching_content tool call — the tutor asking
@@ -94,6 +136,8 @@ export async function POST(request: NextRequest) {
     });
   }
 
+  const board = item ? boardForItem(item) : null;
+
   return NextResponse.json({
     ok: true,
     found: true,
@@ -101,6 +145,9 @@ export async function POST(request: NextRequest) {
     // practice left, or vice versa.
     ...(item ? { item } : {}),
     ...(explanation ? { explanation } : {}),
+    // Picked up by useGeminiLive.ts and shown on the board (see
+    // boardForItem) — the model doesn't need a separate call to display it.
+    ...(board ? { board } : {}),
     remaining: { problems: Math.max(0, problems.length - (item ? 1 : 0)), explanations: Math.max(0, explanations.length - (explanation ? 1 : 0)) },
   });
 }

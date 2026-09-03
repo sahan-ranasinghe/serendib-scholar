@@ -24,22 +24,27 @@ export interface GeminiFunctionDeclaration {
 }
 
 export const GEMINI_LIVE_TOOLS: GeminiFunctionDeclaration[] = [
-  // TEMPORARY PROOF-OF-CONCEPT — see src/data/lessons/lesson1-numbers.ts's
-  // module doc for the full list of what to remove alongside this
-  // declaration once the real ingestion pipeline replaces this path.
   {
-    name: "teach_lesson1_step",
+    name: "get_lesson_concepts",
     description:
-      "Fetches one step of the Lesson 1 (සංඛ්‍යා - 1, Numbers - 1) proof-of-concept content and displays it on the board — real, manually-verified textbook content, no search or database lookup involved. Only use this while in TEST MODE (see your system instructions); do not call search_syllabus or show_page_image while teaching this lesson.",
+      "Lists the concepts a lesson covers, in the order the real recorded lesson taught them, with how much verified material the content bank holds for each (explanations and practice problems). Call this once at the start of a session to see what you're teaching. This is not a checklist and carries no step numbers — it tells you what the lesson is made of, not a sequence of items to get through. Only concepts with verified material are listed, since those are the only ones find_teaching_content can give you anything for.",
     parametersJsonSchema: {
       type: "object",
       properties: {
-        step_number: {
+        subject: {
+          type: "string",
+          description: 'The subject, e.g. "maths".',
+        },
+        grade: {
           type: "number",
-          description: "Which step of Lesson 1 to fetch and display, 1 through 12, in order.",
+          description: "The grade, e.g. 5.",
+        },
+        lesson: {
+          type: "number",
+          description: "Which lesson within that subject and grade, e.g. 1.",
         },
       },
-      required: ["step_number"],
+      required: ["subject", "grade", "lesson"],
     },
   },
   {
@@ -64,13 +69,14 @@ export const GEMINI_LIVE_TOOLS: GeminiFunctionDeclaration[] = [
   {
     name: "submit_blank_answer",
     description:
-      "Marks one specific blank on the current lesson step's board as answered — call this right after check_answer confirms the child's answer is correct, so the board updates that one cell from a dashed placeholder to a filled, confirmed cell. Never call this for a wrong answer; only once the child has the right answer for that specific blank. Only works while a Lesson 1 step with blanks (PlaceValueTable, ExpansionExercise, or SequenceTable) is on the board.",
+      "Marks one specific blank on the board as answered — call this right after check_answer confirms the child's answer is correct, so the board updates that one cell from a dashed placeholder to a filled, confirmed cell. Never call this for a wrong answer; only once the child has the right answer for that specific blank. Only works while a content bank item with blanks (PlaceValueTable, ExpansionExercise, or SequenceTable) is on the board.",
     parametersJsonSchema: {
       type: "object",
       properties: {
-        step_number: {
-          type: "number",
-          description: "Which Lesson 1 step this blank belongs to — must match the step currently on the board.",
+        item_id: {
+          type: "string",
+          description:
+            "The `id` of the content bank item this blank belongs to — the id find_teaching_content gave you for the item currently on the board.",
         },
         row_index: {
           type: "number",
@@ -86,7 +92,7 @@ export const GEMINI_LIVE_TOOLS: GeminiFunctionDeclaration[] = [
           description: "The confirmed correct value now filling this blank, exactly as it should display.",
         },
       },
-      required: ["step_number", "row_index", "field", "value"],
+      required: ["item_id", "row_index", "field", "value"],
     },
   },
   {
@@ -99,7 +105,7 @@ export const GEMINI_LIVE_TOOLS: GeminiFunctionDeclaration[] = [
         concept_tag: {
           type: "string",
           description:
-            "Which concept you need material for — the conceptTag from the lesson step you're teaching, e.g. \"placeValueBreakdown\", \"numberExpansion\", \"numberSequence\".",
+            "Which concept you need material for — the concept_tag you are teaching, from get_lesson_concepts, e.g. \"placeValueBreakdown\", \"numberExpansion\", \"numberSequence\".",
         },
         difficulty: {
           type: "string",
@@ -124,9 +130,10 @@ export const GEMINI_LIVE_TOOLS: GeminiFunctionDeclaration[] = [
     parametersJsonSchema: {
       type: "object",
       properties: {
-        step_number: {
-          type: "number",
-          description: "Which Lesson 1 step this blank belongs to — must match the step currently on the board.",
+        item_id: {
+          type: "string",
+          description:
+            "The `id` of the content bank item this blank belongs to — the id find_teaching_content gave you for the item currently on the board.",
         },
         row_index: {
           type: "number",
@@ -142,19 +149,20 @@ export const GEMINI_LIVE_TOOLS: GeminiFunctionDeclaration[] = [
           description: "The correct value to write into this blank, exactly as it should display.",
         },
       },
-      required: ["step_number", "row_index", "field", "value"],
+      required: ["item_id", "row_index", "field", "value"],
     },
   },
   {
     name: "set_active_blank",
     description:
-      "Highlights one specific blank on the current lesson step's board as the one you're currently asking the child about — call this right before (or as) you ask the specific question for that blank, so the board visually distinguishes it from other still-empty blanks. Call it again for the next blank once you move on; no need to clear it manually after a correct answer (submit_blank_answer does that automatically).",
+      "Highlights one specific blank on the board as the one you're currently asking the child about — call this right before (or as) you ask the specific question for that blank, so the board visually distinguishes it from other still-empty blanks. Call it again for the next blank once you move on; no need to clear it manually after a correct answer (submit_blank_answer does that automatically).",
     parametersJsonSchema: {
       type: "object",
       properties: {
-        step_number: {
-          type: "number",
-          description: "Which Lesson 1 step this blank belongs to — must match the step currently on the board.",
+        item_id: {
+          type: "string",
+          description:
+            "The `id` of the content bank item this blank belongs to — the id find_teaching_content gave you for the item currently on the board.",
         },
         row_index: {
           type: "number",
@@ -166,7 +174,7 @@ export const GEMINI_LIVE_TOOLS: GeminiFunctionDeclaration[] = [
             'Which cell within the row — same field naming as submit_blank_answer: "number"/"numberName" for a numberName-variant PlaceValueTable; "digit"/"place"/"placeValue"/"valueRepresented" for a breakdown-variant PlaceValueTable; "part0", "part1", etc. for ExpansionExercise; "before"/"number"/"after" for SequenceTable.',
         },
       },
-      required: ["step_number", "row_index", "field"],
+      required: ["item_id", "row_index", "field"],
     },
   },
   {

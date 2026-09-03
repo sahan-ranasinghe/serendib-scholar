@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useGeminiLive } from "@/hooks/useGeminiLive";
 import TeachingBoard from "@/components/TeachingBoard";
 import CharacterState, { CHARACTER_STATE_CONFIG, type CharacterVisualState } from "@/components/CharacterState";
-import LessonProgress from "@/components/LessonProgress"; // TEMPORARY PROOF-OF-CONCEPT
+import LessonProgress from "@/components/LessonProgress";
 import { hasVisibleBoardContent } from "@/lib/board";
 
 const STATUS_COPY: Record<string, string> = {
@@ -21,11 +21,12 @@ export default function HostScreen({ childId = "demo-child" }: { childId?: strin
     outputTranscript,
     boardContent,
     isAiTalking,
-    currentLessonStepNumber, // TEMPORARY PROOF-OF-CONCEPT
+    lessonConcepts,
+    currentConceptTag,
     start,
     stop,
     notifyManualBoardInteraction,
-    submitTypedAnswer, // TEMPORARY PROOF-OF-CONCEPT
+    submitTypedAnswer,
   } = useGeminiLive({ childId });
   const isActive = status === "listening" || status === "connecting";
 
@@ -59,8 +60,8 @@ export default function HostScreen({ childId = "demo-child" }: { childId?: strin
         <p className="text-base text-orange-700">Your friendly study buddy</p>
       </header>
 
-      {/* Always visible once the lesson has started, in both views — TEMPORARY PROOF-OF-CONCEPT */}
-      <LessonProgress currentStepNumber={currentLessonStepNumber} />
+      {/* Always visible once the lesson has started, in both views */}
+      <LessonProgress concepts={lessonConcepts} currentConceptTag={currentConceptTag} />
 
       <div className="flex w-full flex-1 flex-col items-center gap-8 lg:flex-row lg:items-start lg:justify-center">
         <main

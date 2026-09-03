@@ -1,5 +1,5 @@
-// TEMPORARY PROOF-OF-CONCEPT import — see the `lesson_step` BoardContent
-// variant below and src/data/lessons/lesson1-numbers.ts's module doc.
+// The board component shapes content_bank rows are stored in — see the
+// `lesson_content` variant below and lesson1-numbers.ts's module doc.
 import type { LessonComponent, FilledAnswer } from "@/data/lessons/lesson1-numbers";
 
 /**
@@ -76,16 +76,17 @@ export type BoardContent =
   | { type: "table"; markdownTableText: string; view: TableBoardView }
   | { type: "exercise"; questionText: string; subparts: string[] }
   | { type: "vocabulary_card"; word: string; meaning: string; language: string }
-  // TEMPORARY PROOF-OF-CONCEPT — see src/data/lessons/lesson1-numbers.ts's
-  // module doc for the full list of what to remove alongside this variant
-  // once the real ingestion pipeline replaces this hardcoded-lesson path.
+  // One item from the content bank (see find-teaching-content/route.ts),
+  // rendered with the component types defined in
+  // src/data/lessons/lesson1-numbers.ts. Replaced the old `lesson_step`
+  // variant when the 12-step lesson structure was removed — the board now
+  // shows whatever material the bank hands back, not a numbered step.
   | {
-      type: "lesson_step";
-      /** Which Lesson 1 step this is — submit_blank_answer includes it so a stray/late response can't patch the wrong step's board (see applyViewPatch in useGeminiLive.ts). */
-      stepNumber: number;
+      type: "lesson_content";
+      /** The content_bank row id this came from — submit_blank_answer includes it so a stray/late response can't patch the wrong item's board (see applyViewPatch in useGeminiLive.ts). */
+      itemId: string;
       components: LessonComponent[];
-      teachingNote: string;
-      /** Blanks the child has answered so far on this step, keyed by (rowIndex, field) — see submit_blank_answer / FilledAnswer. */
+      /** Blanks the child has answered so far on this item, keyed by (rowIndex, field) — see submit_blank_answer / FilledAnswer. */
       filledAnswers: FilledAnswer[];
       /** Which blank (if any) the AI is currently asking the child about — see set_active_blank. Null once answered or when no blank is currently being discussed. */
       activeBlank: { rowIndex: number; field: string } | null;

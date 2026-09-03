@@ -16,9 +16,7 @@ export type SessionStatus =
   | "error";
 
 const TOOL_ENDPOINTS: Record<string, string> = {
-  // TEMPORARY PROOF-OF-CONCEPT — see src/data/lessons/lesson1-numbers.ts's
-  // module doc for the full removal list.
-  teach_lesson1_step: "/api/tools/teach-lesson1-step",
+  get_lesson_concepts: "/api/tools/get-lesson-concepts",
   check_answer: "/api/tools/check-answer",
   find_teaching_content: "/api/tools/find-teaching-content",
   submit_blank_answer: "/api/tools/submit-blank-answer",
@@ -59,7 +57,10 @@ const TOOL_ENDPOINTS: Record<string, string> = {
 //   on the board (the routes are stateless), so they return a `viewPatch`
 //   that gets merged onto whatever's already displayed.
 const FULL_CONTENT_BOARD_TOOL_NAMES = new Set([
-  "teach_lesson1_step", // TEMPORARY PROOF-OF-CONCEPT
+  // Stages the content bank item it returns — since the 12-step lesson
+  // structure was removed this is the only thing that puts lesson material
+  // on the board (see find-teaching-content/route.ts's boardForItem).
+  "find_teaching_content",
   "search_syllabus",
   "show_page_image",
   "next_page",
@@ -75,9 +76,9 @@ const VIEW_PATCH_BOARD_TOOL_NAMES = new Set([
   "scroll_table",
   "highlight_region",
   "draw_marker",
-  "submit_blank_answer", // TEMPORARY PROOF-OF-CONCEPT
-  "reveal_answer", // TEMPORARY PROOF-OF-CONCEPT
-  "set_active_blank", // TEMPORARY PROOF-OF-CONCEPT
+  "submit_blank_answer",
+  "reveal_answer",
+  "set_active_blank",
 ]);
 const BOARD_TOOL_NAMES = new Set([...FULL_CONTENT_BOARD_TOOL_NAMES, ...VIEW_PATCH_BOARD_TOOL_NAMES]);
 
@@ -92,17 +93,42 @@ interface BoardToolResponse {
   board: BoardContent;
 }
 
-// The last three fields are TEMPORARY PROOF-OF-CONCEPT additions for
-// submit_blank_answer / set_active_blank — see
-// src/data/lessons/lesson1-numbers.ts's module doc.
+// The last three fields belong to submit_blank_answer / reveal_answer /
+// set_active_blank, which patch a lesson_content board.
 type ViewPatch = Partial<PageImageView> & Partial<TableBoardView> & {
   filledAnswer?: FilledAnswer;
   activeBlank?: { rowIndex: number; field: string } | null;
-  expectedStepNumber?: number;
+  expectedItemId?: string;
 };
 
 interface ViewPatchToolResponse {
   viewPatch: ViewPatch;
+}
+
+/** One concept a lesson covers, as returned by get_lesson_concepts (see its route). */
+export interface LessonConcept {
+  concept_tag: string;
+  description: string | null;
+  explanations_available: number;
+  problems_available: number;
+}
+
+function readLessonConcepts(response: unknown): LessonConcept[] | null {
+  if (typeof response !== "object" || response === null) return null;
+  const concepts = (response as { concepts?: unknown }).concepts;
+  return Array.isArray(concepts) && concepts.length > 0 ? (concepts as LessonConcept[]) : null;
+}
+
+/**
+ * Which concept the material just handed back belongs to — the item and the
+ * explanation always carry the same concept_tag (find_teaching_content
+ * queries both by it), so either one answers it.
+ */
+function readServedConceptTag(response: unknown): string | null {
+  if (typeof response !== "object" || response === null) return null;
+  const served = (response as { item?: { concept_tag?: unknown }; explanation?: { concept_tag?: unknown } });
+  const tag = served.item?.concept_tag ?? served.explanation?.concept_tag;
+  return typeof tag === "string" ? tag : null;
 }
 
 /** The shape of one search_syllabus result relevant to board tracking (see search-syllabus/route.ts). */
@@ -158,17 +184,16 @@ function applyViewPatch(current: BoardContent | null, patch: ViewPatch): BoardCo
       },
     };
   }
-  // TEMPORARY PROOF-OF-CONCEPT — the patches from submit_blank_answer (the
-  // child answered), reveal_answer (Zara wrote it herself while
-  // demonstrating) and set_active_blank. The first two share this branch
-  // deliberately: they differ only by the `source` tag on the filled
-  // answer, so the step guard and active-blank clearing below apply to
-  // both. See src/data/lessons/lesson1-numbers.ts's module doc.
-  if (current?.type === "lesson_step" && (patch.filledAnswer || "activeBlank" in patch)) {
-    if (patch.expectedStepNumber !== undefined && patch.expectedStepNumber !== current.stepNumber) {
+  // The patches from submit_blank_answer (the child answered),
+  // reveal_answer (Zara wrote it herself while demonstrating) and
+  // set_active_blank. The first two share this branch deliberately: they
+  // differ only by the `source` tag on the filled answer, so the item guard
+  // and active-blank clearing below apply to both.
+  if (current?.type === "lesson_content" && (patch.filledAnswer || "activeBlank" in patch)) {
+    if (patch.expectedItemId !== undefined && patch.expectedItemId !== current.itemId) {
       console.warn(
-        `[useGeminiLive] Ignored a blank-tracking action for step ${patch.expectedStepNumber} — the board is ` +
-          `currently showing step ${current.stepNumber} (the child likely already moved on).`,
+        `[useGeminiLive] Ignored a blank-tracking action for item ${patch.expectedItemId} — the board is ` +
+          `currently showing item ${current.itemId} (the lesson likely already moved on).`,
       );
       return current;
     }
@@ -232,12 +257,18 @@ export function useGeminiLive({ childId }: UseGeminiLiveOptions) {
   // playback lags behind receipt by a buffer) — drives the character's
   // "talking" visual state (see CharacterState.tsx).
   const [isAiTalking, setIsAiTalking] = useState(false);
-  // TEMPORARY PROOF-OF-CONCEPT — which Lesson 1 step is (or was last)
-  // showing, for the always-visible progress bar (LessonProgress.tsx).
-  // Deliberately persists even if the board later shows something else
-  // (e.g. briefly cleared), rather than disappearing and reappearing — see
-  // src/data/lessons/lesson1-numbers.ts's module doc.
-  const [currentLessonStepNumber, setCurrentLessonStepNumber] = useState<number | null>(null);
+  // What the lesson covers and where in it we are, for the always-visible
+  // progress bar (LessonProgress.tsx). Concepts come from the model's
+  // opening get_lesson_concepts call; the current one follows whatever
+  // find_teaching_content last served material for. Both deliberately
+  // persist even if the board later shows something else (e.g. briefly
+  // cleared), rather than disappearing and reappearing.
+  //
+  // Note this tracks which concept is being taught, NOT how many are
+  // "done" — a concept is finished when the child can do it, which the UI
+  // has no way to know and shouldn't pretend to.
+  const [lessonConcepts, setLessonConcepts] = useState<LessonConcept[]>([]);
+  const [currentConceptTag, setCurrentConceptTag] = useState<string | null>(null);
 
   const clientRef = useRef<GeminiLiveClient | null>(null);
   const playerRef = useRef<PcmPlayer | null>(null);
@@ -326,7 +357,8 @@ export function useGeminiLive({ childId }: UseGeminiLiveOptions) {
     stagedTopicRef.current = null;
     childInteractedManuallyRef.current = false;
     setIsAiTalking(false);
-    setCurrentLessonStepNumber(null); // TEMPORARY PROOF-OF-CONCEPT
+    setLessonConcepts([]);
+    setCurrentConceptTag(null);
 
     try {
       const sessionRes = await fetch("/api/gemini-session", { method: "POST" });
@@ -467,6 +499,18 @@ export function useGeminiLive({ childId }: UseGeminiLiveOptions) {
               pageNavigationCalledThisTurnRef.current = true;
             }
           }
+          // Lesson progress (LessonProgress.tsx) rides along on the two
+          // tools that already carry the information, rather than the UI
+          // fetching the lesson's shape separately.
+          for (const { call, response } of executed) {
+            if (call.name === "get_lesson_concepts") {
+              const concepts = readLessonConcepts(response);
+              if (concepts) setLessonConcepts(concepts);
+            } else if (call.name === "find_teaching_content") {
+              const tag = readServedConceptTag(response);
+              if (tag) setCurrentConceptTag(tag);
+            }
+          }
           for (const { call, response } of executed) {
             if (call.name === "clear_board") {
               stagedTopicRef.current = null;
@@ -529,8 +573,6 @@ export function useGeminiLive({ childId }: UseGeminiLiveOptions) {
           if (boardChanged) {
             boardContentRef.current = nextBoard;
             setBoardContent(nextBoard);
-            // TEMPORARY PROOF-OF-CONCEPT — see src/data/lessons/lesson1-numbers.ts's module doc.
-            if (nextBoard?.type === "lesson_step") setCurrentLessonStepNumber(nextBoard.stepNumber);
           }
 
           client.sendToolResponse(
@@ -580,10 +622,11 @@ export function useGeminiLive({ childId }: UseGeminiLiveOptions) {
     outputTranscript,
     boardContent,
     isAiTalking,
-    currentLessonStepNumber, // TEMPORARY PROOF-OF-CONCEPT
+    lessonConcepts,
+    currentConceptTag,
     start,
     stop,
     notifyManualBoardInteraction,
-    submitTypedAnswer, // TEMPORARY PROOF-OF-CONCEPT
+    submitTypedAnswer,
   };
 }

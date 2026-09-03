@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+const MAX_ITEM_ID_LENGTH = 64;
 const MAX_FIELD_LENGTH = 40;
 const MAX_VALUE_LENGTH = 100;
 
@@ -20,10 +21,13 @@ const MAX_VALUE_LENGTH = 100;
  * to remove alongside this route.
  */
 export async function POST(request: NextRequest) {
-  const { step_number, row_index, field, value } = await request.json();
+  const { item_id, row_index, field, value } = await request.json();
 
-  if (typeof step_number !== "number" || !Number.isInteger(step_number)) {
-    return NextResponse.json({ ok: false, error: "step_number (integer) is required" }, { status: 400 });
+  if (typeof item_id !== "string" || !item_id.trim() || item_id.length > MAX_ITEM_ID_LENGTH) {
+    return NextResponse.json(
+      { ok: false, error: `item_id (non-empty string, max ${MAX_ITEM_ID_LENGTH} chars) is required` },
+      { status: 400 },
+    );
   }
   if (typeof row_index !== "number" || !Number.isInteger(row_index) || row_index < 0) {
     return NextResponse.json({ ok: false, error: "row_index (non-negative integer) is required" }, { status: 400 });
@@ -44,7 +48,7 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({
     ok: true,
     viewPatch: {
-      expectedStepNumber: step_number,
+      expectedItemId: item_id,
       filledAnswer: { rowIndex: row_index, field, value, source: "tutor" },
     },
   });

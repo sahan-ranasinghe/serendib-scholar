@@ -113,9 +113,8 @@ function BoardContentView({
       return <ExerciseView questionText={content.questionText} subparts={content.subparts} />;
     case "vocabulary_card":
       return <VocabularyCardView word={content.word} meaning={content.meaning} language={content.language} />;
-    // TEMPORARY PROOF-OF-CONCEPT — see src/data/lessons/lesson1-numbers.ts's
-    // module doc for the full removal list.
-    case "lesson_step":
+    // One content bank item (see find-teaching-content/route.ts).
+    case "lesson_content":
       return (
         <div className="flex flex-col gap-4">
           {content.components.map((component, index) => (

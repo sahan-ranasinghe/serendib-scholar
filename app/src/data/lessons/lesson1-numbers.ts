@@ -1,28 +1,25 @@
 /**
  * ============================================================================
- * TEMPORARY PROOF-OF-CONCEPT — Lesson 1 (සංඛ්‍යා - 1, Numbers - 1) hardcoded content
+ * Lesson 1 (සංඛ්‍යා - 1, Numbers - 1) — hand-transcribed textbook content
  * ============================================================================
  *
- * This is a focused POC for teaching exactly one lesson with real, manually
- * transcribed textbook content — no database, no ingestion pipeline, no
- * embedding/API cost. See src/app/api/tools/teach-lesson1-step/route.ts (the
- * tool that serves this data) and prompt.ts's "TEST MODE — LESSON 1 ONLY"
- * section for the other two pieces of this POC.
+ * NOT served as a tool any more. The teach_lesson1_step tool that used to
+ * walk these 12 steps in order was deleted: a numbered list read to the
+ * model as a checklist to complete, and it raced through a two-hour lesson
+ * in minutes. The content bank is now the sole source of teaching material,
+ * reached through find_teaching_content, and the lesson's shape comes from
+ * get_lesson_concepts.
  *
- * To remove this POC later: delete this file, its directory, the
- * teach-lesson1-step/check-answer/submit-blank-answer/set-active-blank/
- * reveal-answer routes, the lesson/ components directory, LessonProgress.tsx, their tool
- * declarations in geminiLiveTools.ts, their entries in useGeminiLive.ts's
- * TOOL_ENDPOINTS/FULL_CONTENT_BOARD_TOOL_NAMES/VIEW_PATCH_BOARD_TOOL_NAMES
- * (plus currentLessonStepNumber/submitTypedAnswer state and the
- * lesson_step branch in applyViewPatch), the `lesson_step` BoardContent
- * variant in src/lib/board.ts, the "TEST MODE" section plus the
- * conceptTag/multi-blank/typed-answer TEACHING STRUCTURE rules in
- * prompt.ts, and GeminiLiveClient.sendTextInput in geminiLiveClient.ts
- * (only ever called by submitTypedAnswer). CharacterState.tsx is NOT part
- * of this POC — it's a general UI component, keep it. Note: the THINKING
- * TIME / "do not rush" prompt.ts rules are also NOT part of this POC —
- * they're general teaching guidance, keep those too.
+ * This file stays because it is still load-bearing, in three ways:
+ *   1. scripts/populate-content-bank.ts builds content_bank rows from
+ *      LESSON_1_NUMBERS_STEPS — those rows' `source` values point back here.
+ *   2. LessonComponent and its prop types are the shapes content_bank's
+ *      component_props column holds, and what LessonComponents.tsx renders
+ *      onto the board.
+ *   3. conceptTag/conceptDescription are the concept vocabulary the bank is
+ *      keyed on, and what get_lesson_concepts describes each concept with.
+ * `stepNumber` and `teachingNote` are now only provenance and reference for
+ * the rows built from this file — nothing sequences by them.
  *
  * The content below was manually transcribed by the user from real textbook
  * photos — it is verified ground truth, encoded here exactly as given.
