@@ -6,7 +6,7 @@
  * *checking* happens server-side (check_answer) — this file just renders
  * whatever the model has already confirmed via submit_blank_answer.
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type {
   LessonComponent,
   DigitPickerPuzzleProps,
@@ -44,6 +44,53 @@ interface BlankState {
  * `field` values are documented per component in the submit_blank_answer
  * tool description (geminiLiveTools.ts).
  */
+// Long enough to read as being written rather than pasted, short enough to
+// stay in sync with the sentence Zara is saying as it appears.
+const REVEAL_ANIMATION_MS = 500;
+
+/**
+ * A value Zara wrote herself (reveal_answer), revealed left-to-right like a
+ * pen crossing the page rather than appearing all at once.
+ *
+ * Done as a clip-path wipe rather than an SVG stroke reveal because these
+ * values are arbitrary text — Sinhala number names as well as digits — and
+ * stroke animation needs real path data per glyph, which we don't have for
+ * live-rendered text. A wipe works for any content in any font.
+ */
+function WrittenValue({ value }: { value: string | number }) {
+  // Start clipped, then unclip on the next frame so there's something to
+  // transition from. Tracked against the value itself, so a genuinely new
+  // revealed value re-animates while unrelated board re-renders don't
+  // replay it.
+  const [animatedValue, setAnimatedValue] = useState<string | number | null>(null);
+  const [revealed, setRevealed] = useState(false);
+  if (value !== animatedValue) {
+    setAnimatedValue(value);
+    setRevealed(false);
+  }
+
+  useEffect(() => {
+    if (revealed) return;
+    // Deliberately inside rAF rather than called straight in the effect
+    // body: the clipped frame has to commit first, or the browser has no
+    // start state to animate from and the value just appears.
+    const frame = requestAnimationFrame(() => setRevealed(true));
+    return () => cancelAnimationFrame(frame);
+  }, [revealed]);
+
+  return (
+    <span
+      className="inline-block"
+      style={{
+        clipPath: revealed ? "inset(0 0 0 0)" : "inset(0 100% 0 0)",
+        transition: `clip-path ${REVEAL_ANIMATION_MS}ms ease-out`,
+      }}
+    >
+      {value}
+    </span>
+  );
+}
+
 function AnswerCell({
   rowIndex,
   field,
@@ -59,6 +106,17 @@ function AnswerCell({
 
   const answer = filledAnswers.find((a) => a.rowIndex === rowIndex && a.field === field);
   if (answer) {
+    // Who wrote it has to be obvious at a glance: green tick = the child got
+    // this one right; blue pen = Zara wrote it while demonstrating. Same
+    // "filled" shape either way so the table still reads as one thing.
+    if (answer.source === "tutor") {
+      return (
+        <span className="inline-flex items-center gap-1 rounded-md bg-sky-100 px-2 py-0.5 font-semibold text-sky-800">
+          <span aria-hidden>✎</span>
+          <WrittenValue value={answer.value} />
+        </span>
+      );
+    }
     return (
       <span className="inline-flex items-center gap-1 rounded-md bg-emerald-100 px-2 py-0.5 font-semibold text-emerald-800">
         <span aria-hidden>✓</span>

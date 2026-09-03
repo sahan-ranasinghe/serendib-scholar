@@ -90,6 +90,34 @@ export const GEMINI_LIVE_TOOLS: GeminiFunctionDeclaration[] = [
     },
   },
   {
+    name: "reveal_answer",
+    description:
+      "Writes the correct value into one blank YOURSELF, while you explain that part — the child does not answer it. Use this when demonstrating: call it for each part as you talk through that specific part, so the child watches the answer being built piece by piece, the way a teacher writes on the board mid-sentence. The value appears in your own colour, so it stays clear which answers you wrote and which the child got. This is NOT for recording a child's answer — that is submit_blank_answer.",
+    parametersJsonSchema: {
+      type: "object",
+      properties: {
+        step_number: {
+          type: "number",
+          description: "Which Lesson 1 step this blank belongs to — must match the step currently on the board.",
+        },
+        row_index: {
+          type: "number",
+          description: "Which row (0-indexed) the blank is in, within that component's rows/questions array.",
+        },
+        field: {
+          type: "string",
+          description:
+            'Which cell within the row — same field naming as submit_blank_answer: "number"/"numberName" for a numberName-variant PlaceValueTable; "digit"/"place"/"placeValue"/"valueRepresented" for a breakdown-variant PlaceValueTable; "part0", "part1", etc. for ExpansionExercise; "before"/"number"/"after" for SequenceTable.',
+        },
+        value: {
+          type: "string",
+          description: "The correct value to write into this blank, exactly as it should display.",
+        },
+      },
+      required: ["step_number", "row_index", "field", "value"],
+    },
+  },
+  {
     name: "set_active_blank",
     description:
       "Highlights one specific blank on the current lesson step's board as the one you're currently asking the child about — call this right before (or as) you ask the specific question for that blank, so the board visually distinguishes it from other still-empty blanks. Call it again for the next blank once you move on; no need to clear it manually after a correct answer (submit_blank_answer does that automatically).",

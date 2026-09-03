@@ -39,6 +39,12 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({
     ok: true,
-    viewPatch: { expectedStepNumber: step_number, filledAnswer: { rowIndex: row_index, field, value } },
+    viewPatch: {
+      expectedStepNumber: step_number,
+      // source "child": this records an answer the child gave. Zara writing
+      // a value herself while demonstrating goes through reveal_answer
+      // instead, which tags it "tutor" so the board shows who wrote what.
+      filledAnswer: { rowIndex: row_index, field, value, source: "child" },
+    },
   });
 }

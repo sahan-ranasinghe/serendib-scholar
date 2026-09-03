@@ -314,3 +314,173 @@ between them may get merged into one block before being re-split by word
 count. This mostly affects paragraph-level granularity, not correctness —
 oversized blocks still get cleanly split on sentence boundaries, and content
 is never dropped.
+
+
+## extract-lesson-plan.ts
+
+Extracts the **complete verbatim Sinhala transcript** of a recorded lesson —
+how the teacher actually speaks — into a reviewable JSON file.
+
+`ingest-syllabus.ts` gives us the textbook *content*: the numbers, tables and
+exercises. What it can't give us is how a lesson is *taught*, and in
+particular how the teacher *talks*: her exact phrasing, her register with
+children, the encouragement she repeats, where she slows down, the questions
+she puts to the class. This script captures that word for word.
+
+**It deliberately does not summarize.** An earlier version compressed
+15-minute windows into a few English bullets, which threw away exactly the
+thing that makes the output useful. Segments are therefore short (3 minutes),
+so one request only ever has to render a few minutes of speech in full, and
+every field except the JSON keys comes back in Sinhala.
+
+### Content source and permission
+
+The lesson videos processed here are **DP Education** recordings, used
+**with permission**. Every generated file carries that attribution in its own
+`source` field. Don't add videos to `lesson-videos.json` that aren't covered
+by that permission (or an equivalent one you've secured).
+
+### Run it
+
+```bash
+npm run extract:lesson-plan
+```
+
+(from the `app/` directory). That npm script runs the file through
+`node --env-file=.env.local` because plain `tsx` does **not** load
+`.env.local`, and this needs `GEMINI_API_KEY`.
+
+Flags:
+
+```bash
+# Extract only the first segment, print it in full, and stop — for eyeballing
+# transcript quality before committing to a long paid run. The segment is
+# checkpointed, so a normal run afterwards continues from segment 2.
+npm run extract:lesson-plan -- --first-segment-only
+
+# Ignore any checkpoint and re-extract from scratch.
+npm run extract:lesson-plan -- --force
+```
+
+### Adding a video
+
+Add an entry to `scripts/lesson-videos.json`:
+
+```json
+[
+  {
+    "subject": "maths",
+    "grade": 5,
+    "lesson": 1,
+    "medium": "sinhala",
+    "youtubeUrl": "https://www.youtube.com/watch?v=aZLI3SIPZPc",
+    "durationMinutes": 125
+  }
+]
+```
+
+`durationMinutes` is **optional but recommended**:
+
+- **With it**, the script knows exactly how many segments to run, prints a
+  real cost estimate up front, and keeps going past a failed segment (so one
+  hiccup near the end doesn't cost you the rest of the run). Set it close to
+  the video's real length — overshooting means the tail segments are past the
+  end of the video and each burns three retries and a billed call before
+  being reported as failures.
+- **Without it**, the script walks forward until it runs off the end of the
+  video, capped at `MAX_MINUTES_WITHOUT_DURATION` (4 hours) as a guard
+  against an unbounded paid run.
+
+  Note what "running off the end" actually looks like: asking for a window
+  past the end of a video does **not** return an empty response — the API
+  returns a persistent `500 INTERNAL` that survives all three retries
+  (confirmed on a real run). So once at least one segment has been captured,
+  a segment that fails after retries is treated as the end of the video and
+  the run finishes cleanly. A failure *before* anything has been captured is
+  treated as a real failure instead. Either way the script says which it
+  concluded — if it calls "end of video" on a video you know is longer, set
+  `durationMinutes` to force it onward.
+
+Output goes to `src/data/lessons/lesson<N>-teaching-plan-full.json`. The
+filename keys on lesson number alone, so two entries with the same lesson
+number would collide — the script refuses to run in that case rather than
+silently overwriting.
+
+### What it extracts
+
+Per 3-minute segment:
+
+- `fullTranscript` — the complete verbatim Sinhala transcript, word for word,
+  including repetitions, encouragement and asides. Not summarized, not
+  translated, not shortened.
+- `boardContent` — everything written on the whiteboard in that window, in
+  Sinhala, layout preserved (markdown for tables). The board carries digits
+  and worked steps the audio never states out loud.
+- `teachingNotes` — `toneAndManner` and `pacingNotes` (both in Sinhala),
+  plus `phrasesUsed`, `questionsAsked`, `examplesUsed`, and `problemsWorked`
+  (with ordered `stepsShown`), all verbatim Sinhala.
+
+### How it works
+
+- The YouTube URL is handed **straight to Gemini** (`fileData.fileUri`) —
+  nothing is downloaded, transcoded or stored locally.
+- The video is processed in 3-minute windows using the API's own video
+  offsets (`videoMetadata.startOffset` / `endOffset`) rather than by
+  splitting a file, then merged in segment order.
+- The prompt requires reading **both** the spoken audio and the **visual
+  whiteboard**, and states explicitly: do not summarize, do not translate,
+  do not shorten; every field in Sinhala except the JSON keys.
+- Structured output is enforced with `responseJsonSchema`.
+- Rate limits and transient 5xx errors retry with the same backoff as the
+  ingestion pipeline, shared via `scripts/lib/geminiRetry.ts`.
+- Uses `gemini-3.6-flash`, same model as ingestion.
+
+### Guards against silently-bad output
+
+The whole value here is completeness, so a few checks run automatically:
+
+- **Truncation is a hard error.** `maxOutputTokens` is set generously
+  (`MAX_OUTPUT_TOKENS`), and if a response still comes back with
+  `finishReason: MAX_TOKENS` the segment fails loudly rather than
+  checkpointing a transcript that's been cut off mid-sentence. Retrying
+  wouldn't help, so it's deliberately not treated as a retryable error —
+  lower `SEGMENT_MINUTES` or raise the ceiling.
+- **Non-Sinhala output warns.** A transcript containing no Sinhala
+  characters means it probably got translated.
+- **Suspiciously short output warns.** Under ~5 characters per second of
+  video usually means it summarised instead of transcribing.
+
+These print as `(warning)` lines rather than discarding work — they're
+judgement calls for a human, not automatic failures.
+
+### Cost, time, and resumability
+
+Before processing, the script prints an estimate, e.g.:
+
+```
+maths grade 5 lesson 1 (sinhala)
+  https://www.youtube.com/watch?v=aZLI3SIPZPc
+  42 segment(s) of 3 min ~ 31.5 minutes, 42 API call(s) (~$2.49 estimated)
+```
+
+Video is expensive to tokenize (roughly 300 tokens per second of footage at
+1 fps), so a 2-hour lesson is a couple of dollars, not cents. `VIDEO_FPS` is
+deliberately left at the 1.0 default: dropping it would cut cost sharply but
+risks missing whiteboard content that was only on screen briefly.
+
+Every segment is written to a `lesson<N>-teaching-plan-full.partial.json`
+checkpoint **the moment it completes**, so a crash, a rate-limit wall, or
+Ctrl-C partway through a long paid run never loses finished work — re-run and
+it skips straight to what's missing. The checkpoint is kept after a
+successful run too, so a re-run is nearly free; use `--force` to genuinely
+redo the extraction.
+
+For testing without touching the real config or output, override
+`LESSON_VIDEOS_CONFIG` and `LESSON_PLAN_OUT_DIR` (same idea as
+`CONTENT_ROOT` for the ingestion script).
+
+### Not wired into teaching yet
+
+This script only **produces** the transcript. Nothing reads
+`lesson<N>-teaching-plan-full.json` at runtime — the tutoring flow is
+untouched.

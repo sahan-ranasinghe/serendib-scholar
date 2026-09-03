@@ -10,8 +10,8 @@
  * section for the other two pieces of this POC.
  *
  * To remove this POC later: delete this file, its directory, the
- * teach-lesson1-step/check-answer/submit-blank-answer/set-active-blank
- * routes, the lesson/ components directory, LessonProgress.tsx, their tool
+ * teach-lesson1-step/check-answer/submit-blank-answer/set-active-blank/
+ * reveal-answer routes, the lesson/ components directory, LessonProgress.tsx, their tool
  * declarations in geminiLiveTools.ts, their entries in useGeminiLive.ts's
  * TOOL_ENDPOINTS/FULL_CONTENT_BOARD_TOOL_NAMES/VIEW_PATCH_BOARD_TOOL_NAMES
  * (plus currentLessonStepNumber/submitTypedAnswer state and the
@@ -180,6 +180,14 @@ export interface FilledAnswer {
   rowIndex: number;
   field: string;
   value: string | number;
+  /**
+   * Who put this value on the board:
+   * - "child" — they answered it and check_answer confirmed it (submit_blank_answer).
+   * - "tutor" — Zara wrote it herself while demonstrating (reveal_answer).
+   * Both live in the same `filledAnswers` list so every consumer keeps one
+   * lookup; only the rendering differs, so it's always visible who wrote what.
+   */
+  source: "child" | "tutor";
 }
 
 export const LESSON_1_NUMBERS_TITLE = "සංඛ්‍යා - 1 (Numbers - 1)";

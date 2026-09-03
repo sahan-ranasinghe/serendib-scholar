@@ -1,0 +1,1200 @@
+{
+  "lesson": {
+    "subject": "maths",
+    "grade": 5,
+    "lesson": 1,
+    "medium": "sinhala",
+    "youtubeUrl": "https://www.youtube.com/watch?v=aZLI3SIPZPc"
+  },
+  "source": {
+    "provider": "DP Education",
+    "usage": "Lesson video content used with permission from DP Education."
+  },
+  "extractedAt": "2026-09-02T21:18:29.731Z",
+  "model": "gemini-3.6-flash",
+  "segmentMinutes": 15,
+  "segments": [
+    {
+      "segmentStart": "00:00:00",
+      "segmentEnd": "00:15:00",
+      "concepts": [
+        {
+          "conceptName": "4-Digit Numbers: Place Value, Abacus Representation, Expanded Form, and Number Names",
+          "approximateMinutesSpent": 15,
+          "teachingSequence": [
+            "Welcomes Grade 5 students and introduces Unit 1: Numbers - 1 (සංඛ්‍යා - 1).",
+            "Outlines lesson goals: reading, writing, place values, and expanded form of numbers up to 100,000.",
+            "Uses a physical abacus (ගණක රාමුව) to demonstrate place values of a 4-digit number (5421).",
+            "Writes the number 5421 on the board and shows how to write it in expanded form (විහිදුවා ලිවීම: 5000 + 400 + 20 + 1).",
+            "Guides students through Exercise 1: forming five different 4-digit numbers using a given box of digit choices.",
+            "Guides students through Exercise 2: completing a table matching 4-digit numerals with their written Sinhala number names."
+          ],
+          "explanationDetail": "The teacher introduces Grade 5 numbers by revisiting 4-digit place values using a physical abacus (ගණක රාමුව). She demonstrates how each rod represents ones, tens, hundreds, and thousands. Showing 5 beads on the thousands rod (5000), 4 beads on the hundreds rod (400), 2 beads on the tens rod (20), and 1 bead on the ones rod (1), she shows how they form the number 5421 (පන්දහස් හාරසිය විසි එක). She demonstrates writing this in expanded form (5000 + 400 + 20 + 1). Next, she works through textbook exercises to reinforce creating 4-digit numbers from digit pools and writing numbers in both digits and Sinhala words.",
+          "realWorldExamplesUsed": [],
+          "boardContent": "5421\n\n5000 + 400 + 20 + 1\n\n1) පහත කොටුවේ ඇති ඉලක්කම්වලින් හතරක් බැගින් භාවිත කර ඉලක්කම් හතරේ සංඛ්‍යා පහක් ලියන්න.\n1   8   5   0   3\n4   9   2   7   6\nඋදාහරණය : 3058\n1) 8597\n2) 4920\n3) 6418\n4) 8903\n5) 7256\n\n2) වගුව සම්පූර්ණ කරන්න.\n| සංඛ්‍යාව | සංඛ්‍යා නාමය |\n| --- | --- |\n| 6528 | හයදහස් පන්සිය විසි අට |\n| 2430 | දෙදහස් හාරසිය තිහ |\n| 3100 | තුන්දහස් එකසියය |\n| 5060 | පන්දහස් හැට |\n| 1008 | එක්දහස් අට |\n| 9015 | |",
+          "workedProblems": [
+            {
+              "problem": "පහත කොටුවේ ඇති ඉලක්කම්වලින් හතරක් බැගින් භාවිත කර ඉලක්කම් හතරේ සංඛ්‍යා පහක් ලියන්න. (Given digits: 1, 8, 5, 0, 3, 4, 9, 2, 7, 6; Example: 3058)",
+              "solution": "1) 8597, 2) 4920, 3) 6418, 4) 8903, 5) 7256",
+              "stepsShown": [
+                "Select digits 8, 5, 9, 7 to form 8597",
+                "Select digits 4, 9, 2, 0 to form 4920",
+                "Select digits 6, 4, 1, 8 to form 6418",
+                "Select digits 8, 9, 0, 3 to form 8903",
+                "Select digits 7, 2, 5, 6 to form 7256"
+              ]
+            },
+            {
+              "problem": "වගුව සම්පූර්ණ කරන්න (Complete the table matching numbers and number names in Sinhala)",
+              "solution": "6528 -> හයදහස් පන්සිය විසි අට; 2430 <- දෙදහස් හාරසිය තිහ; 3100 <- තුන්දහස් එකසියය; 5060 -> පන්දහස් හැට; 1008 <- එක්දහස් අට",
+              "stepsShown": [
+                "6528: 6 thousands, 5 hundreds, 2 tens, 8 ones = හයදහස් පන්සිය විසි අට",
+                "දෙදහස් හාරසිය තිහ: 2 thousands, 4 hundreds, 3 tens, 0 ones = 2430",
+                "තුන්දහස් එකසියය: 3 thousands, 1 hundred, 0 tens, 0 ones = 3100",
+                "5060: 5 thousands, 0 hundreds, 6 tens, 0 ones = පන්දහස් හැට",
+                "එක්දහස් අට: 1 thousand, 0 hundreds, 0 tens, 8 ones = 1008"
+              ]
+            }
+          ],
+          "extraProblems": [],
+          "questionsAskedToStudents": [
+            "කාටද කියන්න පුළුවන් මෙන්න මේ ගණක රාමුවෙන් නිරූපණය වන සංඛ්‍යාව කීයද කියලා?",
+            "එකේ ස්ථානයෙන් ගණක කීයක් නිරූපණය වෙනවද?",
+            "දහයේ ස්ථානයෙන් ගණක කීයක් නිරූපණය වෙනවද?",
+            "එතකොට එතන වටිනාකම කීයද? අගය කීයද?",
+            "කොහොමද ඕක විහිදුවලා ලියන්නේ අපි?",
+            "මෙන්න මේ සංඛ්‍යාව හඬ නගා කියන්න බලන්න?"
+          ],
+          "pauseOrThinkingMoments": [
+            "Pause when showing the abacus at 02:55 - 03:05, giving students time to look at the rods and count beads before answering.",
+            "Pause at 07:30 - 07:38 when asking students to select four digits from the box to write a new 4-digit number."
+          ],
+          "commonDifficultiesAddressed": [
+            "Handling zeros in place value (e.g., in 5060 and 1008): The teacher explains that when place values like hundreds or tens are zero, they are omitted in spoken number names ('පන්දහස් හැට', 'එක්දහස් අට'), but must be recorded with '0' digits when writing the numerical figure."
+          ]
+        }
+      ]
+    },
+    {
+      "segmentStart": "00:15:00",
+      "segmentEnd": "00:30:00",
+      "concepts": [
+        {
+          "conceptName": "Place Value Position, Place Value, and Represented Value of Digits in Four-Digit Numbers",
+          "approximateMinutesSpent": 8,
+          "teachingSequence": [
+            "Completes the word form table row for 9015 from the previous exercise.",
+            "Introduces textbook exercise 3 requiring completion of a place value table for four-digit numbers.",
+            "Walks through the worked example for 2348 focusing on the digit 2 in the thousands position.",
+            "Guides students line by line through missing table entries for digits, place value positions, place values, and represented values."
+          ],
+          "explanationDetail": "The teacher explains the distinction between a digit's place value position (such as thousands, hundreds, tens, units), its place value (1000, 100, 10, 1), and the value represented by that digit in a number (the digit multiplied by its place value). She emphasizes that when a digit is 0 in any place, its represented value is always 0.",
+          "realWorldExamplesUsed": [],
+          "boardContent": "| සංඛ්‍යාව | ඉලක්කම | ඉලක්කම පිහිටි ස්ථානය | ස්ථානීය අගය | ඉලක්කමෙන් නිරූපිත අගය |\n|---|---|---|---|---|\n| 2348 | 2 | දහසස්ථානය | 1000 | 2000 |\n| 6572 | 6 | දහසස්ථානය | 1000 | 6000 |\n| 5024 | 4 | එකස්ථානය | 1 | 4 |\n| 8700 | 7 | සියයස්ථානය | 100 | 700 |\n| 9605 | 0 | දහයස්ථානය | 10 | 0 |\n| 7003 | 0 | සියයස්ථානය | 100 | 0 |",
+          "workedProblems": [
+            {
+              "problem": "In 6572, find the position, place value, and represented value for digit 6.",
+              "solution": "Position: දහසස්ථානය, Place Value: 1000, Represented Value: 6000",
+              "stepsShown": [
+                "Digit = 6",
+                "Position = දහසස්ථානය",
+                "Place Value = 1000",
+                "Represented Value = 6 x 1000 = 6000"
+              ]
+            },
+            {
+              "problem": "In 5024, find the position, place value, and represented value for digit 4.",
+              "solution": "Position: එකස්ථානය, Place Value: 1, Represented Value: 4",
+              "stepsShown": [
+                "Digit = 4",
+                "Position = එකස්ථානය",
+                "Place Value = 1",
+                "Represented Value = 4 x 1 = 4"
+              ]
+            },
+            {
+              "problem": "In 8700, given represented value 700, identify the digit, position, and place value.",
+              "solution": "Digit = 7, Position: සියයස්ථානය, Place Value: 100",
+              "stepsShown": [
+                "Represented value = 700",
+                "Digit = 7",
+                "Position = සියයස්ථානය",
+                "Place Value = 100"
+              ]
+            },
+            {
+              "problem": "In 9605, given position දහයස්ථානය, find the digit, place value, and represented value.",
+              "solution": "Digit = 0, Position: දහයස්ථානය, Place Value: 10, Represented Value: 0",
+              "stepsShown": [
+                "Position = දහයස්ථානය",
+                "Digit = 0",
+                "Place Value = 10",
+                "Represented value = 0"
+              ]
+            },
+            {
+              "problem": "In 7003, given position සියයස්ථානය, find the digit, place value, and represented value.",
+              "solution": "Digit = 0, Position: සියයස්ථානය, Place Value: 100, Represented Value: 0",
+              "stepsShown": [
+                "Position = සියයස්ථානය",
+                "Digit = 0",
+                "Place Value = 100",
+                "Represented value = 0"
+              ]
+            }
+          ],
+          "extraProblems": [],
+          "questionsAskedToStudents": [
+            "කීයද අගය? (What is the value?)",
+            "ඉලක්කම පිහිටි ස්ථානය මොකක්ද? (What is the place position where the digit is located?)",
+            "ඉලක්කමෙන් නිරූපිත අගය කීයද? (What is the value represented by the digit?)"
+          ],
+          "pauseOrThinkingMoments": [
+            "Teacher pauses while looking at 8700 to let students identify which digit corresponds to represented value 700."
+          ],
+          "commonDifficultiesAddressed": [
+            "Reinforces that when the digit 0 is present at a place position (e.g. tens or hundreds place), its represented value is 0."
+          ]
+        },
+        {
+          "conceptName": "Representing Four-Digit Numbers on an Abacus and Writing Number Names",
+          "approximateMinutesSpent": 7,
+          "teachingSequence": [
+            "Presents abacus diagrams labeled with place positions (දා = thousands, සිය = hundreds, ද = tens, එ = units).",
+            "Writes the task instruction on the board: 'සංඛ්‍යාව හා සංඛ්‍යා නාමය ලියමු.'",
+            "Counts beads on each place column to determine each digit of the number.",
+            "Writes down the standard digits and then writes out the full number name in Sinhala words.",
+            "Gives students time to attempt problem 4 independently before demonstrating the solution."
+          ],
+          "explanationDetail": "The teacher demonstrates how to construct a four-digit number from an abacus (ගණක රාමුව) by counting beads on thousands, hundreds, tens, and units spikes. She emphasizes that if a spike has no beads, the digit 0 must be recorded in that place position before writing out the complete Sinhala number name.",
+          "realWorldExamplesUsed": [],
+          "boardContent": "සංඛ්‍යාව හා සංඛ්‍යා නාමය ලියමු.\n(1) 5322\nපන්දහස් තුන්සිය විසි දෙක\n(2) 6054\nහයදහස් පනස් හතර\n(3) 3007\nතුන්දහස් හත\n(4) 1080\nඑක්දහස් අසූව\n(5) 6000\nහයදහස",
+          "workedProblems": [
+            {
+              "problem": "Write the number and number name represented by abacus (1) with 5 thousands, 3 hundreds, 2 tens, 2 units.",
+              "solution": "5322 - පන්දහස් තුන්සිය විසි දෙක",
+              "stepsShown": [
+                "Thousands beads = 5",
+                "Hundreds beads = 3",
+                "Tens beads = 2",
+                "Units beads = 2",
+                "Number = 5322",
+                "Number name = පන්දහස් තුන්සිය විසි දෙක"
+              ]
+            },
+            {
+              "problem": "Write the number and number name represented by abacus (2) with 6 thousands, 0 hundreds, 5 tens, 4 units.",
+              "solution": "6054 - හයදහස් පනස් හතර",
+              "stepsShown": [
+                "Thousands beads = 6",
+                "Hundreds beads = 0",
+                "Tens beads = 5",
+                "Units beads = 4",
+                "Number = 6054",
+                "Number name = හයදහස් පනස් හතර"
+              ]
+            },
+            {
+              "problem": "Write the number and number name represented by abacus (3) with 3 thousands, 0 hundreds, 0 tens, 7 units.",
+              "solution": "3007 - තුන්දහස් හත",
+              "stepsShown": [
+                "Thousands beads = 3",
+                "Hundreds beads = 0",
+                "Tens beads = 0",
+                "Units beads = 7",
+                "Number = 3007",
+                "Number name = තුන්දහස් හත"
+              ]
+            },
+            {
+              "problem": "Write the number and number name represented by abacus (4) with 1 thousand, 0 hundreds, 8 tens, 0 units.",
+              "solution": "1080 - එක්දහස් අසූව",
+              "stepsShown": [
+                "Thousands beads = 1",
+                "Hundreds beads = 0",
+                "Tens beads = 8",
+                "Units beads = 0",
+                "Number = 1080",
+                "Number name = එක්දහස් අසූව"
+              ]
+            },
+            {
+              "problem": "Write the number and number name represented by abacus (5) with 6 thousands, 0 hundreds, 0 tens, 0 units.",
+              "solution": "6000 - හයදහස",
+              "stepsShown": [
+                "Thousands beads = 6",
+                "Hundreds beads = 0",
+                "Tens beads = 0",
+                "Units beads = 0",
+                "Number = 6000",
+                "Number name = හයදහස"
+              ]
+            }
+          ],
+          "extraProblems": [],
+          "questionsAskedToStudents": [
+            "දහසේ ස්ථානයේ ගණක කීයක් තියෙද? (How many beads are in the thousands place?)",
+            "සංඛ්‍යා නාමය කියන්න බලන්න? (Can you tell the number name?)",
+            "මම ඉක්මනට ලියන්න කලින් කාටද ලියන්න පුළුවන්? (Who can write it before I write it quickly?)"
+          ],
+          "pauseOrThinkingMoments": [
+            "Teacher explicitly pauses before writing answer to problem (4) and invites students to complete writing the number and number name in their books first."
+          ],
+          "commonDifficultiesAddressed": [
+            "Ensures students write '0' for place positions where no beads appear on the abacus rather than skipping place values."
+          ]
+        }
+      ]
+    },
+    {
+      "segmentStart": "00:30:00",
+      "segmentEnd": "00:45:00",
+      "concepts": [
+        {
+          "conceptName": "Reading Abacus and Writing Numbers in Expanded Form",
+          "approximateMinutesSpent": 5,
+          "teachingSequence": [
+            "Asks students to count the beads on each spike of the abacus (thousands and ones places).",
+            "Writes the standard four-digit number corresponding to the abacus representation.",
+            "Writes the number name in Sinhala words below the numeral.",
+            "Introduces textbook activity on expanded form (විහිදුවා ලිවීම).",
+            "Explains the example problem where a number is split into thousands, hundreds, tens, and ones place values.",
+            "Fills in missing values in worked problems 1 through 5 on the board."
+          ],
+          "explanationDetail": "The teacher explains how to read place values from an abacus and how to write four-digit numbers in standard form and in words. She then demonstrates expanded form (විහිදුවා ලිවීම) by breaking numbers into the sum of their constituent place values (thousands, hundreds, tens, ones), emphasizing that place value zero must be explicitly included when a digit is zero.",
+          "realWorldExamplesUsed": [],
+          "boardContent": "(5)\n   [Abacus: 6 beads on thousands spike]\n   6000\n   හයදහස\n\n(6)\n   [Abacus: 4 beads on thousands, 4 beads on ones]\n   4004\n   හාරදහස් හතර\n\n5. විහිදුවා ලියන්න.\nඋදාහරණය 4031 -> 4000 + 0 + 30 + 1\n\n(1) 7658 -> 7000 + 600 + 50 + 8\n(2) 5090 -> 5000 + 0 + 90 + 0\n(3) 8027 -> 8000 + 0 + 20 + 7\n(4) 1200 -> 1000 + 200 + 0 + 0\n(5) 6005 -> 6000 + 0 + 0 + 5",
+          "workedProblems": [
+            {
+              "problem": "Write 4004 in number form and in words based on the abacus.",
+              "solution": "4004, හාරදහස් හතර",
+              "stepsShown": [
+                "Count thousands beads: 4 -> 4000",
+                "Count hundreds beads: 0 -> 0",
+                "Count tens beads: 0 -> 0",
+                "Count ones beads: 4 -> 4",
+                "Combined number: 4004",
+                "Word form: හාරදහස් හතර"
+              ]
+            },
+            {
+              "problem": "Fill in blanks to express numbers in expanded form: (1) 7658 (2) 5090 (3) 8027 (4) 1200 (5) 6005",
+              "solution": "(1) 600 (2) 5000, 0 (3) 8000, 0, 7 (4) 200, 0, 0 (5) 6000, 0, 0, 5",
+              "stepsShown": [
+                "7658 = 7000 + 600 + 50 + 8",
+                "5090 = 5000 + 0 + 90 + 0",
+                "8027 = 8000 + 0 + 20 + 7",
+                "1200 = 1000 + 200 + 0 + 0",
+                "6005 = 6000 + 0 + 0 + 5"
+              ]
+            }
+          ],
+          "extraProblems": [],
+          "questionsAskedToStudents": [
+            "බලන්න දාහේ ස්ථානයේ ගණක කීයක් තියෙනවද කියලා? (Look, how many beads are in the thousands place?)",
+            "එතකොට උත්තරේ මොකක්ද? (So what is the answer?)"
+          ],
+          "pauseOrThinkingMoments": [
+            "Teacher pauses briefly after counting abacus beads to allow students to calculate the final number name in their heads."
+          ],
+          "commonDifficultiesAddressed": [
+            "Highlighting that place value positions with no beads/digits (like hundreds or tens) must still be represented with 0 in expanded form."
+          ]
+        },
+        {
+          "conceptName": "Forming and Reading Numbers up to 100,000 (Ten Thousands & Place Value Table)",
+          "approximateMinutesSpent": 10,
+          "teachingSequence": [
+            "Displays summary note showing how adding 1 to 9999 forms 10 000 (දස දහස).",
+            "Lists multiples of 10,000 up to 90,000 with Sinhala names.",
+            "Shows that 1 more than 99,999 is 100,000 (සියක් දහස).",
+            "Guides students through completing an addition pattern (19 999 + 1, 29 999 + 1, ..., 99 999 + 1).",
+            "Writes the resulting 5-digit and 6-digit numbers along with their Sinhala names.",
+            "Chants/reads the completed number list together with the class (20 000 to 100 000).",
+            "Presents a 5-digit place value table (සංඛ්‍යා පෙත) for the number 26 147.",
+            "Explains how each digit maps to its place value column (Ten Thousands, Thousands, Hundreds, Tens, Ones)."
+          ],
+          "explanationDetail": "The teacher introduces 5-digit numbers (Ten Thousands / දස දහස) by adding 1 to the largest 4-digit number (9999). She extends this pattern systematically by adding 1 to numbers like 19 999, 29 999, etc., to generate 20 000, 30 000, up to 100 000 (Hundred Thousand / සියක් දහස). Finally, she introduces the 5-digit place value grid (සංඛ්‍යා පෙත) showing how digits are placed in 'Ten Thousands' (දස දහසේ ඒවා), 'Thousands' (දහසේ ඒවා), 'Hundreds' (සියයේ ඒවා), 'Tens' (දහයේ ඒවා), and 'Ones' (එකේ ඒවා) columns.",
+          "realWorldExamplesUsed": [],
+          "boardContent": "සටහන\n9999ට 1ක් වැඩි සංඛ්‍යාව\n9999 + 1 = 10 000 - දස දහස\n\n10 000 - දස දහස        60 000 - හැට දහස\n20 000 - විසි දහස       70 000 - හැත්තෑ දහස\n30 000 - තිස් දහස       80 000 - අසූ දහස\n40 000 - හතළිස් දහස     90 000 - අනූ දහස\n50 000 - පනස් දහස\n\n99 999ට 1ක් වැඩි සංඛ්‍යාව\n99 999 + 1 = 100 000 - සියක් දහස\n\nසංඛ්‍යාව හා සංඛ්‍යා නාමය ලියන්න.\n19 999 + 1 = 20 000  |  විසි දහස.\n29 999 + 1 = 30 000  |  තිස් දහස.\n39 999 + 1 = 40 000  |  හතළිස් දහස.\n49 999 + 1 = 50 000  |  පනස් දහස.\n59 999 + 1 = 60 000  |  හැට දහස.\n69 999 + 1 = 70 000  |  හැත්තෑ දහස.\n79 999 + 1 = 80 000  |  අසූ දහස.\n89 999 + 1 = 90 000  |  අනූ දහස.\n99 999 + 1 = 100 000 |  සියක් දහස.\n\n26 147 විසි හයදහස් එකසිය හතළිස් හත\n| දස දහසේ ඒවා | දහසේ ඒවා | සියයේ ඒවා | දහයේ ඒවා | එකේ ඒවා |\n| :---: | :---: | :---: | :---: | :---: |\n| 2 | 6 | 1 | 4 | 7 |",
+          "workedProblems": [
+            {
+              "problem": "Find the result and Sinhala word name for: 19 999 + 1, 29 999 + 1, ..., 99 999 + 1",
+              "solution": "20 000 (විසි දහස), 30 000 (තිස් දහස), 40 000 (හතළිස් දහස), 50 000 (පනස් දහස), 60 000 (හැට දහස), 70 000 (හැත්තෑ දහස), 80 000 (අසූ දහස), 90 000 (අනූ දහස), 100 000 (සියක් දහස)",
+              "stepsShown": [
+                "19 999 + 1 = 20 000 (විසි දහස)",
+                "29 999 + 1 = 30 000 (තිස් දහස)",
+                "39 999 + 1 = 40 000 (හතළිස් දහස)",
+                "49 999 + 1 = 50 000 (පනස් දහස)",
+                "59 999 + 1 = 60 000 (හැට දහස)",
+                "69 999 + 1 = 70 000 (හැත්තෑ දහස)",
+                "79 999 + 1 = 80 000 (අසූ දහස)",
+                "89 999 + 1 = 90 000 (අනූ දහස)",
+                "99 999 + 1 = 100 000 (සියක් දහස)"
+              ]
+            },
+            {
+              "problem": "Place 26 147 into the 5-digit place value table.",
+              "solution": "Ten thousands: 2, Thousands: 6, Hundreds: 1, Tens: 4, Ones: 7",
+              "stepsShown": [
+                "Ten Thousands (දස දහසේ ඒවා) = 2",
+                "Thousands (දහසේ ඒවා) = 6",
+                "Hundreds (සියයේ ඒවා) = 1",
+                "Tens (දහයේ ඒවා) = 4",
+                "Ones (එකේ ඒවා) = 7",
+                "Read as: විසි හයදහස් එකසිය හතළිස් හත"
+              ]
+            }
+          ],
+          "extraProblems": [],
+          "questionsAskedToStudents": [
+            "19 999 ට එකක් එකතු වුණාම හැදුණ සංඛ්‍යාව කීයද? (When 1 is added to 19 999, what number is formed?)",
+            "ඊළඟට කියන්න බලන්න දන්න අය? (Next, can those who know tell me?)"
+          ],
+          "pauseOrThinkingMoments": [
+            "Teacher pauses before writing each answer in the addition table, asking students to say the answer aloud before she fills it in."
+          ],
+          "commonDifficultiesAddressed": [
+            "Ensuring students understand the transition across thousands boundaries when adding 1 to numbers ending in 999 (e.g., 19 999 to 20 000, 99 999 to 100 000)."
+          ]
+        }
+      ]
+    },
+    {
+      "segmentStart": "00:45:00",
+      "segmentEnd": "01:00:00",
+      "concepts": [
+        {
+          "conceptName": "Representing and Reading 5-Digit Numbers on a Place Value Table",
+          "approximateMinutesSpent": 15,
+          "teachingSequence": [
+            "Introduces the target learning objective: reading and writing 5-digit numbers using five place values.",
+            "presents a physical place value board with headers: Ten Thousands, Thousands, Hundreds, Tens, and Ones.",
+            "Demonstrates digit placement from right (ones) to left (ten thousands) using card tiles on the board.",
+            "Explains how to read the complete number name aloud based on the values in each column.",
+            "Demonstrates writing the expanded form (sum of place values) alongside the word name on the whiteboard.",
+            "Works through multiple practice examples focusing on numbers containing zeros in various place values."
+          ],
+          "explanationDetail": "The teacher introduces 5-digit numbers using place value columns: Ones ('එකේ ඒවා'), Tens ('දහයේ ඒවා'), Hundreds ('සියයේ ඒවා'), Thousands ('දහසේ ඒවා'), and Ten Thousands ('දස දහසේ ඒවා'). She emphasizes that each column represents the count of units of that place value. She uses a red display board where digit tiles are inserted into each column to visualize how digits combine to form large numbers, and demonstrates writing 5-digit numbers in expanded notation (e.g. 30000 + 8000 + 0 + 10 + 7) and in Sinhala word form.",
+          "realWorldExamplesUsed": [],
+          "boardContent": "| දස දහසේ ඒවා | දහසේ ඒවා | සියයේ ඒවා | දහයේ ඒවා | එකේ ඒවා |\n|---|---|---|---|---|\n| 1 | 0 | 1 | 0 | 0 |\n\nදස දහස් එකසියය\n\n25 602\n| දස දහසේ ඒවා | දහසේ ඒවා | සියයේ ඒවා | දහයේ ඒවා | එකේ ඒවා |\n|---|---|---|---|---|\n| 2 | 5 | 6 | 0 | 2 |\n\nවිසි පන්දහස් හයසිය දෙක\n\n38 017\n| දස දහසේ ඒවා | දහසේ ඒවා | සියයේ ඒවා | දහයේ ඒවා | එකේ ඒවා |\n|---|---|---|---|---|\n| 3 | 8 | 0 | 1 | 7 |\n\n30000 + 8000 + 0 + 10 + 7 = 38017\nතිස් අටදහස් දාහත\n\n53 900\n| දස දහසේ ඒවා | දහසේ ඒවා | සියයේ ඒවා | දහයේ ඒවා | එකේ ඒවා |\n|---|---|---|---|---|\n| 5 | 3 | 9 | 0 | 0 |\n\n50000 + 3000 + 900 + 0 + 0 = 53900\nපනස් තුන්දහස් නවසියය",
+          "workedProblems": [
+            {
+              "problem": "Represent 10 100 on the place value chart and write in words.",
+              "solution": "10 100 = දස දහස් එකසියය (Ten thousand one hundred)",
+              "stepsShown": [
+                "Ones place value: 0",
+                "Tens place value: 0",
+                "Hundreds place value: 1",
+                "Thousands place value: 0",
+                "Ten Thousands place value: 1",
+                "Number in Sinhala words: දස දහස් එකසියය"
+              ]
+            },
+            {
+              "problem": "Represent 25 602 on the place value chart and write in words.",
+              "solution": "25 602 = විසි පන්දහස් හයසිය දෙක (Twenty five thousand six hundred two)",
+              "stepsShown": [
+                "Ones place value: 2",
+                "Tens place value: 0",
+                "Hundreds place value: 6",
+                "Thousands place value: 5",
+                "Ten Thousands place value: 2",
+                "Number in Sinhala words: විසි පන්දහස් හයසිය දෙක"
+              ]
+            },
+            {
+              "problem": "Represent 38 017 on the place value chart, write in expanded form, and write in words.",
+              "solution": "30000 + 8000 + 0 + 10 + 7 = 38017; තිස් අටදහස් දාහත",
+              "stepsShown": [
+                "Ten Thousands: 3 (30 000)",
+                "Thousands: 8 (8 000)",
+                "Hundreds: 0 (0)",
+                "Tens: 1 (10)",
+                "Ones: 7 (7)",
+                "Expanded form: 30000 + 8000 + 0 + 10 + 7",
+                "Number in Sinhala words: තිස් අටදහස් දාහත"
+              ]
+            },
+            {
+              "problem": "Represent 53 900 on the place value chart, write in expanded form, and write in words.",
+              "solution": "50000 + 3000 + 900 + 0 + 0 = 53900; පනස් තුන්දහස් නවසියය",
+              "stepsShown": [
+                "Ten Thousands: 5 (50 000)",
+                "Thousands: 3 (3 000)",
+                "Hundreds: 9 (900)",
+                "Tens: 0 (0)",
+                "Ones: 0 (0)",
+                "Expanded form: 50000 + 3000 + 900 + 0 + 0",
+                "Number in Sinhala words: පනස් තුන්දහස් නවසියය"
+              ]
+            },
+            {
+              "problem": "Represent 75 501 on the place value chart.",
+              "solution": "75 501 = හැත්තෑ පන්දහස් පන්සිය එක",
+              "stepsShown": [
+                "Ones: 1",
+                "Tens: 0",
+                "Hundreds: 5",
+                "Thousands: 5",
+                "Ten Thousands: 7"
+              ]
+            }
+          ],
+          "extraProblems": [],
+          "questionsAskedToStudents": [
+            "එකස් ස්ථානයේ මොනවාද තියෙන්නේ?",
+            "දහයේ ඒවා කීයක් තියෙනවාද?",
+            "සියයේ ඒවා කීයක් තියෙනවාද?",
+            "දස දහසේ ස්ථානයේ තියෙන ඉලක්කම මොකක්ද?",
+            "එහෙමනම් සංඛ්‍යාව කීයද?"
+          ],
+          "pauseOrThinkingMoments": [
+            "Teacher pauses after presenting the card '38 017' to allow students to think about the place value of each digit before placing tiles on the board.",
+            "Teacher pauses when highlighting columns with value '0' (e.g. hundreds place in 38 017) to reinforce the role of zero in place value alignment."
+          ],
+          "commonDifficultiesAddressed": [
+            "Handling zeros inside 5-digit numbers: Students often skip zero place values or forget to write '0' when converting spoken number names into digits or expanded notation. The teacher explicitly highlights placing '0' in empty place value columns."
+          ]
+        }
+      ]
+    },
+    {
+      "segmentStart": "01:00:00",
+      "segmentEnd": "01:15:00",
+      "concepts": [
+        {
+          "conceptName": "Place Value, Expanded Form, and Value Represented by Digits in 5-Digit Numbers",
+          "approximateMinutesSpent": 15,
+          "teachingSequence": [
+            "Demonstrates expanded form and reading/writing the 5-digit number 75 501 using a place value grid",
+            "Introduces place value names (ස්ථානය) for each digit in 68 507 from right to left",
+            "Calculates the value represented by each digit (ඉලක්කමෙන් නිරූපණය වන අගය) for 68 507",
+            "Presents a structured summary table comparing digit, place name, place value, and value represented",
+            "Demonstrates writing expanded form (සංඛ්‍යා විහිදුවා ලිවීම) using 68 507 = 60 000 + 8 000 + 500 + 0 + 7",
+            "Guides students through practice exercises determining the value represented by digits in 25 602, 75 501, and 26 147"
+          ],
+          "explanationDetail": "The teacher explains how 5-digit numbers are constructed across place value columns: ten-thousands (දස දහස), thousands (දහස), hundreds (සියය), tens (දහය), and units (එක). She demonstrates how each digit occupies a specific place (ස්ථානය), possesses a place value (ස්ථානීය අගය), and represents a specific value (ඉලක්කමෙන් නිරූපණය වන අගය). She shows how adding these represented values together gives the expanded notation (සංඛ්‍යා විහිදුවා ලිවීම) and explains the handling of zero in place values.",
+          "realWorldExamplesUsed": [],
+          "boardContent": "75 501\n| දස දහසේ ඒවා | දහසේ ඒවා | සියයේ ඒවා | දහයේ ඒවා | එකේ ඒවා |\n| 7 | 5 | 5 | 0 | 1 |\n\n70 000 + 5 000 + 500 + 0 + 1\n75 501\nහැත්තෑ පන්දහස් පන්සිය එක\n\n68 507\n7 -> එකස්ථානය -> 7\n0 -> දහයස්ථානය -> 0\n5 -> සියයස්ථානය -> 500\n8 -> දහසස්ථානය -> 8000\n6 -> දස දහසස්ථානය -> 60000\n\n| ඉලක්කම | ස්ථානය | ස්ථානීය අගය | ඉලක්කමෙන් නිරූපණය වන අගය |\n| 6 | දසදහසස්ථානය | 10 000 | 60 000 |\n| 8 | දහසස්ථානය | 1 000 | 8 000 |\n| 5 | සියයස්ථානය | 100 | 500 |\n| 0 | දහයස්ථානය | 10 | 0 |\n| 7 | එකස්ථානය | 1 | 7 |\n\nසංඛ්‍යා විහිදුවා ලිවීම\n68 507 -> 60 000 + 8 000 + 500 + 0 + 7\n\n25 602\n2 -> 2\n0 -> 0\n6 -> 600\n5 -> 5000\n2 -> 20000",
+          "workedProblems": [
+            {
+              "problem": "Write 75 501 in expanded form and in words.",
+              "solution": "70 000 + 5 000 + 500 + 0 + 1 = 75 501 (හැත්තෑ පන්දහස් පන්සිය එක)",
+              "stepsShown": [
+                "7 ten-thousands = 70 000",
+                "5 thousands = 5 000",
+                "5 hundreds = 500",
+                "0 tens = 0",
+                "1 unit = 1",
+                "Expanded expression: 70 000 + 5 000 + 500 + 0 + 1",
+                "Number: 75 501",
+                "In words: හැත්තෑ පන්දහස් පන්සිය එක"
+              ]
+            },
+            {
+              "problem": "Determine the place name, place value, and value represented by each digit in 68 507.",
+              "solution": "6: 60 000, 8: 8 000, 5: 500, 0: 0, 7: 7",
+              "stepsShown": [
+                "Digit 7 is in units place (එකස්ථානය), value = 7",
+                "Digit 0 is in tens place (දහයස්ථානය), value = 0",
+                "Digit 5 is in hundreds place (සියයස්ථානය), value = 500",
+                "Digit 8 is in thousands place (දහසස්ථානය), value = 8 000",
+                "Digit 6 is in ten-thousands place (දසදහසස්ථානය), value = 60 000",
+                "Expanded form: 68 507 -> 60 000 + 8 000 + 500 + 0 + 7"
+              ]
+            },
+            {
+              "problem": "Find the value represented by each digit in 25 602.",
+              "solution": "2 (units) = 2, 0 (tens) = 0, 6 (hundreds) = 600, 5 (thousands) = 5 000, 2 (ten-thousands) = 20 000",
+              "stepsShown": [
+                "2 in units place = 2",
+                "0 in tens place = 0",
+                "6 in hundreds place = 600",
+                "5 in thousands place = 5 000",
+                "2 in ten-thousands place = 20 000"
+              ]
+            },
+            {
+              "problem": "Find the value represented by each digit in 75 501.",
+              "solution": "1 = 1, 0 = 0, 5 = 500, 5 = 5 000, 7 = 70 000",
+              "stepsShown": [
+                "1 in units place = 1",
+                "0 in tens place = 0",
+                "5 in hundreds place = 500",
+                "5 in thousands place = 5 000",
+                "7 in ten-thousands place = 70 000"
+              ]
+            }
+          ],
+          "extraProblems": [],
+          "questionsAskedToStudents": [
+            "සියයේ ඒවා කීයක් තියෙනවද?",
+            "දහසේ ඒවා කීයක් තියෙනවද?",
+            "දස දහසේ ඒවා කීයක් තියෙනවද?",
+            "හත පිහිටි ස්ථානය මොකක්ද?",
+            "බිංදුව පිහිටි ස්ථානය මොකක්ද?",
+            "පහ පිහිටි ස්ථානය මොකක්ද?",
+            "අට පිහිටි ස්ථානය මොකක්ද?",
+            "හය පිහිටි ස්ථානය මොකක්ද?",
+            "එකස්ථානයේ අගය කීයද?",
+            "දහයස්ථානයේ අගය කීයද?",
+            "සියයස්ථානයේ අගය කීයද?",
+            "දහසස්ථානයේ අගය කීයද?",
+            "දස දහසස්ථානයේ අගය කීයද?"
+          ],
+          "pauseOrThinkingMoments": [
+            "Teacher pauses briefly after writing place value names to allow students to respond with the place value names before writing them down",
+            "Teacher pauses before writing the values represented by each digit so students can mentally calculate each term"
+          ],
+          "commonDifficultiesAddressed": [
+            "Emphasizing that when a place value column contains '0' (like tens place in 68 507), its represented value is 0 and does not change position values of other digits",
+            "Highlighting the small gap (space) that must be left between the thousands digit and hundreds digit when writing 5-digit numbers (e.g., writing 68 507 instead of 68507)"
+          ]
+        }
+      ]
+    },
+    {
+      "segmentStart": "01:15:00",
+      "segmentEnd": "01:30:00",
+      "concepts": [
+        {
+          "conceptName": "Place Value and Represented Value of 5-Digit Numbers",
+          "approximateMinutesSpent": 1.2,
+          "teachingSequence": [
+            "Displays a place value table for the 5-digit number 26 147 on the board.",
+            "Writes down place values (10 000, 1000, 100, 10, 1) under each digit column.",
+            "Calculates and writes down the actual value represented by each digit in vertical order."
+          ],
+          "explanationDetail": "The teacher explains how to determine the value represented by each digit in a 5-digit number based on its position in the place value table, starting from the ones place up to the ten-thousands place.",
+          "realWorldExamplesUsed": [],
+          "boardContent": "26 147\n\n| දස දහසේ ඒවා | දහසේ ඒවා | සියයේ ඒවා | දහයේ ඒවා | එකේ ඒවා |\n|---|---|---|---|---|\n| 2 | 6 | 1 | 4 | 7 |\n| 10 000 | 1000 | 100 | 10 | 1 |\n\n7 -> 7\n4 -> 40\n1 -> 100\n6 -> 6000\n2 -> 20 000",
+          "workedProblems": [
+            {
+              "problem": "Find the value represented by each digit in 26 147.",
+              "solution": "7, 40, 100, 6000, 20 000",
+              "stepsShown": [
+                "7 x 1 = 7",
+                "4 x 10 = 40",
+                "1 x 100 = 100",
+                "6 x 1000 = 6000",
+                "2 x 10000 = 20 000"
+              ]
+            }
+          ],
+          "extraProblems": [],
+          "questionsAskedToStudents": [
+            "මේ එක එක් ස්ථාන වලින් නිරූපණය වන අගයන් නේද?"
+          ],
+          "pauseOrThinkingMoments": [],
+          "commonDifficultiesAddressed": []
+        },
+        {
+          "conceptName": "Adding 1 to 5-Digit Numbers and Writing Number Names",
+          "approximateMinutesSpent": 2.2,
+          "teachingSequence": [
+            "Presents textbook Exercise 6 with a given worked example (59 999 + 1 = 60 000 - හැට දහස).",
+            "Guides students to add 1 to numbers ending in 999 to form the next multiple of ten-thousand.",
+            "Solves four sub-questions sequentially on the board, writing both the numeric sum and its Sinhala number name."
+          ],
+          "explanationDetail": "The teacher demonstrates how adding 1 to a number ending in 9999 transitions it to the next round ten-thousand value, and how to write the result as both digits and Sinhala word name.",
+          "realWorldExamplesUsed": [],
+          "boardContent": "6) සංඛ්‍යාව හා සංඛ්‍යා නාමය ලියන්න.\n\nඋදාහරණය: 59 999 + 1 = 60 000 - හැට දහස\n\n(1) 69 999 + 1 = 70 000 - හැත්තෑ දහස\n(2) 79 999 + 1 = 80 000 - අසූ දහස\n(3) 89 999 + 1 = 90 000 - අනූ දහස\n(4) 99 999 + 1 = 100 000 - සියක් දහස",
+          "workedProblems": [
+            {
+              "problem": "(1) 69 999 + 1 = ...",
+              "solution": "70 000 - හැත්තෑ දහස",
+              "stepsShown": [
+                "69 999 + 1 = 70 000",
+                "Number name: හැත්තෑ දහස"
+              ]
+            },
+            {
+              "problem": "(2) 79 999 + 1 = ...",
+              "solution": "80 000 - අසූ දහස",
+              "stepsShown": [
+                "79 999 + 1 = 80 000",
+                "Number name: අසූ දහස"
+              ]
+            },
+            {
+              "problem": "(3) 89 999 + 1 = ...",
+              "solution": "90 000 - අනූ දහස",
+              "stepsShown": [
+                "89 999 + 1 = 90 000",
+                "Number name: අනූ දහස"
+              ]
+            },
+            {
+              "problem": "(4) 99 999 + 1 = ...",
+              "solution": "100 000 - සියක් දහස",
+              "stepsShown": [
+                "99 999 + 1 = 100 000",
+                "Number name: සියක් දහස"
+              ]
+            }
+          ],
+          "extraProblems": [],
+          "questionsAskedToStudents": [
+            "69 999 ට එකක් එකතු වුණාම කීයද?",
+            "99 999 ට එකතු කරනවා එකක්. කීයද එතකොට?"
+          ],
+          "pauseOrThinkingMoments": [],
+          "commonDifficultiesAddressed": []
+        },
+        {
+          "conceptName": "Converting Sinhala Number Names to Digits",
+          "approximateMinutesSpent": 3.8,
+          "teachingSequence": [
+            "Introduces textbook Exercise 7 with a given example (හැත්තෑ දෙදහස් නවසිය තිස් දෙක -> 72 932).",
+            "Reads out each number name aloud in Sinhala, pointing out place values.",
+            "Writes the corresponding numeric digits step-by-step next to each question.",
+            "Highlights tricky cases where a place value is omitted in word form (e.g., hundreds place missing in 'තිස් පන් දහස් දහනවය'), requiring a zero placeholder."
+          ],
+          "explanationDetail": "The teacher guides students through parsing Sinhala written number names into digits, emphasizing placing a zero when a specific place value position (such as hundreds or tens) is not mentioned in the name.",
+          "realWorldExamplesUsed": [],
+          "boardContent": "7) සංඛ්‍යා නාමයට අදාළ සංඛ්‍යාංකය ලියන්න.\n\nඋදාහරණය: හැත්තෑ දෙදහස් නවසිය තිස් දෙක - 72 932\n\n(1) දස දහස් එකසිය දොළහ -> 10 112\n(2) දහ තුන් දහස් දෙසිය විස්ස -> 13 220\n(3) විසි අට දහස් පන්සියය -> 28 500\n(4) හතළිස් එක් දහස් හාරසිය අසූ පහ -> 41 485\n(5) හැට නව දහස් තුන්සිය හැත්තෑ හත -> 69 377\n(6) තිස් පන් දහස් දහනවය -> 35 019\n(7) පනස් දහස් පහ -> 50 005",
+          "workedProblems": [
+            {
+              "problem": "(1) දස දහස් එකසිය දොළහ",
+              "solution": "10 112",
+              "stepsShown": [
+                "Ten thousand = 10",
+                "One hundred twelve = 112",
+                "Combined = 10 112"
+              ]
+            },
+            {
+              "problem": "(2) දහ තුන් දහස් දෙසිය විස්ස",
+              "solution": "13 220",
+              "stepsShown": [
+                "Thirteen thousand = 13",
+                "Two hundred twenty = 220",
+                "Combined = 13 220"
+              ]
+            },
+            {
+              "problem": "(3) විසි අට දහස් පන්සියය",
+              "solution": "28 500",
+              "stepsShown": [
+                "Twenty eight thousand = 28",
+                "Five hundred = 500",
+                "Combined = 28 500"
+              ]
+            },
+            {
+              "problem": "(4) හතළිස් එක් දහස් හාරසිය අසූ පහ",
+              "solution": "41 485",
+              "stepsShown": [
+                "Forty one thousand = 41",
+                "Four hundred eighty five = 485",
+                "Combined = 41 485"
+              ]
+            },
+            {
+              "problem": "(5) හැට නව දහස් තුන්සිය හැත්තෑ හත",
+              "solution": "69 377",
+              "stepsShown": [
+                "Sixty nine thousand = 69",
+                "Three hundred seventy seven = 377",
+                "Combined = 69 377"
+              ]
+            },
+            {
+              "problem": "(6) තිස් පන් දහස් දහනවය",
+              "solution": "35 019",
+              "stepsShown": [
+                "Thirty five thousand = 35",
+                "Hundreds place missing in phrase -> insert 0",
+                "Nineteen = 19",
+                "Combined = 35 019"
+              ]
+            },
+            {
+              "problem": "(7) පනස් දහස් පහ",
+              "solution": "50 005",
+              "stepsShown": [
+                "Fifty thousand = 50",
+                "Hundreds and tens places missing -> insert 00",
+                "Five = 5",
+                "Combined = 50 005"
+              ]
+            }
+          ],
+          "extraProblems": [],
+          "questionsAskedToStudents": [
+            "කවුද ලියන්නේ ඉක්මනට?",
+            "මෙතන නොකියවෙන ස්ථානයක් තියෙනවා... නොකියවෙන ස්ථානය මොකක්ද?"
+          ],
+          "pauseOrThinkingMoments": [
+            "Pauses before writing questions (6) and (7) to highlight missing place value names in the spoken Sinhala phrase that require '0' placeholders."
+          ],
+          "commonDifficultiesAddressed": [
+            "Omitting zero placeholders when a place value position is not explicitly named in Sinhala word form."
+          ]
+        },
+        {
+          "conceptName": "Forming Numbers from Given Place Value Digits",
+          "approximateMinutesSpent": 6.4,
+          "teachingSequence": [
+            "Presents Exercise 8 with a worked example showing how given place value digits are combined into a 5-digit number.",
+            "Solves sub-question (a) by placing digits directly into place value order from ten-thousands down to ones.",
+            "Solves sub-question (b) where place value descriptors are given out of order (starting from ones place), demonstrating how to reorganize them from highest to lowest place value.",
+            "Solves sub-question (c) where tens and ones digits are left open-ended, showing how students can choose any valid digits for the remaining places."
+          ],
+          "explanationDetail": "The teacher demonstrates how to construct 5-digit numbers given digit values for specific place value positions, reminding students to always start writing digits from the largest place value position (ten-thousands) down to ones, even if the question presents place values out of order.",
+          "realWorldExamplesUsed": [],
+          "boardContent": "8) පිළිතුරු ලියන්න.\n\nඋදාහරණය: දස දහස්ස්ථානය 2, දහසස්ථානය 7, සියයස්ථානය 3, දහයස්ථානය 9 හා එකස්ථානය 4 ලෙස වන සංඛ්‍යාව කුමක් ද? -> 27 394\n\n(a) දස දහස්ස්ථානය 3, දහසස්ථානය 5, සියයස්ථානය 1, දහයස්ථානය 4 හා එකස්ථානය 7 ලෙස වන සංඛ්‍යාව කුමක් ද?\n35 147\n\n(b) එකස්ථානය 6, දහයස්ථානය 0, සියයස්ථානය 4, දහසස්ථානය 2 හා දස දහස්ස්ථානය 8 ලෙස වන සංඛ්‍යාව කුමක් ද?\n82 406\n\n(c) දස දහස්ස්ථානය 4, දහසස්ථානය 0, සියයස්ථානය 1, දාහයස්ථානය හා එකස්ථානය ඕනෑ ම ඉලක්කම් දෙකක් ලෙස වන සංඛ්‍යාවක් ලියන්න.\n40 158 , 40 175",
+          "workedProblems": [
+            {
+              "problem": "(a) දස දහස්ස්ථානය 3, දහසස්ථානය 5, සියයස්ථානය 1, දහයස්ථානය 4 හා එකස්ථානය 7 ලෙස වන සංඛ්‍යාව කුමක් ද?",
+              "solution": "35 147",
+              "stepsShown": [
+                "Ten-thousands = 3",
+                "Thousands = 5",
+                "Hundreds = 1",
+                "Tens = 4",
+                "Ones = 7",
+                "Combined = 35 147"
+              ]
+            },
+            {
+              "problem": "(b) එකස්ථානය 6, දහයස්ථානය 0, සියයස්ථානය 4, දහසස්ථානය 2 හා දස දහස්ස්ථානය 8 ලෙස වන සංඛ්‍යාව කුමක් ද?",
+              "solution": "82 406",
+              "stepsShown": [
+                "Identify highest place value first (Ten-thousands) = 8",
+                "Thousands = 2",
+                "Hundreds = 4",
+                "Tens = 0",
+                "Ones = 6",
+                "Combined = 82 406"
+              ]
+            },
+            {
+              "problem": "(c) දස දහස්ස්ථානය 4, දහසස්ථානය 0, සියයස්ථානය 1, දාහයස්ථානය හා එකස්ථානය ඕනෑ ම ඉලක්කම් දෙකක් ලෙස වන සංඛ්‍යාවක් ලියන්න.",
+              "solution": "40 158 (or 40 175)",
+              "stepsShown": [
+                "Ten-thousands = 4",
+                "Thousands = 0",
+                "Hundreds = 1",
+                "Choose any digit for tens place (e.g., 5 or 7)",
+                "Choose any digit for ones place (e.g., 8 or 5)",
+                "Possible answers: 40 158, 40 175"
+              ]
+            }
+          ],
+          "extraProblems": [],
+          "questionsAskedToStudents": [
+            "අපි ඉස්සෙල්ලාම ලියන්න ඕනේ ලොකුම තැන නේද?",
+            "ඔයාලා කැමති ඉලක්කම් දෙකක් දාමුද?"
+          ],
+          "pauseOrThinkingMoments": [
+            "Pauses on sub-question (b) to point out that place values are listed in reverse order, prompting students to reorder them before writing."
+          ],
+          "commonDifficultiesAddressed": [
+            "Writing digits in the order presented in the prompt rather than ordering them by place value magnitude."
+          ]
+        },
+        {
+          "conceptName": "Predecessor and Successor Numbers (Before and After Numbers)",
+          "approximateMinutesSpent": 1.4,
+          "teachingSequence": [
+            "Introduces Exercise 9 table with columns: පෙර සංඛ්‍යාව (Predecessor), සංඛ්‍යාව (Number), පසු සංඛ්‍යාව (Successor).",
+            "Explains the relationship: predecessor is -1 from the number, and successor is +1 to the number."
+          ],
+          "explanationDetail": "The teacher introduces predecessor and successor numbers for 5-digit numbers using a three-column table, explaining that 'per sangkhyawa' is calculated by subtracting 1 and 'pasu sangkhyawa' by adding 1.",
+          "realWorldExamplesUsed": [],
+          "boardContent": "9) හිස්තැන් පුරවන්න.\n\n| පෙර සංඛ්‍යාව | සංඛ්‍යාව | පසු සංඛ්‍යාව |\n|---|---|---|\n| 9 999 | 10 000 | 10 001 |\n| ........ | 40 000 | ........ |\n| ........ | ........ | 70 000 |\n| ........ | 59 600 | ........ |\n| 85 099 | ........ | ........ |\n| ........ | ........ | 100 000 |",
+          "workedProblems": [],
+          "extraProblems": [],
+          "questionsAskedToStudents": [
+            "පෙර සංඛ්‍යාව සහ පසු සංඛ්‍යාව ගැන අවබෝධයක් ලබා ගන්න ඕන නේද?"
+          ],
+          "pauseOrThinkingMoments": [],
+          "commonDifficultiesAddressed": []
+        }
+      ]
+    },
+    {
+      "segmentStart": "01:30:00",
+      "segmentEnd": "01:45:00",
+      "concepts": [
+        {
+          "conceptName": "Preceding and Succeeding Numbers up to 100,000",
+          "approximateMinutesSpent": 5.7,
+          "teachingSequence": [
+            "Review the structure of the table containing preceding number, current number, and succeeding number.",
+            "Demonstrate how to find the preceding number by subtracting 1 (-1) and succeeding number by adding 1 (+1).",
+            "Work through given numbers (40 000, 70 000, 59 600, 85 099, 100 000) step-by-step filling in missing values in the table.",
+            "Summarize the general rule for finding preceding and succeeding numbers."
+          ],
+          "explanationDetail": "The teacher explains that to find the preceding number (පෙර සංඛ්‍යාව) of a given number, we subtract 1 from it. To find the succeeding number (පසු සංඛ්‍යාව), we add 1 to the given number. If a succeeding number is given, we subtract 1 to get the number, and subtract 1 again to get its preceding number.",
+          "realWorldExamplesUsed": [],
+          "boardContent": "⑨ හිස්තැන් පුරවන්න.\n\n| පෙර සංඛ්‍යාව | සංඛ්‍යාව | පසු සංඛ්‍යාව |\n| :--- | :--- | :--- |\n| 9 999 | 10 000 | 10 001 |\n| 39 999 | 40 000 | 40 001 |\n| 69 998 | 69 999 | 70 000 |\n| 59 599 | 59 600 | 59 601 |\n| 85 099 | 85 100 | 85 101 |\n| 99 998 | 99 999 | 100 000 |",
+          "workedProblems": [
+            {
+              "problem": "Fill in missing preceding and succeeding values for given numbers in table: 40 000; 70 000 (succeeding); 59 600; 85 099 (preceding); 100 000 (succeeding).",
+              "solution": "Row 2: (39 999, 40 000, 40 001); Row 3: (69 998, 69 999, 70 000); Row 4: (59 599, 59 600, 59 601); Row 5: (85 099, 85 100, 85 101); Row 6: (99 998, 99 999, 100 000)",
+              "stepsShown": [
+                "40 000 - 1 = 39 999 (Preceding number)",
+                "40 000 + 1 = 40 001 (Succeeding number)",
+                "70 000 - 1 = 69 999 (Number)",
+                "69 999 - 1 = 69 998 (Preceding number)",
+                "59 600 - 1 = 59 599 (Preceding number)",
+                "59 600 + 1 = 59 601 (Succeeding number)",
+                "85 099 + 1 = 85 100 (Number)",
+                "85 100 + 1 = 85 101 (Succeeding number)",
+                "100 000 - 1 = 99 999 (Number)",
+                "99 999 - 1 = 99 998 (Preceding number)"
+              ]
+            }
+          ],
+          "extraProblems": [],
+          "questionsAskedToStudents": [
+            "දීලා තියෙන සංඛ්‍යාව බලන්න හොඳට. 40 000. එහෙම නම් ඕට කලින් මොකක්ද එනවා ඇත්තේ?",
+            "69 999ට එකක් එකතු වුනාම කීයද?"
+          ],
+          "pauseOrThinkingMoments": [
+            "Teacher pauses to let students think about what number comes before 70 000."
+          ],
+          "commonDifficultiesAddressed": [
+            "Transitioning across boundary numbers like 40 000 (39 999), 70 000 (69 999), and 100 000 (99 999)."
+          ]
+        },
+        {
+          "conceptName": "Place Value and Value Represented by Digits",
+          "approximateMinutesSpent": 5.3,
+          "teachingSequence": [
+            "Introduce table exercise asking to copy the table and fill in blanks for place name (ස්ථානය), place value (ස්ථානීය අගය), and represented value (ඉලක්කමෙන් නිරූපිත අගය).",
+            "Review example row for number 38 237 with digit 3.",
+            "Work row-by-row through given numbers (24 150, 40 856, 67 400, 79 008, 97 541).",
+            "Emphasize that when a digit is 0, its represented value is always 0 regardless of its place value."
+          ],
+          "explanationDetail": "The teacher guides students through identifying the digit's place (e.g., tens, hundreds, thousands), place value (e.g., 10, 100, 1000), and the value represented by that digit (digit × place value). She highlights that zero at any place value represents a value of zero.",
+          "realWorldExamplesUsed": [],
+          "boardContent": "⑩ වගුව පිටපත් කරගෙන හිස්තැන් පුරවන්න.\n\n| සංඛ්‍යාව | ඉලක්කම | ස්ථානය | ස්ථානීය අගය | ඉලක්කමෙන් නිරූපිත අගය |\n| :--- | :--- | :--- | :--- | :--- |\n| 38 237 | 3 | දස දහසේ ස්ථානය | 10 000 | 30 000 |\n| 24 150 | 5 | දහයේ ස්ථානය | 10 | 50 |\n| 40 856 | 0 | දහසේ ස්ථානය | 1 000 | 0 |\n| 67 400 | 4 | සියයේ ස්ථානය | 100 | 400 |\n| 79 008 | 0 | සියයේ ස්ථානය | 100 | 0 |\n| 97 541 | 7 | දහසේ ස්ථානය | 1 000 | 7 000 |",
+          "workedProblems": [
+            {
+              "problem": "Fill in the missing fields in table 10 for numbers 24 150, 40 856, 67 400, 79 008, and 97 541.",
+              "solution": "24 150 (digit 5 -> දහයේ ස්ථානය, 10, 50); 40 856 (digit 0 -> දහසේ ස්ථානය, 1000, 0); 67 400 (digit 4 -> සියයේ ස්ථානය, 100, 400); 79 008 (digit 0 -> සියයේ ස්ථානය, 100, 0); 97 541 (digit 7 -> දහසේ ස්ථානය, 1000, 7000)",
+              "stepsShown": [
+                "For 24 150: digit 5 is at tens place (දහයේ ස්ථානය), place value = 10, represented value = 5 × 10 = 50",
+                "For 40 856: digit 0 is at thousands place (දහසේ ස්ථානය), place value = 1000, represented value = 0",
+                "For 67 400: digit 4 is at hundreds place (සියයේ ස්ථානය), place value = 100, represented value = 4 × 100 = 400",
+                "For 79 008: digit in hundreds place (සියයේ ස්ථානය) is 0, place value = 100, represented value = 0",
+                "For 97 541: represented value is 7000, so digit = 7, place = thousands (දහසේ ස්ථානය), place value = 1000"
+              ]
+            }
+          ],
+          "extraProblems": [],
+          "questionsAskedToStudents": [
+            "ඉලක්කම තියෙන ස්ථානය මොකක්ද?",
+            "දහසේ ඒවා බිංදුවක්... එතකොට ඉලක්කමෙන් නිරූපිත අගය?"
+          ],
+          "pauseOrThinkingMoments": [
+            "Teacher pauses when asking what value is represented when the digit is 0 in the thousands place."
+          ],
+          "commonDifficultiesAddressed": [
+            "Clarifying that a digit 0 at any place value (like thousands or hundreds) always represents a total value of 0."
+          ]
+        },
+        {
+          "conceptName": "Expanded Form of 5-Digit Numbers",
+          "approximateMinutesSpent": 4,
+          "teachingSequence": [
+            "Introduce exercise 11: Write given numbers in expanded form (දී ඇති සංඛ්‍යා විහිදුවා ලියන්න).",
+            "Explain the example given: 99 999 = 90 000 + 9 000 + 900 + 90 + 9.",
+            "Solve problem (1): 19 435 = 10 000 + 9 000 + 400 + 30 + 5.",
+            "Solve problem (2): 38 249 = 30 000 + 8 000 + 200 + 40 + 9.",
+            "Solve problem (3): 56 080 = 50 000 + 6 000 + 0 + 80 + 0.",
+            "Introduce problem (4): 69 100 and encourage students to try to expand it quickly on their own."
+          ],
+          "explanationDetail": "The teacher demonstrates how to decompose five-digit numbers into the sum of their place values (Ten-thousands + Thousands + Hundreds + Tens + Ones).",
+          "realWorldExamplesUsed": [],
+          "boardContent": "⑪ දී ඇති සංඛ්‍යා විහිදුවා ලියන්න.\n\nඋදාහරණය  99 999 = 90 000 + 9 000 + 900 + 90 + 9\n\n(1) 19 435 = 10 000 + 9 000 + 400 + 30 + 5\n(2) 38 249 = 30 000 + 8 000 + 200 + 40 + 9\n(3) 56 080 = 50 000 + 6 000 + 0 + 80 + 0\n(4) 69 100 = ......... + ......... + ......... + ......... + .........\n(5) 81 577 = ......... + ......... + ......... + ......... + .........",
+          "workedProblems": [
+            {
+              "problem": "Write in expanded form: (1) 19 435, (2) 38 249, (3) 56 080",
+              "solution": "(1) 19 435 = 10 000 + 9 000 + 400 + 30 + 5, (2) 38 249 = 30 000 + 8 000 + 200 + 40 + 9, (3) 56 080 = 50 000 + 6 000 + 0 + 80 + 0",
+              "stepsShown": [
+                "19 435 = 10 000 + 9 000 + 400 + 30 + 5",
+                "38 249 = 30 000 + 8 000 + 200 + 40 + 9",
+                "56 080 = 50 000 + 6 000 + 0 + 80 + 0"
+              ]
+            }
+          ],
+          "extraProblems": [],
+          "questionsAskedToStudents": [
+            "මොකක්ද කියන්නේ? දහ... කියවෙනවා එතකොට... දහ දහසයි...",
+            "දන්න අය මට කලින් ඉක්මනට විහිදුවලා ලියන්න බලන්න."
+          ],
+          "pauseOrThinkingMoments": [
+            "Teacher prompts students to attempt expanding 69 100 quickly before she writes the answer."
+          ],
+          "commonDifficultiesAddressed": [
+            "Handling zero digits when writing expanded form (e.g. including '0' for hundreds and ones in 56 080)."
+          ]
+        }
+      ]
+    },
+    {
+      "segmentStart": "01:45:00",
+      "segmentEnd": "02:00:00",
+      "concepts": [
+        {
+          "conceptName": "Writing Five-Digit Numbers in Expanded Form",
+          "approximateMinutesSpent": 2.5,
+          "teachingSequence": [
+            "Directs students to exercise 11 on writing 5-digit numbers in expanded form (විහිදුවා ලියන්න).",
+            "Reviews example problem 99 999 = 90 000 + 9 000 + 900 + 90 + 9.",
+            "Solves sub-problems (4) 69 100 and (5) 81 577 step-by-step on the board.",
+            "Emphasizes assigning correct place values to each digit including zeros."
+          ],
+          "explanationDetail": "The teacher explains how to expand a five-digit number into the sum of values represented by its digits based on place values (ten-thousands, thousands, hundreds, tens, units). For numbers containing zeros, such as 69 100, the teacher demonstrates writing 0 for the empty place positions so the expansion explicitly maintains place alignment.",
+          "realWorldExamplesUsed": [],
+          "boardContent": "11 දී ඇති සංඛ්‍යා විහිදුවා ලියන්න.\nඋදාහරණය 99 999 = 90 000 + 9 000 + 900 + 90 + 9\n(1) 19 435 = 10 000 + 9 000 + 400 + 30 + 5\n(2) 38 249 = 30 000 + 8 000 + 200 + 40 + 9\n(3) 56 080 = 50 000 + 6 000 + 0 + 80 + 0\n(4) 69 100 = 60 000 + 9 000 + 100 + 0 + 0\n(5) 81 577 = 80 000 + 1 000 + 500 + 70 + 7",
+          "workedProblems": [
+            {
+              "problem": "69 100 විහිදුවා ලියන්න",
+              "solution": "60 000 + 9 000 + 100 + 0 + 0",
+              "stepsShown": [
+                "6 in ten-thousands place = 60 000",
+                "9 in thousands place = 9 000",
+                "1 in hundreds place = 100",
+                "0 in tens place = 0",
+                "0 in units place = 0"
+              ]
+            },
+            {
+              "problem": "81 577 විහිදුවා ලියන්න",
+              "solution": "80 000 + 1 000 + 500 + 70 + 7",
+              "stepsShown": [
+                "8 in ten-thousands place = 80 000",
+                "1 in thousands place = 1 000",
+                "5 in hundreds place = 500",
+                "7 in tens place = 70",
+                "7 in units place = 7"
+              ]
+            }
+          ],
+          "extraProblems": [],
+          "questionsAskedToStudents": [
+            "දස දහස් ස්ථානෙ තියෙනව 6. දස දහසේ ඒවා 6ක් කීයද?",
+            "9 තියෙන්නෙ මොන ස්ථානේද?",
+            "81 577 කොහොමද විහිදුවන්නෙ?"
+          ],
+          "pauseOrThinkingMoments": [
+            "Pauses to ask class to identify the digit in the ten-thousands place before writing 60 000."
+          ],
+          "commonDifficultiesAddressed": [
+            "Ensuring students do not omit zero values when writing numbers in full expanded form."
+          ]
+        },
+        {
+          "conceptName": "Forming 5-Digit Numbers and Extracting Digit Place Values",
+          "approximateMinutesSpent": 4.5,
+          "teachingSequence": [
+            "Presents a circular diagram containing five digits: 3, 4, 8, 7, 9.",
+            "Explains the instruction to construct 5 different five-digit numbers using all given digits.",
+            "Completes a table identifying a specific place, the digit in that place, and its represented value for each constructed number.",
+            "Invites students to formulate numbers line by line (79 843, 98 743, 87 349, 48 739)."
+          ],
+          "explanationDetail": "The teacher demonstrates how changing the position of digits (3, 4, 8, 7, 9) forms different 5-digit numbers. For each created number, the teacher isolates a specific place (thousands, tens, hundreds, ten-thousands) to find the digit occupying that position and calculate the total value represented by that digit.",
+          "realWorldExamplesUsed": [],
+          "boardContent": "| සංඛ්‍යාව | ස්ථානය අනුව ඉලක්කම | ඉලක්කමෙන් දැක්වෙන අගය |\n|---|---|---|\n| 34 879 | දස දහසේ ස්ථානයේ ඉලක්කම 3 | 30 000 |\n| 79 843 | දහසේ ස්ථානයේ ඉලක්කම 9 | 9 000 |\n| 98 743 | දහයේ ස්ථානයේ ඉලක්කම 4 | 40 |\n| 87 349 | සීයයේ ස්ථානයේ ඉලක්කම 3 | 300 |\n| 48 739 | දස දහසේ ස්ථානයේ ඉලක්කම 4 | 40 000 |",
+          "workedProblems": [
+            {
+              "problem": "79 843 හි දහසේ ස්ථානයේ ඉලක්කම සහ ඉලක්කමෙන් දැක්වෙන අගය සොයන්න.",
+              "solution": "දහසේ ස්ථානයේ ඉලක්කම: 9, දැක්වෙන අගය: 9 000",
+              "stepsShown": [
+                "Locate thousands place in 79 843 -> Digit is 9",
+                "Represented value = 9 x 1000 = 9 000"
+              ]
+            },
+            {
+              "problem": "98 743 හි දහයේ ස්ථානයේ ඉලක්කම සහ ඉලක්කමෙන් දැක්වෙන අගය සොයන්න.",
+              "solution": "දහයේ ස්ථානයේ ඉලක්කම: 4, දැක්වෙන අගය: 40",
+              "stepsShown": [
+                "Locate tens place in 98 743 -> Digit is 4",
+                "Represented value = 4 x 10 = 40"
+              ]
+            },
+            {
+              "problem": "87 349 හි සීයයේ ස්ථානයේ ඉලක්කම සහ ඉලක්කමෙන් දැක්වෙන අගය සොයන්න.",
+              "solution": "සීයයේ ස්ථානයේ ඉලක්කම: 3, දැක්වෙන අගය: 300",
+              "stepsShown": [
+                "Locate hundreds place in 87 349 -> Digit is 3",
+                "Represented value = 3 x 100 = 300"
+              ]
+            },
+            {
+              "problem": "48 739 හි දස දහසේ ස්ථානයේ ඉලක්කම සහ ඉලක්කමෙන් දැක්වෙන අගය සොයන්න.",
+              "solution": "දස දහසේ ස්ථානයේ ඉලක්කම: 4, දැක්වෙන අගය: 40 000",
+              "stepsShown": [
+                "Locate ten-thousands place in 48 739 -> Digit is 4",
+                "Represented value = 4 x 10000 = 40 000"
+              ]
+            }
+          ],
+          "extraProblems": [],
+          "questionsAskedToStudents": [
+            "දහස ස්ථානයේ ඉලක්කම මොකක්ද?",
+            "දහයේ ස්ථානයේ ඉලක්කම මොකක්ද?",
+            "ඒකෙන් දැක්වෙන අගය කීයද?"
+          ],
+          "pauseOrThinkingMoments": [
+            "Pauses to let students formulate a new 5-digit number using digits 3, 4, 8, 7, 9 before entering it into the table."
+          ],
+          "commonDifficultiesAddressed": [
+            "Distinguishing between the digit itself placed in a column versus the numerical value represented by that digit."
+          ]
+        },
+        {
+          "conceptName": "Place Value Breakdown and Representation Table for 96 805",
+          "approximateMinutesSpent": 6.5,
+          "teachingSequence": [
+            "Introduces the target number 96 805.",
+            "Demonstrates the place value of each digit using a physical red slot board with place value label cards (දස දහසේ ඒවා, දහසේ ඒවා, සීයයේ ඒවා, දහයේ ඒවා, එකේ ඒවා).",
+            "Completes a four-column table on screen: ඉලක්කම (Digit), ස්ථානය (Place), ස්ථානීය අගය (Place Value), ඉලක්කමෙන් නිරූපණය වන අගය (Represented Value).",
+            "Fills in rows for digits 9, 6, 8, 0, and 5 sequentially.",
+            "Writes the number in expanded form at the bottom."
+          ],
+          "explanationDetail": "The teacher thoroughly analyzes 96 805 digit by digit. For digit 9 in ten-thousands: place is දස දහස, place value is 10 000, represented value is 90 000. For digit 6: place is දහස, place value is 1 000, represented value is 6 000. For digit 8: place is සීය, place value is 100, represented value is 800. For digit 0: place is දහය, place value is 10, represented value is 0. For digit 5: place is එක, place value is 1, represented value is 5. Finally, the total sum is expressed as 90 000 + 6 000 + 800 + 0 + 5.",
+          "realWorldExamplesUsed": [],
+          "boardContent": "96 805\n| ඉලක්කම | ස්ථානය | ස්ථානීය අගය | ඉලක්කමෙන් නිරූපණය වන අගය |\n|---|---|---|---|\n| 9 | දස දහස | 10 000 | 90 000 |\n| 6 | දහස | 1 000 | 6 000 |\n| 8 | සීය | 100 | 800 |\n| 0 | දහය | 10 | 0 |\n| 5 | එක | 1 | 5 |\n\nවිහිදුවා ලියන්න:\n96 805 = 90 000 + 6 000 + 800 + 0 + 5",
+          "workedProblems": [
+            {
+              "problem": "96 805 හි සෑම ඉලක්කමකම ස්ථානය, ස්ථානීය අගය, නිරූපිත අගය වගුගත කර විහිදුවා ලියන්න.",
+              "solution": "96 805 = 90 000 + 6 000 + 800 + 0 + 5",
+              "stepsShown": [
+                "9: Place = දස දහස, Place value = 10 000, Represented value = 90 000",
+                "6: Place = දහස, Place value = 1 000, Represented value = 6 000",
+                "8: Place = සීය, Place value = 100, Represented value = 800",
+                "0: Place = දහය, Place value = 10, Represented value = 0",
+                "5: Place = එක, Place value = 1, Represented value = 5",
+                "Expanded form: 90 000 + 6 000 + 800 + 0 + 5"
+              ]
+            }
+          ],
+          "extraProblems": [],
+          "questionsAskedToStudents": [
+            "9 තියෙන්නේ මොන ස්ථානේද?",
+            "එතකොට ස්ථානීය අගය කීයද?",
+            "6 තියෙන්නේ දහසේ ස්ථානයේ නම් නිරූපණය වන අගය කීයද?",
+            "දහයේ ස්ථානයේ 0 තියෙද්දී නිරූපණය වන අගය කීයද?"
+          ],
+          "pauseOrThinkingMoments": [
+            "Pauses while inserting physical card labels into the red chart slots to check student comprehension of place value column names."
+          ],
+          "commonDifficultiesAddressed": [
+            "Clarifying that even though 0 occupies the tens place (place value = 10), the represented value of 0 in that place is 0."
+          ]
+        },
+        {
+          "conceptName": "Answering Place and Value Questions for 76 109",
+          "approximateMinutesSpent": 1.5,
+          "teachingSequence": [
+            "Displays number 76 109 and a series of numbered sub-questions.",
+            "Reads sub-question (i): Name the place of digit 6.",
+            "Solves sub-question (i) by identifying the thousands place (දහස්ස්ථානය).",
+            "Reads sub-question (ii): Write the value represented by digit 6 (6000)."
+          ],
+          "explanationDetail": "The teacher introduces a practice activity where students answer specific questions based on the number 76 109. She guides students through identifying digit positions and calculating represented numerical values.",
+          "realWorldExamplesUsed": [],
+          "boardContent": "76 109\nඉහත සංඛ්‍යාවේ\n(i) 6 පිහිටි ස්ථානය නම් කරන්න. -> දහස්ස්ථානය\n(ii) 6 ඉලක්කමෙන් දැක්වෙන අගය ලියන්න. -> 6000\n(iii) 7 පිහිටි ස්ථානය නම් කරන්න.\n(iv) 7 ඉලක්කමෙන් දැක්වෙන අගය ලියන්න.\n(v) 0 පිහිටි ස්ථානය නම් කරන්න.\n(vi) 0 ඉලක්කමෙන් දැක්වෙන අගය ලියන්න.\n(vii) 1 පිහිටි ස්ථානය නම් කරන්න.",
+          "workedProblems": [
+            {
+              "problem": "76 109 සංඛ්‍යාවේ (i) 6 පිහිටි ස්ථානය නම් කරන්න. (ii) 6 ඉලක්කමෙන් දැක්වෙන අගය ලියන්න.",
+              "solution": "(i) දහස්ස්ථානය, (ii) 6000",
+              "stepsShown": [
+                "Locate 6 in 76 109 -> thousands position = දහස්ස්ථානය",
+                "Calculate value represented = 6 x 1000 = 6000"
+              ]
+            }
+          ],
+          "extraProblems": [],
+          "questionsAskedToStudents": [
+            "6 පිහිටි ස්ථානය නම් කරන්න?",
+            "6 ඉලක්කමෙන් දැක්වෙන අගය ලියන්න?"
+          ],
+          "pauseOrThinkingMoments": [
+            "Pauses after asking for the place of 6 to give students time to identify 'thousands place'."
+          ],
+          "commonDifficultiesAddressed": [
+            "Ensuring students distinguish between answering the name of a place versus writing the numerical represented value."
+          ]
+        }
+      ]
+    },
+    {
+      "segmentStart": "02:00:00",
+      "segmentEnd": "02:15:00",
+      "concepts": [
+        {
+          "conceptName": "Place Value and Digit Value in 5-Digit Numbers (76 109)",
+          "approximateMinutesSpent": 4.5,
+          "teachingSequence": [
+            "Reviews the given 5-digit number (76 109) and continues solving place value and digit value exercise questions.",
+            "Asks students to identify the place value of digit 7 and determines its value (70 000).",
+            "Guides students to identify the place value of digit 0 (tens place / දහස් ස්ථානය) and its digit value (0).",
+            "Prompts students to state the place value of digit 1 (hundreds place / සියස් ස්ථානය) and its value (100).",
+            "Asks students to identify the place value of digit 9 (ones place / එකස් ස්ථානය) and its value (9).",
+            "Provides concluding advice to Grade 5 students on practicing textbook exercises and revising place value regularly for exams."
+          ],
+          "explanationDetail": "The teacher systematically analyzes each digit in the number 76 109 to identify its place value (ස්ථානය) and the digit value (ඉලක්කමෙන් දක්වන අගය). She points out that digit 7 is in the ten-thousands place, so its value is 70 000. For digit 0 located in the tens place, since there are no tens, its value is 0. Digit 1 is in the hundreds place, giving a value of 100. Digit 9 is in the ones place, representing a value of 9.",
+          "realWorldExamplesUsed": [],
+          "boardContent": "76 109\\nඉහත සංඛ්‍යාවේ\\n(i) 6 පිහිටි ස්ථානය නම් කරන්න. දහස් ස්ථානය\\n(ii) 6 ඉලක්කමෙන් දක්වන අගය ලියන්න. 6000\\n(iii) 7 පිහිටි ස්ථානය නම් කරන්න. දස දහස් ස්ථානය\\n(iv) 7 ඉලක්කමෙන් දක්වන අගය ලියන්න. 70 000\\n(v) 0 පිහිටි ස්ථානය නම් කරන්න. දහස් ස්ථානය\\n(vi) 0 ඉලක්කමෙන් දක්වන අගය ලියන්න. 0\\n(vii) 1 පිහිටි ස්ථානය නම් කරන්න. සියස් ස්ථානය\\n(viii) 1 ඉලක්කමෙන් දක්වන අගය ලියන්න. 100\\n(ix) 9 පිහිටි ස්ථානය නම් කරන්න. එකස් ස්ථානය\\n(x) 9 ඉලක්කමෙන් දක්වන අගය ලියන්න. 9",
+          "workedProblems": [
+            {
+              "problem": "76 109 සංඛ්‍යාවේ 7 පිහිටි ස්ථානය නම් කර, 7 ඉලක්කමෙන් දක්වන අගය ලියන්න.",
+              "solution": "ස්ථානය: දස දහස් ස්ථානය, අගය: 70 000",
+              "stepsShown": [
+                "දස දහස් ස්ථානය",
+                "70 000"
+              ]
+            },
+            {
+              "problem": "76 109 සංඛ්‍යාවේ 0 පිහිටි ස්ථානය නම් කර, 0 ඉලක්කමෙන් දක්වන අගය ලියන්න.",
+              "solution": "ස්ථානය: දහස් ස්ථානය, අගය: 0",
+              "stepsShown": [
+                "දහස් ස්ථානය",
+                "0"
+              ]
+            },
+            {
+              "problem": "76 109 සංඛ්‍යාවේ 1 පිහිටි ස්ථානය නම් කර, 1 ඉලක්කමෙන් දක්වන අගය ලියන්න.",
+              "solution": "ස්ථානය: සියස් ස්ථානය, අගය: 100",
+              "stepsShown": [
+                "සියස් ස්ථානය",
+                "100"
+              ]
+            },
+            {
+              "problem": "76 109 සංඛ්‍යාවේ 9 පිහිටි ස්ථානය නම් කර, 9 ඉලක්කමෙන් දක්වන අගය ලියන්න.",
+              "solution": "ස්ථානය: එකස් ස්ථානය, අගය: 9",
+              "stepsShown": [
+                "එකස් ස්ථානය",
+                "9"
+              ]
+            }
+          ],
+          "extraProblems": [],
+          "questionsAskedToStudents": [
+            "එහෙම නම් හතේ ඉලක්කමෙන් දක්වන අගය මොකක්ද?",
+            "ඊළඟට බිංදුව පිහිටි ස්ථානය නම් කරන්න. මොකක්ද ස්ථානය?",
+            "එක පිහිටි ස්ථානය කෝ? එක තියෙන්නේ මොන ස්ථානයේද?",
+            "එකේ ඉලක්කමෙන් දක්වන අගය ලියන්න කියල... කීයද?",
+            "නමය පිහිටි ස්ථානය නම් කරන්න. කොහෙද නමය තියෙන්නේ?",
+            "ඉලක්කමෙන් දක්වන අගය මොකක්ද මේකෙන් දක්වන්නේ?"
+          ],
+          "pauseOrThinkingMoments": [
+            "Pauses briefly after reading each question sub-part to allow students time to identify the place value and compute the value of the digit mentally."
+          ],
+          "commonDifficultiesAddressed": [
+            "Clarified that even though 0 occupies the tens place (දහස් ස්ථානය), its digit value is simply 0."
+          ]
+        }
+      ]
+    }
+  ]
+}

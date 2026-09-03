@@ -21,6 +21,7 @@ const TOOL_ENDPOINTS: Record<string, string> = {
   teach_lesson1_step: "/api/tools/teach-lesson1-step",
   check_answer: "/api/tools/check-answer",
   submit_blank_answer: "/api/tools/submit-blank-answer",
+  reveal_answer: "/api/tools/reveal-answer",
   set_active_blank: "/api/tools/set-active-blank",
   search_syllabus: "/api/tools/search-syllabus",
   log_answer: "/api/tools/log-answer",
@@ -74,6 +75,7 @@ const VIEW_PATCH_BOARD_TOOL_NAMES = new Set([
   "highlight_region",
   "draw_marker",
   "submit_blank_answer", // TEMPORARY PROOF-OF-CONCEPT
+  "reveal_answer", // TEMPORARY PROOF-OF-CONCEPT
   "set_active_blank", // TEMPORARY PROOF-OF-CONCEPT
 ]);
 const BOARD_TOOL_NAMES = new Set([...FULL_CONTENT_BOARD_TOOL_NAMES, ...VIEW_PATCH_BOARD_TOOL_NAMES]);
@@ -155,9 +157,12 @@ function applyViewPatch(current: BoardContent | null, patch: ViewPatch): BoardCo
       },
     };
   }
-  // TEMPORARY PROOF-OF-CONCEPT — submit_blank_answer's and
-  // set_active_blank's patches, see
-  // src/data/lessons/lesson1-numbers.ts's module doc.
+  // TEMPORARY PROOF-OF-CONCEPT — the patches from submit_blank_answer (the
+  // child answered), reveal_answer (Zara wrote it herself while
+  // demonstrating) and set_active_blank. The first two share this branch
+  // deliberately: they differ only by the `source` tag on the filled
+  // answer, so the step guard and active-blank clearing below apply to
+  // both. See src/data/lessons/lesson1-numbers.ts's module doc.
   if (current?.type === "lesson_step" && (patch.filledAnswer || "activeBlank" in patch)) {
     if (patch.expectedStepNumber !== undefined && patch.expectedStepNumber !== current.stepNumber) {
       console.warn(

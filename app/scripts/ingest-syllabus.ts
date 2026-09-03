@@ -74,6 +74,12 @@ import { fileURLToPath } from "node:url";
 import { GoogleGenAI } from "@google/genai";
 import { PDFParse } from "pdf-parse";
 import { supabaseAdmin } from "../src/lib/supabaseAdmin";
+import {
+  RETRY_BASE_DELAY_MS,
+  RETRY_MAX_ATTEMPTS,
+  classifyRetryableApiError,
+  sleep,
+} from "./lib/geminiRetry";
 
 const execFileAsync = promisify(execFile);
 
@@ -93,12 +99,10 @@ const MAX_CHUNK_WORDS = 500;
 
 // Gemini's embedContent has a per-project rate limit — firing calls back to
 // back starts returning 429 RESOURCE_EXHAUSTED after roughly ~40 calls in
-// quick succession. EMBED_CALL_DELAY_MS paces normal calls; the RETRY_*
-// constants control retry-with-backoff for that plus other transient
-// errors (503 UNAVAILABLE, deadline-exceeded) — see isRetryableApiError.
+// quick succession. EMBED_CALL_DELAY_MS paces normal calls; retry-with-backoff
+// for that plus other transient errors (503 UNAVAILABLE, deadline-exceeded)
+// lives in scripts/lib/geminiRetry.ts, shared with extract-lesson-plan.ts.
 const EMBED_CALL_DELAY_MS = 1500;
-const RETRY_MAX_ATTEMPTS = 3;
-const RETRY_BASE_DELAY_MS = 5000; // backoff: 5s, 10s, 20s
 
 // Transcription quality filtering for sinhala/tamil PDFs — see the file
 // header comment for why. All checks are against a page's non-whitespace
@@ -789,39 +793,6 @@ async function logSkippedOcrPage(context: {
     `Reason: ${context.reason}\n` +
     `${context.text.trim() || "(empty)"}\n\n`;
   await fs.appendFile(SKIPPED_CHUNKS_LOG_PATH, block, "utf8");
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-/**
- * Classifies an error from the @google/genai SDK as retryable (matching its
- * ApiError shape's numeric `status` field, or the equivalent text in a bare
- * Error's message) and returns a short reason for the retry log line, or
- * null if it isn't one of these known-transient cases:
- *   - 429 RESOURCE_EXHAUSTED — rate limit.
- *   - 503 UNAVAILABLE / 504 deadline-exceeded — transient server-side
- *     timeouts, not a quota problem, but just as safe to retry the same way.
- */
-function classifyRetryableApiError(error: unknown): string | null {
-  const status =
-    error && typeof error === "object" && "status" in error
-      ? (error as { status?: unknown }).status
-      : undefined;
-  const message = error instanceof Error ? error.message : String(error);
-
-  if (status === 429 || /RESOURCE_EXHAUSTED|\b429\b/i.test(message)) {
-    return "rate limited";
-  }
-  if (
-    status === 503 ||
-    status === 504 ||
-    /UNAVAILABLE|\b503\b|DEADLINE_EXCEEDED|deadline exceeded/i.test(message)
-  ) {
-    return "transient server error";
-  }
-  return null;
 }
 
 async function embed(
