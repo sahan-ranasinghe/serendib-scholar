@@ -626,6 +626,25 @@ function assembleSessions(
   return { beats, sessions };
 }
 
+/**
+ * Alternate explanation angles for a concept: the explanationDetail of each
+ * NON-primary explanation segment (the primary one feeds the explain run).
+ * A RETEACH beat picks one not yet used this session, so a struggling child
+ * hears the idea from a different direction instead of hearing the same
+ * introduction again.
+ */
+function reteachAnglesFor(conceptTag: string, rows: BankRow[]): string[] {
+  const explanations = rows
+    .filter((row) => row.concept_tag === conceptTag && row.component_type === "explanation")
+    .sort((a, b) => (videoTimestampSeconds(a.source) ?? 0) - (videoTimestampSeconds(b.source) ?? 0));
+  return explanations
+    .slice(1) // [0] is the primary explain run
+    .map((row) => payloadOf(row).explanationDetail)
+    .filter((detail): detail is string => typeof detail === "string" && detail.trim() !== "")
+    .map((detail) => detail.slice(0, 240))
+    .slice(0, 4);
+}
+
 // ---------------------------------------------------------------------------
 // 4. The whole script
 // ---------------------------------------------------------------------------
@@ -710,11 +729,15 @@ export function buildScriptFromRows(
     .map((conceptTag) => {
       const indices = beats.map((b, i) => (b.conceptTag === conceptTag ? i : -1)).filter((i) => i !== -1);
       if (indices.length === 0) return null;
+      const firstShow = indices.find((i) => beats[i].type === "SHOW_BOARD");
       return {
         conceptTag,
         description: descriptions.get(conceptTag) ?? null,
         firstBeat: indices[0],
         lastBeat: indices[indices.length - 1],
+        // A miss never moves the lesson before this (see findJumpTarget).
+        firstPracticeBeat: firstShow ?? indices[0],
+        reteachAngles: reteachAnglesFor(conceptTag, teachableRows),
       };
     })
     .filter((c): c is ConceptSummary => c !== null);

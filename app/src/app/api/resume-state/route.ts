@@ -3,19 +3,26 @@ import { supabaseAdmin } from "@/lib/supabaseClient";
 import { getActiveChildId } from "@/lib/activeChild";
 
 /**
- * Where the active child left off: the beat id of the last thing they did,
- * from session_log. The client locates that id in the current lesson script
- * and resumes at the next beat (see useGeminiLive.ts) — if the script has
- * changed since and the id no longer exists, the client falls back to the
- * start, which is safe: re-teaching is cheap, skipping is not.
+ * Where the active child left off.
+ *
+ * A child is "returning" ONLY if they have a completed sitting behind them —
+ * a CLOSE_SESSION beat in session_log. The anchor returned is that close
+ * beat's id; the client resumes at the beat after it (the next session's
+ * opener). Merely having rows is NOT enough: a crashed or abandoned sitting
+ * (or leftover test traffic) has rows but no close, and treating that as
+ * "returning" is exactly how RECAP once fired in a child's very first
+ * session. No completed close → start from the beginning.
+ *
+ * If the anchor id no longer exists in the current script, the client falls
+ * back to the start — re-teaching is cheap, skipping is not.
  */
 export async function POST() {
   const { data, error } = await supabaseAdmin
     .from("session_log")
     .select("beat_id, session_id, created_at")
     .eq("child_id", getActiveChildId())
+    .eq("beat_type", "CLOSE_SESSION")
     .order("created_at", { ascending: false })
-    .order("sequence", { ascending: false })
     .limit(1)
     .maybeSingle();
 

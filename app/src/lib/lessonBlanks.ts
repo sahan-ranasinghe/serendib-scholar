@@ -161,10 +161,19 @@ function isUnusableAnswer(value: string): boolean {
   return /^[\s\-–—.,:;]+$/.test(trimmed);
 }
 
-/** The single final answer for an item with no fillable cells, if the source states a usable one. */
+/**
+ * The single final answer for an item with no fillable cells, if the source
+ * states a usable one.
+ *
+ * `numeral` outranks `solution` deliberately: migrated abacus rows carry
+ * both, and their solution is a compound display string like
+ * "3007 - තුන්දහස් හත" that no child's spoken answer can ever equal — a
+ * correct "3007" was judged wrong against it (the CONFIRM bug). The
+ * numeral is what the question actually asks for.
+ */
 export function solutionForItem(answer: unknown): string | null {
   const obj = (answer ?? {}) as Row;
-  const candidate = stringOrNull(obj.solution) ?? stringOrNull(obj.numeral) ?? stringOrNull(obj.label);
+  const candidate = stringOrNull(obj.numeral) ?? stringOrNull(obj.solution) ?? stringOrNull(obj.label);
   if (candidate === null || isUnusableAnswer(candidate)) return null;
   return candidate;
 }

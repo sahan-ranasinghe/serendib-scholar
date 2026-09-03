@@ -1,8 +1,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { answersMatch } from "./answerCheck";
 import {
   advance,
   buildConfirmBeat,
+  buildReteachBeats,
+  resolveConfirmation,
   buildDirectorLine,
   buildFeedbackBeat,
   buildWaitBeat,
@@ -65,7 +68,15 @@ function scriptOf(beats: Beat[]): LessonScript {
     ],
     concepts: tags.map((conceptTag) => {
       const indices = beats.map((b, i) => (b.conceptTag === conceptTag ? i : -1)).filter((i) => i !== -1);
-      return { conceptTag, description: null, firstBeat: indices[0], lastBeat: indices[indices.length - 1] };
+      const firstShow = indices.find((i) => beats[i].type === "SHOW_BOARD");
+      return {
+        conceptTag,
+        description: null,
+        firstBeat: indices[0],
+        lastBeat: indices[indices.length - 1],
+        firstPracticeBeat: firstShow ?? indices[0],
+        reteachAngles: ["think of ten-ten bundles", "count the beads out loud one rod at a time"],
+      };
     }),
     blueprint: { derivedFrom: "test", concepts: [] },
   };
@@ -156,30 +167,98 @@ test("another_example jumps to the next item's segment at the same mode", () => 
   assert.equal(state.currentItemId, "item-2");
 });
 
-test("a second consecutive miss escalates another_example into a reteach", () => {
+test("a second consecutive miss escalates into a reteach — never back into the explain run", () => {
   const script = scriptOf([
     beat({ type: "EXPLAIN", segmentIndex: -1, mode: null }),
-    beat({ type: "SHOW_BOARD", segmentIndex: 0, mode: 3 }),
-    beat({ type: "ASK", segmentIndex: 0, mode: 3, endBy: "asking", expectedAnswer: "42" }),
+    beat({ type: "SHOW_BOARD", segmentIndex: 0, mode: 1 }),
+    beat({ type: "REVEAL_PART", segmentIndex: 0, mode: 1 }),
     beat({ type: "SHOW_BOARD", segmentIndex: 1, mode: 3, itemId: "item-2" }),
+    beat({ type: "ASK", segmentIndex: 1, mode: 3, itemId: "item-2", endBy: "asking", expectedAnswer: "42" }),
   ]);
-  const { state } = advance(
+  const { state, needsReteach } = advance(
     script,
-    { ...atBeat(script, 2), recentMisses: 1 },
+    { ...atBeat(script, 4), recentMisses: 1 },
     { understood: false, next: "another_example" },
   );
-  assert.equal(state.beatIndex, 0, "goes back to the explanation instead of offering a third problem");
+  assert.equal(needsReteach, true, "signals the caller to insert the reteach sequence");
+  assert.equal(state.beatIndex, 3, "rewinds to the MISSED item's SHOW_BOARD, not the explanation");
+  assert.ok(
+    state.beatIndex >= script.concepts[0].firstPracticeBeat,
+    "a miss never moves the lesson before the concept's first practice item",
+  );
 });
 
-test("simplify drops back to an easier mode's segment", () => {
+test("reteach builds a targeted sub-skill beat on an unused angle plus a fresh demo", () => {
   const script = scriptOf([
+    beat({ type: "SHOW_BOARD", segmentIndex: 0, mode: 1, itemId: "demo-item" }),
+    beat({ type: "REVEAL_PART", segmentIndex: 0, mode: 1, itemId: "demo-item" }),
+    beat({ type: "CHECKPOINT", segmentIndex: 0, mode: 1, itemId: "demo-item" }),
+    beat({ type: "SHOW_BOARD", segmentIndex: 1, mode: 3, itemId: "missed-item" }),
+    beat({
+      type: "ASK",
+      segmentIndex: 1,
+      mode: 3,
+      itemId: "missed-item",
+      endBy: "asking",
+      expectedAnswer: "3000",
+      goal: "Ask the child for the place value for 3007. Ask only this one thing.",
+    }),
+  ]);
+  const missedAsk = script.beats[4];
+
+  const first = buildReteachBeats(script, missedAsk, []);
+  assert.equal(first.beats[0].type, "RETEACH");
+  assert.equal(first.beats[0].maxSentences, 3);
+  assert.match(first.beats[0].goal, /the place value for 3007/, "targets the missed sub-skill");
+  assert.equal(first.angleUsed, "think of ten-ten bundles", "takes an angle not yet used");
+  assert.match(first.beats[0].goal, /ten-ten bundles/);
+  const demoBeats = first.beats.slice(1);
+  assert.ok(demoBeats.length > 0, "a fresh MODE 1 demo follows");
+  assert.ok(demoBeats.every((b) => b.itemId === "demo-item"), "the demo uses a DIFFERENT item");
+  assert.ok(demoBeats.every((b) => b.type !== "CHECKPOINT"), "the inserted demo drops its checkpoint");
+  assert.ok(demoBeats.every((b) => b.type !== "EXPLAIN"), "no opening explanation is replayed");
+
+  const second = buildReteachBeats(script, missedAsk, [first.angleUsed!]);
+  assert.equal(second.angleUsed, "count the beads out loud one rod at a time", "the next reteach takes a DIFFERENT angle");
+});
+
+test("REGRESSION (live bug): a CONFIRM answered yes on a correct value is judged correct", () => {
+  // Recap ASK on abacus 3007 → child says 3007 → CONFIRM "3007 නේද?" →
+  // "yes" → this once produced FEEDBACK "wrong", because the expected
+  // answer was the compound display string "3007 - තුන්දහස් හත".
+  const recapAsk = beat({
+    type: "ASK",
+    segmentIndex: -1,
+    mode: 3,
+    conceptTag: "abacusRepresentation",
+    itemId: "recap-item",
+    endBy: "asking",
+    expectedAnswer: "3007",
+  });
+  const outcome = resolveConfirmation(recapAsk, "3007", "yes", answersMatch);
+  assert.equal(outcome.kind, "judged");
+  assert.equal(outcome.kind === "judged" && outcome.decision.understood, true, "confirmed correct value judged CORRECT");
+
+  // "no" re-asks without judging; a restated answer is judged fresh.
+  assert.equal(resolveConfirmation(recapAsk, "3007", "no", answersMatch).kind, "reask");
+  assert.equal(resolveConfirmation(recapAsk, "3007", "other", answersMatch).kind, "fresh-answer");
+
+  // And the wrong-number case still comes out wrong.
+  const wrong = resolveConfirmation(recapAsk, "3070", "yes", answersMatch);
+  assert.equal(wrong.kind === "judged" && wrong.decision.understood, false);
+});
+
+test("simplify drops back to an easier mode's segment and never replays the intro", () => {
+  const script = scriptOf([
+    beat({ type: "EXPLAIN", segmentIndex: -1, mode: null }),
     beat({ type: "SHOW_BOARD", segmentIndex: 0, mode: 2, itemId: "easy" }),
     beat({ type: "SHOW_BOARD", segmentIndex: 1, mode: 3, itemId: "hard" }),
     beat({ type: "ASK", segmentIndex: 1, mode: 3, endBy: "asking", expectedAnswer: "42" }),
   ]);
-  const { state } = advance(script, atBeat(script, 2), { understood: false, next: "simplify" });
+  const { state } = advance(script, atBeat(script, 3), { understood: false, next: "simplify" });
   assert.equal(state.currentItemId, "easy");
   assert.equal(state.mode, 2);
+  assert.ok(state.beatIndex >= script.concepts[0].firstPracticeBeat, "simplify never rewinds past the first practice item");
 });
 
 test("the lesson reports complete past the last beat", () => {

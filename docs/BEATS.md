@@ -51,6 +51,7 @@ the runtime dispatches on the response mode.
 | `ASK` | 40s | judge | child answers; planner decides advance/reteach/another_example/simplify |
 | `WAIT` | 10s | acknowledge | runtime-inserted check-in after 8s silence — never repeats the question |
 | `CONFIRM` | 15s | acknowledge | runtime-inserted "ඔයා කිව්වේ 2311 නේද?" when the planner flags a doubtful number hearing — never judged wrong unconfirmed |
+| `RETEACH` | 30s | none | runtime-inserted after repeated misses: re-explains ONLY the missed sub-skill, from an explanation angle not yet used this session, followed by a fresh MODE 1 demo of a different item, then the missed item retries. Never rewinds before the concept's first practice item |
 | `FEEDBACK` | 10s | none | runtime-inserted reaction to a judged answer |
 | `CHECKPOINT` | 60s | acknowledge | "still with me?" between items |
 | `BREAK_CHAT` | 120s | chat | mid-sitting breather after ~12 min of teaching |
@@ -105,9 +106,12 @@ field to `BeatTypeSpec` instead so every type declares it.
 `buildScriptFromRows` cuts the beat list into sittings of 20-25 estimated
 minutes, each framed `CHAT_OPENER → (LESSON_GOALS | RECAP) → work →
 BREAK_CHAT → work → CLOSE_SESSION`, with boundaries stored on the script
-(`script.sessions`). A concept may span sittings. The runtime resumes a
-child at the beat after their last `session_log` entry; landing mid-concept
-queues recap questions for that concept first.
+(`script.sessions`). A concept may span sittings. A child counts as RETURNING
+only when `session_log` holds a completed `CLOSE_SESSION` beat for them —
+the runtime resumes at the beat after that close (the next sitting's
+opener). Rows without a close (a crashed sitting, test traffic) never
+trigger a resume or a recap; `npm run reset:child` wipes the dev child's
+state entirely.
 
 Preview any lesson offline with `npm run dry-run:lesson` (in `app/`) —
 it prints the session plan, the per-concept blueprint (hand-editable via

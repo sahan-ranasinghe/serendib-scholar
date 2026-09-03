@@ -12,6 +12,8 @@ import {
   advance,
   beatSpec,
   buildConfirmBeat,
+  buildReteachBeats,
+  resolveConfirmation,
   buildDirectorLine,
   buildFeedbackBeat,
   buildWaitBeat,
@@ -334,8 +336,10 @@ export function useGeminiLive({
   const sessionStatsRef = useRef({ concepts: new Set<string>(), correct: 0, asked: 0 });
   /** What the child said since the LAST next_beat call — one conversational round. */
   const roundTranscriptRef = useRef("");
-  /** The beat a runtime interjection (WAIT/CONFIRM) returns to once spoken. */
-  const returnAfterInterjectionRef = useRef<Beat | null>(null);
+  /** The beat a runtime interjection (WAIT/CONFIRM) returns to once spoken — with its own scriptedness. */
+  const returnAfterInterjectionRef = useRef<{ beat: Beat; scripted: boolean } | null>(null);
+  /** Reteach angles already spoken this session, per concept — a re-explanation must take a NEW way in. */
+  const usedReteachAnglesRef = useRef<string[]>([]);
   /** Set when the ask-silence timer fired without an answer — the next next_beat call acts on it. */
   const silenceExpiredRef = useRef(false);
   /** True while the model has been told to hold for the child on the active beat. */
@@ -344,6 +348,8 @@ export function useGeminiLive({
   const openMicChatRef = useRef(false);
   /** True while the push-to-talk button is held. */
   const micHeldRef = useRef(false);
+  /** Chunks streamed during the current hold — a release with zero would make an audio-less activity window, which the API rejects. */
+  const chunksSentDuringHoldRef = useRef(0);
   /** Mirrors isAiTalking for handlers outside the render cycle. */
   const aiTalkingRef = useRef(false);
   /** This session's CHAT_OPENER personalisation (see /api/opener). */
@@ -451,13 +457,22 @@ export function useGeminiLive({
     if (aiTalkingRef.current && !isChat) return;
     if (micHeldRef.current) return;
     micHeldRef.current = true;
+    chunksSentDuringHoldRef.current = 0;
     if (!openMicChatRef.current) clientRef.current?.sendActivityStart();
   }, []);
 
   const stopTalking = useCallback(() => {
     if (!micHeldRef.current) return;
     micHeldRef.current = false;
-    if (!openMicChatRef.current) clientRef.current?.sendActivityEnd();
+    if (!openMicChatRef.current) {
+      // A tap-and-release before any mic chunk went out would close the
+      // window empty — and an audio-less activity window kills the whole
+      // session (1007 "Precondition check failed"). Pad it with silence.
+      if (chunksSentDuringHoldRef.current === 0) {
+        clientRef.current?.sendAudioChunk("A".repeat(4000));
+      }
+      clientRef.current?.sendActivityEnd();
+    }
   }, []);
 
   const start = useCallback(async () => {
@@ -484,6 +499,7 @@ export function useGeminiLive({
     holdingForChildRef.current = false;
     silenceExpiredRef.current = false;
     roundTranscriptRef.current = "";
+    usedReteachAnglesRef.current = [];
     openerRef.current = null;
     openerReplyHandledRef.current = false;
     phaseRef.current = "idle";
@@ -685,8 +701,9 @@ export function useGeminiLive({
           console.warn("[useGeminiLive] Cannot nudge on silence in open-mic-chat mode.");
           return;
         }
-        clientRef.current?.sendActivityStart();
-        clientRef.current?.sendActivityEnd();
+        // NEVER an empty start/end pair — an audio-less activity window
+        // kills the session with 1007 "Precondition check failed".
+        clientRef.current?.sendSilentTurn();
       };
 
       const startSilenceTimer = (ms: number) => {
@@ -698,7 +715,7 @@ export function useGeminiLive({
       };
 
       /** Board first, then bookkeeping — the words about it come back as the tool result. */
-      const prepareBeat = async (beat: Beat, options: { scripted: boolean; returnTo?: Beat | null }) => {
+      const prepareBeat = async (beat: Beat, options: { scripted: boolean; returnTo?: { beat: Beat; scripted: boolean } | null }) => {
         clearBeatTimers();
         activeBeatRef.current = beat;
         activeBeatScriptedRef.current = options.scripted;
@@ -732,7 +749,7 @@ export function useGeminiLive({
       /** Serves a beat: stages it and returns its director instruction as the next_beat result. */
       const serveBeat = async (
         beat: Beat,
-        options: { scripted: boolean; returnTo?: Beat | null },
+        options: { scripted: boolean; returnTo?: { beat: Beat; scripted: boolean } | null },
       ): Promise<Record<string, unknown>> => {
         // CHAT_OPENER personalisation (see /api/opener): swap in the chosen
         // opener, or the quick-start line for the 20% of sessions that skip.
@@ -802,9 +819,12 @@ export function useGeminiLive({
         if (returnTo && !wasHolding) {
           returnAfterInterjectionRef.current = null;
           await finishBeatLog(beat, null);
-          // Hand the original question back to the child, without re-asking.
-          activeBeatRef.current = returnTo;
-          activeBeatScriptedRef.current = true;
+          // Hand the original question back to the child, without
+          // re-asking — restoring ITS OWN scriptedness: a recap ASK is an
+          // inserted beat, and concluding it as "scripted" would wrongly
+          // advance the lesson script.
+          activeBeatRef.current = returnTo.beat;
+          activeBeatScriptedRef.current = returnTo.scripted;
           childTranscriptForBeatRef.current = "";
           return holdForChild("The child still has the question in front of them — wait for their answer.");
         }
@@ -825,7 +845,10 @@ export function useGeminiLive({
           silenceExpiredRef.current = false;
           if (handling === "judge" && waitIssuedForBeatRef.current !== beat.id) {
             waitIssuedForBeatRef.current = beat.id;
-            return serveBeat(buildWaitBeat(beat), { scripted: false, returnTo: beat });
+            return serveBeat(buildWaitBeat(beat), {
+              scripted: false,
+              returnTo: { beat, scripted: activeBeatScriptedRef.current },
+            });
           }
           // Second silence (or a non-judged question nobody answered):
           // conclude with no answer and move on.
@@ -883,24 +906,21 @@ export function useGeminiLive({
         const scripted = activeBeatScriptedRef.current;
         let decision: PlannerDecision | null = null;
 
-        // A CONFIRM just resolved: the child answered "did you say X?"
+        // A CONFIRM just resolved: the child answered "did you say X?" —
+        // judged by the shared pure resolver against THIS beat's own
+        // expected answer (see resolveConfirmation's doc for the bug this
+        // guards against).
         const pendingConfirm = confirmPendingRef.current;
         if (pendingConfirm && pendingConfirm.askBeatId === beat.id && said) {
-          const verdict = classifyConfirmation(said);
           confirmPendingRef.current = null;
-          if (verdict === "yes") {
-            const correct = beat.expectedAnswer !== undefined && answersMatch(beat.expectedAnswer, pendingConfirm.heard);
-            decision = {
-              understood: correct,
-              next: correct ? "advance" : "another_example",
-              reason: `Child confirmed saying "${pendingConfirm.heard}".`,
-            };
-          } else if (verdict === "no") {
-            // Misheard entirely — put the same question again, judging nothing.
+          const outcome = resolveConfirmation(beat, pendingConfirm.heard, classifyConfirmation(said), answersMatch);
+          if (outcome.kind === "judged") {
+            decision = outcome.decision;
+          } else if (outcome.kind === "reask") {
             await finishBeatLog(beat, null);
             return serveBeat(beat, { scripted });
           }
-          // "other": usually a restated answer — judged fresh below.
+          // "fresh-answer": a restated answer — judged fresh below.
         }
 
         if (!decision && handling === "judge" && said) {
@@ -919,7 +939,10 @@ export function useGeminiLive({
           if (decision.ambiguousNumber && beat.expectedAnswer !== undefined) {
             // Doubtful hearing: never judged unconfirmed.
             confirmPendingRef.current = { askBeatId: beat.id, heard: decision.ambiguousNumber };
-            return serveBeat(buildConfirmBeat(beat, decision.ambiguousNumber), { scripted: false, returnTo: beat });
+            return serveBeat(buildConfirmBeat(beat, decision.ambiguousNumber), {
+              scripted: false,
+              returnTo: { beat, scripted },
+            });
           }
         }
         if (!decision && handling === "judge" && !said) {
@@ -931,12 +954,16 @@ export function useGeminiLive({
           if (decision.understood) sessionStatsRef.current.correct += 1;
           if (beat.conceptTag !== FRAMING_CONCEPT) sessionStatsRef.current.concepts.add(beat.conceptTag);
           void recordAnswer(beat, decision.understood);
-          pendingBeatsRef.current.push(buildFeedbackBeat(beat, decision.understood, beat.expectedAnswer));
         }
 
         await finishBeatLog(beat, decision);
 
-        if (!scripted) return serveNext();
+        if (!scripted) {
+          if (decision) {
+            pendingBeatsRef.current.push(buildFeedbackBeat(beat, decision.understood, beat.expectedAnswer));
+          }
+          return serveNext();
+        }
 
         if (beat.type === "RECAP") {
           pendingBeatsRef.current.push(...(await fetchRecapBeats({ excludeSessionId: sessionIdRef.current })));
@@ -944,6 +971,20 @@ export function useGeminiLive({
 
         const result = advance(script, orchStateRef.current, decision);
         orchStateRef.current = result.state;
+
+        if (decision) {
+          pendingBeatsRef.current.push(
+            buildFeedbackBeat(beat, decision.understood, beat.expectedAnswer, { reteachFollows: result.needsReteach }),
+          );
+        }
+        if (result.needsReteach) {
+          // Targeted re-teaching from a fresh angle + a demo of a different
+          // item, then the script (already rewound to the missed item's
+          // SHOW_BOARD) retries the missed item itself.
+          const { beats: reteachBeats, angleUsed } = buildReteachBeats(script, beat, usedReteachAnglesRef.current);
+          if (angleUsed) usedReteachAnglesRef.current.push(angleUsed);
+          pendingBeatsRef.current.push(...reteachBeats);
+        }
 
         if (beat.type === "CLOSE_SESSION") {
           // The sitting is over; the next visit resumes at the next
@@ -965,15 +1006,16 @@ export function useGeminiLive({
             const beatType = activeBeatRef.current?.type;
             const openMicNow =
               openMicChatRef.current && (beatType === "CHAT_OPENER" || beatType === "BREAK_CHAT");
-            if (micHeldRef.current || openMicNow) client.sendAudioChunk(chunk);
+            if (micHeldRef.current || openMicNow) {
+              client.sendAudioChunk(chunk);
+              if (micHeldRef.current) chunksSentDuringHoldRef.current += 1;
+            }
           });
           recorderRef.current = recorder;
           // In manual turn-taking, nothing happens until someone takes a
           // turn — hand the model its first one so the lesson opens itself.
-          if (!openMicChatRef.current) {
-            client.sendActivityStart();
-            client.sendActivityEnd();
-          }
+          // Must carry audio: an empty activity window is rejected (1007).
+          if (!openMicChatRef.current) client.sendSilentTurn();
         },
         onAudioChunk: (chunk) => {
           player.enqueue(chunk);

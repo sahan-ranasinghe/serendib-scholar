@@ -10,6 +10,9 @@
 const WEBSOCKET_BASE_URL = "wss://generativelanguage.googleapis.com";
 const API_VERSION = "v1alpha";
 
+/** ~94ms of 16kHz mono PCM16 silence (3000 zero bytes) — see sendSilentTurn. */
+const SILENT_AUDIO_CHUNK_BASE64 = "A".repeat(4000);
+
 export interface FunctionCall {
   id?: string;
   name?: string;
@@ -145,9 +148,13 @@ export class GeminiLiveClient {
   /**
    * Manual turn-taking (used when the session disables automatic activity
    * detection — see /api/gemini-session): the app marks exactly when the
-   * child's speech starts (push-to-talk press) and ends (release). An
-   * empty start/end pulse with no audio in between is also how the app
-   * hands the model a turn when the child stays silent.
+   * child's speech starts (push-to-talk press) and ends (release).
+   *
+   * The API REJECTS an activity window with no audio inside it — closing
+   * the whole session with 1007 "Precondition check failed" (confirmed
+   * against both the constrained and plain endpoints). So every window
+   * must carry at least one chunk; sendSilentTurn below is the safe way
+   * to hand the model a turn when the child said nothing.
    */
   sendActivityStart(): void {
     this.send({ realtimeInput: { activityStart: {} } });
@@ -155,6 +162,18 @@ export class GeminiLiveClient {
 
   sendActivityEnd(): void {
     this.send({ realtimeInput: { activityEnd: {} } });
+  }
+
+  /**
+   * Hands the model a turn with nothing said in it: an activity window
+   * around ~94ms of PCM16 silence. Used to open the session (the lesson
+   * starts itself) and to wake the model when the child stays quiet past
+   * the silence timeout.
+   */
+  sendSilentTurn(): void {
+    this.sendActivityStart();
+    this.sendAudioChunk(SILENT_AUDIO_CHUNK_BASE64);
+    this.sendActivityEnd();
   }
 
   sendToolResponse(functionResponses: Array<{ id?: string; name?: string; response: Record<string, unknown> }>): void {

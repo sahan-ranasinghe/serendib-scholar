@@ -93,6 +93,7 @@ export const BEAT_REGISTRY = {
       `Keep it light. When you have nothing to add, pause and wait.`,
   ),
   CONFIRM: spec(15, "acknowledge"),
+  RETEACH: spec(30, "none"),
   CLOSE_SESSION: spec(
     45,
     "none",

@@ -90,6 +90,19 @@ export interface ConceptSummary {
   description: string | null;
   firstBeat: number;
   lastBeat: number;
+  /**
+   * The concept's first practice item (its first SHOW_BOARD). After a miss
+   * the lesson NEVER moves before this — re-hearing the concept
+   * introduction after one wrong answer feels like the lesson restarting.
+   */
+  firstPracticeBeat: number;
+  /**
+   * Alternate ways this concept was explained in the recording, beyond the
+   * primary explain run — one per additional explanation segment. A
+   * RETEACH beat draws an angle NOT yet used this session, so a struggling
+   * child hears the idea differently instead of again.
+   */
+  reteachAngles: string[];
 }
 
 /**
@@ -246,19 +259,27 @@ export function buildWaitBeat(asked: Beat): Beat {
   };
 }
 
-export function buildFeedbackBeat(asked: Beat, correct: boolean, expected?: string): Beat {
+export function buildFeedbackBeat(
+  asked: Beat,
+  correct: boolean,
+  expected?: string,
+  options: { reteachFollows?: boolean } = {},
+): Beat {
   return {
     ...asked,
     id: `${asked.id}:feedback`,
     type: "FEEDBACK",
     goal: correct
       ? "The child got it right. Praise the effort specifically and briefly, then pause."
-      : `The child's answer wasn't right${expected ? ` (the answer is ${expected})` : ""}. Do NOT give the ` +
-        "answer yet. Say something warm, then ask one guiding question that points at the next step.",
-    maxSentences: correct ? 1 : 2,
+      : options.reteachFollows
+        ? "The child's answer wasn't right, and you're about to look at the idea together again. Say ONE warm, " +
+          "no-blame sentence — do NOT give the answer, do NOT ask anything."
+        : `The child's answer wasn't right${expected ? ` (the answer is ${expected})` : ""}. Do NOT give the ` +
+          "answer yet. Say something warm, then ask one guiding question that points at the next step.",
+    maxSentences: correct ? 1 : options.reteachFollows ? 1 : 2,
     board: { kind: "none" },
     expectedAnswer: undefined,
-    endBy: correct ? "pausing" : "asking",
+    endBy: correct || options.reteachFollows ? "pausing" : "asking",
   };
 }
 
@@ -279,6 +300,100 @@ export function buildConfirmBeat(asked: Beat, heardNumber: string): Beat {
     board: { kind: "none" },
     expectedAnswer: undefined,
     endBy: "asking",
+  };
+}
+
+/**
+ * The targeted re-teaching sequence inserted after a reteach decision, run
+ * BEFORE the missed item comes around again:
+ *   1. a RETEACH beat aimed at the specific sub-skill the child missed,
+ *      explained from an angle not yet used this session;
+ *   2. a fresh MODE 1 demonstration of a DIFFERENT item (copied from the
+ *      concept's own demo beats, checkpoint dropped);
+ * then the script — already rewound to the missed item's SHOW_BOARD by
+ * advance() — retries the missed item itself.
+ *
+ * Pure, so the simulation harness runs the identical logic the live
+ * runtime does.
+ */
+export function buildReteachBeats(
+  script: LessonScript,
+  missedAsk: Beat,
+  usedAngles: string[],
+): { beats: Beat[]; angleUsed: string | null } {
+  const summary = conceptSummary(script, missedAsk.conceptTag);
+  const angle = summary?.reteachAngles.find((candidate) => !usedAngles.includes(candidate)) ?? null;
+
+  // What exactly was missed: the ask's own goal carries the blank's label
+  // ("ask the child for the place value for 5024"), which is the sub-skill.
+  const subskill = missedAsk.goal.replace(/^.*ask the child for /i, "").replace(/\.[^.]*$/, "");
+
+  const reteach: Beat = {
+    ...missedAsk,
+    id: `${missedAsk.id}:reteach`,
+    type: "RETEACH",
+    goal:
+      `The child just missed ${subskill}. Re-explain ONLY that one piece — not the whole idea` +
+      (angle
+        ? `, and take a DIFFERENT way in than before: ${angle}`
+        : ", using different words and a smaller number than before") +
+      ". Keep it tiny and concrete.",
+    maxSentences: 3,
+    board: { kind: "none" },
+    expectedAnswer: undefined,
+    endBy: "pausing",
+  };
+
+  // A fresh MODE 1 demonstration of a different item: the concept's own
+  // demo beats (SHOW_BOARD + REVEAL_PARTs) for the first mode-1 item that
+  // isn't the missed one, re-issued as inserted copies.
+  const demo: Beat[] = [];
+  if (summary) {
+    const conceptBeats = script.beats.slice(summary.firstBeat, summary.lastBeat + 1);
+    const demoShow = conceptBeats.find(
+      (beat) => beat.type === "SHOW_BOARD" && beat.mode === 1 && beat.itemId !== missedAsk.itemId,
+    );
+    if (demoShow) {
+      for (const beat of conceptBeats) {
+        if (beat.segmentIndex !== demoShow.segmentIndex) continue;
+        if (beat.type !== "SHOW_BOARD" && beat.type !== "REVEAL_PART") continue; // checkpoint dropped
+        demo.push({ ...beat, id: `${beat.id}:reteach-demo` });
+      }
+    }
+  }
+
+  return { beats: [reteach, ...demo], angleUsed: angle };
+}
+
+/** What resolving a CONFIRM reply means for the held question. */
+export type ConfirmationOutcome =
+  | { kind: "judged"; decision: PlannerDecision }
+  | { kind: "reask" }
+  | { kind: "fresh-answer" };
+
+/**
+ * Resolves the child's reply to "did you say X?" — pure and shared with the
+ * simulation harness, because this exact judgment once marked a correct
+ * answer wrong: the confirmed value MUST be checked against the asked
+ * beat's own expectedAnswer (the recap item's, if that's what was asked),
+ * with a matcher a spoken answer can actually satisfy.
+ */
+export function resolveConfirmation(
+  askedBeat: Beat,
+  heard: string,
+  reply: "yes" | "no" | "other",
+  answersMatch: (expected: string, given: string) => boolean,
+): ConfirmationOutcome {
+  if (reply === "no") return { kind: "reask" };
+  if (reply === "other") return { kind: "fresh-answer" };
+  const correct = askedBeat.expectedAnswer !== undefined && answersMatch(askedBeat.expectedAnswer, heard);
+  return {
+    kind: "judged",
+    decision: {
+      understood: correct,
+      next: correct ? "advance" : "another_example",
+      reason: `Child confirmed saying "${heard}"${correct ? "" : ` (expected ${askedBeat.expectedAnswer ?? "?"})`}.`,
+    },
   };
 }
 
@@ -320,7 +435,13 @@ function indexAfterConcept(script: LessonScript, state: OrchestratorState): numb
   return summary.lastBeat + 1;
 }
 
-/** A jump within the current concept, for a planner decision that isn't a plain advance. */
+/**
+ * A jump within the current concept, for a planner decision that isn't a
+ * plain advance. NEVER produces an index before the concept's first
+ * practice item — a miss must not rewind into the concept introduction
+ * (that reads as the lesson restarting; the targeted RETEACH sequence
+ * handles re-explaining instead — see buildReteachBeats).
+ */
 function findJumpTarget(script: LessonScript, state: OrchestratorState, next: PlannerNext): number | null {
   const summary = conceptSummary(script, state.conceptTag);
   if (!summary) return null;
@@ -329,10 +450,13 @@ function findJumpTarget(script: LessonScript, state: OrchestratorState, next: Pl
   const inConcept = (i: number) => beats[i].conceptTag === state.conceptTag;
 
   if (next === "reteach") {
-    for (let i = summary.firstBeat; i <= summary.lastBeat; i += 1) {
-      if (inConcept(i) && beats[i].type === "EXPLAIN") return i;
+    // Back to the START of the missed item's segment (its SHOW_BOARD), so
+    // after the inserted RETEACH + demo the child retries the same item —
+    // never back into the explain run.
+    for (let i = state.beatIndex; i >= summary.firstPracticeBeat; i -= 1) {
+      if (inConcept(i) && beats[i].segmentIndex === segment && beats[i].type === "SHOW_BOARD") return i;
     }
-    return null;
+    return Math.max(summary.firstPracticeBeat, state.beatIndex);
   }
 
   if (next === "another_example") {
@@ -359,6 +483,12 @@ export interface AdvanceResult {
   state: OrchestratorState;
   /** True when the concept was finished (mastered or exhausted). */
   movedConcept: boolean;
+  /**
+   * Set when this transition was a reteach: the caller inserts the
+   * targeted RETEACH sequence (see buildReteachBeats) BEFORE the beat now
+   * at state.beatIndex — which is the missed item's own SHOW_BOARD.
+   */
+  needsReteach?: boolean;
 }
 
 /**
@@ -399,7 +529,13 @@ export function advance(
         ? "reteach"
         : decision.next;
     const target = findJumpTarget(script, next, effective);
-    if (target !== null) return { state: enterBeat(next, script, target), movedConcept: false };
+    if (target !== null) {
+      return {
+        state: enterBeat(next, script, target),
+        movedConcept: false,
+        ...(effective === "reteach" ? { needsReteach: true } : {}),
+      };
+    }
     // Nothing left to offer for that decision — continue rather than stall.
   }
 

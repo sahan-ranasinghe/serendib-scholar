@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseClient";
 import { getActiveChildId } from "@/lib/activeChild";
-import { blanksForItem, solutionForItem, describeItem } from "@/lib/lessonBlanks";
+import { buildRecapAskBeat, recapAskable } from "@/lib/recapBeat";
 import type { Beat } from "@/lib/lessonOrchestrator";
 
 /**
@@ -31,29 +31,41 @@ export async function POST(request: NextRequest) {
   const { exclude_session_id, concept_tags } = await request.json();
   const childId = getActiveChildId();
 
-  // Which concepts count as "last time".
+  // Which concepts count as "last time": the most recent COMPLETED sitting
+  // — one that reached its CLOSE_SESSION beat. An abandoned or crashed
+  // sitting (or leftover test traffic) has rows but no close, and reviewing
+  // "last time" against those is how RECAP once fired in a first session.
   let tags: string[] = Array.isArray(concept_tags) ? concept_tags.filter((t) => typeof t === "string") : [];
   if (tags.length === 0) {
-    let query = supabaseAdmin
+    let closeQuery = supabaseAdmin
       .from("session_log")
-      .select("session_id, concept_tag, created_at")
+      .select("session_id, created_at")
       .eq("child_id", childId)
-      .not("concept_tag", "is", null)
-      .neq("concept_tag", "")
+      .eq("beat_type", "CLOSE_SESSION")
       .order("created_at", { ascending: false })
-      .limit(200);
+      .limit(1);
     if (typeof exclude_session_id === "string" && exclude_session_id) {
-      query = query.neq("session_id", exclude_session_id);
+      closeQuery = closeQuery.neq("session_id", exclude_session_id);
     }
-    const { data, error } = await query;
+    const { data: closes, error: closeError } = await closeQuery;
+    if (closeError) {
+      console.error("[recap] session_log lookup failed:", closeError.message);
+      return NextResponse.json({ ok: true, beats: [] });
+    }
+    const lastCompleted = closes?.[0]?.session_id;
+    if (!lastCompleted) return NextResponse.json({ ok: true, beats: [] });
+    const { data, error } = await supabaseAdmin
+      .from("session_log")
+      .select("concept_tag")
+      .eq("child_id", childId)
+      .eq("session_id", lastCompleted)
+      .not("concept_tag", "is", null)
+      .neq("concept_tag", "");
     if (error) {
       console.error("[recap] session_log lookup failed:", error.message);
       return NextResponse.json({ ok: true, beats: [] });
     }
-    const lastSession = data?.[0]?.session_id;
-    tags = lastSession
-      ? [...new Set((data ?? []).filter((row) => row.session_id === lastSession).map((row) => row.concept_tag as string))]
-      : [];
+    tags = [...new Set((data ?? []).map((row) => row.concept_tag as string))];
   }
   if (tags.length === 0) return NextResponse.json({ ok: true, beats: [] });
 
@@ -90,35 +102,10 @@ export async function POST(request: NextRequest) {
       .neq("component_type", "explanation")
       .limit(20);
     const askable = (items ?? [])
-      .map((item) => ({
-        item,
-        blank: blanksForItem(item.component_type, item.component_props, item.answer).find((b) => b.value !== null),
-        solution: solutionForItem(item.answer),
-      }))
-      .filter((entry) => entry.blank || entry.solution);
+      .map((item) => recapAskable(item))
+      .filter((entry): entry is NonNullable<typeof entry> => entry !== null);
     if (askable.length === 0) continue;
-    const pick = askable[Math.floor(Math.random() * askable.length)];
-    const description = describeItem(pick.item.component_type, pick.item.component_props);
-
-    beats.push({
-      id: `recap:${candidate.conceptTag}:${pick.item.id.slice(0, 8)}`,
-      type: "ASK",
-      conceptTag: candidate.conceptTag,
-      sessionIndex: -1, // runtime-inserted; never part of the scripted plan
-      mode: 3,
-      itemId: pick.item.id,
-      segmentIndex: -1,
-      goal: pick.blank
-        ? `Quick review from last time: ask the child for ${pick.blank.label}. Ask only this one thing.`
-        : "Quick review from last time: ask the child for the answer to this one.",
-      maxSentences: 2,
-      boardDescription: description,
-      board: pick.blank
-        ? { kind: "stage_item", itemId: pick.item.id }
-        : { kind: "stage_item", itemId: pick.item.id },
-      expectedAnswer: pick.blank ? (pick.blank.value as string) : (pick.solution as string),
-      endBy: "asking",
-    });
+    beats.push(buildRecapAskBeat(askable[Math.floor(Math.random() * askable.length)]));
   }
 
   return NextResponse.json({ ok: true, beats });
