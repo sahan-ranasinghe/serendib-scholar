@@ -90,6 +90,34 @@ export const GEMINI_LIVE_TOOLS: GeminiFunctionDeclaration[] = [
     },
   },
   {
+    name: "find_teaching_content",
+    description:
+      "Fetches verified teaching material from the content bank, which holds items taken from the real textbook and from recordings of a real teacher teaching this lesson. Use this whenever you need an example: to demonstrate a concept, to give the child something to practise, and especially when they're struggling and need a different or easier item on the same concept. Never make up a problem yourself; ask here instead. The response may include `item` (a problem to work through) and/or `explanation` — the real teacher's own explanation of this concept, including `transcriptExcerpt`, her actual Sinhala words. An explanation is returned while the concept hasn't been taught yet this session; use it to shape your MODE 1 demonstration. Returns found: false when the bank has nothing suitable — say so honestly and work with what it does have.",
+    parametersJsonSchema: {
+      type: "object",
+      properties: {
+        concept_tag: {
+          type: "string",
+          description:
+            "Which concept you need material for — the conceptTag from the lesson step you're teaching, e.g. \"placeValueBreakdown\", \"numberExpansion\", \"numberSequence\".",
+        },
+        difficulty: {
+          type: "string",
+          enum: ["intro", "standard", "challenge"],
+          description:
+            'Optional. "intro" for a worked example to demonstrate with, "standard" for normal practice, "challenge" for a harder one. Omit to accept any. Drop to "intro" when a child is struggling.',
+        },
+        exclude_ids: {
+          type: "array",
+          items: { type: "string" },
+          description:
+            "Optional. Ids of items you've already used this session, so you don't repeat the same problem at the child. Pass back the `id` from each item you've been given.",
+        },
+      },
+      required: ["concept_tag"],
+    },
+  },
+  {
     name: "reveal_answer",
     description:
       "Writes the correct value into one blank YOURSELF, while you explain that part — the child does not answer it. Use this when demonstrating: call it for each part as you talk through that specific part, so the child watches the answer being built piece by piece, the way a teacher writes on the board mid-sentence. The value appears in your own colour, so it stays clear which answers you wrote and which the child got. This is NOT for recording a child's answer — that is submit_blank_answer.",

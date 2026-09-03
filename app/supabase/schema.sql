@@ -182,3 +182,50 @@ create table if not exists teacher_review_flags (
   flagged_at timestamptz not null default now(),
   resolved boolean not null default false
 );
+
+-- content_bank: verified teaching material the tutor SELECTS from, rather
+-- than inventing a practice problem itself (see find_teaching_content,
+-- src/app/api/tools/find-teaching-content/route.ts, and prompt.ts's rule
+-- that every problem shown must come from this bank).
+--
+-- Populated by scripts/populate-content-bank.ts from sources we've already
+-- extracted — the Lesson 1 textbook steps and the DP Education lesson
+-- recording — so `source` always points at where a row actually came from.
+-- Rows land with verified=false: a human checks them before the tutor is
+-- allowed to teach from them (find_teaching_content only ever returns
+-- verified rows).
+create table if not exists content_bank (
+  id uuid primary key default gen_random_uuid(),
+  subject text not null,
+  grade int not null,
+  lesson int,
+  -- Matches the conceptTag values in src/data/lessons/lesson1-numbers.ts,
+  -- so bank material lines up with the lesson's own concepts.
+  concept_tag text not null,
+  difficulty text not null check (difficulty in ('intro', 'standard', 'challenge')),
+  -- Which board component renders this, and the real props for it — same
+  -- shapes as LessonComponent in src/data/lessons/lesson1-numbers.ts.
+  component_type text not null,
+  component_props jsonb not null,
+  -- The verified correct answer(s), where they're known. Null where the
+  -- source doesn't state one and it can't be derived deterministically
+  -- (e.g. a Sinhala number name, or an open-ended "write any number" task).
+  answer jsonb,
+  -- For a component_type of 'explanation': how the teacher actually taught
+  -- this concept, rather than a problem she set. Holds her teachingSequence,
+  -- explanationDetail and realWorldExamplesUsed (the structural summary from
+  -- the 15-minute extraction), plus transcriptExcerpt — her own verbatim
+  -- Sinhala for that stretch, so the tutor can model her wording rather than
+  -- improvise. Null on practice-problem rows.
+  explanation jsonb,
+  -- Provenance, e.g. 'textbook:maths_5_sinhala:step-3' or 'dp-video:01:23:40'.
+  source text not null,
+  verified boolean not null default false,
+  created_at timestamptz default now()
+);
+
+create index if not exists content_bank_subject_grade_concept_idx
+  on content_bank (subject, grade, concept_tag);
+
+create index if not exists content_bank_concept_tag_idx
+  on content_bank (concept_tag);

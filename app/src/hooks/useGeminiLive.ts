@@ -20,6 +20,7 @@ const TOOL_ENDPOINTS: Record<string, string> = {
   // module doc for the full removal list.
   teach_lesson1_step: "/api/tools/teach-lesson1-step",
   check_answer: "/api/tools/check-answer",
+  find_teaching_content: "/api/tools/find-teaching-content",
   submit_blank_answer: "/api/tools/submit-blank-answer",
   reveal_answer: "/api/tools/reveal-answer",
   set_active_blank: "/api/tools/set-active-blank",

@@ -9,6 +9,7 @@
     "lint": "eslint",
     "ingest:syllabus": "tsx scripts/ingest-syllabus.ts",
     "extract:lesson-plan": "node --env-file=.env.local ./node_modules/.bin/tsx scripts/extract-lesson-plan.ts",
+    "populate:content-bank": "node --env-file=.env.local ./node_modules/.bin/tsx scripts/populate-content-bank.ts",
     "extract:teaching-style": "node --env-file=.env.local ./node_modules/.bin/tsx scripts/extract-teaching-style.ts",
     "test:ingest": "tsx --test scripts/ingest-syllabus.test.ts",
     "test:page-reference": "tsx --test src/lib/pageReferenceDetection.test.ts",
