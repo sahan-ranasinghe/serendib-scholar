@@ -44,6 +44,12 @@ export default function LessonScreen() {
     submitTypedAnswer,
     muted,
     toggleMute,
+    paused,
+    togglePause,
+    repeatLastBeat,
+    endSessionNow,
+    micWindowOpen,
+    answerPad,
     getOutputAmplitude,
   } = useGeminiLive();
 
@@ -118,6 +124,30 @@ export default function LessonScreen() {
           >
             {muted ? "🔇" : "🎙️"}
           </button>
+          <button
+            type="button"
+            aria-label="විරාමය"
+            onClick={togglePause}
+            className={`rounded px-1 text-[11px] leading-4 ${paused ? "bg-amber-400 text-[#26414e]" : "bg-white/10"}`}
+          >
+            {paused ? "▶" : "⏸"}
+          </button>
+          <button
+            type="button"
+            aria-label="නැවත කියන්න"
+            onClick={repeatLastBeat}
+            className="rounded bg-white/10 px-1 text-[11px] leading-4"
+          >
+            ↺
+          </button>
+          <button
+            type="button"
+            aria-label="අවසන් කරන්න"
+            onClick={endSessionNow}
+            className="rounded bg-white/10 px-1 text-[11px] leading-4"
+          >
+            ⏹
+          </button>
           <div className="flex items-center gap-1.5">
             {Array.from({ length: stops }).map((_, i) => (
               <span
@@ -131,17 +161,60 @@ export default function LessonScreen() {
         </div>
       </header>
 
-      {/* ---- classroom -------------------------------------------------- */}
-      <div className="relative flex min-h-0 flex-1">
-        {/* whiteboard: 75% width, full remaining height */}
-        <main className="whiteboard relative h-full w-3/4 overflow-hidden">
-          <div className="flex h-full w-full items-center justify-center overflow-y-auto px-[6%] py-6">
+      {/* ---- classroom: [character 22% | board 78%] — the character has
+              its own column and NEVER overlays board content ------------- */}
+      <div className="grid min-h-0 flex-1 grid-cols-[22%_78%]">
+        {/* character column */}
+        <div className="relative flex min-h-0 flex-col items-center justify-end overflow-hidden pb-1">
+          <div className="flex min-h-0 w-full max-w-[240px] flex-1 items-end justify-center">
+            {/* the SVG scales to FIT (never crops the face): full height at
+                short heights, full width otherwise */}
+            <div className="zara-fit">
+              <ZaraCharacter state={zaraState} amplitude={amplitude} />
+            </div>
+          </div>
+          <span
+            className={`mb-1 h-3 w-3 rounded-full ${
+              muted || paused ? "bg-stone-500" : micWindowOpen ? "listening-dot bg-emerald-400" : isAiTalking ? "bg-amber-400" : "bg-white/25"
+            }`}
+          />
+          <span className="px-1 text-center text-[10px] font-medium leading-tight text-[#d8e3e8]/80">
+            {paused ? "විරාමයක්" : muted ? "නිහඬයි" : micWindowOpen ? "ඔයාගේ වාරයයි — කතා කරන්න!" : isAiTalking ? "Zara කතා කරනවා…" : ""}
+          </span>
+        </div>
+
+        {/* whiteboard column */}
+        <main className={`whiteboard relative h-full overflow-hidden ${micWindowOpen ? "your-turn" : ""}`}>
+          <div className="flex h-full w-full items-center justify-center overflow-y-auto px-[5%] py-6">
             <TeachingBoard
               content={boardContent}
               onManualInteraction={notifyManualBoardInteraction}
               onSubmitTypedAnswer={submitTypedAnswer}
             />
           </div>
+
+          {/* tap-to-answer: number pad or name choices, at the board's bottom */}
+          {answerPad && micWindowOpen && (
+            <div className="absolute inset-x-0 bottom-0 flex justify-center pb-2">
+              {answerPad.kind === "number" ? (
+                <NumberPad onSubmit={submitTypedAnswer} />
+              ) : (
+                <div className="flex flex-wrap justify-center gap-2 px-3">
+                  {answerPad.options.map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      onClick={() => submitTypedAnswer(option)}
+                      className="rounded-2xl border-2 border-sky-300 bg-white px-4 py-3 text-lg font-semibold text-sky-900 shadow active:scale-95"
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* caption: single line at the board's bottom edge */}
           {captionsOn && outputTranscript && (
             <p className="absolute inset-x-4 bottom-1 truncate text-center text-sm font-medium text-[#3d4f5c]/80">
@@ -167,26 +240,6 @@ export default function LessonScreen() {
             </button>
           )}
         </main>
-
-        {/* right rail: turn-taking is natural now — just a quiet state
-            indicator (Zara talking vs. listening for the child). */}
-        <aside className="flex h-full w-1/4 flex-col items-center justify-end pb-8">
-          <div className="flex flex-col items-center gap-2">
-            <span
-              className={`h-4 w-4 rounded-full transition ${
-                muted ? "bg-stone-500" : isAiTalking ? "bg-amber-400" : "listening-dot bg-emerald-400"
-              }`}
-            />
-            <span className="text-center text-[11px] font-medium leading-tight text-[#d8e3e8]/80">
-              {muted ? "නිහඬයි" : isAiTalking ? "Zara කතා කරනවා…" : "ඔයාට කතා කරන්න පුළුවන්"}
-            </span>
-          </div>
-        </aside>
-
-        {/* character dock: anchored to the board's bottom-left corner */}
-        <div className="pointer-events-none absolute bottom-0 left-0 z-10 w-[22%] max-w-[240px]">
-          <ZaraCharacter state={zaraState} amplitude={amplitude} />
-        </div>
       </div>
 
       {/* ---- portrait: friendly rotate card ----------------------------- */}
@@ -222,6 +275,25 @@ export default function LessonScreen() {
             background: #2f4f5f;
           }
         }
+        .your-turn {
+          animation: board-pulse 1.8s ease-in-out infinite;
+        }
+        @keyframes board-pulse {
+          0%, 100% { box-shadow: inset 0 0 28px rgba(0,0,0,0.12); }
+          50% { box-shadow: inset 0 0 28px rgba(0,0,0,0.12), inset 0 0 0 4px rgba(52, 211, 153, 0.55); }
+        }
+        .zara-fit {
+          width: 100%;
+          height: 100%;
+          max-height: min(46vh, 340px);
+          display: flex;
+          align-items: flex-end;
+          justify-content: center;
+        }
+        @media (max-height: 400px) {
+          /* short landscape: scale to the column, whole head always visible */
+          .zara-fit { max-height: 88vh; }
+        }
         .listening-dot {
           animation: listening-pulse 1.6s ease-in-out infinite;
         }
@@ -239,6 +311,51 @@ export default function LessonScreen() {
           100% { transform: rotate(90deg); }
         }
       `}</style>
+    </div>
+  );
+}
+
+
+/** Large tap pad for numeric answers — same path as speech (submitTypedAnswer). */
+function NumberPad({ onSubmit }: { onSubmit: (value: string) => void }) {
+  const [value, setValue] = useState("");
+  const key = (k: string) => setValue((v) => (v + k).slice(0, 6));
+  return (
+    <div className="flex items-center gap-2 rounded-2xl bg-white/95 p-2 shadow-lg">
+      <span className="min-w-[5.5rem] rounded-lg bg-stone-100 px-3 py-2 text-right font-mono text-xl text-stone-800">
+        {value || "…"}
+      </span>
+      <div className="grid grid-cols-6 gap-1">
+        {["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"].map((digit) => (
+          <button
+            key={digit}
+            type="button"
+            onClick={() => key(digit)}
+            className="h-10 w-10 rounded-lg bg-sky-100 text-lg font-bold text-sky-900 active:scale-95"
+          >
+            {digit}
+          </button>
+        ))}
+        <button
+          type="button"
+          aria-label="මකන්න"
+          onClick={() => setValue((v) => v.slice(0, -1))}
+          className="h-10 w-10 rounded-lg bg-stone-200 text-lg active:scale-95"
+        >
+          ⌫
+        </button>
+        <button
+          type="button"
+          aria-label="හරි"
+          onClick={() => {
+            if (value) onSubmit(value);
+            setValue("");
+          }}
+          className="h-10 w-10 rounded-lg bg-emerald-500 text-lg font-bold text-white active:scale-95"
+        >
+          ✓
+        </button>
+      </div>
     </div>
   );
 }

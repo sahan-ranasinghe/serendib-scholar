@@ -7,6 +7,15 @@ import { getAvailableSubjects, type AvailableSubject } from "@/lib/availableSubj
 export const GEMINI_LIVE_MODEL =
   process.env.GEMINI_LIVE_MODEL ?? "gemini-3.1-flash-live-preview";
 
+/**
+ * Zara's voice, PINNED. Without an explicit prebuilt voice the Live API
+ * picks per-session (and can even drift mid-conversation — observed live:
+ * the voice changed, sometimes to a male one). The name is locked into the
+ * ephemeral token's constraints, so the client cannot vary it. Audition
+ * candidates with `npm run audition:voice`, then set ZARA_VOICE.
+ */
+const ZARA_VOICE = process.env.ZARA_VOICE ?? "Aoede";
+
 
 
 /**
@@ -52,6 +61,13 @@ export async function POST() {
         tools: [{ functionDeclarations: GEMINI_LIVE_TOOLS }],
         outputAudioTranscription: {},
         inputAudioTranscription: {},
+        // One voice, forever: pinned here and locked by the token (the
+        // whole LiveConnectConfig is locked — see the lockAdditionalFields
+        // note below), so neither the client nor a reconnect can produce a
+        // different voice. A fresh session mints a fresh token from this
+        // same config, and API-side session resumption preserves the
+        // original session's config by definition.
+        speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: ZARA_VOICE } } },
         // Natural turn-taking: the API's own voice-activity detection is
         // ON. The client gates what the mic SENDS instead (see
         // useGeminiLive.ts): nothing flows while Zara is audible (+400ms),
@@ -81,6 +97,7 @@ export async function POST() {
       token: token.name,
       model: GEMINI_LIVE_MODEL,
       expireTime: token.expireTime,
+      voice: ZARA_VOICE,
     });
   } catch (error) {
     console.error("[gemini-session] Failed to mint ephemeral token:", error);

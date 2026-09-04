@@ -24,6 +24,12 @@ export const AUTHORED_LINES = {
 
   // --- runtime-inserted beats (lessonOrchestrator.ts) --------------------
   wait: "හිතාගන්න වෙලාව ගන්න {address}. උදව්වක් ඕනනම් කියන්න.",
+  /** ASK ladder stage 2 (spec wording). */
+  offerHelp: "උදව්වක් ඕනද? මම පොඩි ඉඟියක් දෙන්නද?",
+  /** ASK ladder stage 3 — she shows the answer and moves on. {value} = the answer. */
+  giveUpReveal: "කමක් නෑ {address}, බලන්න — උත්තරේ {value}. පස්සේ ආයෙ මේක එකට කරමු.",
+  /** SOFT_CHECK acknowledgement when the child chimes in — then her own words continue. */
+  softAck: "හරි!",
   feedbackCorrect: ["හරි! ඔයා හරියටම කිව්වා! නියමයි!", "ඔව්, හරි උත්තරේ! හොඳයි {address}!"],
   feedbackWrongBeforeReteach: [
     "කමක් නෑ, ඒක ටිකක් අමාරුයි. අපි ආයේ එකට බලමු.",

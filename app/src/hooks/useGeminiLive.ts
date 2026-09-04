@@ -12,8 +12,11 @@ import {
   advance,
   beatSpec,
   buildConfirmBeat,
+  buildGiveUpBeat,
   buildHookPraiseBeat,
+  buildOfferHelpBeat,
   buildReteachBeats,
+  buildSoftAckBeat,
   resolveConfirmation,
   buildDirectorLine,
   buildDirectorResult,
@@ -24,6 +27,9 @@ import {
   currentBeat as beatAt,
   isLessonComplete,
   ASK_SILENCE_TIMEOUT_MS,
+  ASK_HELP_TIMEOUT_MS,
+  ASK_GIVEUP_TIMEOUT_MS,
+  SOFT_CHECK_WINDOW_MS,
   FRAMING_CONCEPT,
   type Beat,
   type DirectorContext,
@@ -350,8 +356,24 @@ export function useGeminiLive({
   const beatAudioBytesRef = useRef(0);
   const beatSequenceRef = useRef(0);
   const sessionIdRef = useRef<string>("");
-  /** One check-in per ASK — a child who stays quiet twice needs a different beat, not another nudge. */
-  const waitIssuedForBeatRef = useRef<string | null>(null);
+  /**
+   * The ASK silence ladder: which rung the current held question is on.
+   * 0 = initial hold (8s), 1 = WAIT nudge given (12s), 2 = help offered
+   * (10s), then she demonstrates and moves on.
+   */
+  const askLadderStageRef = useRef(0);
+  /** Delay the next silence timer should use — armed only when playback actually ends. */
+  const pendingSilenceDelayRef = useRef<number | null>(null);
+  /** True while the child's mic window is open (soft check / ask wait / chat) — also drives the UI pulse. */
+  const [micWindowOpen, setMicWindowOpen] = useState(false);
+  const micWindowOpenRef = useRef(false);
+  /** Tap-to-answer affordance for the current ASK (number pad or choices). */
+  const [answerPad, setAnswerPad] = useState<{ kind: "number" } | { kind: "choices"; options: string[] } | null>(null);
+  /** ⏸: playback frozen, mic shut, timers held. */
+  const [paused, setPaused] = useState(false);
+  const pausedRef = useRef(false);
+  /** ↺: the next next_beat call re-serves the active beat's words. */
+  const repeatRequestedRef = useRef(false);
   /** A doubtful number hearing awaiting the child's yes/no (see buildConfirmBeat). */
   const confirmPendingRef = useRef<{ askBeatId: string; heard: string } | null>(null);
   /** When the current chat beat's free-conversation window closes. */
@@ -476,6 +498,59 @@ export function useGeminiLive({
     setMuted(mutedRef.current);
   }, []);
 
+  /** ⏸ freezes playback, shuts the mic and holds all timers; tap again to resume. */
+  const togglePause = useCallback(() => {
+    pausedRef.current = !pausedRef.current;
+    setPaused(pausedRef.current);
+    if (pausedRef.current) {
+      void playerRef.current?.suspend();
+      if (silenceTimerRef.current) {
+        clearTimeout(silenceTimerRef.current);
+        silenceTimerRef.current = null;
+        // Remember that a wait was pending; resume re-arms the full delay
+        // for the current ladder rung (close enough to "frozen").
+        pendingSilenceDelayRef.current = pendingSilenceDelayRef.current ?? ASK_SILENCE_TIMEOUT_MS;
+      }
+    } else {
+      void playerRef.current?.resume();
+      const pending = pendingSilenceDelayRef.current;
+      if (pending !== null && holdingForChildRef.current && !aiTalkingRef.current) {
+        pendingSilenceDelayRef.current = null;
+        silenceTimerRef.current = setTimeout(() => {
+          silenceTimerRef.current = null;
+          silenceExpiredRef.current = true;
+          clientRef.current?.sendTurnNudge();
+        }, pending);
+      }
+    }
+  }, []);
+
+  /** ↺ re-serves the active beat's exact words/instruction on the model's next turn. */
+  const repeatLastBeat = useCallback(() => {
+    if (!activeBeatRef.current) return;
+    repeatRequestedRef.current = true;
+    clientRef.current?.sendTurnNudge();
+  }, []);
+
+  /** ⏹ jumps to this sitting's CLOSE_SESSION so the goodbye and progress save run properly. */
+  const endSessionNow = useCallback(() => {
+    const script = scriptRef.current;
+    if (!script) return stop();
+    const beat = activeBeatRef.current;
+    const around = beat && beat.sessionIndex >= 0 ? beat.sessionIndex : 0;
+    const session = script.sessions[around] ?? script.sessions[script.sessions.length - 1];
+    const closeIndex = script.beats
+      .slice(session.firstBeat, session.lastBeat + 1)
+      .findIndex((candidate) => candidate.type === "CLOSE_SESSION");
+    if (closeIndex === -1) return stop();
+    pendingBeatsRef.current = [];
+    confirmPendingRef.current = null;
+    returnAfterInterjectionRef.current = null;
+    activeBeatRef.current = null;
+    orchStateRef.current = { ...orchStateRef.current, beatIndex: session.firstBeat + closeIndex };
+    clientRef.current?.sendTurnNudge();
+  }, [stop]);
+
   /** RMS of what's audible right now (0..~1) — drives the character's mouth. Safe before start(). */
   const getOutputAmplitude = useCallback(() => playerRef.current?.getAmplitude() ?? 0, []);
 
@@ -510,7 +585,10 @@ export function useGeminiLive({
     childTranscriptForBeatRef.current = "";
     beatAudioBytesRef.current = 0;
     beatSequenceRef.current = 0;
-    waitIssuedForBeatRef.current = null;
+    askLadderStageRef.current = 0;
+    pendingSilenceDelayRef.current = null;
+    micWindowOpenRef.current = false;
+    repeatRequestedRef.current = false;
     confirmPendingRef.current = null;
     chatDeadlineRef.current = 0;
     sessionStatsRef.current = { concepts: new Set<string>(), correct: 0, asked: 0 };
@@ -593,7 +671,20 @@ export function useGeminiLive({
       const player = new PcmPlayer({
         onPlaybackStateChange: (talking) => {
           aiTalkingRef.current = talking;
-          if (!talking) playbackEndedAtRef.current = Date.now();
+          if (!talking) {
+            playbackEndedAtRef.current = Date.now();
+            // NOW the child's clock starts: arm whatever silence delay the
+            // current hold asked for (see startSilenceTimer's live-bug note).
+            const pending = pendingSilenceDelayRef.current;
+            if (pending !== null && !pausedRef.current && !silenceTimerRef.current) {
+              pendingSilenceDelayRef.current = null;
+              silenceTimerRef.current = setTimeout(() => {
+                silenceTimerRef.current = null;
+                silenceExpiredRef.current = true;
+                nudgeModelTurn();
+              }, pending);
+            }
+          }
           setIsAiTalking(talking);
         },
       });
@@ -715,12 +806,36 @@ export function useGeminiLive({
         clientRef.current?.sendTurnNudge();
       };
 
+      /**
+       * Arms the silence timer for `ms` — but ONLY once her audio has
+       * actually drained. The live bug this fixes: the timer used to start
+       * when the tool result was served, while playback still had seconds
+       * to run, so the nudge either fired mid-speech or was cancelled and
+       * never fired at all.
+       */
       const startSilenceTimer = (ms: number) => {
         clearBeatTimers();
+        if (pausedRef.current) {
+          pendingSilenceDelayRef.current = ms;
+          return;
+        }
+        if (aiTalkingRef.current) {
+          // Playback still audible: remember the delay; onPlaybackStateChange
+          // arms it the moment the last sample drains.
+          pendingSilenceDelayRef.current = ms;
+          return;
+        }
+        pendingSilenceDelayRef.current = null;
         silenceTimerRef.current = setTimeout(() => {
+          silenceTimerRef.current = null;
           silenceExpiredRef.current = true;
           nudgeModelTurn();
         }, ms);
+      };
+
+      const openMicWindow = (open: boolean) => {
+        micWindowOpenRef.current = open;
+        setMicWindowOpen(open);
       };
 
       /** Board first, then bookkeeping — the words about it come back as the tool result. */
@@ -732,6 +847,11 @@ export function useGeminiLive({
         childTranscriptForBeatRef.current = "";
         holdingForChildRef.current = false;
         silenceExpiredRef.current = false;
+        openMicWindow(false);
+        if (options.scripted) {
+          askLadderStageRef.current = 0;
+          setAnswerPad(null);
+        }
         beatStartedAtRef.current = new Date().toISOString();
         beatAudioBytesRef.current = 0;
         if (beat.conceptTag !== FRAMING_CONCEPT) setCurrentConceptTag(beat.conceptTag);
@@ -783,8 +903,26 @@ export function useGeminiLive({
 
       /** The instruction that yields the turn to the child without moving the lesson. */
       const holdForChild = (reason: string): Record<string, unknown> => {
+        const beat = activeBeatRef.current;
         holdingForChildRef.current = true;
-        startSilenceTimer(ASK_SILENCE_TIMEOUT_MS);
+        openMicWindow(true);
+        const delay =
+          beat?.type === "SOFT_CHECK"
+            ? SOFT_CHECK_WINDOW_MS
+            : askLadderStageRef.current === 1
+              ? ASK_HELP_TIMEOUT_MS
+              : askLadderStageRef.current === 2
+                ? ASK_GIVEUP_TIMEOUT_MS
+                : ASK_SILENCE_TIMEOUT_MS;
+        startSilenceTimer(delay);
+        // Tap-to-answer for a held practice ASK.
+        if (beat?.type === "ASK" && beat.expectedAnswer) {
+          if (beat.answerChoices && beat.answerChoices.length >= 2) {
+            setAnswerPad({ kind: "choices", options: beat.answerChoices });
+          } else if (/^[\d\s,]+$/.test(beat.expectedAnswer)) {
+            setAnswerPad({ kind: "number" });
+          }
+        }
         return { instruction: `${reason} Say nothing. Call next_beat() again at the start of your next turn.` };
       };
 
@@ -815,6 +953,14 @@ export function useGeminiLive({
        */
       const handleNextBeat = async (): Promise<Record<string, unknown>> => {
         const beat = activeBeatRef.current;
+
+        // ↺: serve the same words again, advancing nothing.
+        if (repeatRequestedRef.current && beat) {
+          repeatRequestedRef.current = false;
+          roundTranscriptRef.current = "";
+          return buildDirectorResult(beat, directorContext());
+        }
+
         const roundSaid = roundTranscriptRef.current.trim();
         roundTranscriptRef.current = "";
 
@@ -850,19 +996,40 @@ export function useGeminiLive({
           return holdForChild("Wait for the child now.");
         }
 
-        // --- silence ran out while holding -------------------------------
+        // --- silence ran out while holding: the ASK ladder ---------------
         if (wasHolding && !roundSaid && silenceExpiredRef.current) {
           silenceExpiredRef.current = false;
-          if (handling === "judge" && waitIssuedForBeatRef.current !== beat.id) {
-            waitIssuedForBeatRef.current = beat.id;
+          openMicWindow(false);
+          if (beat.type === "SOFT_CHECK") {
+            // The window closed quietly — her own words simply continue.
+            return concludeAndServeNext(beat, "");
+          }
+          if (askLadderStageRef.current === 0) {
+            askLadderStageRef.current = 1;
             return serveBeat(buildWaitBeat(beat), {
               scripted: false,
               returnTo: { beat, scripted: activeBeatScriptedRef.current },
             });
           }
-          // Second silence (or a non-judged question nobody answered):
-          // conclude with no answer and move on.
-          return concludeAndServeNext(beat, "");
+          if (askLadderStageRef.current === 1) {
+            askLadderStageRef.current = 2;
+            return serveBeat(buildOfferHelpBeat(beat), {
+              scripted: false,
+              returnTo: { beat, scripted: activeBeatScriptedRef.current },
+            });
+          }
+          // Bottom of the ladder: she demonstrates the answer herself and
+          // the lesson moves on. Logged as NOT ATTEMPTED — no mastery
+          // credit, but no miss either (a reteach spiral would be cruel).
+          setAnswerPad(null);
+          await finishBeatLog(beat, { understood: false, next: "advance", reason: "Not attempted (silence ladder)." });
+          if (beat.expectedAnswer) void recordAnswer(beat, false);
+          if (activeBeatScriptedRef.current && scriptRef.current) {
+            orchStateRef.current = advance(scriptRef.current, orchStateRef.current, null).state;
+          }
+          const giveUp = buildGiveUpBeat(beat);
+          askLadderStageRef.current = 0;
+          return serveBeat(giveUp, { scripted: false });
         }
 
         // --- still holding, spurious call with nothing new ---------------
@@ -892,12 +1059,25 @@ export function useGeminiLive({
             return concludeAndServeNext(beat, roundSaid);
           }
           holdingForChildRef.current = true;
+          openMicWindow(true);
           startSilenceTimer(ASK_SILENCE_TIMEOUT_MS);
           return {
             instruction:
               "Respond warmly and briefly in Sinhala to what the child just said — one or two sentences, " +
               "one small follow-up question at most. Then stop and wait for them.",
           };
+        }
+
+        // --- SOFT_CHECK: any chirp earns one authored "හරි!" — never judged
+        if (beat.type === "SOFT_CHECK" && roundSaid) {
+          childTranscriptForBeatRef.current += (childTranscriptForBeatRef.current ? " " : "") + roundSaid;
+          openMicWindow(false);
+          pendingBeatsRef.current.unshift(buildSoftAckBeat(beat));
+          await finishBeatLog(beat, null);
+          if (activeBeatScriptedRef.current && scriptRef.current) {
+            orchStateRef.current = advance(scriptRef.current, orchStateRef.current, null).state;
+          }
+          return serveNext();
         }
 
         // --- a real response to a delivered beat -------------------------
@@ -914,6 +1094,8 @@ export function useGeminiLive({
 
         const handling = beatSpec(beat.type).onChildResponse;
         const scripted = activeBeatScriptedRef.current;
+        openMicWindow(false);
+        setAnswerPad(null);
         let decision: PlannerDecision | null = null;
 
         // The HOOK is a doorway, not a test: a matching answer earns the
@@ -1032,9 +1214,13 @@ export function useGeminiLive({
             // after it ends (echo/noise guard) — a teaching beat cannot be
             // barged into. The two chat beat types allow barge-in. Parent
             // mute silences sending entirely.
-            if (mutedRef.current) return;
+            if (mutedRef.current || pausedRef.current) return;
             const beatType = activeBeatRef.current?.type;
             const chatBeat = beatType === "CHAT_OPENER" || beatType === "BREAK_CHAT";
+            // The mic OPENS only during chat, a SOFT_CHECK window, or an
+            // ASK wait — rhetorical pauses and plain narration never open
+            // it. Barge-in (sending while she's audible) only in chat.
+            if (!chatBeat && !micWindowOpenRef.current) return;
             const inPlaybackTail = Date.now() - playbackEndedAtRef.current < MIC_TAIL_MS;
             if (!chatBeat && (aiTalkingRef.current || inPlaybackTail)) return;
             client.sendAudioChunk(chunk);
@@ -1233,6 +1419,12 @@ export function useGeminiLive({
     submitTypedAnswer,
     muted,
     toggleMute,
+    paused,
+    togglePause,
+    repeatLastBeat,
+    endSessionNow,
+    micWindowOpen,
+    answerPad,
     getOutputAmplitude,
     currentSessionIndex,
     sessionCount,

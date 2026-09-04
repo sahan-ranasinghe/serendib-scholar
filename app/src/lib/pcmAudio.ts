@@ -119,6 +119,13 @@ export class PcmPlayer {
     }
   }
 
+  /** Freezes playback in place (the pause control) — resume() picks it back up. */
+  async suspend(): Promise<void> {
+    if (this.audioContext.state === "running") {
+      await this.audioContext.suspend();
+    }
+  }
+
   enqueue(base64Pcm16: string): void {
     const buffer = base64ToArrayBuffer(base64Pcm16);
     const pcm16 = new Int16Array(buffer);

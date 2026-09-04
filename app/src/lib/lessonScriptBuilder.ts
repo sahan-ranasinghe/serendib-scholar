@@ -117,6 +117,19 @@ function sequenceOf(payload: ExplanationPayload): string[] {
 
 const clamp = (value: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, value));
 
+/** Deterministic shuffle for choice buttons (seeded by content, not Math.random, so scripts cache byte-for-byte). */
+function shuffle<T>(items: T[]): T[] {
+  const result = [...items];
+  let seed = 0;
+  for (const item of items) for (const ch of String(item)) seed = (seed * 31 + ch.charCodeAt(0)) % 997;
+  for (let i = result.length - 1; i > 0; i -= 1) {
+    seed = (seed * 131 + 7) % 997;
+    const j = seed % (i + 1);
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}
+
 /**
  * Derives each concept's shape from its video data.
  *
@@ -252,7 +265,29 @@ function buildExplainBeats(
   });
 }
 
-function buildItemSegment(item: BankRow, mode: TeachingMode, segmentIndex: number, startIndex: number): Beat[] {
+/** Sinhala-name answers from OTHER items of the concept — tap-choice distractors. */
+function nameDistractors(conceptRows: BankRow[], excludeItemId: string, correct: string): string[] {
+  const pool = new Set<string>();
+  for (const row of conceptRows) {
+    if (row.id === excludeItemId || row.component_type === "explanation") continue;
+    for (const blank of blanksForItem(row.component_type, row.component_props, row.answer)) {
+      if (blank.value && /[඀-෿]/u.test(blank.value) && blank.value !== correct) pool.add(blank.value);
+    }
+    const solution = solutionForItem(row.answer);
+    if (solution && /[඀-෿]/u.test(solution) && solution !== correct) pool.add(solution);
+    const label = (row.answer as { label?: unknown } | null)?.label;
+    if (typeof label === "string" && label.trim() && label !== correct) pool.add(label.trim());
+  }
+  return [...pool].slice(0, 2);
+}
+
+function buildItemSegment(
+  item: BankRow,
+  mode: TeachingMode,
+  segmentIndex: number,
+  startIndex: number,
+  conceptRows: BankRow[],
+): Beat[] {
   const conceptTag = item.concept_tag;
   const description = describeItem(item.component_type, item.component_props);
   const blanks = blanksForItem(item.component_type, item.component_props, item.answer).filter(
@@ -320,6 +355,11 @@ function buildItemSegment(item: BankRow, mode: TeachingMode, segmentIndex: numbe
       });
     }
     for (const blank of asks) {
+      // A Sinhala number-name answer gets tap choices (correct + two
+      // distractors from the bank); numeric answers get the number pad —
+      // the runtime decides from the expected answer's shape.
+      const isName = /[඀-෿]/u.test(blank.value);
+      const distractors = isName ? nameDistractors(conceptRows, item.id, blank.value) : [];
       push({
         type: "ASK",
         conceptTag,
@@ -331,6 +371,7 @@ function buildItemSegment(item: BankRow, mode: TeachingMode, segmentIndex: numbe
         boardDescription: description,
         board: { kind: "set_active_blank", itemId: item.id, rowIndex: blank.rowIndex, field: blank.field },
         expectedAnswer: blank.value,
+        ...(distractors.length === 2 ? { answerChoices: shuffle([blank.value, ...distractors]) } : {}),
         endBy: "asking",
       });
     }
@@ -356,6 +397,8 @@ function buildItemSegment(item: BankRow, mode: TeachingMode, segmentIndex: numbe
       });
     }
     if (mode !== 1 && solution) {
+      const isName = /[඀-෿]/u.test(solution);
+      const distractors = isName ? nameDistractors(conceptRows, item.id, solution) : [];
       push({
         type: "ASK",
         conceptTag,
@@ -367,18 +410,21 @@ function buildItemSegment(item: BankRow, mode: TeachingMode, segmentIndex: numbe
         boardDescription: description,
         board: { kind: "none" },
         expectedAnswer: solution,
+        ...(distractors.length === 2 ? { answerChoices: shuffle([solution, ...distractors]) } : {}),
         endBy: "asking",
       });
     }
   }
 
+  // A soft check, not a gate: the mic opens briefly; any chirp gets one
+  // warm "හරි!" and the lesson flows on — never a mandatory yes/no reply.
   push({
-    type: "CHECKPOINT",
+    type: "SOFT_CHECK",
     conceptTag,
     mode,
     itemId: item.id,
     segmentIndex,
-    goal: "Check-in (verbatim line).",
+    goal: "Soft check-in (verbatim line).",
     spokenText: AUTHORED_LINES.checkpoint,
     maxSentences: SENTENCE_BUDGET.CHECKPOINT,
     boardDescription: description,
@@ -474,7 +520,7 @@ function buildConceptBeats(
   for (const mode of [1, 2, 3] as TeachingMode[]) {
     const count = blueprint.items[`mode${mode}` as keyof ConceptBlueprint["items"]];
     for (const item of selectItemsForMode(problems, mode, count, used)) {
-      beats.push(...buildItemSegment(item, mode, segmentIndex, beats.length));
+      beats.push(...buildItemSegment(item, mode, segmentIndex, beats.length, rows));
       segmentIndex += 1;
     }
   }
@@ -551,9 +597,11 @@ function buildLessonGoalsBeats(openingRows: BankRow[], orderedTags: string[], de
         ...framingBeat(
           0,
           `lesson-goals-${index}`,
-          "LESSON_GOALS",
+          // A question in her opening is at most a soft window — the very
+          // first minute must never hard-block on an answer.
+          chunk.kind === "explain" ? "LESSON_GOALS" : "SOFT_CHECK",
           "Her lesson opening, verbatim.",
-          chunk.isQuestion ? "asking" : "pausing",
+          chunk.kind === "explain" ? "pausing" : "asking",
           { kind: "title_card", title: lessonTitle, emoji: "📚" },
         ),
         spokenText: chunk.text,
@@ -710,53 +758,79 @@ function splitSinhalaSentences(text: string): string[] {
     .filter((sentence) => sentence !== "");
 }
 
+/** How a chunk hands the turn over (or doesn't). */
+export type PauseKind = "explain" | "soft" | "ask";
+
 interface SpokenChunk {
   text: string;
-  /** True when the chunk ends on her question to the child — becomes a CHECK_IN. */
-  isQuestion: boolean;
+  kind: PauseKind;
+}
+
+/** Substantive question words — a question the child COULD answer. */
+const SUBSTANTIVE_QUESTION = /(කවුද|කාටද|මොකක්ද|මොනවද|කීයක්ද|කීයද|කොහොමද|කියන්න පුළුවන්)/u;
+/** Her rhetorical tags — pacing, never a turn handover. */
+const RHETORICAL_TAG = /(නේද|හරිද|බලමුද|කියමුද|ලියමුද|එහෙනම්|එහෙමද|ඕනද)\s*\?$/u;
+/** An explicit prompt to actually answer — this, and only this, makes a transcript question an ASK. */
+const EXPLICIT_PROMPT = /(කියන්න බලන්න|හිතලා කියන්න|කියන්නකෝ)/u;
+
+/**
+ * Classifies one question sentence, with one sentence of lookahead:
+ *   RHETORICAL — a tag ("නේද?"), a tiny question, or one she answers
+ *     herself immediately ("ඔවු…"): stays inline with a 1.0s pause marker
+ *     ("…"); the mic never opens.
+ *   ask — she explicitly tells the child to answer ("කියන්න බලන්න").
+ *   soft — substantive but she carries on herself: a 3s mic window.
+ */
+export function classifyQuestion(sentence: string, nextSentence: string | undefined): PauseKind {
+  if (EXPLICIT_PROMPT.test(sentence) || (nextSentence !== undefined && EXPLICIT_PROMPT.test(nextSentence))) {
+    return "ask";
+  }
+  if (RHETORICAL_TAG.test(sentence) || sentence.length < 25) return "explain";
+  // She answers herself straight away → rhetorical in effect.
+  if (nextSentence !== undefined && /^(ඔවු|ඔව්|හරි|ආ)\b/u.test(nextSentence)) return "explain";
+  if (SUBSTANTIVE_QUESTION.test(sentence)) return "soft";
+  return "explain";
 }
 
 /**
- * A REAL prompt to the child ("කාටද කියන්න පුළුවන්…?") — as opposed to her
- * constant rhetorical tags ("නේද?", "හරිද?"), which are pacing, part of her
- * rhythm, and must stay INSIDE the flow rather than stopping the lesson to
- * wait. Only real prompts become CHECK_IN beats.
- */
-const REAL_QUESTION = /(කවුද|කාටද|මොකක්ද|මොනවද|කීයක්ද|කීයද|කොහොමද|කියන්න පුළුවන්)/u;
-
-/**
- * Groups her sentences into speakable beats of 2-3 sentences (~15-25s). A
- * sentence that is a REAL question to the child closes its chunk as a
- * CHECK_IN: she asks, waits, and any answer advances.
+ * Groups her sentences into speakable beats (~15-25s), classifying every
+ * question into one of the three pause types. Rhetorical questions stay
+ * inside the flow with a "…" pause marker appended (the reader naturally
+ * rests on it ~1s); soft checks and asks close their chunk and hand the
+ * turn over per their kind.
  */
 export function chunkSpokenTranscript(text: string): SpokenChunk[] {
   const sentences = splitSinhalaSentences(text);
   const chunks: SpokenChunk[] = [];
   let current: string[] = [];
-  const flush = (isQuestion: boolean) => {
+  const flush = (kind: PauseKind) => {
     if (current.length === 0) return;
-    chunks.push({ text: current.join(" "), isQuestion });
+    chunks.push({ text: current.join(" "), kind });
     current = [];
   };
-  // She asks constantly; in class the answers fly back without stopping
-  // the room. Halting one-to-one for every question would make the lesson
-  // unbearably stop-start, so only a SPACED, substantive question becomes
-  // a CHECK_IN — the rest stay inside the flow of her speech.
-  let sinceCheckIn = 2;
-  for (const sentence of sentences) {
-    current.push(sentence);
+  for (let i = 0; i < sentences.length; i += 1) {
+    const sentence = sentences[i];
+    if (sentence.endsWith("?")) {
+      const kind = classifyQuestion(sentence, sentences[i + 1]);
+      if (kind === "explain") {
+        // Inline, with the 1.0s pause marker.
+        current.push(`${sentence}…`);
+      } else {
+        current.push(sentence);
+        flush(kind);
+        continue;
+      }
+    } else {
+      current.push(sentence);
+    }
     const joined = current.join(" ");
-    if (sentence.endsWith("?") && REAL_QUESTION.test(sentence) && sinceCheckIn >= 2 && joined.length >= 60) {
-      flush(true);
-      sinceCheckIn = 0;
-    } else if (current.length >= 6 || joined.length >= 200 || (current.length >= 2 && joined.length >= 120)) {
+    if (current.length >= 6 || joined.length >= 200 || (current.length >= 2 && joined.length >= 120)) {
       // Her spoken sentences are short ("හරි.", "බලන්න.") — chunk by
       // accumulated length (~120-200 chars ≈ 15-25s), not sentence count.
-      flush(false);
-      sinceCheckIn += 1;
+      flush("explain");
     }
   }
-  flush(false);
+  flush("explain");
   return chunks;
 }
 
@@ -790,14 +864,20 @@ function buildSpokenExplainBeats(conceptTag: string, explanations: BankRow[]): B
       );
       const block = blockIndex !== -1 ? blocks[blockIndex] : null;
       const beatId = `${conceptTag}#${index}:spoken-${index}`;
+      const beatType = chunk.kind === "ask" ? "ASK" : chunk.kind === "soft" ? "SOFT_CHECK" : "EXPLAIN";
       beats.push({
         ...baseBeat(conceptTag, index, `spoken-${index}`),
-        type: chunk.isQuestion ? "CHECK_IN" : "EXPLAIN",
+        type: beatType,
         conceptTag,
         mode: null,
         itemId: row.id,
         segmentIndex: -1,
-        goal: chunk.isQuestion ? "Her own question, verbatim — ask it and wait." : "Her own words, verbatim.",
+        goal:
+          chunk.kind === "ask"
+            ? "Her own question, verbatim — ask it and wait for the child."
+            : chunk.kind === "soft"
+              ? "Her question, verbatim — a brief window, then her own words continue."
+              : "Her own words, verbatim.",
         spokenText: chunk.text,
         maxSentences: 3,
         boardDescription: block
@@ -810,7 +890,7 @@ function buildSpokenExplainBeats(conceptTag: string, explanations: BankRow[]): B
                 : "her board notes"
           : "whatever is already showing",
         board: block ? blockToBoardAction(block, beatId) : { kind: "none" },
-        endBy: chunk.isQuestion ? "asking" : "pausing",
+        endBy: chunk.kind === "explain" ? "pausing" : "asking",
       });
       index += 1;
     });

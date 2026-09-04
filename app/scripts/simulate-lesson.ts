@@ -38,7 +38,10 @@ import {
   buildConfirmBeat,
   buildDirectorLine,
   buildFeedbackBeat,
+  buildGiveUpBeat,
   buildHookPraiseBeat,
+  buildWaitBeat,
+  buildOfferHelpBeat,
   buildReteachBeats,
   createInitialState,
   currentBeat,
@@ -348,13 +351,25 @@ async function simulate(
     entry.childSaid = said || "(silence)";
     log(`     CHILD: ${said ? `"${said}"${doubtful ? " (doubtful hearing)" : ""}` : "(silence)"}`);
 
+    // Silence walks the full ladder, exactly like the live runtime:
+    // WAIT → offer help → she demonstrates and moves on (not attempted —
+    // no mastery credit, no miss).
+    if (!said) {
+      queue.unshift(buildWaitBeat(beat), buildOfferHelpBeat(beat), buildGiveUpBeat(beat));
+      log("     -> silence ladder: WAIT → offer help → demonstrate, not attempted");
+      if (scripted) {
+        const before = state;
+        state = advance(script, state, null).state;
+        checkFloor(script, before, state, tally);
+      }
+      continue;
+    }
+
     // The offline planner — deterministic stage, plus the doubtful-hearing
     // signal the live model stage produces.
     let decision: PlannerDecision;
     if (doubtful) {
       decision = { understood: false, next: "another_example", ambiguousNumber: said, reason: "Doubtful hearing." };
-    } else if (!said || said === "silence") {
-      decision = { understood: false, next: "simplify", reason: "No answer given." };
     } else if (beat.expectedAnswer && answersMatch(beat.expectedAnswer, said === "wrong" ? "දාහක්" : said)) {
       decision = { understood: true, next: "advance", reason: "Exact match." };
     } else {

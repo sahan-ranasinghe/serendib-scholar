@@ -103,7 +103,7 @@ test("two unaided MODE 3 correct answers finish the concept", () => {
   const script = scriptOf([
     askMode3(),
     askMode3(),
-    beat({ type: "CHECKPOINT", segmentIndex: 2, mode: 3 }),
+    beat({ type: "SOFT_CHECK", segmentIndex: 2, mode: 3 }),
     beat({ type: "EXPLAIN", segmentIndex: -1, mode: null, conceptTag: "nextConcept" }),
   ]);
   let state = atBeat(script, 0);
@@ -138,14 +138,14 @@ test("mastery skips leftover practice but never a break or session close", () =>
 test("correct answers in MODE 1 and 2 do not count as unaided", () => {
   for (const mode of [1, 2] as TeachingMode[]) {
     const ask = beat({ type: "ASK", segmentIndex: 0, mode, endBy: "asking", expectedAnswer: "42" });
-    const script = scriptOf([ask, beat({ type: "CHECKPOINT", segmentIndex: 0, mode })]);
+    const script = scriptOf([ask, beat({ type: "SOFT_CHECK", segmentIndex: 0, mode })]);
     const { state } = advance(script, { ...atBeat(script, 0), mode }, { understood: true, next: "advance" });
     assert.equal(state.unaidedCorrect, 0, `MODE ${mode} answers are assisted, so they don't count`);
   }
 });
 
 test("a wrong answer never advances the concept, and counts a miss", () => {
-  const script = scriptOf([askMode3(), beat({ type: "CHECKPOINT", segmentIndex: 2, mode: 3 })]);
+  const script = scriptOf([askMode3(), beat({ type: "SOFT_CHECK", segmentIndex: 2, mode: 3 })]);
   const { state, movedConcept } = advance(
     script,
     { ...atBeat(script, 0), unaidedCorrect: UNAIDED_CORRECT_TO_ADVANCE - 1 },
@@ -193,7 +193,7 @@ test("reteach builds a targeted sub-skill beat on an unused angle plus a fresh d
   const script = scriptOf([
     beat({ type: "SHOW_BOARD", segmentIndex: 0, mode: 1, itemId: "demo-item" }),
     beat({ type: "REVEAL_PART", segmentIndex: 0, mode: 1, itemId: "demo-item" }),
-    beat({ type: "CHECKPOINT", segmentIndex: 0, mode: 1, itemId: "demo-item" }),
+    beat({ type: "SOFT_CHECK", segmentIndex: 0, mode: 1, itemId: "demo-item" }),
     beat({ type: "SHOW_BOARD", segmentIndex: 1, mode: 3, itemId: "missed-item" }),
     beat({
       type: "ASK",
@@ -216,7 +216,7 @@ test("reteach builds a targeted sub-skill beat on an unused angle plus a fresh d
   const demoBeats = first.beats.slice(1);
   assert.ok(demoBeats.length > 0, "a fresh MODE 1 demo follows");
   assert.ok(demoBeats.every((b) => b.itemId === "demo-item"), "the demo uses a DIFFERENT item");
-  assert.ok(demoBeats.every((b) => b.type !== "CHECKPOINT"), "the inserted demo drops its checkpoint");
+  assert.ok(demoBeats.every((b) => b.type === "SHOW_BOARD" || b.type === "REVEAL_PART"), "the inserted demo is show+reveal only");
   assert.ok(demoBeats.every((b) => b.type !== "EXPLAIN"), "no opening explanation is replayed");
 
   const second = buildReteachBeats(script, missedAsk, [first.angleUsed!]);
@@ -387,6 +387,5 @@ test("every beat type has a registry entry with an estimate and a response mode"
   assert.equal(BEAT_REGISTRY.EXPLAIN.estimateSeconds, 25);
   assert.equal(BEAT_REGISTRY.REVEAL_PART.estimateSeconds, 15);
   assert.equal(BEAT_REGISTRY.ASK.estimateSeconds, 40);
-  assert.equal(BEAT_REGISTRY.CHECKPOINT.estimateSeconds, 60);
   assert.equal(BEAT_REGISTRY.BREAK_CHAT.estimateSeconds, 120);
 });

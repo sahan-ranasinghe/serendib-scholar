@@ -18,7 +18,7 @@ import type { LessonBlueprintOverride, LessonScript } from "@/lib/lessonOrchestr
  * an older builder are rebuilt instead of served with a shape the runtime
  * no longer understands.
  */
-const SCRIPT_FORMAT_VERSION = "7";
+const SCRIPT_FORMAT_VERSION = "8";
 
 /**
  * A fingerprint of the verified rows a script was built from, salted with

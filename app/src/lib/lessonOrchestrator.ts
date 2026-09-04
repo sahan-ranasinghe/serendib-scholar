@@ -93,6 +93,12 @@ export interface Beat {
   sayCandidates?: string[];
   /** HOOK only: the exact praise line for a matching answer (see buildHookPraiseBeat). */
   praiseText?: string;
+  /**
+   * ASK only, when the expected answer is a Sinhala number NAME: the
+   * correct answer plus two distractors from the bank, shuffled — the
+   * board offers them as tappable choices (speech stays fully available).
+   */
+  answerChoices?: string[];
   /** The answer an ASK beat is looking for, for the planner's deterministic check. */
   expectedAnswer?: string;
   /** Whether the model ends by putting a question to the child or by pausing. */
@@ -234,8 +240,19 @@ export const UNAIDED_CORRECT_TO_ADVANCE = 2;
 /** After this many consecutive misses, stop offering more of the same and re-teach. */
 export const MISSES_BEFORE_RETEACH = 2;
 
-/** How long to wait for a child to start answering an ASK before a gentle check-in. */
+/**
+ * The ASK ladder — measured from when HER PLAYBACK ENDS, never from when
+ * the beat was generated (audio lags generation by seconds):
+ *   8s silence  → WAIT nudge
+ *   +12s        → offer help
+ *   +10s        → she demonstrates the answer herself and moves on,
+ *                 logged as "not attempted" (mastery never credited).
+ */
 export const ASK_SILENCE_TIMEOUT_MS = 8000;
+export const ASK_HELP_TIMEOUT_MS = 12000;
+export const ASK_GIVEUP_TIMEOUT_MS = 10000;
+/** SOFT_CHECK: the mic opens this long; silence just flows on. */
+export const SOFT_CHECK_WINDOW_MS = 3000;
 
 export function createInitialState(startBeat = 0): OrchestratorState {
   return {
@@ -398,6 +415,61 @@ export function buildReteachBeats(
   }
 
   return { beats: [reteach, ...demo], angleUsed: angle };
+}
+
+/** ASK ladder stage 2: the help offer, exact words. */
+export function buildOfferHelpBeat(asked: Beat): Beat {
+  return {
+    ...asked,
+    id: `${asked.id}:help`,
+    type: "WAIT",
+    goal: "Help offer (verbatim).",
+    spokenText: AUTHORED_LINES.offerHelp,
+    sayCandidates: undefined,
+    maxSentences: 1,
+    board: { kind: "none" },
+    expectedAnswer: undefined,
+    endBy: "asking",
+  };
+}
+
+/**
+ * ASK ladder stage 3: she shows the answer herself and the lesson moves
+ * on. For a blank-backed ask the value is also written onto the board.
+ * The caller advances with NO decision (a not-attempted item is neither a
+ * mastery credit nor a miss) and logs it as not attempted.
+ */
+export function buildGiveUpBeat(asked: Beat): Beat {
+  const value = asked.expectedAnswer ?? "";
+  return {
+    ...asked,
+    id: `${asked.id}:giveup`,
+    type: "REVEAL_PART",
+    goal: "Demonstrate the answer (verbatim), then the lesson moves on.",
+    spokenText: AUTHORED_LINES.giveUpReveal.replace("{value}", value),
+    sayCandidates: undefined,
+    board:
+      asked.board.kind === "set_active_blank"
+        ? { kind: "reveal_part", itemId: asked.board.itemId, rowIndex: asked.board.rowIndex, field: asked.board.field, value }
+        : { kind: "none" },
+    expectedAnswer: undefined,
+    endBy: "pausing",
+  };
+}
+
+/** The one-line SOFT_CHECK acknowledgement when the child chimes in. */
+export function buildSoftAckBeat(soft: Beat): Beat {
+  return {
+    ...soft,
+    id: `${soft.id}:ack`,
+    type: "FEEDBACK",
+    goal: "Soft acknowledgement (verbatim).",
+    spokenText: AUTHORED_LINES.softAck,
+    sayCandidates: undefined,
+    expectedAnswer: undefined,
+    board: { kind: "none" },
+    endBy: "pausing",
+  };
 }
 
 /**

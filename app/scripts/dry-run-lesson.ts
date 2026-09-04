@@ -359,7 +359,7 @@ async function runAssertions(script: LessonScript, rows: (BankRow & { verified: 
     const boardContent = String((row.explanation as { boardContent?: unknown } | null)?.boardContent ?? "");
     if (boardContent.trim() === "") continue;
     const rowBeats = script.beats.filter(
-      (beat) => beat.itemId === row.id && (beat.type === "EXPLAIN" || beat.type === "CHECK_IN") && beat.spokenText,
+      (beat) => beat.itemId === row.id && (beat.type === "EXPLAIN" || beat.type === "SOFT_CHECK" || beat.type === "ASK") && beat.spokenText,
     );
     if (rowBeats.length === 0) continue;
     const staged = rowBeats.filter((beat) => beat.board.kind !== "none").length;
@@ -375,7 +375,7 @@ async function runAssertions(script: LessonScript, rows: (BankRow & { verified: 
   //    block from the segment where she demonstrates it).
   const intro5421 = script.beats.find(
     (beat) =>
-      (beat.type === "EXPLAIN" || beat.type === "CHECK_IN") &&
+      (beat.type === "EXPLAIN" || beat.type === "SOFT_CHECK") &&
       beat.conceptTag === script.concepts[0].conceptTag &&
       beat.spokenText !== undefined &&
       beat.board.kind === "abacus_set" &&
@@ -414,11 +414,14 @@ async function runAssertions(script: LessonScript, rows: (BankRow & { verified: 
   const c1 = script.concepts[0];
   const c1Spoken = script.beats
     .slice(c1.firstBeat, c1.lastBeat + 1)
-    .filter((b) => (b.type === "EXPLAIN" || b.type === "CHECK_IN") && b.spokenText);
+    .filter((b) => (b.type === "EXPLAIN" || b.type === "SOFT_CHECK" || b.type === "ASK") && b.spokenText);
   const c1Seconds = c1Spoken.reduce((sum, b) => sum + estimateBeatSeconds(b), 0);
+  // (Retuned after the three-pause-type split: soft checks close chunks
+  // more often than the old damped check-ins did, so the same ~11.5 min of
+  // her speech now spans more, shorter beats.)
   assert.ok(
-    c1Spoken.length >= 38 && c1Spoken.length <= 55,
-    `concept 1 should have ~40-50 transcript beats, got ${c1Spoken.length}`,
+    c1Spoken.length >= 45 && c1Spoken.length <= 72,
+    `concept 1 should have ~50-70 transcript beats, got ${c1Spoken.length}`,
   );
   assert.ok(
     c1Seconds >= 9.5 * 60 && c1Seconds <= 12.5 * 60,
@@ -428,7 +431,24 @@ async function runAssertions(script: LessonScript, rows: (BankRow & { verified: 
     `  PASS  concept 1 explain run: ${c1Spoken.length} transcript beats, ~${(c1Seconds / 60).toFixed(1)} min of her speech`,
   );
 
-  // 7. Nothing the tutor is given to SAY contains instruction vocabulary.
+  // 7. Session 1's turn-taking shape: at most 8 real ASK waits, zero
+  //    mandatory yes/no questions, rhetoric stays inline as pause markers.
+  const s1 = script.beats.slice(script.sessions[0].firstBeat, script.sessions[0].lastBeat + 1);
+  const s1Asks = s1.filter((b) => b.type === "ASK");
+  const s1Softs = s1.filter((b) => b.type === "SOFT_CHECK");
+  const s1Rhetorical = s1.reduce((n, b) => n + (b.spokenText?.match(/\?…/gu)?.length ?? 0), 0);
+  assert.ok(s1Asks.length <= 8, `session 1 should have ≤8 ASK beats, got ${s1Asks.length}`);
+  for (const ask of s1Asks) {
+    assert.ok(
+      !/(නේද|හරිද|තේරුණාද|එහෙමද)\s*\?\s*$/u.test(ask.spokenText ?? ""),
+      `ASK ${ask.id} demands a yes/no reply: ${ask.spokenText?.slice(0, 60)}`,
+    );
+  }
+  console.log(
+    `  PASS  session 1 pause types: RHETORICAL(inline)=${s1Rhetorical}, SOFT_CHECK=${s1Softs.length}, ASK=${s1Asks.length} (≤8, none yes/no)`,
+  );
+
+  // 8. Nothing the tutor is given to SAY contains instruction vocabulary.
   // "ඊළඟ එකට යන්න" is the imperative the live leak produced (an instruction
   // read at the child); her own "ඊළඟ එකට යමු" ("let's move on") is real
   // teacher speech and allowed — verbatim transcripts contain it.

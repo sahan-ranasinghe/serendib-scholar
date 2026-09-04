@@ -66,11 +66,15 @@ export const BEAT_REGISTRY = {
   SHOW_BOARD: spec(15, "none"),
   REVEAL_PART: spec(15, "none"),
   ASK: spec(40, "judge"), // includes thinking/wait time
-  /** Her own question to the child, verbatim: she asks, waits, and ANY answer advances. */
-  CHECK_IN: spec(20, "acknowledge"),
+  /**
+   * A substantive question she answers herself moments later: the mic
+   * opens for a short window; any child speech earns one authored
+   * acknowledgement, silence just flows on. Never judged, never waited on
+   * beyond the window.
+   */
+  SOFT_CHECK: spec(8, "acknowledge"),
   WAIT: spec(10, "acknowledge"),
   FEEDBACK: spec(10, "none"),
-  CHECKPOINT: spec(60, "acknowledge"),
   TRANSITION: spec(15, "none"),
 
   // --- session framing --------------------------------------------------
@@ -129,7 +133,9 @@ const SPOKEN_CHARS_PER_SECOND = 9;
  */
 export function estimateBeatSeconds(beat: { type: BeatType; spokenText?: string }): number {
   if (beat.spokenText) {
-    return Math.min(30, Math.max(8, Math.round(beat.spokenText.length / SPOKEN_CHARS_PER_SECOND)));
+    // min 4s: the pause split produces genuinely short beats (a lone soft
+    // question); an 8s floor inflated totals by ~10%.
+    return Math.min(30, Math.max(4, Math.round(beat.spokenText.length / SPOKEN_CHARS_PER_SECOND)));
   }
   return BEAT_REGISTRY[beat.type].estimateSeconds;
 }

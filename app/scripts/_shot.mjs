@@ -1,0 +1,17 @@
+import WebSocket from "ws";
+import fs from "node:fs";
+const [,, url, width, height, out, waitMs] = process.argv;
+const target = await (await fetch(`http://127.0.0.1:9223/json/new?${encodeURIComponent(url)}`, { method: "PUT" })).json();
+const ws = new WebSocket(target.webSocketDebuggerUrl);
+let id = 0; const pending = new Map();
+const send = (m, p={}) => new Promise((r) => { const i = ++id; pending.set(i, r); ws.send(JSON.stringify({ id: i, method: m, params: p })); });
+ws.on("message", (d) => { const m = JSON.parse(d); if (m.id && pending.has(m.id)) { pending.get(m.id)(m.result); pending.delete(m.id); } });
+await new Promise((r) => ws.on("open", r));
+await send("Emulation.setDeviceMetricsOverride", { width: +width, height: +height, deviceScaleFactor: 2, mobile: true });
+await new Promise((r) => setTimeout(r, +(waitMs ?? 8000)));
+const overflow = await send("Runtime.evaluate", { expression: "document.documentElement.scrollWidth > document.documentElement.clientWidth", returnByValue: true });
+console.log(`[${width}x${height}] overflow=${overflow.result.value}`);
+const shot = await send("Page.captureScreenshot", { format: "png" });
+fs.writeFileSync(out, Buffer.from(shot.data, "base64"));
+await send("Page.close").catch(() => {});
+process.exit(0);
