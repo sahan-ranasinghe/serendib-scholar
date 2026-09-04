@@ -57,7 +57,7 @@ the runtime dispatches on the response mode.
 
 | type | est. | response | role |
 |---|---|---|---|
-| `CHAT_OPENER` | 150s | chat | free everyday talk to open a sitting |
+| `SESSION_START` | 8s | none | ONE authored greeting line, then straight into content (no chat interview) |
 | `LESSON_GOALS` | 60s | none | first sitting only — what this lesson is, from the video's own opening |
 | `RECAP` | 120s | none | later sittings — placeholder the runtime expands into review ASKs (weakest mastery first, from `child_progress`) |
 | `HOOK` | 30s | acknowledge | the teacher's everyday example before a concept's first EXPLAIN (only where her data has one) |
@@ -71,7 +71,7 @@ the runtime dispatches on the response mode.
 | `RETEACH` | 30s | none | runtime-inserted after repeated misses: re-explains ONLY the missed sub-skill, from an explanation angle not yet used this session, followed by a fresh MODE 1 demo of a different item, then the missed item retries. Never rewinds before the concept's first practice item |
 | `FEEDBACK` | 10s | none | runtime-inserted reaction to a judged answer |
 | `CHECKPOINT` | 60s | acknowledge | "still with me?" between items |
-| `BREAK_CHAT` | 120s | chat | mid-sitting breather after ~12 min of teaching |
+| `BREAK_CHAT` | 60s | chat | mid-sitting breather: ONE light question, one warm response, done |
 | `TRANSITION` | 15s | none | one-sentence wrap of a concept |
 | `CLOSE_SESSION` | 45s | none | warm close: one specific thing done well + next-time preview |
 
@@ -121,7 +121,7 @@ field to `BeatTypeSpec` instead so every type declares it.
 ## Sessions
 
 `buildScriptFromRows` cuts the beat list into sittings of 20-25 estimated
-minutes, each framed `CHAT_OPENER → (LESSON_GOALS | RECAP) → work →
+minutes, each framed `SESSION_START → (LESSON_GOALS | RECAP) → work →
 BREAK_CHAT → work → CLOSE_SESSION`, with boundaries stored on the script
 (`script.sessions`). A concept may span sittings. A child counts as RETURNING
 only when `session_log` holds a completed `CLOSE_SESSION` beat for them —

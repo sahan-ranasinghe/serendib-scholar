@@ -38,8 +38,9 @@ import {
   type PlannerDecision,
 } from "@/lib/lessonOrchestrator";
 import { answersMatch } from "@/lib/answerCheck";
-import { AUTHORED_LINES } from "@/lib/authoredLines";
 import { resolveBeatAddress, type ChildGender } from "@/lib/addressToken";
+import { estimateBeatSeconds } from "@/lib/beatRegistry";
+import { liveLookahead, shouldSuspendLive } from "@/lib/livePolicy";
 import {
   classifyConfirmation,
   fetchRecapBeats,
@@ -406,8 +407,6 @@ export function useGeminiLive({
   const lastNextBeatRef = useRef<{ at: number; result: Record<string, unknown> } | null>(null);
   /** A doubtful number hearing awaiting the child's yes/no (see buildConfirmBeat). */
   const confirmPendingRef = useRef<{ askBeatId: string; heard: string } | null>(null);
-  /** When the current chat beat's free-conversation window closes. */
-  const chatDeadlineRef = useRef(0);
   /** What actually happened this sitting — feeds CLOSE_SESSION's director context. */
   const sessionStatsRef = useRef({ concepts: new Set<string>(), correct: 0, asked: 0 });
   /** What the child said since the LAST next_beat call — one conversational round. */
@@ -428,10 +427,23 @@ export function useGeminiLive({
   const playbackEndedAtRef = useRef(0);
   /** Mirrors isAiTalking for handlers outside the render cycle. */
   const aiTalkingRef = useRef(false);
-  /** This session's CHAT_OPENER personalisation (see /api/opener). */
+  /** The BREAK_CHAT question personalisation (see /api/opener). */
   const openerRef = useRef<{ goal: string; skip: boolean } | null>(null);
-  /** The opener's first-reply bookkeeping: interest extraction + the short-reply rule fire once. */
+  /** The chat's one-reply bookkeeping: interest extraction + the one-question rule fire once. */
   const openerReplyHandledRef = useRef(false);
+  /**
+   * FORCED-OPEN SAFETY NET (mobile drain bug): if an ASK/SOFT_CHECK was
+   * served and no child window has opened by (estimated clip length + 2s),
+   * the window is opened anyway and the ladder started, so the child is
+   * never stuck facing a question they cannot answer.
+   */
+  const forcedOpenTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** The pinned voice, as the server reported it — debug panel display. */
+  const pinnedVoiceRef = useRef<string>("?");
+  /** SESSION_METRICS: prep for live-only-when-needed (see src/lib/livePolicy.ts). */
+  const liveConnectedAtRef = useRef<number>(0);
+  const audioOutBytesRef = useRef(0);
+  const audioInBytesRef = useRef(0);
 
   const clientRef = useRef<GeminiLiveClient | null>(null);
   const playerRef = useRef<PcmPlayer | null>(null);
@@ -478,6 +490,32 @@ export function useGeminiLive({
     if (silenceTimerRef.current) {
       clearTimeout(silenceTimerRef.current);
       silenceTimerRef.current = null;
+    }
+    if (forcedOpenTimerRef.current) {
+      clearTimeout(forcedOpenTimerRef.current);
+      forcedOpenTimerRef.current = null;
+    }
+    // SESSION_METRICS — how long Live was actually connected and how much
+    // audio crossed it, the baseline for live-only-when-needed (see
+    // src/lib/livePolicy.ts). PCM out 24kHz/16bit = 48000 B/s; in 16kHz =
+    // 32000 B/s.
+    if (liveConnectedAtRef.current > 0) {
+      const connectedS = Math.round((Date.now() - liveConnectedAtRef.current) / 1000);
+      const outS = Math.round(audioOutBytesRef.current / 48000);
+      const inS = Math.round(audioInBytesRef.current / 32000);
+      liveConnectedAtRef.current = 0;
+      void fetch("/api/session-log", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          session_id: sessionIdRef.current,
+          sequence: beatSequenceRef.current + 1,
+          beat_id: "session-metrics",
+          beat_type: "SESSION_METRICS",
+          director_text: `live_connected_seconds=${connectedS} audio_out_seconds=${outS} audio_in_seconds=${inS}`,
+          started_at: new Date().toISOString(),
+        }),
+      }).catch(() => undefined);
     }
     phaseRef.current = "idle";
     activeBeatRef.current = null;
@@ -581,6 +619,8 @@ export function useGeminiLive({
       holding: holdingForChildRef.current,
       stalled: stalledRef.current,
       secondsSinceOutput: Math.round((Date.now() - lastModelOutputAtRef.current) / 1000),
+      voice: pinnedVoiceRef.current,
+      playback: playerRef.current?.getPlaybackDebug() ?? null,
       events: debugEventsRef.current.slice(-5),
     }),
     [],
@@ -607,6 +647,16 @@ export function useGeminiLive({
 
   /** RMS of what's audible right now (0..~1) — drives the character's mouth. Safe before start(). */
   const getOutputAmplitude = useCallback(() => playerRef.current?.getAmplitude() ?? 0, []);
+
+  /**
+   * Call from ANY user gesture (pointerdown on the lesson screen): mobile
+   * browsers refuse to run an AudioContext that was never resumed inside a
+   * gesture, and a suspended context plays nothing and fires no `onended`
+   * — the confirmed shape of the mobile drain bug. Idempotent and cheap.
+   */
+  const resumeAudioOutput = useCallback(() => {
+    if (!pausedRef.current) void playerRef.current?.resume();
+  }, []);
 
   const start = useCallback(async () => {
     setError(null);
@@ -644,7 +694,13 @@ export function useGeminiLive({
     micWindowOpenRef.current = false;
     repeatRequestedRef.current = false;
     confirmPendingRef.current = null;
-    chatDeadlineRef.current = 0;
+    if (forcedOpenTimerRef.current) {
+      clearTimeout(forcedOpenTimerRef.current);
+      forcedOpenTimerRef.current = null;
+    }
+    liveConnectedAtRef.current = 0;
+    audioOutBytesRef.current = 0;
+    audioInBytesRef.current = 0;
     sessionStatsRef.current = { concepts: new Set<string>(), correct: 0, asked: 0 };
     sessionIdRef.current = crypto.randomUUID();
     if (silenceTimerRef.current) {
@@ -697,7 +753,9 @@ export function useGeminiLive({
       if (!sessionRes.ok) {
         throw new Error("Could not start a study session. Please try again.");
       }
-      const { token, model } = await sessionRes.json();
+      const sessionJson = await sessionRes.json();
+      const { token, model } = sessionJson;
+      pinnedVoiceRef.current = typeof sessionJson.voice === "string" && sessionJson.voice ? sessionJson.voice : "?";
 
       // Who is present, for the address form — resolved server-side; the
       // client only learns the gender. Defaults hold if this fails.
@@ -709,8 +767,8 @@ export function useGeminiLive({
         childGenderRef.current = "unspecified";
       }
 
-      // The session's CHAT_OPENER personalisation — fetched up front so
-      // serving the opener beat never waits on the network.
+      // The BREAK_CHAT question personalisation — fetched up front so
+      // serving the break beat never waits on the network.
       try {
         // Device-local context so openers fit the moment (no "how was
         // school?" on a Poya morning) — see /api/opener.
@@ -727,7 +785,7 @@ export function useGeminiLive({
         const opener = await openerRes.json();
         if (opener?.ok) openerRef.current = { goal: String(opener.goal ?? ""), skip: opener.skip === true };
       } catch {
-        openerRef.current = null; // scripted default opener stands
+        openerRef.current = null; // scripted default break question stands
       }
 
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -748,6 +806,19 @@ export function useGeminiLive({
                 silenceExpiredRef.current = true;
                 nudgeModelTurn();
               }, pending);
+            } else if (holdingForChildRef.current && !silenceTimerRef.current && !pausedRef.current) {
+              // HOLDING WATCHDOG: her audio just drained while a child
+              // window is open, and NO silence clock is running. That state
+              // must never persist — it is how a ladder dies (seen live: a
+              // ladder nudge made the model speak WITHOUT calling
+              // next_beat; the consumed timer never came back and the
+              // session sat silent for good). Give the child a beat of
+              // grace, then resume the ladder.
+              silenceTimerRef.current = setTimeout(() => {
+                silenceTimerRef.current = null;
+                silenceExpiredRef.current = true;
+                nudgeModelTurn();
+              }, 4000);
             }
             // APP-DRIVEN CONTINUATION: for a beat with no open child
             // window, once the audio has actually drained (+tail), the app
@@ -847,6 +918,8 @@ export function useGeminiLive({
       const clearBeatTimers = () => {
         if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
         silenceTimerRef.current = null;
+        if (forcedOpenTimerRef.current) clearTimeout(forcedOpenTimerRef.current);
+        forcedOpenTimerRef.current = null;
       };
 
       /** Runtime context for director lines that reference what actually happened (CLOSE_SESSION). */
@@ -882,6 +955,7 @@ export function useGeminiLive({
       const logEvent = (event: string) => {
         debugEventsRef.current.push(`${new Date().toISOString().slice(11, 19)} ${event}`);
         if (debugEventsRef.current.length > 20) debugEventsRef.current.shift();
+        console.debug(`[beat] ${event}`);
       };
 
       const clearWatchdog = () => {
@@ -999,9 +1073,67 @@ export function useGeminiLive({
         beatAudioBytesRef.current = 0;
         if (beat.conceptTag !== FRAMING_CONCEPT) setCurrentConceptTag(beat.conceptTag);
         if (beat.sessionIndex >= 0) setCurrentSessionIndex(beat.sessionIndex);
-        if (beat.type === "CHAT_OPENER") {
+        if (beat.type === "SESSION_START") {
           sessionStatsRef.current = { concepts: new Set<string>(), correct: 0, asked: 0 };
-          openerReplyHandledRef.current = false;
+        }
+        if (beat.type === "BREAK_CHAT") openerReplyHandledRef.current = false;
+        // FORCED-OPEN SAFETY NET: an ASK/SOFT_CHECK must get a child window
+        // even if the playback-drain signal never arrives (the confirmed
+        // mobile failure: HOOK sat 48s, no window, no ladder). Budget =
+        // estimated clip length + 2s; if no window opened by then, open it,
+        // start the ladder clock, and log a forced_open event.
+        if (beat.type === "ASK" || beat.type === "SOFT_CHECK" || beat.type === "HOOK") {
+          const budgetMs = estimateBeatSeconds(beat) * 1000 + 2000;
+          const armForcedOpen = (delayMs: number) => {
+            forcedOpenTimerRef.current = setTimeout(() => {
+              forcedOpenTimerRef.current = null;
+              const current = activeBeatRef.current;
+              if (!current || current.id !== beat.id) return;
+              if (micWindowOpenRef.current || holdingForChildRef.current || pausedRef.current) return;
+              // If audio is GENUINELY still scheduled (clock says so — the
+              // estimate was just short), wait for the real remainder
+              // instead of opening a window over her voice.
+              const playback = playerRef.current?.getPlaybackDebug();
+              if (playback && playback.lastScheduledEnd > playback.currentTime + 0.1) {
+                armForcedOpen((playback.lastScheduledEnd - playback.currentTime) * 1000 + 2000);
+                return;
+              }
+              logEvent(`forced_open ${beat.id.slice(0, 40)}`);
+              void fetch("/api/session-log", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  session_id: sessionIdRef.current,
+                  sequence: beatSequenceRef.current,
+                  beat_id: beat.id,
+                  beat_type: "FORCED_OPEN",
+                  director_text: `window forced open ${Math.round(budgetMs / 1000)}s after serve (drain signal missing)`,
+                  started_at: new Date().toISOString(),
+                }),
+              }).catch(() => undefined);
+              holdingForChildRef.current = true;
+              openMicWindow(true);
+              const delay = beat.type === "SOFT_CHECK" ? SOFT_CHECK_WINDOW_MS : ASK_SILENCE_TIMEOUT_MS;
+              startSilenceTimer(delay);
+              if (beat.type === "ASK" && beat.expectedAnswer) {
+                if (beat.answerChoices && beat.answerChoices.length >= 2) {
+                  setAnswerPad({ kind: "choices", options: beat.answerChoices });
+                } else if (/^[\d\s,]+$/.test(beat.expectedAnswer)) {
+                  setAnswerPad({ kind: "number" });
+                }
+              }
+            }, delayMs);
+          };
+          armForcedOpen(budgetMs);
+        }
+        // LIVE-ONLY-WHEN-NEEDED (scaffold, see src/lib/livePolicy.ts): log
+        // what the policy WOULD do; it never closes anything until beats
+        // have cached audio.
+        if (scriptRef.current) {
+          const lookahead = liveLookahead(scriptRef.current, orchStateRef.current, pendingBeatsRef.current);
+          if (shouldSuspendLive(lookahead)) {
+            logEvent(`live-policy: would close (idle ${Math.round(lookahead.nonInteractiveSeconds)}s ahead)`);
+          }
         }
         try {
           const staged = await stageBeatBoard(beatSpec(beat.type).boardAction(beat));
@@ -1024,17 +1156,17 @@ export function useGeminiLive({
         beat: Beat,
         options: { scripted: boolean; returnTo?: { beat: Beat; scripted: boolean } | null },
       ): Promise<Record<string, unknown>> => {
-        // CHAT_OPENER personalisation (see /api/opener): swap in the chosen
-        // opener, or the quick-start line for the 20% of sessions that skip.
+        // BREAK_CHAT personalisation (see /api/opener): swap in the chosen
+        // question; the 20% "skip" sessions get no break chat at all — the
+        // lesson just continues (sessions open with SESSION_START now, so
+        // this is the only place the opener pool is used).
         let served = beat;
-        if (beat.type === "CHAT_OPENER" && openerRef.current) {
-          if (openerRef.current.skip) {
-            // The quick start goes through the exact-words channel too.
-            served = { ...beat, spokenText: AUTHORED_LINES.quickStart, maxSentences: 1 };
-            chatDeadlineRef.current = 0; // first reply ends the "chat"
-          } else {
-            served = { ...beat, goal: openerRef.current.goal };
+        if (beat.type === "BREAK_CHAT" && openerRef.current) {
+          if (openerRef.current.skip && options.scripted && scriptRef.current) {
+            orchStateRef.current = advance(scriptRef.current, orchStateRef.current, null).state;
+            return serveNext();
           }
+          if (openerRef.current.goal) served = { ...beat, goal: openerRef.current.goal };
         }
         // Resolve the {address} token for THIS child in everything speakable.
         served = resolveBeatAddress(served, childGenderRef.current);
@@ -1121,9 +1253,34 @@ export function useGeminiLive({
         }
 
         const roundSaid = roundTranscriptRef.current.trim();
-        roundTranscriptRef.current = "";
 
-        if (!beat) return serveNext();
+        if (!beat) {
+          roundTranscriptRef.current = "";
+          return serveNext();
+        }
+
+        // --- NO DOUBLE-SERVE, EVER: next_beat is strictly monotonic ------
+        // A call that arrives while the served beat's audio is STILL
+        // PLAYING (model chained early, or a watchdog resend raced the
+        // drain) advances nothing and repeats nothing: hold, stay silent.
+        // The app's own drain-continue will trigger the real next call.
+        // Barge-in (the child spoke) passes through — that IS new input.
+        if (aiTalkingRef.current && !roundSaid) {
+          // If we were holding for the child (window open), the silence
+          // timer that triggered this turn was already consumed — re-arm
+          // it, or the ladder dies here: with the window open the
+          // drain-continue never fires, and nothing else would wake us.
+          // (Seen live: a ladder nudge made the model SPEAK, its
+          // mid-playback next_beat got held, and the session sat silent.)
+          if (holdingForChildRef.current) startSilenceTimer(1500);
+          return {
+            hold: true,
+            instruction:
+              "The previous line is still playing for the child. Say NOTHING. " +
+              "Call next_beat() again on your next turn.",
+          };
+        }
+        roundTranscriptRef.current = "";
 
         const handling = beatSpec(beat.type).onChildResponse;
         const wasHolding = holdingForChildRef.current;
@@ -1147,10 +1304,10 @@ export function useGeminiLive({
         // --- the beat was delivered and expects a response ---------------
         if (beat.endBy === "asking" && !wasHolding && !roundSaid) {
           // The model just finished asking; the child hasn't had a turn yet.
-          if (beat.type === "CHAT_OPENER" || beat.type === "BREAK_CHAT") {
-            chatDeadlineRef.current =
-              chatDeadlineRef.current === 0 ? 0 : Date.now() + beatSpec(beat.type).estimateSeconds * 1000;
-            if (chatDeadlineRef.current === 0) chatDeadlineRef.current = Date.now() + 20000;
+          // Exception: a chat whose one warm response has already been
+          // spoken is over — the lesson continues, no second question.
+          if (handling === "chat" && openerReplyHandledRef.current) {
+            return concludeAndServeNext(beat, "");
           }
           return holdForChild("Wait for the child now.");
         }
@@ -1199,34 +1356,27 @@ export function useGeminiLive({
           return holdForChild("Keep waiting for the child.");
         }
 
-        // --- chat rounds --------------------------------------------------
+        // --- chat: ONE question, one warm response, then the lesson ------
         if (handling === "chat" && roundSaid) {
           childTranscriptForBeatRef.current += (childTranscriptForBeatRef.current ? " " : "") + roundSaid;
-          const wordCount = roundSaid.split(/\s+/).filter(Boolean).length;
-          if (beat.type === "CHAT_OPENER" && !openerReplyHandledRef.current) {
-            openerReplyHandledRef.current = true;
-            // Learn what they mentioned, off the hot path.
-            void fetch("/api/extract-interest", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ transcript: roundSaid }),
-            }).catch(() => undefined);
-            if (wordCount < 6) {
-              // A short first reply means they're not in a chatting mood —
-              // straight to the lesson, no second chat question.
-              return concludeAndServeNext(beat, roundSaid);
-            }
-          }
-          if (Date.now() >= chatDeadlineRef.current) {
+          if (openerReplyHandledRef.current) {
+            // They spoke again after the warm response — acknowledge is
+            // over; the reply rides along in the transcript, the lesson
+            // continues (a break is a breather, not an interview).
             return concludeAndServeNext(beat, roundSaid);
           }
-          holdingForChildRef.current = true;
-          openMicWindow(true);
-          startSilenceTimer(ASK_SILENCE_TIMEOUT_MS);
+          openerReplyHandledRef.current = true;
+          // Learn what they mentioned, off the hot path.
+          void fetch("/api/extract-interest", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ transcript: roundSaid }),
+          }).catch(() => undefined);
+          openMicWindow(false);
           return {
             instruction:
-              "Respond warmly and briefly in Sinhala to what the child just said — one or two sentences, " +
-              "one small follow-up question at most. Then stop and wait for them.",
+              "Respond warmly in ONE short Sinhala sentence to what the child just said. " +
+              "Do NOT ask another question. Then call next_beat().",
           };
         }
 
@@ -1370,6 +1520,7 @@ export function useGeminiLive({
       const client = new GeminiLiveClient({
         onReady: async () => {
           setStatus("listening");
+          liveConnectedAtRef.current = Date.now();
           const recorder = await startPcmRecorder(stream, (chunk) => {
             // Natural turn-taking: the mic is always CAPTURED but chunks
             // are NOT SENT while Zara's audio is playing, or for 400ms
@@ -1385,6 +1536,7 @@ export function useGeminiLive({
             if (!chatBeat && !micWindowOpenRef.current) return;
             const inPlaybackTail = Date.now() - playbackEndedAtRef.current < MIC_TAIL_MS;
             if (!chatBeat && (aiTalkingRef.current || inPlaybackTail)) return;
+            audioInBytesRef.current += Math.floor((chunk.length * 3) / 4);
             client.sendAudioChunk(chunk);
           });
           recorderRef.current = recorder;
@@ -1393,6 +1545,7 @@ export function useGeminiLive({
         },
         onAudioChunk: (chunk) => {
           lastModelOutputAtRef.current = Date.now();
+          audioOutBytesRef.current += Math.floor((chunk.length * 3) / 4);
           if (stalledRef.current) {
             stalledRef.current = false;
             setStalled(false);
@@ -1611,6 +1764,7 @@ export function useGeminiLive({
     continueNow,
     getDebugSnapshot,
     getOutputAmplitude,
+    resumeAudioOutput,
     currentSessionIndex,
     sessionCount,
     celebrateNonce,

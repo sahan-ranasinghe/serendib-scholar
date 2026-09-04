@@ -46,7 +46,7 @@ const SENTENCE_BUDGET: Record<string, number> = {
   ASK: 2,
   CHECKPOINT: 1,
   TRANSITION: 2,
-  CHAT_OPENER: 3,
+  SESSION_START: 1,
   LESSON_GOALS: 4,
   HOOK: 2,
   RECAP: 2,
@@ -630,7 +630,7 @@ function buildLessonGoalsBeats(openingRows: BankRow[], orderedTags: string[], de
 
 /**
  * Cuts the concatenated concept beats into sittings and wraps each in its
- * framing: CHAT_OPENER → (LESSON_GOALS | RECAP) → work → BREAK_CHAT → work
+ * framing: SESSION_START → (LESSON_GOALS | RECAP) → work → BREAK_CHAT → work
  * → CLOSE_SESSION. Estimates come from beatRegistry.ts.
  */
 function assembleSessions(
@@ -668,18 +668,19 @@ function assembleSessions(
     const firstBeat = beats.length;
     const conceptTags = [...new Set(slice.map((b) => b.conceptTag).filter((t) => t !== FRAMING_CONCEPT))];
 
-    beats.push(
-      framingBeat(
+    // ONE greeting line, verbatim, then straight into content — chat only
+    // if the child starts it (tangent rules) or at the single BREAK_CHAT.
+    beats.push({
+      ...framingBeat(
         sessionIndex,
-        "chat-opener",
-        "CHAT_OPENER",
-        "Ask how their day was — school, friends, something they did today.",
-        "asking",
-        // Chat has no lesson visual; the runtime may swap this goal for a
-        // personalised opener (see /api/opener).
+        "session-start",
+        "SESSION_START",
+        "Session greeting (verbatim line).",
+        "pausing",
         { kind: "title_card", title: lessonTitle, emoji: "👋" },
       ),
-    );
+      spokenText: sessionIndex === 0 ? AUTHORED_LINES.sessionStartFirst : AUTHORED_LINES.sessionStartReturning,
+    });
     if (sessionIndex === 0 && lessonGoals.length > 0) {
       beats.push(...lessonGoals);
     } else if (sessionIndex > 0) {
@@ -713,7 +714,7 @@ function assembleSessions(
             sessionIndex,
             "break-chat",
             "BREAK_CHAT",
-            "Ask what they like doing when schoolwork is done, or let them tell you anything at all.",
+            "e.g. what they like doing when schoolwork is done",
             "asking",
             { kind: "title_card", title: lessonTitle, emoji: "⛱️" },
           ),

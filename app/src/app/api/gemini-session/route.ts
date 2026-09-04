@@ -14,7 +14,18 @@ export const GEMINI_LIVE_MODEL =
  * ephemeral token's constraints, so the client cannot vary it. Audition
  * candidates with `npm run audition:voice`, then set ZARA_VOICE.
  */
-const ZARA_VOICE = process.env.ZARA_VOICE ?? "Aoede";
+const DEFAULT_VOICE = "Aoede";
+const ZARA_VOICE = (() => {
+  const configured = (process.env.ZARA_VOICE ?? "").trim();
+  if (configured) return configured;
+  // An empty/unset env var must NEVER reach speechConfig as an empty
+  // voiceName — that hands voice choice back to the server (the observed
+  // mid-conversation voice changes). Fall back loudly.
+  if (process.env.ZARA_VOICE !== undefined) {
+    console.warn(`[gemini-session] ZARA_VOICE is set but empty — using the code default "${DEFAULT_VOICE}".`);
+  }
+  return DEFAULT_VOICE;
+})();
 
 
 

@@ -81,6 +81,20 @@ export class PcmPlayer {
   /** Taps the output for per-frame amplitude (drives the character's mouth) — see getAmplitude. */
   private analyser: AnalyserNode;
   private analyserBuffer: Float32Array<ArrayBuffer>;
+  /**
+   * TIME-BASED DRAIN DETECTION. On some mobile browsers the buffer-source
+   * `onended` events are unreliable, so the drain callback never fired —
+   * mic windows didn't open, silence ladders never started (observed live:
+   * an ASK sat 48s with no ladder activity). So drain is ALSO detected by
+   * the clock: the scheduled end of the last queued buffer is tracked, a
+   * 100ms poller compares it to currentTime, and whichever of event/poll
+   * fires first wins (the other becomes a no-op).
+   */
+  private lastScheduledEnd = 0;
+  private drainPoller: ReturnType<typeof setInterval> | null = null;
+  private playing = false;
+  /** For the debug panel and drain-timing printouts. */
+  lastDrainVia: "event" | "poll" | null = null;
 
   /**
    * `onPlaybackStateChange`, if given, fires true the instant audio starts
@@ -147,14 +161,64 @@ export class PcmPlayer {
     const startAt = Math.max(this.nextStartTime, this.audioContext.currentTime);
     source.start(startAt);
     this.nextStartTime = startAt + audioBuffer.duration;
+    this.lastScheduledEnd = Math.max(this.lastScheduledEnd, this.nextStartTime);
 
-    const wasEmpty = this.activeSources.size === 0;
     this.activeSources.add(source);
-    if (wasEmpty) this.onPlaybackStateChange?.(true);
+    this.setPlaying(true);
+    this.startDrainPoller();
 
     source.onended = () => {
       this.activeSources.delete(source);
-      if (this.activeSources.size === 0) this.onPlaybackStateChange?.(false);
+      if (this.activeSources.size === 0 && this.audioContext.currentTime >= this.lastScheduledEnd - 0.02) {
+        this.lastDrainVia = "event";
+        this.setPlaying(false);
+      }
+    };
+  }
+
+  /** Single source of truth for the playing flag — event and poller both funnel here, idempotently. */
+  private setPlaying(playing: boolean): void {
+    if (this.playing === playing) return;
+    this.playing = playing;
+    if (!playing) {
+      this.stopDrainPoller();
+      // One line per drain — how it was detected and how far past the
+      // scheduled end the clock was. This is what the mobile verification
+      // (and any field debugging) reads.
+      console.debug(
+        `[pcm] drain via=${this.lastDrainVia ?? "clear"} t=${this.audioContext.currentTime.toFixed(3)} ` +
+          `end=${this.lastScheduledEnd.toFixed(3)} lag=${(this.audioContext.currentTime - this.lastScheduledEnd).toFixed(3)}s ` +
+          `ctx=${this.audioContext.state}`,
+      );
+    }
+    this.onPlaybackStateChange?.(playing);
+  }
+
+  private startDrainPoller(): void {
+    if (this.drainPoller) return;
+    this.drainPoller = setInterval(() => {
+      if (!this.playing) return;
+      if (this.audioContext.currentTime >= this.lastScheduledEnd + 0.05) {
+        this.lastDrainVia = "poll";
+        this.activeSources.clear();
+        this.setPlaying(false);
+      }
+    }, 100);
+  }
+
+  private stopDrainPoller(): void {
+    if (this.drainPoller) clearInterval(this.drainPoller);
+    this.drainPoller = null;
+  }
+
+  /** AudioContext state + drain timing, for the debug panel and stall diagnosis. */
+  getPlaybackDebug(): { contextState: string; currentTime: number; lastScheduledEnd: number; playing: boolean; lastDrainVia: string | null } {
+    return {
+      contextState: this.audioContext.state,
+      currentTime: this.audioContext.currentTime,
+      lastScheduledEnd: this.lastScheduledEnd,
+      playing: this.playing,
+      lastDrainVia: this.lastDrainVia,
     };
   }
 
@@ -169,7 +233,6 @@ export class PcmPlayer {
    * harmlessly no-ops against the now-empty set.
    */
   clear(): void {
-    const wasPlaying = this.activeSources.size > 0;
     for (const source of this.activeSources) {
       try {
         source.stop();
@@ -179,7 +242,8 @@ export class PcmPlayer {
     }
     this.activeSources.clear();
     this.nextStartTime = this.audioContext.currentTime;
-    if (wasPlaying) this.onPlaybackStateChange?.(false);
+    this.lastScheduledEnd = this.audioContext.currentTime;
+    this.setPlaying(false);
   }
 
   close(): void {

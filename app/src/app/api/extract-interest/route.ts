@@ -4,7 +4,7 @@ import { supabaseAdmin } from "@/lib/supabaseClient";
 import { getActiveChildId } from "@/lib/activeChild";
 
 /**
- * After the child's first reply to a CHAT_OPENER, a small TEXT model pulls
+ * After the child's reply to the BREAK_CHAT question, a small TEXT model pulls
  * out any interest they mentioned ("my brother has a bicycle", "I watched
  * Spider-Man") and merges it into child_profile.interests — which is what
  * lets later openers ask about things this child actually cares about.

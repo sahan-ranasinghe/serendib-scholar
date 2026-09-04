@@ -229,6 +229,21 @@ function assertTrace(script: LessonScript, trace: TraceEntry[], tally: Assertion
     }
   }
   tally.check("every non-chat beat has a board action", true);
+
+  // 6. NO DOUBLE-SERVE (the live mobile bug): no two consecutive served
+  //    beats ever speak identical text — a repeat means next_beat served
+  //    the same beat twice instead of holding.
+  for (let i = 1; i < trace.length; i += 1) {
+    const a = trace[i - 1].beat.spokenText?.trim();
+    const b = trace[i].beat.spokenText?.trim();
+    if (!a || !b) continue;
+    tally.check(
+      "no two consecutive beats with identical spoken text",
+      a !== b,
+      `${trace[i - 1].beat.id} then ${trace[i].beat.id}: "${a.slice(0, 60)}"`,
+    );
+  }
+  tally.check("no two consecutive beats with identical spoken text", true);
 }
 
 // ---------------------------------------------------------------------------

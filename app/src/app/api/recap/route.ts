@@ -19,7 +19,8 @@ import type { Beat } from "@/lib/lessonOrchestrator";
  * yet. The runtime then just moves on past the RECAP intro.
  */
 
-const RECAP_QUESTIONS = 3;
+/** ONE question — a returning session reviews briefly, it doesn't quiz. */
+const RECAP_QUESTIONS = 1;
 
 interface RecapCandidate {
   conceptTag: string;

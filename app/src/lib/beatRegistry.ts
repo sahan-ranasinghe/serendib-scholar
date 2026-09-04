@@ -78,6 +78,9 @@ export const BEAT_REGISTRY = {
   TRANSITION: spec(15, "none"),
 
   // --- session framing --------------------------------------------------
+  /** ONE greeting line (say_exactly), then straight into content. Chat only if the child starts it. */
+  SESSION_START: spec(8, "none"),
+  /** Legacy type: no longer emitted by the builder (sessions open with SESSION_START now). */
   CHAT_OPENER: spec(
     150,
     "chat",
@@ -91,12 +94,12 @@ export const BEAT_REGISTRY = {
   HOOK: spec(30, "acknowledge"),
   RECAP: spec(120, "none"),
   BREAK_CHAT: spec(
-    120,
+    60,
     "chat",
     (beat) =>
-      `[DIRECTOR] Time for a little break — the child has been working hard. ${beat.goal} ` +
-      `A minute or two of free chat in Sinhala, nothing about the lesson unless the child brings it up. ` +
-      `Keep it light. When you have nothing to add, pause and wait.`,
+      `[DIRECTOR] A short breather — the child has been working hard. Ask ONE light question in Sinhala — ` +
+      `${beat.goal} — then respond warmly to whatever they say, ONCE, and stop. One question, not an ` +
+      `interview; no lesson content unless the child brings it up.`,
   ),
   CONFIRM: spec(15, "acknowledge"),
   RETEACH: spec(30, "none"),

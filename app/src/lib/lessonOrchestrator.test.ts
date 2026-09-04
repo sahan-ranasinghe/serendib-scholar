@@ -387,5 +387,7 @@ test("every beat type has a registry entry with an estimate and a response mode"
   assert.equal(BEAT_REGISTRY.EXPLAIN.estimateSeconds, 25);
   assert.equal(BEAT_REGISTRY.REVEAL_PART.estimateSeconds, 15);
   assert.equal(BEAT_REGISTRY.ASK.estimateSeconds, 40);
-  assert.equal(BEAT_REGISTRY.BREAK_CHAT.estimateSeconds, 120);
+  // One question + one warm response — a breather, not an interview.
+  assert.equal(BEAT_REGISTRY.BREAK_CHAT.estimateSeconds, 60);
+  assert.equal(BEAT_REGISTRY.SESSION_START.estimateSeconds, 8);
 });

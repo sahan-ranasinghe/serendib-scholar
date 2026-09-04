@@ -3,7 +3,7 @@ import { supabaseAdmin } from "@/lib/supabaseClient";
 import { getActiveChildId } from "@/lib/activeChild";
 
 /**
- * Picks this session's CHAT_OPENER — context-aware: each opener carries
+ * Picks the BREAK_CHAT question — context-aware: each opener carries
  * conditions on time-of-day and day-type, judged from the DEVICE's local
  * clock (sent by the client), so the tutor never asks "how was school
  * today?" on a Poya morning. No repeats of the last three topics; 20% of
@@ -44,17 +44,6 @@ const OPENERS: Opener[] = [
   { id: "any-did", goal: 'Open with exactly "අද මොකද කරේ?" and chat warmly from their answer.' },
   { id: "any-happy", goal: 'Open with exactly "ඔයා අද සතුටින්ද?" and chat warmly from their answer.' },
   { id: "any-food", goal: 'Open with exactly "අද කන්න මොනවද ලැබුනේ?" and chat warmly from their answer.' },
-  {
-    id: "school-today",
-    goal: "Ask how school was today — anything fun or annoying that happened.",
-    when: { dayType: ["schoolday"], timeOfDay: ["afternoon", "evening"] },
-  },
-  {
-    id: "friends",
-    goal: "Ask about their friends — who they sat with or played with at school today.",
-    when: { dayType: ["schoolday"], timeOfDay: ["afternoon", "evening"] },
-  },
-  { id: "played-today", goal: "Ask what they played or did this afternoon.", when: { timeOfDay: ["afternoon", "evening", "night"] } },
   { id: "morning-start", goal: "Ask how their morning started — breakfast, who woke them up.", when: { timeOfDay: ["morning"] } },
   { id: "weekend-fun", goal: "Ask what fun thing they're doing this weekend / did today at home.", when: { dayType: ["weekend", "holiday"] } },
   { id: "tv-cartoon", goal: "Ask if they watched anything fun lately — a cartoon, a show, a video." },
@@ -118,8 +107,13 @@ export async function POST(request: NextRequest) {
     return true;
   };
 
+  const anyOpeners = OPENERS.filter((opener) => !opener.when);
   const pool: Opener[] = [
     ...OPENERS.filter(fitsContext),
+    // Weighted toward the `any` set: openers that assume nothing appear
+    // twice more, so most breaks are context-free by design.
+    ...anyOpeners,
+    ...anyOpeners,
     ...interests.slice(0, 4).map((interest) => ({
       id: `interest:${interest.toLowerCase().slice(0, 24)}`,
       goal: `They've mentioned liking ${interest} before — ask something friendly and specific about that.`,

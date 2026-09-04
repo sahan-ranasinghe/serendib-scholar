@@ -53,6 +53,7 @@ export default function LessonScreen() {
     continueNow,
     getDebugSnapshot,
     getOutputAmplitude,
+    resumeAudioOutput,
   } = useGeminiLive();
 
   // Opens straight into the lesson: one auto-start on mount (resume or
@@ -152,7 +153,13 @@ export default function LessonScreen() {
   const stops = Math.max(sessionCount, 1);
 
   return (
-    <div className="lesson-screen fixed inset-0 flex flex-col bg-[#2f4f5f] text-stone-800">
+    // Any tap resumes the output AudioContext — mobile browsers keep a
+    // context created outside a user gesture suspended, which silently
+    // breaks playback AND drain detection (the mobile stall). Idempotent.
+    <div
+      className="lesson-screen fixed inset-0 flex flex-col bg-[#2f4f5f] text-stone-800"
+      onPointerDown={resumeAudioOutput}
+    >
       {/* ---- progress strip -------------------------------------------- */}
       <header className="flex h-7 shrink-0 items-center justify-between bg-[#26414e] px-3 text-[#d8e3e8]">
         <span className="truncate text-xs font-semibold tracking-wide" onClick={onTitleTap}>
@@ -305,6 +312,13 @@ export default function LessonScreen() {
                 {debug.stalled ? " STALLED" : ""}
               </div>
               <div>last output: {debug.secondsSinceOutput}s ago</div>
+              <div>voice: {debug.voice}</div>
+              {debug.playback && (
+                <div>
+                  ctx: {debug.playback.contextState} | t {debug.playback.currentTime.toFixed(1)} / end{" "}
+                  {debug.playback.lastScheduledEnd.toFixed(1)} | drain: {debug.playback.lastDrainVia ?? "—"}
+                </div>
+              )}
               <div className="mt-1 border-t border-emerald-200/30 pt-1">
                 {debug.events.map((event, i) => (
                   <div key={i} className="truncate">{event}</div>

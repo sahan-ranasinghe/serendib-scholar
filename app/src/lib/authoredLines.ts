@@ -38,8 +38,9 @@ export const AUTHORED_LINES = {
   feedbackWrong: ["හ්ම්, ඒක නෙමෙයි. ආයෙ පොඩ්ඩක් හිතලා බලන්න.", "ළඟයි! තව එක පාරක් හිතලා බලමුද?"],
 
   // --- session framing ----------------------------------------------------
-  /** The 20%-of-sessions quick start (see /api/opener + useGeminiLive.ts). */
-  quickStart: "අද ඉක්මනට පටන් ගමුද?",
+  /** Session start is ONE line, then straight into content — no chat interview. */
+  sessionStartFirst: "ආයුබෝවන් {address}! අද අපි පටන් ගමු.",
+  sessionStartReturning: "හරි {address}, අපි ඊයේ තැනින් පටන් ගමු.",
 
   // --- hook (default praise; the blueprint file can override per concept) --
   hookPraiseDefault: "හරි! දහසේ එකක්, සීයේ එකක්, දහයේ එකක්, එකේ එකක් — ඒක තමයි අද අපි ඉගෙන ගන්න යන්නේ.",
