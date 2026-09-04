@@ -1,7 +1,7 @@
 /**
  * Detects an explicit spoken page reference ("page 43", "පිටුව 43", "43 වෙනි
  * පිටුව") in the model's output transcript, for the board/narration
- * consistency check in useGeminiLive.ts — both the visibility warning and
+ * consistency check in useLiveChat.ts — both the visibility warning and
  * the deterministic auto-staging fallback rely on this same extraction, so
  * they can never disagree with each other about what was "said."
  *

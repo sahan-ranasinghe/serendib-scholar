@@ -467,24 +467,32 @@ async function runAssertions(script: LessonScript, rows: (BankRow & { verified: 
   console.log("  PASS  no instruction vocabulary in anything the tutor is given to say");
 
   // 8. The director channel never touches the caption path: director text
-  //    goes out only as a next_beat tool result — the runtime must contain
-  //    no clientContent send of it, and the caption renders only model
-  //    output transcription.
-  await assertDirectorChannel();
+  //    never reaches the child: the runtime speaks CACHED CLIPS of the
+  //    beat's own words, and the caption renders that clip text — director
+  //    lines exist only for the log and for writing a RETEACH line.
+  await assertSpeechChannel();
 }
 
-async function assertDirectorChannel(): Promise<void> {
-  const hook = await readFile(path.join(process.cwd(), "src/hooks/useGeminiLive.ts"), "utf8");
+async function assertSpeechChannel(): Promise<void> {
+  const runtime = await readFile(path.join(process.cwd(), "src/hooks/useLessonRuntime.ts"), "utf8");
+  // Speech is playback of the beat's own words, not a model turn.
+  assert.ok(/playClip\(/.test(runtime), "the runtime speaks by playing cached clips");
+  assert.ok(/\/api\/hear/.test(runtime), "answers are captured by recording + /api/hear");
   assert.ok(
-    !/sendTextInput\([^)]*buildDirectorLine/.test(hook),
-    "useGeminiLive must never send director text as clientContent",
+    !/sendTextInput\([^)]*buildDirectorLine/.test(runtime),
+    "director text is never sent to a model as conversation",
   );
-  assert.ok(/handleNextBeat/.test(hook) && /call\.name === "next_beat"/.test(hook), "director text flows via the next_beat tool result");
+  // The one place a director line may be used as input is writing a line
+  // that has no fixed words (RETEACH) — and that goes to the render route.
+  assert.ok(
+    /goal: text \? undefined : buildDirectorLine\(beat\)/.test(runtime),
+    "director text is only used to WRITE a line when the beat has none",
+  );
   const screen = await readFile(path.join(process.cwd(), "src/components/LessonScreen.tsx"), "utf8");
-  assert.ok(/\{outputTranscript\}/.test(screen), "the caption renders outputTranscript");
-  assert.ok(!/\{inputTranscript\}/.test(screen), "the caption never renders input/client text");
+  assert.ok(/\{caption\}/.test(screen), "the caption renders the spoken clip's text");
+  assert.ok(!/\{inputTranscript\}/.test(screen), "the caption never renders the child's own words");
   assert.ok(!screen.includes("[DIRECTOR]"), "no [DIRECTOR] text in the caption component");
-  console.log("  PASS  no [DIRECTOR] text in the caption path (tool-result channel only, caption = model speech)");
+  console.log("  PASS  speech is cached-clip playback; answers are recorded; no director text in the caption path");
 }
 
 main().then(

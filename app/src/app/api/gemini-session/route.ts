@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { ZARA_VOICE as SHARED_ZARA_VOICE } from "@/lib/zaraVoice";
 import { GoogleGenAI, Modality } from "@google/genai";
 import { buildSystemPrompt } from "@/lib/prompt";
 import { GEMINI_LIVE_TOOLS } from "@/lib/geminiLiveTools";
@@ -14,18 +15,7 @@ export const GEMINI_LIVE_MODEL =
  * ephemeral token's constraints, so the client cannot vary it. Audition
  * candidates with `npm run audition:voice`, then set ZARA_VOICE.
  */
-const DEFAULT_VOICE = "Aoede";
-const ZARA_VOICE = (() => {
-  const configured = (process.env.ZARA_VOICE ?? "").trim();
-  if (configured) return configured;
-  // An empty/unset env var must NEVER reach speechConfig as an empty
-  // voiceName — that hands voice choice back to the server (the observed
-  // mid-conversation voice changes). Fall back loudly.
-  if (process.env.ZARA_VOICE !== undefined) {
-    console.warn(`[gemini-session] ZARA_VOICE is set but empty — using the code default "${DEFAULT_VOICE}".`);
-  }
-  return DEFAULT_VOICE;
-})();
+const ZARA_VOICE = SHARED_ZARA_VOICE;
 
 
 
@@ -81,7 +71,7 @@ export async function POST() {
         speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: ZARA_VOICE } } },
         // Natural turn-taking: the API's own voice-activity detection is
         // ON. The client gates what the mic SENDS instead (see
-        // useGeminiLive.ts): nothing flows while Zara is audible (+400ms),
+        // useLiveChat.ts): the chat is full duplex, so the child may interrupt,
         // so teaching beats cannot be interrupted by noise, and chat beats
         // allow barge-in.
       },

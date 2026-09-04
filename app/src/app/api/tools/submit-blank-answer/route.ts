@@ -9,9 +9,9 @@ const MAX_VALUE_LENGTH = 100;
  * tool call. This is a view-only patch, not new content — like
  * zoom-to-region/route.ts, it doesn't know what's currently on the board
  * (stateless, no session), so it returns a `viewPatch` for
- * useGeminiLive.ts to merge into the current lesson_content board (turning
+ * the board patcher to merge into the current lesson_content board (turning
  * that one blank from a dashed placeholder into a filled, confirmed cell).
- * `item_id` is included so useGeminiLive.ts can guard against patching the
+ * `item_id` is included so the patcher can guard against patching the
  * wrong item's board if a stray/late call arrives after the board has
  * already moved on to a different content bank item.
  */

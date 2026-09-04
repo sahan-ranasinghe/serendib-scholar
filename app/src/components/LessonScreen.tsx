@@ -20,7 +20,7 @@
  * session 1) — no title screen.
  */
 import { useEffect, useRef, useState } from "react";
-import { useGeminiLive } from "@/hooks/useGeminiLive";
+import { useLessonRuntime } from "@/hooks/useLessonRuntime";
 import TeachingBoard from "@/components/TeachingBoard";
 import ZaraCharacter, { type ZaraState } from "@/components/ZaraCharacter";
 
@@ -32,14 +32,13 @@ export default function LessonScreen() {
   const {
     status,
     error,
-    outputTranscript,
+    caption,
     boardContent,
     isAiTalking,
     currentSessionIndex,
     sessionCount,
     celebrateNonce,
     start,
-    notifyManualBoardInteraction,
     submitTypedAnswer,
     muted,
     toggleMute,
@@ -47,14 +46,19 @@ export default function LessonScreen() {
     togglePause,
     repeatLastBeat,
     endSessionNow,
-    micWindowOpen,
     answerPad,
-    stalled,
-    continueNow,
+    micLevel,
+    chatting,
+    requestChat,
     getDebugSnapshot,
     getOutputAmplitude,
     resumeAudioOutput,
-  } = useGeminiLive();
+  } = useLessonRuntime();
+
+  // The two states the child sees a cue for: she is recording their answer
+  // ("listening"), or their answer is being judged ("thinking").
+  const listening = status === "listening";
+  const thinking = status === "thinking";
 
   // Opens straight into the lesson: one auto-start on mount (resume or
   // session 1). The browser may require a gesture for mic/audio — if the
@@ -98,7 +102,7 @@ export default function LessonScreen() {
     ? "celebrating"
     : isAiTalking
       ? "talking"
-      : status === "listening"
+      : listening
         ? "listening"
         : "idle";
 
@@ -234,32 +238,46 @@ export default function LessonScreen() {
           </div>
           <span
             className={`mb-1 h-3 w-3 rounded-full ${
-              muted || paused ? "bg-stone-500" : micWindowOpen ? "listening-dot bg-emerald-400" : isAiTalking ? "bg-amber-400" : "bg-white/25"
+              muted || paused
+                ? "bg-stone-500"
+                : listening
+                  ? "listening-dot bg-emerald-400"
+                  : isAiTalking
+                    ? "bg-amber-400"
+                    : "bg-white/25"
             }`}
           />
           <span className="px-1 text-center text-[10px] font-medium leading-tight text-[#d8e3e8]/80">
-            {paused ? "විරාමයක්" : muted ? "නිහඬයි" : micWindowOpen ? "ඔයාගේ වාරයයි — කතා කරන්න!" : isAiTalking ? "Zara කතා කරනවා…" : ""}
+            {paused
+              ? "විරාමයක්"
+              : muted
+                ? "නිහඬයි"
+                : chatting
+                  ? "කතා කරමු!"
+                  : listening
+                    ? "ඔයාගේ වාරයයි — කතා කරන්න!"
+                    : thinking
+                      ? "හිතනවා…"
+                      : isAiTalking
+                        ? "Zara කතා කරනවා…"
+                        : ""}
           </span>
         </div>
 
         {/* whiteboard column */}
-        <main className={`whiteboard relative h-full overflow-hidden ${micWindowOpen ? "your-turn" : ""}`}>
+        <main className={`whiteboard relative h-full overflow-hidden ${listening ? "your-turn" : ""}`}>
           <div className="flex h-full w-full items-center justify-center overflow-y-auto px-[5%] py-6">
-            <TeachingBoard
-              content={boardContent}
-              onManualInteraction={notifyManualBoardInteraction}
-              onSubmitTypedAnswer={submitTypedAnswer}
-            />
+            <TeachingBoard content={boardContent} onSubmitTypedAnswer={submitTypedAnswer} />
           </div>
 
           {/* tap-to-answer: number pad or name choices, at the board's bottom */}
-          {answerPad && micWindowOpen && (
+          {answerPad && listening && (
             <div className="absolute inset-x-0 bottom-0 flex justify-center pb-2">
               {answerPad.kind === "number" ? (
                 <NumberPad onSubmit={submitTypedAnswer} />
               ) : (
                 <div className="flex flex-wrap justify-center gap-2 px-3">
-                  {answerPad.options.map((option) => (
+                  {(answerPad.options ?? []).map((option) => (
                     <button
                       key={option}
                       type="button"
@@ -275,10 +293,26 @@ export default function LessonScreen() {
           )}
 
           {/* caption: single line at the board's bottom edge */}
-          {captionsOn && outputTranscript && (
+          {captionsOn && caption && (
             <p className="absolute inset-x-4 bottom-1 truncate text-center text-sm font-medium text-[#3d4f5c]/80">
-              {outputTranscript}
+              {caption}
             </p>
+          )}
+
+          {/* recording: a ring that breathes with the child's own voice */}
+          {listening && (
+            <div className="pointer-events-none absolute bottom-3 right-3 flex items-center gap-2">
+              <span
+                className="block rounded-full border-4 border-emerald-400 transition-all duration-100"
+                style={{ width: 22 + micLevel * 90, height: 22 + micLevel * 90 }}
+              />
+            </div>
+          )}
+          {/* judging: a quiet cue so the wait never looks like a freeze */}
+          {thinking && (
+            <div className="pointer-events-none absolute bottom-3 right-3 rounded-full bg-[#26414e]/85 px-3 py-1 text-xs font-semibold text-amber-200">
+              හිතනවා…
+            </div>
           )}
           {error && (
             <button
@@ -289,14 +323,16 @@ export default function LessonScreen() {
               {error} — නැවත උත්සාහ කරන්න
             </button>
           )}
-          {/* watchdog stall: never silent with no indication */}
-          {stalled && (
+          {/* the child's own way in: free conversation, on request */}
+          {status !== "idle" && status !== "error" && (
             <button
               type="button"
-              onClick={continueNow}
-              className="absolute inset-x-0 bottom-16 mx-auto w-max rounded-full bg-amber-400 px-8 py-3 text-xl font-bold text-[#26414e] shadow-lg active:scale-95"
+              onClick={requestChat}
+              className={`absolute bottom-3 left-3 rounded-full px-4 py-2 text-sm font-bold shadow-lg active:scale-95 ${
+                chatting ? "bg-rose-400 text-white" : "bg-amber-400 text-[#26414e]"
+              }`}
             >
-              ▶ ඉදිරියට
+              {chatting ? "✋ කතාව ඉවරයි" : "✋ Zara එක්ක කතා කරන්න"}
             </button>
           )}
 
@@ -304,15 +340,19 @@ export default function LessonScreen() {
             <div className="absolute right-2 top-2 z-20 w-64 rounded-lg bg-black/80 p-2 font-mono text-[10px] leading-tight text-emerald-200">
               <div>beat: {debug.beatId}</div>
               <div>
-                type: {debug.beatType} / {debug.endBy}
+                type: {debug.beatType} | state: {debug.status}
               </div>
               <div>
-                playback: {debug.playing ? "PLAYING" : "idle"} | mic: {debug.micOpen ? "OPEN" : "closed"}
-                {debug.holding ? " (holding)" : ""}
-                {debug.stalled ? " STALLED" : ""}
+                playback: {debug.playing ? "PLAYING" : "idle"} | {debug.recording ? "RECORDING" : "mic idle"}
               </div>
-              <div>last output: {debug.secondsSinceOutput}s ago</div>
-              <div>voice: {debug.voice}</div>
+              <div>
+                voice: {debug.voice} | clips {debug.audioVersion}
+              </div>
+              <div>
+                audio: cached {debug.metrics.cachedSeconds}s | flash {debug.metrics.flashAudioSeconds}s | live{" "}
+                {debug.metrics.liveSeconds}s
+                {debug.metrics.clipsRendered > 0 ? ` | ${debug.metrics.clipsRendered} rendered` : ""}
+              </div>
               {debug.playback && (
                 <div>
                   ctx: {debug.playback.contextState} | t {debug.playback.currentTime.toFixed(1)} / end{" "}

@@ -83,7 +83,7 @@ export type BoardContent =
   // shows whatever material the bank hands back, not a numbered step.
   | {
       type: "lesson_content";
-      /** The content_bank row id this came from — submit_blank_answer includes it so a stray/late response can't patch the wrong item's board (see applyViewPatch in useGeminiLive.ts). */
+      /** The content_bank row id this came from — submit_blank_answer includes it so a stray/late response can't patch the wrong item's board (see applyViewPatch in boardPatch.ts). */
       itemId: string;
       components: LessonComponent[];
       /** Blanks the child has answered so far on this item, keyed by (rowIndex, field) — see submit_blank_answer / FilledAnswer. */

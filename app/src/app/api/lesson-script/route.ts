@@ -5,7 +5,7 @@ import { buildLessonScript } from "@/lib/buildLessonScript";
  * Hands the client the lesson script for a session.
  *
  * Not a Gemini tool — the voice model never calls this. The app fetches it
- * when a session starts and walks it itself (see useGeminiLive.ts), which is
+ * when a session starts and walks it itself (see useLessonRuntime.ts), which is
  * the whole point of the orchestrator: sequencing is the app's job now.
  */
 export async function POST(request: NextRequest) {

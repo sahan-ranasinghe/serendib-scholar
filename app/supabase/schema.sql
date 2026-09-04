@@ -320,3 +320,17 @@ create table if not exists debug_reports (
   recent_log jsonb not null,
   created_at timestamptz not null default now()
 );
+
+-- ---------------------------------------------------------------------------
+-- Lesson audio clips (STORAGE, not a table)
+--
+-- Since the audio split, every line the tutor speaks is pre-rendered in the
+-- pinned voice and stored in the public Storage bucket `lesson-audio`:
+--
+--   <audio version>/<hash of resolved text + voice>.wav   the clip
+--   <audio version>/<hash>.json                           duration + sentence spans
+--
+-- The bucket is created by the renderer itself (scripts/render-lesson-audio.ts
+-- → ensureAudioBucket), so there is nothing to run here. It is public because
+-- clips are lesson content, never child data. Bumping AUDIO_FORMAT_VERSION in
+-- src/lib/audioCache.ts changes the prefix and so invalidates every clip.

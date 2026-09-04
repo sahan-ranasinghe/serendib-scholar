@@ -20,7 +20,9 @@
     "reset:child": "node --env-file=.env.local ./node_modules/.bin/tsx scripts/reset-child.ts",
     "simulate:lesson": "node --env-file=.env.local ./node_modules/.bin/tsx scripts/simulate-lesson.ts",
     "clean:transcripts": "node --env-file=.env.local ./node_modules/.bin/tsx scripts/clean-transcripts.ts",
-    "audition:voice": "node --env-file=.env.local ./node_modules/.bin/tsx scripts/audition-voice.ts"
+    "audition:voice": "node --env-file=.env.local ./node_modules/.bin/tsx scripts/audition-voice.ts",
+    "render:audio": "node --env-file=.env.local ./node_modules/.bin/tsx scripts/render-lesson-audio.ts",
+    "test:time-stretch": "tsx --test src/lib/timeStretch.test.ts"
   },
   "dependencies": {
     "@google/genai": "^2.19.0",

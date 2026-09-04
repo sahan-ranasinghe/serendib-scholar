@@ -343,7 +343,10 @@ export function buildConfirmBeat(asked: Beat, heardNumber: string): Beat {
     ...asked,
     id: `${asked.id}:confirm`,
     type: "CONFIRM",
-    spokenText: undefined,
+    // Deterministic words: reading a number back needs no invention, and
+    // fixed text means the clip cache can hold it (rendered on demand the
+    // first time a given number is misheard, reused after that).
+    spokenText: AUTHORED_LINES.confirmHeard.replace("{value}", heardNumber),
     sayCandidates: undefined,
     goal:
       `You may have misheard the child's answer. Ask them, warmly and briefly, to confirm: did they say ` +

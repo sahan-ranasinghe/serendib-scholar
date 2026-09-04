@@ -57,8 +57,8 @@ the runtime dispatches on the response mode.
 
 | type | est. | response | role |
 |---|---|---|---|
-| `SESSION_START` | 8s | none | ONE authored greeting line, then straight into content (no chat interview) |
-| `LESSON_GOALS` | 60s | none | first sitting only — what this lesson is, from the video's own opening |
+| `SESSION_START` | 8s | none | ONE authored greeting line for a RETURNING sitting (the first sitting opens with her own recorded welcome instead) |
+| `LESSON_GOALS` | 60s | none | first sitting only — her COMPLETE recorded opening (segment 0), ~11 beats |
 | `RECAP` | 120s | none | later sittings — placeholder the runtime expands into review ASKs (weakest mastery first, from `child_progress`) |
 | `HOOK` | 30s | acknowledge | the teacher's everyday example before a concept's first EXPLAIN (only where her data has one) |
 | `EXPLAIN` | ~len/9s | none | 2-3 of her verbatim sentences (cleaned for one child) — `spokenText`, said exactly |
@@ -71,9 +71,28 @@ the runtime dispatches on the response mode.
 | `RETEACH` | 30s | none | runtime-inserted after repeated misses: re-explains ONLY the missed sub-skill, from an explanation angle not yet used this session, followed by a fresh MODE 1 demo of a different item, then the missed item retries. Never rewinds before the concept's first practice item |
 | `FEEDBACK` | 10s | none | runtime-inserted reaction to a judged answer |
 | `CHECKPOINT` | 60s | acknowledge | "still with me?" between items |
-| `BREAK_CHAT` | 60s | chat | mid-sitting breather: ONE light question, one warm response, done |
+| `BREAK_CHAT` | 60s | chat | mid-sitting OFFER ("පොඩි කතාවක් කරමුද?") — only a yes opens the live chat |
 | `TRANSITION` | 15s | none | one-sentence wrap of a concept |
-| `CLOSE_SESSION` | 45s | none | warm close: one specific thing done well + next-time preview |
+| `CLOSE_SESSION` | 45s | none | warm close (authored line) |
+
+## How a beat is spoken and heard
+
+Since the audio split, no model sits in the lesson loop:
+
+* **Speaking** — every beat carries the words it says (`spokenText`, or
+  `sayCandidates` for the two-way feedback lines). Those words are rendered
+  once in the pinned voice, slowed to 0.88× with 1.2s between sentences
+  (1.0s at a `…`), and stored as a clip keyed by the text itself
+  (`src/lib/audioCache.ts`). The runtime plays the clip and lands board
+  changes on sentence boundaries. `RETEACH` is the one type with no fixed
+  words: its line is written at runtime and rendered on demand, then cached
+  like any other.
+* **Hearing** — at an `ASK`/`SOFT_CHECK` window the app records the child
+  (1.5s of quiet ends it, 8s hard cap, or the ✓ on the answer pad) and
+  posts the clip to `/api/hear`, which returns the transcript and any
+  number in it. The planner judges that exactly as before.
+* **Live** — a full-duplex voice session exists only for conversation the
+  child asks for (the ✋ button, or accepting the `BREAK_CHAT` offer).
 
 ## Adding a type — worked example: `STORY`
 

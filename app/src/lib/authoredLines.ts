@@ -41,6 +41,24 @@ export const AUTHORED_LINES = {
   /** Session start is ONE line, then straight into content — no chat interview. */
   sessionStartFirst: "ආයුබෝවන් {address}! අද අපි පටන් ගමු.",
   sessionStartReturning: "හරි {address}, අපි ඊයේ තැනින් පටන් ගමු.",
+  /** The mid-session break: an OFFER of a chat, answered yes/no by the child. */
+  breakChatOffer: "පොඩි කතාවක් කරමුද?",
+  /** The end of a sitting. Fixed words, so it renders once into the clip cache. */
+  closeSession: "අද අපි හොඳට වැඩ කළා {address}. ඊළඟ පාරටත් මම බලාගෙන ඉන්නම්. ගිහින් එන්නම්!",
+  /** The RECAP intro, before the single review question. */
+  recapIntro: "අපි ඊයේ කරපු දේ ටිකක් බලමු {address}.",
+  /** The review question itself — the board shows the item being asked about. */
+  recapAsk: "මේකේ උත්තරේ මොකක්ද කියන්න බලන්න.",
+  /** CONFIRM: a doubtful hearing, read back to the child. {value} = what was heard. */
+  confirmHeard: "ඔයා කිව්වේ {value} නේද?",
+  /**
+   * The practice questions. The BOARD says which cell is being asked about
+   * (the active blank is highlighted), so the words stay the same every
+   * time — which is what lets every question be a cached clip instead of a
+   * sentence a model has to compose mid-lesson.
+   */
+  askBlank: "දැන් ඔයාගේ වාරයයි {address}. මේ හිස්තැනට එන්නේ මොකක්ද කියන්න බලන්න.",
+  askSolution: "දැන් ඔයා කරලා බලන්න {address}. උත්තරේ මොකක්ද?",
 
   // --- hook (default praise; the blueprint file can override per concept) --
   hookPraiseDefault: "හරි! දහසේ එකක්, සීයේ එකක්, දහයේ එකක්, එකේ එකක් — ඒක තමයි අද අපි ඉගෙන ගන්න යන්නේ.",

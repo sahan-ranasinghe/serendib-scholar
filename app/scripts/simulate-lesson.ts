@@ -244,6 +244,23 @@ function assertTrace(script: LessonScript, trace: TraceEntry[], tally: Assertion
     );
   }
   tally.check("no two consecutive beats with identical spoken text", true);
+
+  // 7. THE CACHED-AUDIO CONTRACT: the runtime speaks pre-rendered clips of
+  //    a beat's own words. A beat with no fixed words has to have a line
+  //    WRITTEN for it at runtime and rendered on the spot — acceptable for
+  //    RETEACH (it re-explains what this child just missed) and nothing
+  //    else, or a lesson turns into a stream of live renders.
+  const WRITTEN_AT_RUNTIME = new Set(["RETEACH"]);
+  for (const entry of trace) {
+    const beat = entry.beat;
+    const hasWords = Boolean(beat.spokenText?.trim()) || (beat.sayCandidates?.length ?? 0) > 0;
+    tally.check(
+      "every beat has fixed words to speak (only RETEACH is written at runtime)",
+      hasWords || WRITTEN_AT_RUNTIME.has(beat.type),
+      `${beat.id} (${beat.type}) has no spokenText — the runtime would have to write and render it live`,
+    );
+  }
+  tally.check("every beat has fixed words to speak (only RETEACH is written at runtime)", true);
 }
 
 // ---------------------------------------------------------------------------

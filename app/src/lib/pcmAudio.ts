@@ -140,6 +140,79 @@ export class PcmPlayer {
     }
   }
 
+  /**
+   * Plays ONE cached clip (a WAV fetched from the clip cache) and resolves
+   * when it has finished, calling back at each sentence boundary so the
+   * board can change between sentences rather than mid-word.
+   *
+   * This is the lesson's normal speech path now: scripted lines are
+   * pre-rendered, so the runtime plays a file instead of streaming a live
+   * voice session. `stop()` (pause, skip, session end) resolves it early.
+   */
+  async playClip(
+    data: ArrayBuffer,
+    options: { sentences?: Array<{ startMs: number; endMs: number }>; onSentence?: (index: number) => void } = {},
+  ): Promise<void> {
+    const audioBuffer = await this.audioContext.decodeAudioData(data.slice(0));
+    await this.resume();
+    const source = this.audioContext.createBufferSource();
+    source.buffer = audioBuffer;
+    source.connect(this.analyser);
+
+    const startAt = Math.max(this.audioContext.currentTime, this.nextStartTime);
+    source.start(startAt);
+    this.nextStartTime = startAt + audioBuffer.duration;
+    this.lastScheduledEnd = Math.max(this.lastScheduledEnd, this.nextStartTime);
+    this.activeSources.add(source);
+    this.setPlaying(true);
+    this.startDrainPoller();
+
+    // Sentence boundaries are scheduled off the same clock the audio runs
+    // on, so a board change lands in the pause, not over her voice.
+    const timers: Array<ReturnType<typeof setTimeout>> = [];
+    (options.sentences ?? []).forEach((sentence, index) => {
+      const delayMs = Math.max(0, (startAt - this.audioContext.currentTime) * 1000 + sentence.startMs);
+      timers.push(setTimeout(() => options.onSentence?.(index), delayMs));
+    });
+
+    await new Promise<void>((resolve) => {
+      let settled = false;
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        this.clipStoppers.delete(finish);
+        for (const timer of timers) clearTimeout(timer);
+        this.activeSources.delete(source);
+        if (this.activeSources.size === 0) this.setPlaying(false);
+        resolve();
+      };
+      this.clipStoppers.add(finish);
+      source.onended = finish;
+      // Clock fallback: on some mobile browsers `onended` never fires, and
+      // a beat that never reports finishing would hang the whole lesson.
+      // It follows the AUDIO clock, not the wall clock, so a pause (which
+      // suspends the context) cannot "finish" a clip that is frozen
+      // mid-sentence — it re-arms for whatever is genuinely left.
+      const armGuard = () => {
+        const remainingMs = Math.max(0, (this.lastScheduledEnd - this.audioContext.currentTime) * 1000);
+        timers.push(
+          setTimeout(() => {
+            if (settled) return;
+            if (this.audioContext.state === "suspended" || this.audioContext.currentTime < this.lastScheduledEnd - 0.05) {
+              armGuard();
+              return;
+            }
+            finish();
+          }, Math.max(300, remainingMs + 300)),
+        );
+      };
+      armGuard();
+    });
+  }
+
+  /** Resolvers for clips currently playing — clear()/stop paths end them cleanly. */
+  private clipStoppers = new Set<() => void>();
+
   enqueue(base64Pcm16: string): void {
     const buffer = base64ToArrayBuffer(base64Pcm16);
     const pcm16 = new Int16Array(buffer);
@@ -233,6 +306,8 @@ export class PcmPlayer {
    * harmlessly no-ops against the now-empty set.
    */
   clear(): void {
+    for (const stopper of [...this.clipStoppers]) stopper();
+    this.clipStoppers.clear();
     for (const source of this.activeSources) {
       try {
         source.stop();

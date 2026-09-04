@@ -4,7 +4,7 @@
  * The client-side plumbing between the orchestrator (pure decisions) and the
  * outside world (board routes, planner, session log).
  *
- * Split out of useGeminiLive.ts deliberately: the hook is already the
+ * Split out of the runtime hook deliberately: the hook is already the
  * hardest file in the app to hold in your head, and none of this needs
  * React. Everything here is a plain async function over fetch, which also
  * means the dry-run harness can exercise the same code paths.

@@ -367,6 +367,9 @@ function buildItemSegment(
         itemId: item.id,
         segmentIndex,
         goal: `Ask the child for ${blank.label}. Ask only this one thing.`,
+        // Fixed words + the highlighted blank on the board: the question is
+        // "what goes HERE", and the board says where "here" is.
+        spokenText: AUTHORED_LINES.askBlank,
         maxSentences: SENTENCE_BUDGET.ASK,
         boardDescription: description,
         board: { kind: "set_active_blank", itemId: item.id, rowIndex: blank.rowIndex, field: blank.field },
@@ -406,6 +409,7 @@ function buildItemSegment(
         itemId: item.id,
         segmentIndex,
         goal: "Ask the child for the answer to this one.",
+        spokenText: AUTHORED_LINES.askSolution,
         maxSentences: SENTENCE_BUDGET.ASK,
         boardDescription: description,
         board: { kind: "none" },
@@ -580,8 +584,14 @@ function isBoundary(beat: Beat | undefined): boolean {
   return beat.type === "SHOW_BOARD" || beat.type === "EXPLAIN" || beat.type === "HOOK" || beat.type === "TRANSITION";
 }
 
-/** How much of her welcome the first sitting opens with (~1 minute of speech). */
-const MAX_LESSON_GOALS_BEATS = 4;
+/**
+ * The first sitting opens with her COMPLETE recorded opening (segment 0,
+ * 00:00-03:00), not an excerpt: it is how the real teacher starts the
+ * lesson — the welcome, why grade 5 matters, what they'll do — and a
+ * four-beat abridgement made the opening feel clipped. The cap is a
+ * runaway guard, not an editorial choice.
+ */
+const MAX_LESSON_GOALS_BEATS = 40;
 
 function buildLessonGoalsBeats(openingRows: BankRow[], orderedTags: string[], descriptions: Map<string, string>, lessonTitle: string): Beat[] {
   const primary = [...openingRows].sort((a, b) => a.source.localeCompare(b.source))[0];
@@ -668,27 +678,31 @@ function assembleSessions(
     const firstBeat = beats.length;
     const conceptTags = [...new Set(slice.map((b) => b.conceptTag).filter((t) => t !== FRAMING_CONCEPT))];
 
-    // ONE greeting line, verbatim, then straight into content — chat only
-    // if the child starts it (tangent rules) or at the single BREAK_CHAT.
-    beats.push({
-      ...framingBeat(
-        sessionIndex,
-        "session-start",
-        "SESSION_START",
-        "Session greeting (verbatim line).",
-        "pausing",
-        { kind: "title_card", title: lessonTitle, emoji: "👋" },
-      ),
-      spokenText: sessionIndex === 0 ? AUTHORED_LINES.sessionStartFirst : AUTHORED_LINES.sessionStartReturning,
-    });
+    // Returning sittings open with ONE greeting line. The FIRST sitting
+    // does not: her own recorded opening (LESSON_GOALS below) already
+    // welcomes the child, and stacking a greeting in front of it would
+    // make her say hello twice.
+    if (sessionIndex > 0) {
+      beats.push({
+        ...framingBeat(
+          sessionIndex,
+          "session-start",
+          "SESSION_START",
+          "Session greeting (verbatim line).",
+          "pausing",
+          { kind: "title_card", title: lessonTitle, emoji: "👋" },
+        ),
+        spokenText: AUTHORED_LINES.sessionStartReturning,
+      });
+    }
     if (sessionIndex === 0 && lessonGoals.length > 0) {
       beats.push(...lessonGoals);
     } else if (sessionIndex > 0) {
       // A placeholder the runtime expands into real review questions from
       // child_progress (weakest concepts first) — the script cannot know
       // at build time what this child struggled with.
-      beats.push(
-        framingBeat(
+      beats.push({
+        ...framingBeat(
           sessionIndex,
           "recap",
           "RECAP",
@@ -696,7 +710,8 @@ function assembleSessions(
           "pausing",
           { kind: "title_card", title: lessonTitle, emoji: "🔄" },
         ),
-      );
+        spokenText: AUTHORED_LINES.recapIntro,
+      });
     }
 
     // Work, with the break dropped in after ~12 minutes of teaching.
@@ -709,16 +724,20 @@ function assembleSessions(
         isBoundary(beat) &&
         indexInSlice < slice.length - 1
       ) {
-        beats.push(
-          framingBeat(
+        // An OFFER, not a chat: she asks whether they'd like a little
+        // talk. Only if the child says yes does the runtime open a live
+        // conversation (see useLiveChat). No → straight back to work.
+        beats.push({
+          ...framingBeat(
             sessionIndex,
             "break-chat",
             "BREAK_CHAT",
-            "e.g. what they like doing when schoolwork is done",
+            "Offer a short chat.",
             "asking",
             { kind: "title_card", title: lessonTitle, emoji: "⛱️" },
           ),
-        );
+          spokenText: AUTHORED_LINES.breakChatOffer,
+        });
         breakPlaced = true;
       }
       beats.push({ ...beat, sessionIndex });
@@ -730,13 +749,14 @@ function assembleSessions(
     const preview = nextConcept
       ? (descriptions.get(nextConcept) ?? nextConcept)
       : "how far they've come through the whole lesson";
-    beats.push(
-      framingBeat(sessionIndex, "close", "CLOSE_SESSION", `Next time: ${preview}.`, "pausing", {
+    beats.push({
+      ...framingBeat(sessionIndex, "close", "CLOSE_SESSION", `Next time: ${preview}.`, "pausing", {
         kind: "title_card",
         title: lessonTitle,
         emoji: "🌟",
       }),
-    );
+      spokenText: AUTHORED_LINES.closeSession,
+    });
 
     const lastBeat = beats.length - 1;
     sessions.push({

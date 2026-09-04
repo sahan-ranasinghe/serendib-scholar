@@ -39,7 +39,7 @@ ws.on("message", (d) => {
     const text = (m.params.args ?? [])
       .map((a) => (a.value !== undefined ? String(a.value) : a.description ?? ""))
       .join(" ");
-    if (/\[pcm\]|\[beat\]|\[useGeminiLive\]|error|Error|STALL|forced_open/.test(text)) {
+    if (/\[pcm\]|\[beat\]|\[useLessonRuntime\]|error|Error|failed/.test(text)) {
       console.log(`${stamp()} ${m.params.type.toUpperCase().padEnd(5)} ${text.slice(0, 220)}`);
     }
   }
@@ -71,11 +71,14 @@ setTimeout(async () => {
 // Periodic AudioContext ground truth, straight from the page.
 const probe = setInterval(async () => {
   const r = await send("Runtime.evaluate", {
-    expression: `(() => { const s = document.querySelector('.lesson-screen'); return 'alive=' + !!s; })()`,
+    expression: `(() => {
+      const caption = document.querySelector('.whiteboard p');
+      return (caption ? caption.textContent.slice(0, 48) : 'no caption');
+    })()`,
     returnByValue: true,
   });
-  console.log(`${stamp()} page ${r?.result?.value ?? "?"}`);
-}, 30000);
+  console.log(`${stamp()} on board: ${r?.result?.value ?? "?"}`);
+}, 60000);
 
 setTimeout(async () => {
   clearInterval(probe);

@@ -7,6 +7,7 @@
  * actually guard the live path.
  */
 import { blanksForItem, solutionForItem, describeItem, type ItemBlank } from "@/lib/lessonBlanks";
+import { AUTHORED_LINES } from "@/lib/authoredLines";
 import type { Beat } from "@/lib/lessonOrchestrator";
 
 export interface RecapItem {
@@ -45,6 +46,10 @@ export function buildRecapAskBeat(askable: RecapAskable): Beat {
       ? `Quick review from last time: ask the child for ${blank.label}. Ask only this one thing.`
       : "Quick review from last time: ask the child for the answer to this one.",
     maxSentences: 2,
+    // Fixed words: the board shows WHICH item is being asked about, so one
+    // authored question covers every review item — and renders once into
+    // the clip cache instead of needing a model at review time.
+    spokenText: AUTHORED_LINES.recapAsk,
     boardDescription: describeItem(item.component_type, item.component_props),
     board: { kind: "stage_item", itemId: item.id },
     // The answer this exact item is looking for — a recap ASK is judged
