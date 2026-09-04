@@ -39,7 +39,6 @@ export default function LessonScreen() {
     sessionCount,
     celebrateNonce,
     start,
-    stop,
     notifyManualBoardInteraction,
     submitTypedAnswer,
     muted,
@@ -50,18 +49,35 @@ export default function LessonScreen() {
     endSessionNow,
     micWindowOpen,
     answerPad,
+    stalled,
+    continueNow,
+    getDebugSnapshot,
     getOutputAmplitude,
   } = useGeminiLive();
 
   // Opens straight into the lesson: one auto-start on mount (resume or
   // session 1). The browser may require a gesture for mic/audio — if the
   // auto-start fails, the board shows a single tap-to-begin affordance.
+  // StrictMode-safe: dev double-mount used to run this effect's cleanup
+  // (stop) right after the first start(), while the ref guard blocked the
+  // remount's restart — the app then sat idle at "පටන් ගමු" forever
+  // (observed in an unattended run). So: no cleanup here (the session ends
+  // via ⏹ / CLOSE_SESSION / tab close), and a delayed self-check restarts
+  // once if the session isn't up shortly after mount.
   const startedRef = useRef(false);
+  const statusRef = useRef(status);
   useEffect(() => {
-    if (startedRef.current) return;
-    startedRef.current = true;
-    void start();
-    return stop;
+    statusRef.current = status;
+  }, [status]);
+  useEffect(() => {
+    if (!startedRef.current) {
+      startedRef.current = true;
+      void start();
+    }
+    const retry = setTimeout(() => {
+      if (statusRef.current === "idle") void start();
+    }, 2500);
+    return () => clearTimeout(retry);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -98,6 +114,40 @@ export default function LessonScreen() {
 
   const [captionsOn, setCaptionsOn] = useState(false);
 
+  // Debug overlay: five taps on the lesson title within ~2.5s toggles it;
+  // while open it polls the hook's snapshot once a second.
+  const [debugOpen, setDebugOpen] = useState(false);
+  const titleTapsRef = useRef<number[]>([]);
+  const onTitleTap = () => {
+    const now = Date.now();
+    titleTapsRef.current = [...titleTapsRef.current.filter((t) => now - t < 2500), now];
+    if (titleTapsRef.current.length >= 5) {
+      titleTapsRef.current = [];
+      setDebugOpen((v) => !v);
+    }
+  };
+  const [debug, setDebug] = useState<ReturnType<typeof getDebugSnapshot> | null>(null);
+  useEffect(() => {
+    if (!debugOpen) return;
+    const timer = setInterval(() => setDebug(getDebugSnapshot()), 1000);
+    return () => clearInterval(timer);
+  }, [debugOpen, getDebugSnapshot]);
+  const [reportState, setReportState] = useState<"idle" | "sending" | "sent" | "failed">("idle");
+  const sendDiagnostics = async () => {
+    setReportState("sending");
+    try {
+      const res = await fetch("/api/debug-report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ panel: getDebugSnapshot() }),
+      });
+      const json = await res.json();
+      setReportState(json?.ok ? "sent" : "failed");
+    } catch {
+      setReportState("failed");
+    }
+  };
+
   const lessonName = "සංඛ්‍යා - 1";
   const stops = Math.max(sessionCount, 1);
 
@@ -105,7 +155,9 @@ export default function LessonScreen() {
     <div className="lesson-screen fixed inset-0 flex flex-col bg-[#2f4f5f] text-stone-800">
       {/* ---- progress strip -------------------------------------------- */}
       <header className="flex h-7 shrink-0 items-center justify-between bg-[#26414e] px-3 text-[#d8e3e8]">
-        <span className="truncate text-xs font-semibold tracking-wide">{lessonName}</span>
+        <span className="truncate text-xs font-semibold tracking-wide" onClick={onTitleTap}>
+          {lessonName}
+        </span>
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -230,6 +282,44 @@ export default function LessonScreen() {
               {error} — නැවත උත්සාහ කරන්න
             </button>
           )}
+          {/* watchdog stall: never silent with no indication */}
+          {stalled && (
+            <button
+              type="button"
+              onClick={continueNow}
+              className="absolute inset-x-0 bottom-16 mx-auto w-max rounded-full bg-amber-400 px-8 py-3 text-xl font-bold text-[#26414e] shadow-lg active:scale-95"
+            >
+              ▶ ඉදිරියට
+            </button>
+          )}
+
+          {debugOpen && debug && (
+            <div className="absolute right-2 top-2 z-20 w-64 rounded-lg bg-black/80 p-2 font-mono text-[10px] leading-tight text-emerald-200">
+              <div>beat: {debug.beatId}</div>
+              <div>
+                type: {debug.beatType} / {debug.endBy}
+              </div>
+              <div>
+                playback: {debug.playing ? "PLAYING" : "idle"} | mic: {debug.micOpen ? "OPEN" : "closed"}
+                {debug.holding ? " (holding)" : ""}
+                {debug.stalled ? " STALLED" : ""}
+              </div>
+              <div>last output: {debug.secondsSinceOutput}s ago</div>
+              <div className="mt-1 border-t border-emerald-200/30 pt-1">
+                {debug.events.map((event, i) => (
+                  <div key={i} className="truncate">{event}</div>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={sendDiagnostics}
+                className="mt-1 w-full rounded bg-emerald-500 py-1 font-bold text-black"
+              >
+                {reportState === "sending" ? "…" : reportState === "sent" ? "sent ✓" : reportState === "failed" ? "failed — retry" : "send diagnostics"}
+              </button>
+            </div>
+          )}
+
           {status === "idle" && !error && (
             <button
               type="button"

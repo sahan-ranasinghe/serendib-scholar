@@ -446,7 +446,11 @@ export function buildGiveUpBeat(asked: Beat): Beat {
     id: `${asked.id}:giveup`,
     type: "REVEAL_PART",
     goal: "Demonstrate the answer (verbatim), then the lesson moves on.",
-    spokenText: AUTHORED_LINES.giveUpReveal.replace("{value}", value),
+    // No recorded answer (a transcript question) → move on warmly without
+    // pretending to reveal one.
+    spokenText: value
+      ? AUTHORED_LINES.giveUpReveal.replace("{value}", value)
+      : "කමක් නෑ {address}, අපි ඉදිරියට යමු.",
     sayCandidates: undefined,
     board:
       asked.board.kind === "set_active_blank"

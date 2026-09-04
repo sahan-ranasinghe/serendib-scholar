@@ -374,6 +374,36 @@ export function useGeminiLive({
   const pausedRef = useRef(false);
   /** ↺: the next next_beat call re-serves the active beat's words. */
   const repeatRequestedRef = useRef(false);
+  /**
+   * THE CONTINUATION ENGINE. The model cannot be relied on to chain
+   * next_beat() calls itself (observed live: it speaks one say_exactly
+   * beat, ends its turn, and the lesson deadlocks with the mic gated
+   * shut). So the APP owns continuation: when playback drains (+tail) on
+   * a beat with no open child window, the app sends the empty
+   * turn-complete clientContent — the model's next turn begins and its
+   * first action is next_beat().
+   */
+  const continueSentForBeatRef = useRef<string | null>(null);
+  const continueTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Watchdog: continue signal sent at t, no model output by t+6s → resend once; t+12s → visible stall. */
+  const watchdogTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const nudgeSentAtRef = useRef(0);
+  const nudgeAttemptsRef = useRef(0);
+  const lastModelOutputAtRef = useRef(0);
+  const [stalled, setStalled] = useState(false);
+  const stalledRef = useRef(false);
+  /** Debug overlay event ring (last ~20, panel shows 5). */
+  const debugEventsRef = useRef<string[]>([]);
+  /**
+   * next_beat SERIALIZATION. The model can emit two next_beat calls in one
+   * batch, and the app's continue signal can race the model's own chained
+   * call — unserialized, both concluded the same beat (observed live:
+   * lesson-goals-2 logged twice). One at a time, and a call arriving
+   * within 600ms of the last response with no model output in between
+   * replays the same result instead of advancing again.
+   */
+  const nextBeatMutexRef = useRef<Promise<unknown>>(Promise.resolve());
+  const lastNextBeatRef = useRef<{ at: number; result: Record<string, unknown> } | null>(null);
   /** A doubtful number hearing awaiting the child's yes/no (see buildConfirmBeat). */
   const confirmPendingRef = useRef<{ askBeatId: string; heard: string } | null>(null);
   /** When the current chat beat's free-conversation window closes. */
@@ -532,6 +562,30 @@ export function useGeminiLive({
     clientRef.current?.sendTurnNudge();
   }, []);
 
+  /** The "▶ ඉදිරියට" tap when the watchdog declared a stall — one more manual continue. */
+  const continueNow = useCallback(() => {
+    stalledRef.current = false;
+    setStalled(false);
+    nudgeAttemptsRef.current = 0;
+    clientRef.current?.sendTurnNudge();
+  }, []);
+
+  /** Debug overlay data (see LessonScreen's five-tap panel). Polled, not reactive. */
+  const getDebugSnapshot = useCallback(
+    () => ({
+      beatId: activeBeatRef.current?.id ?? "—",
+      beatType: activeBeatRef.current?.type ?? "—",
+      endBy: activeBeatRef.current?.endBy ?? "—",
+      playing: aiTalkingRef.current,
+      micOpen: micWindowOpenRef.current,
+      holding: holdingForChildRef.current,
+      stalled: stalledRef.current,
+      secondsSinceOutput: Math.round((Date.now() - lastModelOutputAtRef.current) / 1000),
+      events: debugEventsRef.current.slice(-5),
+    }),
+    [],
+  );
+
   /** ⏹ jumps to this sitting's CLOSE_SESSION so the goodbye and progress save run properly. */
   const endSessionNow = useCallback(() => {
     const script = scriptRef.current;
@@ -658,7 +712,18 @@ export function useGeminiLive({
       // The session's CHAT_OPENER personalisation — fetched up front so
       // serving the opener beat never waits on the network.
       try {
-        const openerRes = await fetch("/api/opener", { method: "POST" });
+        // Device-local context so openers fit the moment (no "how was
+        // school?" on a Poya morning) — see /api/opener.
+        const now = new Date();
+        const openerRes = await fetch("/api/opener", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            local_hour: now.getHours(),
+            weekday: now.getDay(),
+            date: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`,
+          }),
+        });
         const opener = await openerRes.json();
         if (opener?.ok) openerRef.current = { goal: String(opener.goal ?? ""), skip: opener.skip === true };
       } catch {
@@ -684,6 +749,21 @@ export function useGeminiLive({
                 nudgeModelTurn();
               }, pending);
             }
+            // APP-DRIVEN CONTINUATION: for a beat with no open child
+            // window, once the audio has actually drained (+tail), the app
+            // starts the model's next turn itself — never relying on the
+            // model to chain next_beat() calls (the live deadlock).
+            if (continueTimerRef.current) clearTimeout(continueTimerRef.current);
+            continueTimerRef.current = setTimeout(() => {
+              continueTimerRef.current = null;
+              const beat = activeBeatRef.current;
+              if (!beat || aiTalkingRef.current || pausedRef.current) return;
+              if (holdingForChildRef.current || micWindowOpenRef.current) return; // interactive window open
+              if (continueSentForBeatRef.current === beat.id) return; // once per beat
+              continueSentForBeatRef.current = beat.id;
+              nudgeAttemptsRef.current = 0;
+              sendContinueSignal(`drain:${beat.type}`);
+            }, MIC_TAIL_MS);
           }
           setIsAiTalking(talking);
         },
@@ -799,11 +879,66 @@ export function useGeminiLive({
        * way to wake a session that runs manual turn-taking. An empty
        * activity pulse is a "your move" with nothing said in it.
        */
+      const logEvent = (event: string) => {
+        debugEventsRef.current.push(`${new Date().toISOString().slice(11, 19)} ${event}`);
+        if (debugEventsRef.current.length > 20) debugEventsRef.current.shift();
+      };
+
+      const clearWatchdog = () => {
+        if (watchdogTimerRef.current) clearTimeout(watchdogTimerRef.current);
+        watchdogTimerRef.current = null;
+      };
+
+      /** Writes a stall event into session_log so live stalls are countable. */
+      const logStall = (beatId: string) => {
+        beatSequenceRef.current += 1;
+        void fetch("/api/session-log", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            session_id: sessionIdRef.current,
+            sequence: beatSequenceRef.current,
+            beat_id: beatId,
+            beat_type: "STALL",
+            director_text: `stall after ${nudgeAttemptsRef.current} continue signals`,
+            started_at: new Date().toISOString(),
+          }),
+        }).catch(() => undefined);
+      };
+
+      /**
+       * Sends the continue signal (empty turn-complete clientContent) and
+       * arms the watchdog: no model output within 6s → resend once; still
+       * nothing at 12s → visible "▶ ඉදිරියට" stall state + a logged STALL
+       * event. A session must never sit silent with no indication.
+       */
+      const sendContinueSignal = (reason: string) => {
+        if (pausedRef.current) return;
+        nudgeSentAtRef.current = Date.now();
+        logEvent(`continue (${reason})`);
+        clientRef.current?.sendTurnNudge();
+        clearWatchdog();
+        watchdogTimerRef.current = setTimeout(() => {
+          if (lastModelOutputAtRef.current >= nudgeSentAtRef.current) return; // model responded
+          if (nudgeAttemptsRef.current < 1) {
+            nudgeAttemptsRef.current += 1;
+            logEvent("watchdog: resending continue");
+            sendContinueSignal(`${reason}-retry`);
+            return;
+          }
+          logEvent("watchdog: STALL");
+          stalledRef.current = true;
+          setStalled(true);
+          logStall(activeBeatRef.current?.id ?? "unknown");
+        }, 6000);
+      };
+
       const nudgeModelTurn = () => {
         // An empty turn-complete clientContent — the one turn-forcing
         // mechanism valid while automatic activity detection is on, and it
         // carries no text that could leak anywhere.
-        clientRef.current?.sendTurnNudge();
+        nudgeAttemptsRef.current = 0;
+        sendContinueSignal("window/ladder");
       };
 
       /**
@@ -847,6 +982,14 @@ export function useGeminiLive({
         childTranscriptForBeatRef.current = "";
         holdingForChildRef.current = false;
         silenceExpiredRef.current = false;
+        continueSentForBeatRef.current = null;
+        nudgeAttemptsRef.current = 0;
+        clearWatchdog();
+        if (continueTimerRef.current) {
+          clearTimeout(continueTimerRef.current);
+          continueTimerRef.current = null;
+        }
+        logEvent(`serve ${beat.type} ${beat.id.slice(0, 40)}`);
         openMicWindow(false);
         if (options.scripted) {
           askLadderStageRef.current = 0;
@@ -951,6 +1094,22 @@ export function useGeminiLive({
        * never as conversation text, so it cannot leak into captions or be
        * read aloud as a message.
        */
+      const serializedNextBeat = (): Promise<Record<string, unknown>> => {
+        const run = async (): Promise<Record<string, unknown>> => {
+          const last = lastNextBeatRef.current;
+          if (last && Date.now() - last.at < 600 && lastModelOutputAtRef.current <= last.at) {
+            // A duplicate call in the same breath — replay, don't advance.
+            return last.result;
+          }
+          const result = await handleNextBeat();
+          lastNextBeatRef.current = { at: Date.now(), result };
+          return result;
+        };
+        const next = nextBeatMutexRef.current.then(run, run);
+        nextBeatMutexRef.current = next;
+        return next as Promise<Record<string, unknown>>;
+      };
+
       const handleNextBeat = async (): Promise<Record<string, unknown>> => {
         const beat = activeBeatRef.current;
 
@@ -1000,8 +1159,11 @@ export function useGeminiLive({
         if (wasHolding && !roundSaid && silenceExpiredRef.current) {
           silenceExpiredRef.current = false;
           openMicWindow(false);
-          if (beat.type === "SOFT_CHECK") {
-            // The window closed quietly — her own words simply continue.
+          if (beat.type === "SOFT_CHECK" || handling === "chat") {
+            // A quiet soft window or a chat nobody joined — no ladder, no
+            // "answer" to demonstrate: the lesson simply moves on. (The
+            // live trace once showed a silent CHAT_OPENER walking the ASK
+            // ladder to a giveup with an empty answer.)
             return concludeAndServeNext(beat, "");
           }
           if (askLadderStageRef.current === 0) {
@@ -1230,6 +1392,11 @@ export function useGeminiLive({
           client.sendTurnNudge();
         },
         onAudioChunk: (chunk) => {
+          lastModelOutputAtRef.current = Date.now();
+          if (stalledRef.current) {
+            stalledRef.current = false;
+            setStalled(false);
+          }
           player.enqueue(chunk);
           // Base64 -> bytes -> milliseconds of speech, for the session log's
           // record of how long the model actually talked for on this beat.
@@ -1262,6 +1429,11 @@ export function useGeminiLive({
           // drive here; the model's own next_beat calls carry the lesson.
         },
         onToolCall: async (calls) => {
+          lastModelOutputAtRef.current = Date.now();
+          if (stalledRef.current) {
+            stalledRef.current = false;
+            setStalled(false);
+          }
           // next_page/previous_page are declared with no parameters (the
           // model just says "next page," it doesn't track technical IDs —
           // see geminiLiveTools.ts) — inject the file/page it should act on
@@ -1289,9 +1461,10 @@ export function useGeminiLive({
             augmentedCalls.map(async (call) => ({
               call,
               // next_beat is the director channel: answered locally by the
-              // lesson controller, never by an HTTP route. Everything else
+              // lesson controller, never by an HTTP route (serialized +
+              // deduplicated — see nextBeatMutexRef). Everything else
               // still goes to its tool endpoint.
-              response: call.name === "next_beat" ? await handleNextBeat() : await executeToolCall(call),
+              response: call.name === "next_beat" ? await serializedNextBeat() : await executeToolCall(call),
             })),
           );
 
@@ -1386,8 +1559,18 @@ export function useGeminiLive({
           setError("Connection lost. Please try again.");
           setStatus("error");
         },
-        onClose: () => {
-          if (status !== "error") setStatus("idle");
+        onClose: (event) => {
+          // A server-side close with a reason (quota caps, policy, expiry)
+          // must never look like a silent "tap to start" — surface it.
+          // (Observed live: 1011 "monthly spending cap exceeded" left the
+          // app sitting idle with no indication.)
+          if (event?.code && event.code !== 1000 && event.reason) {
+            console.error(`[useGeminiLive] Session closed by server: ${event.code} ${event.reason}`);
+            setError(`සම්බන්ධතාවය නැවතුණා (${event.code}). ${event.reason.slice(0, 120)}`);
+            setStatus("error");
+            return;
+          }
+          setStatus("idle");
         },
       });
 
@@ -1399,7 +1582,6 @@ export function useGeminiLive({
       setStatus("error");
       stop();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stop, subject, grade, lesson]);
 
   useEffect(() => stop, [stop]);
@@ -1425,6 +1607,9 @@ export function useGeminiLive({
     endSessionNow,
     micWindowOpen,
     answerPad,
+    stalled,
+    continueNow,
+    getDebugSnapshot,
     getOutputAmplitude,
     currentSessionIndex,
     sessionCount,

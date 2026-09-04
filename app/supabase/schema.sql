@@ -310,3 +310,13 @@ create table if not exists child_profile (
 alter table children
   add column if not exists gender text not null default 'unspecified'
   check (gender in ('boy', 'girl', 'unspecified'));
+
+-- Phone-test diagnostics: the debug overlay's "send diagnostics" button
+-- posts its panel snapshot plus the last 30 session_log rows here.
+create table if not exists debug_reports (
+  id uuid primary key default gen_random_uuid(),
+  child_id uuid not null references children (id),
+  panel jsonb not null,
+  recent_log jsonb not null,
+  created_at timestamptz not null default now()
+);

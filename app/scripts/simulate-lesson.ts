@@ -35,6 +35,7 @@ import { resolveBeatAddress, type ChildGender } from "../src/lib/addressToken";
 import {
   advance,
   beatSpec,
+  estimateBeatSeconds,
   buildConfirmBeat,
   buildDirectorLine,
   buildFeedbackBeat,
@@ -508,6 +509,32 @@ async function main() {
     const tally = new AssertionTally();
     const trace = await simulate(script, scriptedChild(ANSWERS), tally, { recapBeats, verbose: true });
     assertTrace(script, trace, tally);
+
+    // APP-DRIVEN CONTINUATION: a completely silent child for 60 simulated
+    // seconds after the first EXPLAIN — the lesson must keep advancing on
+    // its own (the app continues non-interactive beats; silence walks the
+    // ASK ladder) with no stall: no beat may ever repeat back-to-back.
+    {
+      const silentTally = new AssertionTally();
+      const silentTrace = await simulate(script, () => "", silentTally, {});
+      const firstExplain = silentTrace.findIndex((t) => t.beat.type === "EXPLAIN");
+      let seconds = 0;
+      let advanced = 0;
+      let stallEvents = 0;
+      for (let i = firstExplain; i >= 0 && i < silentTrace.length && seconds < 60; i += 1) {
+        seconds += estimateBeatSeconds(silentTrace[i].beat);
+        advanced += 1;
+        if (i > firstExplain && silentTrace[i].beat.id === silentTrace[i - 1].beat.id) stallEvents += 1;
+      }
+      silentTally.check(
+        "60s of silence after an EXPLAIN: the lesson keeps advancing",
+        firstExplain !== -1 && advanced >= 4,
+        `advanced ${advanced} beats in ${seconds}s`,
+      );
+      silentTally.check("no stall event during the silent window", stallEvents === 0, `${stallEvents} repeats`);
+      console.log(`\nNO-INPUT WINDOW: ${advanced} beats over ~${seconds}s of simulated silence`);
+      silentTally.print();
+    }
     console.log(`\n${"=".repeat(78)}\nASSERTIONS (${trace.length} beats traced)\n${"=".repeat(78)}`);
     const ok = tally.print();
     process.exit(ok ? 0 : 1);
