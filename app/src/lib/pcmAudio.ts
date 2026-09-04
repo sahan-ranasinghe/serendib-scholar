@@ -78,6 +78,9 @@ export class PcmPlayer {
   private nextStartTime = 0;
   private activeSources = new Set<AudioBufferSourceNode>();
   private onPlaybackStateChange?: (isPlaying: boolean) => void;
+  /** Taps the output for per-frame amplitude (drives the character's mouth) — see getAmplitude. */
+  private analyser: AnalyserNode;
+  private analyserBuffer: Float32Array<ArrayBuffer>;
 
   /**
    * `onPlaybackStateChange`, if given, fires true the instant audio starts
@@ -89,6 +92,25 @@ export class PcmPlayer {
   constructor(options?: { onPlaybackStateChange?: (isPlaying: boolean) => void }) {
     this.audioContext = new AudioContext({ sampleRate: OUTPUT_SAMPLE_RATE });
     this.onPlaybackStateChange = options?.onPlaybackStateChange;
+    this.analyser = this.audioContext.createAnalyser();
+    this.analyser.fftSize = 512;
+    this.analyser.smoothingTimeConstant = 0.6;
+    this.analyser.connect(this.audioContext.destination);
+    this.analyserBuffer = new Float32Array(new ArrayBuffer(this.analyser.fftSize * 4));
+  }
+
+  /**
+   * RMS of the audio currently at the speaker, 0..~1 — read once per
+   * animation frame to drive the talking mouth (see ZaraCharacter.tsx).
+   * Cheap: one time-domain read, no allocation.
+   */
+  getAmplitude(): number {
+    this.analyser.getFloatTimeDomainData(this.analyserBuffer);
+    let sum = 0;
+    for (let i = 0; i < this.analyserBuffer.length; i += 1) {
+      sum += this.analyserBuffer[i] * this.analyserBuffer[i];
+    }
+    return Math.sqrt(sum / this.analyserBuffer.length);
   }
 
   async resume(): Promise<void> {
@@ -112,7 +134,8 @@ export class PcmPlayer {
 
     const source = this.audioContext.createBufferSource();
     source.buffer = audioBuffer;
-    source.connect(this.audioContext.destination);
+    // Through the analyser so getAmplitude sees exactly what's audible.
+    source.connect(this.analyser);
 
     const startAt = Math.max(this.nextStartTime, this.audioContext.currentTime);
     source.start(startAt);

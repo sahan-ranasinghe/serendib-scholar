@@ -1,10 +1,26 @@
 # Beats — the unit of a lesson
 
 A lesson script is a flat, ordered list of **beats**. One beat = one board
-action by the app + one turn of the voice model's speech, directed by a
-`[DIRECTOR]` line with an explicit sentence budget. The orchestrator
-(`app/src/lib/lessonOrchestrator.ts`) walks the list; the model never
-chooses what comes next.
+action by the app + one turn of the voice model's speech. Most beats carry
+`spokenText` — the teacher's own cleaned verbatim Sinhala (or a short fixed
+line) — and `next_beat()` returns `{ say }`: the model says exactly that,
+nothing more. FEEDBACK returns `{ say_one_of: [a, b] }`. Only ASK, CONFIRM,
+RECAP, RETEACH, CLOSE_SESSION and the chat beats remain free-form
+`{ instruction }`. The orchestrator (`app/src/lib/lessonOrchestrator.ts`)
+walks the list; the model never chooses what comes next — or, for spoken
+beats, what to say.
+
+Spoken text addresses the child through the `{address}` token (authored
+lines and cleaned transcripts never hard-code පුතේ/දුවේ): resolved per
+child at serve time from `children.gender` — boy → පුතේ, girl → දුවේ,
+unspecified → the word is dropped and the sentence tidied. See
+`app/src/lib/addressToken.ts` and `app/src/lib/authoredLines.ts` (the one
+file holding every developer-authored line, printed by each dry run).
+
+Turn-taking is natural (the API's voice-activity detection): the mic is
+always captured but nothing is SENT while Zara's audio plays or for 400ms
+after, so teaching beats can't be barged into; the two chat beats allow
+barge-in; a parent mute stops sending entirely.
 
 ## The registry
 
@@ -45,7 +61,8 @@ the runtime dispatches on the response mode.
 | `LESSON_GOALS` | 60s | none | first sitting only — what this lesson is, from the video's own opening |
 | `RECAP` | 120s | none | later sittings — placeholder the runtime expands into review ASKs (weakest mastery first, from `child_progress`) |
 | `HOOK` | 30s | acknowledge | the teacher's everyday example before a concept's first EXPLAIN (only where her data has one) |
-| `EXPLAIN` | 25s | none | one teachingSequence entry, in her order |
+| `EXPLAIN` | ~len/9s | none | 2-3 of her verbatim sentences (cleaned for one child) — `spokenText`, said exactly |
+| `CHECK_IN` | 20s | acknowledge | her own question to the child, verbatim — she asks, waits, any answer advances |
 | `SHOW_BOARD` | 15s | none | stage a content_bank item |
 | `REVEAL_PART` | 15s | none | tutor works one part (cell fill or verbal step) |
 | `ASK` | 40s | judge | child answers; planner decides advance/reteach/another_example/simplify |

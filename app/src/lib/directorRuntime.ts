@@ -68,6 +68,32 @@ export async function stageBeatBoard(action: BeatBoardAction): Promise<StagedBoa
     case "title_card":
       // Purely presentational and fully determined by the beat — no route.
       return { board: { type: "title_card", title: action.title, ...(action.emoji ? { emoji: action.emoji } : {}) } };
+    case "abacus_set":
+      return {
+        board: {
+          type: "abacus",
+          digits: action.digits,
+          // animate → beads land on their own; startEmpty → add_bead beats
+          // fill it; otherwise complete at once.
+          shown: action.animate || action.startEmpty ? action.digits.map(() => 0) : [...action.digits],
+          selfAnimate: action.animate,
+          childAnswer: null,
+        },
+      };
+    case "abacus_add_bead":
+      return { viewPatch: { abacusAddBead: { rod: action.rod, count: action.count } } };
+    case "show_components":
+      return {
+        board: {
+          type: "lesson_content",
+          itemId: action.itemId,
+          components: action.components,
+          filledAnswers: [],
+          activeBlank: null,
+        },
+      };
+    case "text_card":
+      return { board: { type: "text_card", text: action.text } };
     case "none":
       return {};
   }

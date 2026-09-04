@@ -1,5 +1,5 @@
-import HostScreen from "@/components/HostScreen";
+import LessonScreen from "@/components/LessonScreen";
 
 export default function Home() {
-  return <HostScreen />;
+  return <LessonScreen />;
 }

@@ -10,6 +10,7 @@ import {
 } from "@/lib/board";
 // TEMPORARY PROOF-OF-CONCEPT import — see src/data/lessons/lesson1-numbers.ts's module doc.
 import { LessonComponentView } from "@/components/lesson/LessonComponents";
+import AnimatedAbacus from "@/components/AnimatedAbacus";
 
 // How long the fade-out half of a content swap takes before the new content
 // swaps in and fades back in — keeps board updates feeling like a smooth
@@ -65,11 +66,19 @@ export default function TeachingBoard({ content, onManualInteraction, onSubmitTy
   }, [content]);
 
   const hasContent = hasVisibleBoardContent(displayed);
+  // Content that is "drawn on the board" (chalk cards, the abacus) sits
+  // directly on the whiteboard surface — no white web-card panel behind it.
+  const drawnOnBoard =
+    displayed?.type === "title_card" || displayed?.type === "text_card" || displayed?.type === "abacus";
 
   return (
     <div
-      className={`w-full overflow-hidden rounded-3xl bg-white/85 shadow-lg backdrop-blur transition-[max-height,opacity,border-width] duration-300 ease-in-out ${
-        hasContent ? "max-h-[36rem] border border-orange-100 opacity-100" : "max-h-0 border-0 opacity-0"
+      className={`w-full overflow-hidden transition-[max-height,opacity,border-width] duration-300 ease-in-out ${
+        drawnOnBoard ? "" : "rounded-3xl bg-white/85 shadow-lg backdrop-blur"
+      } ${
+        hasContent
+          ? `max-h-[36rem] opacity-100 ${drawnOnBoard ? "" : "border border-orange-100"}`
+          : "max-h-0 border-0 opacity-0"
       }`}
     >
       <div className={`p-5 transition-opacity duration-200 ${fadedIn ? "opacity-100" : "opacity-0"}`}>
@@ -114,11 +123,33 @@ function BoardContentView({
     case "vocabulary_card":
       return <VocabularyCardView word={content.word} meaning={content.meaning} language={content.language} />;
     case "title_card":
+      // Chalk-drawn on the board: a wobbly hand-drawn border, one big
+      // Sinhala heading, one emoji — not a web card.
       return (
-        <div className="flex min-h-[16rem] flex-col items-center justify-center gap-4 rounded-2xl bg-gradient-to-br from-amber-100 to-orange-100 p-8 text-center">
-          {content.emoji && <span className="text-6xl">{content.emoji}</span>}
-          <span className="text-3xl font-bold text-orange-900">{content.title}</span>
+        <div className="relative flex min-h-[14rem] w-full max-w-xl flex-col items-center justify-center gap-4 p-10 text-center">
+          <ChalkBorder />
+          {content.emoji && <span className="text-6xl drop-shadow-sm">{content.emoji}</span>}
+          <span className="chalk-text text-4xl font-bold text-[#3d4f5c]">{content.title}</span>
         </div>
+      );
+    case "text_card":
+      // The teacher's own board text, verbatim, chalk-style.
+      return (
+        <div className="relative w-full max-w-2xl p-8">
+          <ChalkBorder />
+          <pre className="chalk-text overflow-x-auto whitespace-pre-wrap text-left text-lg leading-relaxed text-[#3d4f5c]">
+            {content.text}
+          </pre>
+        </div>
+      );
+    case "abacus":
+      return (
+        <AnimatedAbacus
+          digits={content.digits}
+          shown={content.shown}
+          selfAnimate={content.selfAnimate}
+          childAnswer={content.childAnswer}
+        />
       );
     // One content bank item (see find-teaching-content/route.ts).
     case "lesson_content":
@@ -136,6 +167,34 @@ function BoardContentView({
         </div>
       );
   }
+}
+
+/**
+ * A hand-drawn-looking border, as if ruled onto the board with a marker:
+ * an SVG rect whose corners and edges wobble slightly. Used by the chalk
+ * cards so they read as drawn on the board, not laid over it.
+ */
+function ChalkBorder() {
+  return (
+    <svg className="pointer-events-none absolute inset-0 h-full w-full" preserveAspectRatio="none" viewBox="0 0 400 240">
+      <path
+        d="M 14 12 Q 200 6 388 14 Q 394 120 386 228 Q 200 236 12 226 Q 6 118 14 12 Z"
+        fill="none"
+        stroke="#5b6d7a"
+        strokeWidth="3"
+        strokeLinecap="round"
+        strokeDasharray="1 0"
+        opacity="0.75"
+        style={{ filter: "url(#chalk-rough)" }}
+      />
+      <defs>
+        <filter id="chalk-rough">
+          <feTurbulence type="fractalNoise" baseFrequency="0.03" numOctaves="2" result="noise" />
+          <feDisplacementMap in="SourceGraphic" in2="noise" scale="3" />
+        </filter>
+      </defs>
+    </svg>
+  );
 }
 
 /** Simple, approximate overlay marking a highlighted region — see BoardHighlight. Never pixel-precise by design. */

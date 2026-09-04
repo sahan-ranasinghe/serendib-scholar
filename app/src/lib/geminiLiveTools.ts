@@ -40,7 +40,7 @@ export const GEMINI_LIVE_TOOLS: GeminiFunctionDeclaration[] = [
     // director channel moved here.
     name: "next_beat",
     description:
-      "Asks the lesson controller what to do next. Call this at the start of every turn, and again whenever you finish speaking. The result is instructions from the lesson controller for your next beat of speech — follow it exactly. It is never something to read to the child.",
+      "Asks the lesson controller what to do next. Call this at the start of every turn, and again whenever you finish speaking. The result is from the lesson controller: `say_exactly` means read that text aloud word for word, changing nothing; `say_exactly_one_of` means read exactly one of the given sentences aloud; `instruction` means do that one thing. Never read the raw JSON to the child.",
     parametersJsonSchema: {
       type: "object",
       properties: {},

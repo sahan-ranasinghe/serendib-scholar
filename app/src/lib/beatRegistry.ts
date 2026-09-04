@@ -66,6 +66,8 @@ export const BEAT_REGISTRY = {
   SHOW_BOARD: spec(15, "none"),
   REVEAL_PART: spec(15, "none"),
   ASK: spec(40, "judge"), // includes thinking/wait time
+  /** Her own question to the child, verbatim: she asks, waits, and ANY answer advances. */
+  CHECK_IN: spec(20, "acknowledge"),
   WAIT: spec(10, "acknowledge"),
   FEEDBACK: spec(10, "none"),
   CHECKPOINT: spec(60, "acknowledge"),
@@ -118,7 +120,21 @@ export function beatSpec(type: BeatType): BeatTypeSpec {
   return BEAT_REGISTRY[type];
 }
 
+/** ~9 chars of verbatim Sinhala per second of speech (calibrated on her 3-min segments). */
+const SPOKEN_CHARS_PER_SECOND = 9;
+
+/**
+ * Planning estimate for one beat: exact-words beats are estimated from
+ * their actual text length; free-form beats from the per-type figure.
+ */
+export function estimateBeatSeconds(beat: { type: BeatType; spokenText?: string }): number {
+  if (beat.spokenText) {
+    return Math.min(30, Math.max(8, Math.round(beat.spokenText.length / SPOKEN_CHARS_PER_SECOND)));
+  }
+  return BEAT_REGISTRY[beat.type].estimateSeconds;
+}
+
 /** Planning estimate for a run of beats — how sessions get sized and breaks get placed. */
-export function estimateSeconds(beats: { type: BeatType }[]): number {
-  return beats.reduce((sum, beat) => sum + BEAT_REGISTRY[beat.type].estimateSeconds, 0);
+export function estimateSeconds(beats: { type: BeatType; spokenText?: string }[]): number {
+  return beats.reduce((sum, beat) => sum + estimateBeatSeconds(beat), 0);
 }

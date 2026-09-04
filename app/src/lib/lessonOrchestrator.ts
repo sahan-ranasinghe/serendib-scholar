@@ -20,10 +20,12 @@
  * spending a token.
  */
 
-import { BEAT_REGISTRY, beatSpec, type BeatType, type DirectorContext } from "@/lib/beatRegistry";
+import { BEAT_REGISTRY, beatSpec, estimateBeatSeconds, type BeatType, type DirectorContext } from "@/lib/beatRegistry";
+import type { LessonComponent } from "@/data/lessons/lesson1-numbers";
+import { AUTHORED_LINES } from "@/lib/authoredLines";
 
 export type { BeatType, DirectorContext };
-export { BEAT_REGISTRY, beatSpec };
+export { BEAT_REGISTRY, beatSpec, estimateBeatSeconds };
 
 /** Which of the three teaching modes a beat belongs to. Null for beats outside them. */
 export type TeachingMode = 1 | 2 | 3;
@@ -39,6 +41,19 @@ export type BeatBoardAction =
   // A big friendly card (see board.ts) — used so no non-chat beat ever
   // runs against an empty board.
   | { kind: "title_card"; title: string; emoji?: string }
+  /**
+   * The animated abacus (see AnimatedAbacus.tsx). animate=true: beads land
+   * rod by rod on their own while the tutor names each place (EXPLAIN
+   * staging). startEmpty=true: rods start bare and abacus_add_bead beats
+   * fill them one reveal at a time (MODE 1/2 demonstrations). Neither:
+   * shown complete at once (MODE 3 / recap reading tasks).
+   */
+  | { kind: "abacus_set"; digits: number[]; animate: boolean; startEmpty?: boolean }
+  | { kind: "abacus_add_bead"; rod: number; count: number }
+  /** Renders the given lesson components directly — EXPLAIN beats staging what the teacher had written. */
+  | { kind: "show_components"; itemId: string; components: LessonComponent[] }
+  /** A chalk-style verbatim card for board text nothing structured could be made of. */
+  | { kind: "text_card"; text: string }
   | { kind: "none" };
 
 export interface Beat {
@@ -67,6 +82,17 @@ export interface Beat {
   board: BeatBoardAction;
   /** ≤300 chars of the real teacher's Sinhala, as a register model — never read out. */
   referenceWording?: string;
+  /**
+   * EXACT words to speak — her cleaned verbatim Sinhala (or a short fixed
+   * line). When present, next_beat() returns { say: spokenText } and the
+   * model says exactly this, nothing more. The cure for improvised rushing
+   * and instruction-vocabulary leaking into speech.
+   */
+  spokenText?: string;
+  /** FEEDBACK only: two candidate sentences; the model says exactly one. */
+  sayCandidates?: string[];
+  /** HOOK only: the exact praise line for a matching answer (see buildHookPraiseBeat). */
+  praiseText?: string;
   /** The answer an ASK beat is looking for, for the planner's deterministic check. */
   expectedAnswer?: string;
   /** Whether the model ends by putting a question to the child or by pausing. */
@@ -118,6 +144,10 @@ export interface ConceptBlueprint {
   explainBeats: number;
   /** The everyday example she opened with, where the extraction recorded one. Null = no HOOK beat. */
   hookExample: string | null;
+  /** If the hook poses a question with one right answer, that answer — a match earns hookPraise; anything else advances warmly, uncorrected. */
+  hookExpectedAnswer?: string | null;
+  /** The exact praise sentence for a correct hook answer (default: AUTHORED_LINES.hookPraiseDefault). */
+  hookPraise?: string | null;
   items: { mode1: number; mode2: number; mode3: number };
 }
 
@@ -249,9 +279,9 @@ export function buildWaitBeat(asked: Beat): Beat {
     ...asked,
     id: `${asked.id}:wait`,
     type: "WAIT",
-    goal:
-      "The child has gone quiet. Check in warmly and briefly — ask if they'd like a hint or want to think a " +
-      "little longer. Do NOT repeat the question and do NOT give the answer.",
+    goal: "Gentle check-in (verbatim).",
+    spokenText: AUTHORED_LINES.wait,
+    sayCandidates: undefined,
     maxSentences: 1,
     board: { kind: "none" },
     expectedAnswer: undefined,
@@ -265,18 +295,21 @@ export function buildFeedbackBeat(
   expected?: string,
   options: { reteachFollows?: boolean } = {},
 ): Beat {
+  // Exact candidate sentences, not an abstract goal — the model chooses
+  // one and says it verbatim (see buildDirectorResult).
+  const candidates = correct
+    ? [...AUTHORED_LINES.feedbackCorrect]
+    : options.reteachFollows
+      ? [...AUTHORED_LINES.feedbackWrongBeforeReteach]
+      : [...AUTHORED_LINES.feedbackWrong];
   return {
     ...asked,
     id: `${asked.id}:feedback`,
     type: "FEEDBACK",
-    goal: correct
-      ? "The child got it right. Praise the effort specifically and briefly, then pause."
-      : options.reteachFollows
-        ? "The child's answer wasn't right, and you're about to look at the idea together again. Say ONE warm, " +
-          "no-blame sentence — do NOT give the answer, do NOT ask anything."
-        : `The child's answer wasn't right${expected ? ` (the answer is ${expected})` : ""}. Do NOT give the ` +
-          "answer yet. Say something warm, then ask one guiding question that points at the next step.",
-    maxSentences: correct ? 1 : options.reteachFollows ? 1 : 2,
+    goal: correct ? "Praise (verbatim candidate)." : "Gentle miss response (verbatim candidate).",
+    sayCandidates: candidates,
+    spokenText: undefined,
+    maxSentences: 1,
     board: { kind: "none" },
     expectedAnswer: undefined,
     endBy: correct || options.reteachFollows ? "pausing" : "asking",
@@ -293,6 +326,8 @@ export function buildConfirmBeat(asked: Beat, heardNumber: string): Beat {
     ...asked,
     id: `${asked.id}:confirm`,
     type: "CONFIRM",
+    spokenText: undefined,
+    sayCandidates: undefined,
     goal:
       `You may have misheard the child's answer. Ask them, warmly and briefly, to confirm: did they say ` +
       `${heardNumber}? (For example: "ඔයා කිව්වේ ${heardNumber} නේද?") Do not say whether it is right or wrong.`,
@@ -363,6 +398,27 @@ export function buildReteachBeats(
   }
 
   return { beats: [reteach, ...demo], angleUsed: angle };
+}
+
+/**
+ * The one-sentence praise after a correct hook answer — linking the
+ * everyday example to the concept ahead. A wrong answer or silence gets NO
+ * beat at all: the lesson advances warmly into the explain run,
+ * uncorrected (a hook is a doorway, not a test).
+ */
+export function buildHookPraiseBeat(hook: Beat): Beat {
+  return {
+    ...hook,
+    id: `${hook.id}:praise`,
+    type: "FEEDBACK",
+    goal: "Hook praise (verbatim).",
+    spokenText: hook.praiseText ?? AUTHORED_LINES.hookPraiseDefault,
+    sayCandidates: undefined,
+    expectedAnswer: undefined,
+    praiseText: undefined,
+    board: { kind: "none" },
+    endBy: "pausing",
+  };
 }
 
 /** What resolving a CONFIRM reply means for the held question. */
@@ -554,6 +610,29 @@ export function advance(
  * far more reliably than prose that varies per beat. Types that need a
  * different shape (chat, session close) override in the registry.
  */
+/**
+ * What next_beat() actually returns for a beat:
+ *   { say }         exact-words beats — "say exactly this, nothing more"
+ *   { say_one_of }  FEEDBACK — two candidates, say exactly one
+ *   { instruction } the remaining free-form beats (ASK, CONFIRM, RECAP,
+ *                   chat, RETEACH, CLOSE_SESSION)
+ */
+export function buildDirectorResult(beat: Beat, context: DirectorContext = {}): Record<string, unknown> {
+  if (beat.sayCandidates && beat.sayCandidates.length > 0) {
+    return { say_exactly_one_of: beat.sayCandidates };
+  }
+  if (beat.spokenText) {
+    // ONLY the text. A second "then do X" field pre-empts the speech —
+    // confirmed live: the model chained next_beat calls without speaking.
+    // Sequencing (stop after saying it; wait when it's a question; call
+    // next_beat when done) lives in the system prompt, in one place. The
+    // field is named to leave no room for "inspired by": these are the
+    // teacher's exact words.
+    return { say_exactly: beat.spokenText };
+  }
+  return { instruction: buildDirectorLine(beat, context) };
+}
+
 export function buildDirectorLine(beat: Beat, context: DirectorContext = {}): string {
   const custom = beatSpec(beat.type).buildDirectorText;
   if (custom) return custom(beat, context);

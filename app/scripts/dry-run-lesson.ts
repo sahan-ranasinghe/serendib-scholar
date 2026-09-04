@@ -25,6 +25,7 @@ import { LESSON_1_NUMBERS_STEPS, LESSON_1_NUMBERS_TITLE } from "../src/data/less
 import {
   advance,
   beatSpec,
+  estimateBeatSeconds,
   buildDirectorLine,
   buildFeedbackBeat,
   buildWaitBeat,
@@ -39,6 +40,7 @@ import {
   type PlannerDecision,
 } from "../src/lib/lessonOrchestrator";
 import { answersMatch } from "../src/lib/answerCheck";
+import { listAuthoredLines } from "../src/lib/authoredLines";
 
 type ChildBehaviour = "correct" | "wrong" | "silent" | "offtopic";
 
@@ -85,6 +87,14 @@ function describeBoardAction(beat: Beat): string {
       return `highlight row ${beat.board.rowIndex} ${beat.board.field}`;
     case "title_card":
       return `title card "${`${beat.board.emoji ?? ""} ${beat.board.title}`.trim()}"`;
+    case "abacus_set":
+      return `abacus set [${beat.board.digits.join(",")}]${beat.board.animate ? " (self-animating)" : beat.board.startEmpty ? " (empty, beads to come)" : " (complete)"}`;
+    case "abacus_add_bead":
+      return `abacus: ${beat.board.count} bead(s) onto rod ${beat.board.rod}`;
+    case "show_components":
+      return `show ${beat.board.components.map((c) => c.type).join("+")}`;
+    case "text_card":
+      return `chalk text card (${beat.board.text.length} chars)`;
     case "none":
       return "unchanged";
   }
@@ -183,10 +193,11 @@ function printSessionBeats(script: LessonScript, sessionIndex: number): void {
     const beat = script.beats[i];
     const concept = beat.conceptTag === FRAMING_CONCEPT ? "—" : beat.conceptTag;
     console.log(
-      `  ${String(i).padStart(3)}. ${beat.type.padEnd(13)} ${String(beatSpec(beat.type).estimateSeconds).padStart(3)}s ` +
+      `  ${String(i).padStart(3)}. ${beat.type.padEnd(13)} ${String(estimateBeatSeconds(beat)).padStart(3)}s ` +
         `| ${concept.padEnd(22)} | board: ${describeBoardAction(beat)}`,
     );
-    console.log(`       goal: ${beat.goal.slice(0, 130)}`);
+    if (beat.spokenText) console.log(`       say: ${beat.spokenText.slice(0, 150)}`);
+    else console.log(`       goal: ${beat.goal.slice(0, 130)}`);
     if (beat.expectedAnswer) console.log(`       expects: ${beat.expectedAnswer}`);
     if (beat.referenceWording)
       console.log(`       reference (${beat.referenceWording.length} chars): ${beat.referenceWording.slice(0, 90)}…`);
@@ -279,6 +290,13 @@ async function main() {
   const blueprintOverride = await loadOverride("maths", 5, 1);
   const script = buildScriptFromRows(rows, descriptions, "maths", 5, 1, { blueprintOverride, lessonTitle: LESSON_1_NUMBERS_TITLE });
 
+  console.log(`\n${"=".repeat(78)}`);
+  console.log("AUTHORED SINHALA LINES (developer-written, for native-speaker review — src/lib/authoredLines.ts)");
+  console.log("=".repeat(78));
+  for (const [label, line] of listAuthoredLines()) {
+    console.log(`  ${label.padEnd(30)} ${line}`);
+  }
+
   printSessionPlan(script);
   printBlueprint(script);
   printSessionBeats(script, SESSION);
@@ -305,7 +323,7 @@ async function runAssertions(script: LessonScript, rows: (BankRow & { verified: 
       sessionIndex = beat.sessionIndex;
       boardHasContent = false;
     }
-    if (beat.board.kind === "stage_item" || beat.board.kind === "title_card") boardHasContent = true;
+    if (["stage_item", "title_card", "abacus_set", "show_components", "text_card"].includes(beat.board.kind)) boardHasContent = true;
     const isChat = beat.type === "CHAT_OPENER" || beat.type === "BREAK_CHAT";
     if (!isChat) {
       assert.ok(
@@ -316,29 +334,119 @@ async function runAssertions(script: LessonScript, rows: (BankRow & { verified: 
   }
   console.log("  PASS  every non-chat beat has board content (staged or inherited within its session)");
 
-  // 2. Concept 1's first SHOW_BOARD stages a real abacus with real digits.
+  // 2. Concept 1's first SHOW_BOARD stages the animated abacus with real digits.
   const firstConcept = script.concepts[0];
   const firstShow = script.beats
     .slice(firstConcept.firstBeat, firstConcept.lastBeat + 1)
     .find((beat) => beat.type === "SHOW_BOARD");
-  assert.ok(firstShow && firstShow.board.kind === "stage_item", "concept 1 has a SHOW_BOARD staging an item");
-  const stagedRow = rows.find((row) => firstShow.board.kind === "stage_item" && row.id === firstShow.board.itemId);
-  assert.ok(stagedRow, "the staged item exists in content_bank");
-  assert.equal(
-    stagedRow!.component_type,
-    "AbacusDiagram",
-    `concept 1's first SHOW_BOARD must stage an AbacusDiagram (got ${stagedRow!.component_type})`,
-  );
-  const digits = (stagedRow!.component_props as { digits?: unknown }).digits;
   assert.ok(
-    Array.isArray(digits) && digits.length >= 3 && digits.every((d) => typeof d === "number"),
+    firstShow && firstShow.board.kind === "abacus_set",
+    `concept 1's first SHOW_BOARD must stage the animated abacus (got ${JSON.stringify(firstShow?.board)})`,
+  );
+  const digits = firstShow.board.kind === "abacus_set" ? firstShow.board.digits : [];
+  assert.ok(
+    digits.length >= 3 && digits.every((d) => typeof d === "number"),
     "the staged abacus has a real digits array",
   );
+  console.log(`  PASS  concept 1's first SHOW_BOARD stages the animated abacus with digits [${digits.join(", ")}]`);
+
+  // 3. Every explanation row's boardContent is staged somewhere in that
+  //    row's run of beats — what she wrote is what the child sees, aligned
+  //    to when she says it (blocks spread across the segment's beats; the
+  //    board persists between stagings, so unstaged beats inherit).
+  const explanationRows = rows.filter((row) => row.component_type === "explanation");
+  for (const row of explanationRows) {
+    const boardContent = String((row.explanation as { boardContent?: unknown } | null)?.boardContent ?? "");
+    if (boardContent.trim() === "") continue;
+    const rowBeats = script.beats.filter(
+      (beat) => beat.itemId === row.id && (beat.type === "EXPLAIN" || beat.type === "CHECK_IN") && beat.spokenText,
+    );
+    if (rowBeats.length === 0) continue;
+    const staged = rowBeats.filter((beat) => beat.board.kind !== "none").length;
+    assert.ok(
+      staged >= 1,
+      `explanation row ${row.source} has boardContent but none of its ${rowBeats.length} beats stage anything`,
+    );
+  }
+  console.log("  PASS  every explanation row's boardContent is staged within its run of beats");
+
+  // 4. Concept 1's 5421 introduction stages the self-animating abacus,
+  //    aligned to a beat of her own speech (the boardContent "5 4 2 1"
+  //    block from the segment where she demonstrates it).
+  const intro5421 = script.beats.find(
+    (beat) =>
+      (beat.type === "EXPLAIN" || beat.type === "CHECK_IN") &&
+      beat.conceptTag === script.concepts[0].conceptTag &&
+      beat.spokenText !== undefined &&
+      beat.board.kind === "abacus_set" &&
+      beat.board.animate === true &&
+      beat.board.digits.join(",") === "5,4,2,1",
+  );
+  assert.ok(intro5421, "a spoken beat in concept 1 stages abacus_set([5,4,2,1], animate)");
   console.log(
-    `  PASS  concept 1's first SHOW_BOARD stages AbacusDiagram with digits [${(digits as number[]).join(", ")}]`,
+    `  PASS  the 5421 introduction stages the animated abacus with [5,4,2,1] while she says: "${intro5421!.spokenText!.slice(0, 60)}…"`,
   );
 
-  // 3. The director channel never touches the caption path: director text
+  // 5. Abacus item demos: beads land per reveal and finish the number.
+  const abacusShows = script.beats.filter(
+    (beat) => beat.type === "SHOW_BOARD" && beat.board.kind === "abacus_set" && beat.board.startEmpty,
+  );
+  assert.ok(abacusShows.length > 0, "at least one abacus demonstration starts with bare rods");
+  for (const show of abacusShows) {
+    if (show.board.kind !== "abacus_set") continue;
+    const shown = show.board.digits.map(() => 0);
+    for (let i = script.beats.indexOf(show) + 1; i < script.beats.length; i += 1) {
+      const beat = script.beats[i];
+      if (beat.itemId !== show.itemId || beat.segmentIndex !== show.segmentIndex) break;
+      if (beat.board.kind === "abacus_add_bead") shown[beat.board.rod] += beat.board.count;
+    }
+    // A MODE 2 demo deliberately reveals only part before asking — every
+    // landed bead must at least match its rod's digit exactly or stay short.
+    show.board.digits.forEach((digit, rod) => {
+      assert.ok(shown[rod] === digit || shown[rod] === 0 || shown[rod] <= digit,
+        `${show.id}: rod ${rod} got ${shown[rod]} beads for digit ${digit}`);
+    });
+  }
+  console.log(`  PASS  abacus demos land beads per reveal (${abacusShows.length} demo(s) simulated)`);
+
+  // 6. Concept 1's explain run is her real transcript: ~40-50 spoken
+  //    beats and ~10-12 minutes of speech, matching approximateMinutesSpent.
+  const c1 = script.concepts[0];
+  const c1Spoken = script.beats
+    .slice(c1.firstBeat, c1.lastBeat + 1)
+    .filter((b) => (b.type === "EXPLAIN" || b.type === "CHECK_IN") && b.spokenText);
+  const c1Seconds = c1Spoken.reduce((sum, b) => sum + estimateBeatSeconds(b), 0);
+  assert.ok(
+    c1Spoken.length >= 38 && c1Spoken.length <= 55,
+    `concept 1 should have ~40-50 transcript beats, got ${c1Spoken.length}`,
+  );
+  assert.ok(
+    c1Seconds >= 9.5 * 60 && c1Seconds <= 12.5 * 60,
+    `concept 1's spoken time should be ~10-12 min, got ${(c1Seconds / 60).toFixed(1)} min`,
+  );
+  console.log(
+    `  PASS  concept 1 explain run: ${c1Spoken.length} transcript beats, ~${(c1Seconds / 60).toFixed(1)} min of her speech`,
+  );
+
+  // 7. Nothing the tutor is given to SAY contains instruction vocabulary.
+  // "ඊළඟ එකට යන්න" is the imperative the live leak produced (an instruction
+  // read at the child); her own "ඊළඟ එකට යමු" ("let's move on") is real
+  // teacher speech and allowed — verbatim transcripts contain it.
+  const FORBIDDEN_IN_SPEECH = ["ඊළඟ එකට යන්න", "beat", "goal", "next", "instruction"];
+  for (const b of script.beats) {
+    for (const text of [b.spokenText, ...(b.sayCandidates ?? [])]) {
+      if (!text) continue;
+      for (const bad of FORBIDDEN_IN_SPEECH) {
+        assert.ok(
+          !text.toLowerCase().includes(bad.toLowerCase()),
+          `speech for ${b.id} contains instruction vocabulary "${bad}": ${text.slice(0, 80)}`,
+        );
+      }
+    }
+  }
+  console.log("  PASS  no instruction vocabulary in anything the tutor is given to say");
+
+  // 8. The director channel never touches the caption path: director text
   //    goes out only as a next_beat tool result — the runtime must contain
   //    no clientContent send of it, and the caption renders only model
   //    output transcription.
@@ -352,10 +460,10 @@ async function assertDirectorChannel(): Promise<void> {
     "useGeminiLive must never send director text as clientContent",
   );
   assert.ok(/handleNextBeat/.test(hook) && /call\.name === "next_beat"/.test(hook), "director text flows via the next_beat tool result");
-  const host = await readFile(path.join(process.cwd(), "src/components/HostScreen.tsx"), "utf8");
-  assert.ok(/\{outputTranscript\}/.test(host), "the caption renders outputTranscript");
-  assert.ok(!/\{inputTranscript\}/.test(host), "the caption never renders input/client text");
-  assert.ok(!host.includes("[DIRECTOR]"), "no [DIRECTOR] text in the caption component");
+  const screen = await readFile(path.join(process.cwd(), "src/components/LessonScreen.tsx"), "utf8");
+  assert.ok(/\{outputTranscript\}/.test(screen), "the caption renders outputTranscript");
+  assert.ok(!/\{inputTranscript\}/.test(screen), "the caption never renders input/client text");
+  assert.ok(!screen.includes("[DIRECTOR]"), "no [DIRECTOR] text in the caption component");
   console.log("  PASS  no [DIRECTOR] text in the caption path (tool-result channel only, caption = model speech)");
 }
 

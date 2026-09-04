@@ -25,17 +25,20 @@
  */
 import { GoogleGenAI } from "@google/genai";
 import fs from "node:fs";
+import path from "node:path";
 import { supabaseAdmin } from "../src/lib/supabaseAdmin";
 import { buildScriptFromRows, type BankRow } from "../src/lib/lessonScriptBuilder";
 import { LESSON_1_NUMBERS_STEPS, LESSON_1_NUMBERS_TITLE } from "../src/data/lessons/lesson1-numbers";
 import { buildRecapAskBeat, recapAskable } from "../src/lib/recapBeat";
 import { answersMatch } from "../src/lib/answerCheck";
+import { resolveBeatAddress, type ChildGender } from "../src/lib/addressToken";
 import {
   advance,
   beatSpec,
   buildConfirmBeat,
   buildDirectorLine,
   buildFeedbackBeat,
+  buildHookPraiseBeat,
   buildReteachBeats,
   createInitialState,
   currentBeat,
@@ -57,6 +60,7 @@ const SESSIONS = Number(arg("sessions", "20"));
 const MISCONCEPTION = arg("misconception", "reads the abacus right-to-left, so 3007 becomes 7003");
 const MAX_BEATS = Number(arg("beats", "60"));
 const RECAP_CONCEPT = arg("recap", "");
+const GENDER = arg("gender", "boy") as ChildGender;
 const ANSWERS: string[] = JSON.parse(arg("answers", '["4004", "3007?", "yes", "wrong", "silence", "3007"]'));
 
 // ---------------------------------------------------------------------------
@@ -149,6 +153,46 @@ function assertTrace(script: LessonScript, trace: TraceEntry[], tally: Assertion
   }
   tally.check("after a miss, no opening EXPLAIN/HOOK beat is replayed", true);
 
+  // 4a. The address token never survives into speech — and a girl child
+  //     is never called පුතේ.
+  for (const entry of trace) {
+    for (const text of [entry.beat.spokenText, ...(entry.beat.sayCandidates ?? [])]) {
+      if (!text) continue;
+      tally.check(
+        "no literal {address} token in spoken output",
+        !text.includes("{address}"),
+        `${entry.beat.id}: ${text.slice(0, 80)}`,
+      );
+      if (GENDER === "girl") {
+        tally.check(
+          "a girl child is never addressed පුතේ",
+          !text.includes("පුතේ"),
+          `${entry.beat.id}: ${text.slice(0, 80)}`,
+        );
+      }
+    }
+  }
+  tally.check("no literal {address} token in spoken output", true);
+  if (GENDER === "girl") tally.check("a girl child is never addressed පුතේ", true);
+
+  // 4b. Exact speech never contains instruction vocabulary (the live leak
+  //     was "ඔයාගේ උත්තරය: ඊළඟ එකට යන්න").
+  // "ඊළඟ එකට යන්න" is the imperative the live leak produced (an instruction
+  // read at the child); her own "ඊළඟ එකට යමු" ("let's move on") is real
+  // teacher speech and allowed — verbatim transcripts contain it.
+  const FORBIDDEN_IN_SPEECH = ["ඊළඟ එකට යන්න", "beat", "goal", "next", "instruction"];
+  for (const entry of trace) {
+    for (const text of [entry.beat.spokenText, ...(entry.beat.sayCandidates ?? [])]) {
+      if (!text) continue;
+      tally.check(
+        "spoken output never contains instruction vocabulary",
+        FORBIDDEN_IN_SPEECH.every((bad) => !text.toLowerCase().includes(bad.toLowerCase())),
+        `${entry.beat.id}: ${text.slice(0, 80)}`,
+      );
+    }
+  }
+  tally.check("spoken output never contains instruction vocabulary", true);
+
   // 4. No [DIRECTOR] text in child-visible output.
   for (const entry of trace) {
     for (const visible of entry.childVisible) {
@@ -170,7 +214,7 @@ function assertTrace(script: LessonScript, trace: TraceEntry[], tally: Assertion
       sessionIndex = beat.sessionIndex;
       boardHasContent = false;
     }
-    if (beat.board.kind === "stage_item" || beat.board.kind === "title_card") boardHasContent = true;
+    if (["stage_item", "title_card", "abacus_set", "show_components", "text_card"].includes(beat.board.kind)) boardHasContent = true;
     const isChat = beat.type === "CHAT_OPENER" || beat.type === "BREAK_CHAT";
     if (!isChat) {
       tally.check(
@@ -221,19 +265,22 @@ async function simulate(
 
   while (spoken < MAX_BEATS && !isLessonComplete(script, state)) {
     const scripted = queue.length === 0;
-    const beat = scripted ? currentBeat(script, state) : queue.shift()!;
-    if (!beat) break;
+    const rawBeat = scripted ? currentBeat(script, state) : queue.shift()!;
+    if (!rawBeat) break;
+    // Resolve the {address} token exactly as the live runtime does.
+    const beat = resolveBeatAddress(rawBeat, GENDER);
     spoken += 1;
 
     const director = buildDirectorLine(beat);
     // What the child sees/hears in the simulation: the board description
-    // and (stand-in for speech) the beat goal — NEVER the director line.
+    // and the actual speech (exact words where the beat has them; the goal
+    // only stands in for free-form beats) — NEVER the director line.
     const entry: TraceEntry = {
       beat,
       scripted,
       childSaid: null,
       decision: null,
-      childVisible: [beat.boardDescription, beat.goal],
+      childVisible: [beat.boardDescription, beat.spokenText ?? beat.goal, ...(beat.sayCandidates ?? [])],
     };
     trace.push(entry);
     log(
@@ -248,6 +295,19 @@ async function simulate(
     // (the live runtime does this when the model calls next_beat after
     // speaking them). Inserted beats never move the script.
     if (handling !== "judge" && beat.type !== "CONFIRM") {
+      // Hook doorway: matching answer → exact praise; anything else →
+      // advance warmly, uncorrected (mirrors the live runtime).
+      if (beat.type === "HOOK" && beat.expectedAnswer) {
+        const said = String(await childBrain(beat, beat.expectedAnswer));
+        entry.childSaid = said || "(silence)";
+        log(`     CHILD: ${said ? `"${said}"` : "(silence)"}`);
+        if (said && answersMatch(beat.expectedAnswer, said === "correct" ? beat.expectedAnswer : said)) {
+          queue.unshift(buildHookPraiseBeat(beat));
+          log("     -> hook praise inserted");
+        } else {
+          log("     -> no correction; advancing into the explain run");
+        }
+      }
       if (scripted) {
         const before = state;
         state = advance(script, state, null).state;
@@ -395,7 +455,21 @@ async function main() {
   if (error) throw new Error(error.message);
   const rows = (data ?? []) as BankRow[];
   const descriptions = new Map(LESSON_1_NUMBERS_STEPS.map((s) => [s.conceptTag, s.conceptDescription]));
-  const script = buildScriptFromRows(rows, descriptions, "maths", 5, 1, { lessonTitle: LESSON_1_NUMBERS_TITLE });
+  // Same override file the server wrapper and dry run use — without it the
+  // simulated script would silently lack the hook (and any hand edits).
+  let blueprintOverride = null;
+  try {
+    blueprintOverride = JSON.parse(
+      fs.readFileSync(path.join(process.cwd(), "src/data/lessons/blueprints/maths-5-1.json"), "utf8"),
+    );
+    console.log("Blueprint override loaded (hook included).");
+  } catch {
+    console.log("Blueprint override: none.");
+  }
+  const script = buildScriptFromRows(rows, descriptions, "maths", 5, 1, {
+    lessonTitle: LESSON_1_NUMBERS_TITLE,
+    blueprintOverride,
+  });
 
   // Optional: put a REAL recap ASK (built by the same shared code as
   // /api/recap) at the front, to reproduce the returning-child sequences.

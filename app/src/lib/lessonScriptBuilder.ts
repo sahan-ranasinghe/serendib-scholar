@@ -1,6 +1,8 @@
 import { orderConceptTags, videoTimestampSeconds } from "@/lib/conceptOrdering";
 import { blanksForItem, workedStepsForItem, solutionForItem, describeItem, type ItemBlank } from "@/lib/lessonBlanks";
-import { beatSpec } from "@/lib/beatRegistry";
+import { parseBoardContent, blockToBoardAction, parseAbacusStep, type BoardBlock } from "@/lib/boardContentParser";
+import { estimateBeatSeconds } from "@/lib/beatRegistry";
+import { AUTHORED_LINES } from "@/lib/authoredLines";
 import type {
   Beat,
   ConceptBlueprint,
@@ -81,6 +83,10 @@ interface ExplanationPayload {
   explanationDetail?: unknown;
   transcriptExcerpt?: unknown;
   realWorldExamplesUsed?: unknown;
+  /** What the teacher had written on her board during this segment (see scripts/backfill-board-content.ts). */
+  boardContent?: unknown;
+  /** Her transcript cleaned for one-to-one address (see scripts/clean-transcripts.ts) — the tutor's EXACT words. */
+  spokenTranscript?: unknown;
 }
 
 /** The concept_tag of the video's 00:00:00-00:03:00 opening — LESSON_GOALS material, not a teachable concept. */
@@ -210,21 +216,40 @@ function buildExplainBeats(
     ];
   }
 
-  return sequence.slice(0, blueprint.explainBeats).map((entry, index) => ({
-    ...baseBeat(conceptTag, index, `explain-${index}`),
-    type: "EXPLAIN" as const,
-    conceptTag,
-    mode: null,
-    itemId: primary.id,
-    segmentIndex: -1,
-    goal: `Teach this one step of the idea, in your own warm Sinhala: ${entry}`,
-    maxSentences: SENTENCE_BUDGET.EXPLAIN,
-    boardDescription: "nothing yet",
-    board: { kind: "none" as const },
-    // Only the first beat carries the excerpt — repeating it invites recital.
-    referenceWording: index === 0 ? reference : undefined,
-    endBy: "pausing" as const,
-  }));
+  // What she was showing while she said it: her board text, parsed into
+  // stageable blocks. Beat i shows block i; beats past the last block keep
+  // re-staging the final block (a present action, never "unchanged").
+  const boardText = typeof payload.boardContent === "string" ? payload.boardContent : "";
+  const blocks: BoardBlock[] = boardText.trim() !== "" ? parseBoardContent(boardText) : [];
+
+  return sequence.slice(0, blueprint.explainBeats).map((entry, index) => {
+    const beatId = `${conceptTag}#${index}:explain-${index}`;
+    const block = blocks.length > 0 ? blocks[Math.min(index, blocks.length - 1)] : null;
+    const board = block ? blockToBoardAction(block, beatId) : ({ kind: "none" } as const);
+    return {
+      ...baseBeat(conceptTag, index, `explain-${index}`),
+      type: "EXPLAIN" as const,
+      conceptTag,
+      mode: null,
+      itemId: primary.id,
+      segmentIndex: -1,
+      goal: `Teach this one step of the idea, in your own warm Sinhala: ${entry}`,
+      maxSentences: SENTENCE_BUDGET.EXPLAIN,
+      boardDescription: block
+        ? block.kind === "abacus"
+          ? `the abacus building up ${block.digits.join("")}, bead by bead`
+          : block.kind === "expansion"
+            ? `${block.prompt} written in expanded form`
+            : block.kind === "table"
+              ? "the number-and-name table she used"
+              : "her board notes for this part"
+        : "nothing yet",
+      board,
+      // Only the first beat carries the excerpt — repeating it invites recital.
+      referenceWording: index === 0 ? reference : undefined,
+      endBy: "pausing" as const,
+    };
+  });
 }
 
 function buildItemSegment(item: BankRow, mode: TeachingMode, segmentIndex: number, startIndex: number): Beat[] {
@@ -243,21 +268,32 @@ function buildItemSegment(item: BankRow, mode: TeachingMode, segmentIndex: numbe
     index += 1;
   };
 
+  // The animated abacus is its own manipulative: demonstrations start with
+  // bare rods and beads land per reveal; a MODE 3 reading task shows it
+  // complete and asks for the number.
+  const abacusDigits =
+    item.component_type === "AbacusDiagram" && Array.isArray((item.component_props as { digits?: unknown }).digits)
+      ? ((item.component_props as { digits: number[] }).digits ?? null)
+      : null;
+
   push({
     type: "SHOW_BOARD",
     conceptTag,
     mode,
     itemId: item.id,
     segmentIndex,
-    goal:
+    goal: "Introduce the item (verbatim line).",
+    spokenText:
       mode === 1
-        ? "Tell the child you'll work this one through together so they can watch how it's done."
+        ? AUTHORED_LINES.showBoardMode1
         : mode === 2
-          ? "Tell the child you'll start this one and they'll finish it with you."
-          : "Tell the child this one is theirs to try.",
+          ? AUTHORED_LINES.showBoardMode2
+          : AUTHORED_LINES.showBoardMode3,
     maxSentences: SENTENCE_BUDGET.SHOW_BOARD,
     boardDescription: description,
-    board: { kind: "stage_item", itemId: item.id },
+    board: abacusDigits
+      ? { kind: "abacus_set", digits: abacusDigits, animate: false, startEmpty: mode !== 3 }
+      : { kind: "stage_item", itemId: item.id },
     endBy: "pausing",
   });
 
@@ -275,7 +311,8 @@ function buildItemSegment(item: BankRow, mode: TeachingMode, segmentIndex: numbe
         mode,
         itemId: item.id,
         segmentIndex,
-        goal: `Explain, then write in, ${blank.label} — the answer is ${blank.value}. Say why it is that, don't just state it.`,
+        goal: "Write-in reveal (verbatim line).",
+        spokenText: AUTHORED_LINES.revealBlank.replace("{value}", blank.value),
         maxSentences: SENTENCE_BUDGET.REVEAL_PART,
         boardDescription: description,
         board: { kind: "reveal_part", itemId: item.id, rowIndex: blank.rowIndex, field: blank.field, value: blank.value },
@@ -300,16 +337,21 @@ function buildItemSegment(item: BankRow, mode: TeachingMode, segmentIndex: numbe
   } else {
     const reveals = mode === 3 ? [] : steps.slice(0, revealCount);
     for (const step of reveals) {
+      // An abacus bead step ("දාහේ ස්ථානයේ ගණක 5යි") lands its beads on the
+      // rod as she counts them; other steps stay verbal.
+      const bead = abacusDigits ? parseAbacusStep(step, abacusDigits.length) : null;
       push({
         type: "REVEAL_PART",
         conceptTag,
         mode,
         itemId: item.id,
         segmentIndex,
-        goal: `Walk the child through this step of the working: ${step}`,
+        goal: "Her worked step, verbatim.",
+        // Her own working line IS the speech — "දාහේ ස්ථානයේ ගණක 5යි".
+        spokenText: `${step.replace(/\.$/u, "")}.`,
         maxSentences: SENTENCE_BUDGET.REVEAL_PART,
         boardDescription: description,
-        board: { kind: "none" },
+        board: bead ? { kind: "abacus_add_bead", rod: bead.rod, count: bead.count } : { kind: "none" },
         endBy: "pausing",
       });
     }
@@ -336,7 +378,8 @@ function buildItemSegment(item: BankRow, mode: TeachingMode, segmentIndex: numbe
     mode,
     itemId: item.id,
     segmentIndex,
-    goal: "Check the child is still with you before going on. One short question, warmly.",
+    goal: "Check-in (verbatim line).",
+    spokenText: AUTHORED_LINES.checkpoint,
     maxSentences: SENTENCE_BUDGET.CHECKPOINT,
     boardDescription: description,
     board: { kind: "none" },
@@ -387,6 +430,10 @@ function buildConceptBeats(
   const beats: Beat[] = [];
 
   if (blueprint.hookExample) {
+    // The hook text is spoken VERBATIM (say_exactly) and then behaves like
+    // a CHECK_IN: ask, wait. If the blueprint names an expected answer, a
+    // match earns the exact praise line; anything else — wrong, off-topic,
+    // silence — advances warmly into the explain run with no correction.
     beats.push({
       ...baseBeat(conceptTag, 0, "hook"),
       type: "HOOK",
@@ -394,12 +441,10 @@ function buildConceptBeats(
       mode: null,
       itemId: null,
       segmentIndex: -1,
-      // Neutral on provenance: a hook can come from her extraction data OR
-      // from the hand-edited blueprint file — the director line shouldn't
-      // claim she said something a human authored.
-      goal:
-        `Before any maths, open with this everyday example: ` +
-        `${blueprint.hookExample}. Make it about the child's own life, and end with a small wondering question.`,
+      goal: "The hook, verbatim — ask it and wait.",
+      spokenText: blueprint.hookExample,
+      expectedAnswer: blueprint.hookExpectedAnswer ?? undefined,
+      praiseText: blueprint.hookPraise ?? undefined,
       maxSentences: SENTENCE_BUDGET.HOOK,
       boardDescription: `a title card: ${lessonTitle}`,
       board: { kind: "title_card", title: lessonTitle, emoji: "🤔" },
@@ -407,7 +452,12 @@ function buildConceptBeats(
     });
   }
 
-  const explainBeats = buildExplainBeats(conceptTag, explanations, blueprint, skipOpeningEntries);
+  const allCleaned =
+    explanations.length > 0 &&
+    explanations.every((row) => typeof payloadOf(row).spokenTranscript === "string" && String(payloadOf(row).spokenTranscript).trim() !== "");
+  const explainBeats = allCleaned
+    ? buildSpokenExplainBeats(conceptTag, explanations)
+    : buildExplainBeats(conceptTag, explanations, blueprint, skipOpeningEntries);
   // The board must never be empty while an idea is introduced: if nothing
   // is staged yet (no hook), the first explain beat raises a title card.
   if (!blueprint.hookExample && explainBeats.length > 0) {
@@ -436,7 +486,8 @@ function buildConceptBeats(
     mode: null,
     itemId: null,
     segmentIndex: -1,
-    goal: "Wrap this idea up in one warm sentence and say what you'll look at next.",
+    goal: "Wrap (verbatim line).",
+    spokenText: AUTHORED_LINES.transition,
     maxSentences: SENTENCE_BUDGET.TRANSITION,
     boardDescription: "a bright well-done card",
     board: { kind: "title_card", title: "⭐", emoji: "⭐" },
@@ -483,25 +534,50 @@ function isBoundary(beat: Beat | undefined): boolean {
   return beat.type === "SHOW_BOARD" || beat.type === "EXPLAIN" || beat.type === "HOOK" || beat.type === "TRANSITION";
 }
 
-function buildLessonGoalsBeat(openingRows: BankRow[], orderedTags: string[], descriptions: Map<string, string>, lessonTitle: string): Beat | null {
+/** How much of her welcome the first sitting opens with (~1 minute of speech). */
+const MAX_LESSON_GOALS_BEATS = 4;
+
+function buildLessonGoalsBeats(openingRows: BankRow[], orderedTags: string[], descriptions: Map<string, string>, lessonTitle: string): Beat[] {
   const primary = [...openingRows].sort((a, b) => a.source.localeCompare(b.source))[0];
-  if (!primary) return null;
+  if (!primary) return [];
   const payload = payloadOf(primary);
+  const spoken = typeof payload.spokenTranscript === "string" ? payload.spokenTranscript : "";
+
+  if (spoken.trim() !== "") {
+    // Her actual lesson opening, verbatim — split into speakable beats.
+    return chunkSpokenTranscript(spoken)
+      .slice(0, MAX_LESSON_GOALS_BEATS)
+      .map((chunk, index) => ({
+        ...framingBeat(
+          0,
+          `lesson-goals-${index}`,
+          "LESSON_GOALS",
+          "Her lesson opening, verbatim.",
+          chunk.isQuestion ? "asking" : "pausing",
+          { kind: "title_card", title: lessonTitle, emoji: "📚" },
+        ),
+        spokenText: chunk.text,
+      }));
+  }
+
+  // Fallback (opening row not yet cleaned): the old free-form beat.
   const transcript = typeof payload.transcriptExcerpt === "string" ? payload.transcriptExcerpt : "";
   const goals = orderedTags
     .map((tag) => descriptions.get(tag))
     .filter((d): d is string => !!d)
     .slice(0, 4);
-  return framingBeat(
-    0,
-    "lesson-goals",
-    "LESSON_GOALS",
-    `Tell the child what this whole lesson is about, in a child's terms — the way the real teacher opened it: ` +
-      `working with big numbers up to 100,000 (${goals.join("; ")}). Make it sound like an adventure ahead, not a syllabus.`,
-    "pausing",
-    { kind: "title_card", title: lessonTitle, emoji: "📚" },
-    transcript ? excerptForReference(transcript) : undefined,
-  );
+  return [
+    framingBeat(
+      0,
+      "lesson-goals",
+      "LESSON_GOALS",
+      `Tell the child what this whole lesson is about, in a child's terms — the way the real teacher opened it: ` +
+        `working with big numbers up to 100,000 (${goals.join("; ")}). Make it sound like an adventure ahead, not a syllabus.`,
+      "pausing",
+      { kind: "title_card", title: lessonTitle, emoji: "📚" },
+      transcript ? excerptForReference(transcript) : undefined,
+    ),
+  ];
 }
 
 /**
@@ -511,7 +587,7 @@ function buildLessonGoalsBeat(openingRows: BankRow[], orderedTags: string[], des
  */
 function assembleSessions(
   work: Beat[],
-  lessonGoals: Beat | null,
+  lessonGoals: Beat[],
   descriptions: Map<string, string>,
   lessonTitle: string,
 ): { beats: Beat[]; sessions: SessionPlan[] } {
@@ -521,7 +597,7 @@ function assembleSessions(
   let currentSeconds = 0;
   for (let i = 0; i < work.length; i += 1) {
     const beat = work[i];
-    const estimate = beatSpec(beat.type).estimateSeconds;
+    const estimate = estimateBeatSeconds(beat);
     if (
       currentSeconds + estimate > SESSION_TEACHING_TARGET_SECONDS &&
       currentSeconds >= SESSION_TEACHING_MIN_SECONDS &&
@@ -556,8 +632,8 @@ function assembleSessions(
         { kind: "title_card", title: lessonTitle, emoji: "👋" },
       ),
     );
-    if (sessionIndex === 0 && lessonGoals) {
-      beats.push(lessonGoals);
+    if (sessionIndex === 0 && lessonGoals.length > 0) {
+      beats.push(...lessonGoals);
     } else if (sessionIndex > 0) {
       // A placeholder the runtime expands into real review questions from
       // child_progress (weakest concepts first) — the script cannot know
@@ -597,7 +673,7 @@ function assembleSessions(
         breakPlaced = true;
       }
       beats.push({ ...beat, sessionIndex });
-      teachingSeconds += beatSpec(beat.type).estimateSeconds;
+      teachingSeconds += estimateBeatSeconds(beat);
     });
 
     const nextSlice = slices[sessionIndex + 1];
@@ -618,12 +694,128 @@ function assembleSessions(
       index: sessionIndex,
       firstBeat,
       lastBeat,
-      estimatedSeconds: beats.slice(firstBeat, lastBeat + 1).reduce((sum, b) => sum + beatSpec(b.type).estimateSeconds, 0),
+      estimatedSeconds: beats.slice(firstBeat, lastBeat + 1).reduce((sum, b) => sum + estimateBeatSeconds(b), 0),
       conceptTags,
     });
   });
 
   return { beats, sessions };
+}
+
+/** Sentence boundaries in spoken Sinhala transcripts (period/question/exclamation + space). */
+function splitSinhalaSentences(text: string): string[] {
+  return text
+    .split(/(?<=[.?!।])\s+/u)
+    .map((sentence) => sentence.trim())
+    .filter((sentence) => sentence !== "");
+}
+
+interface SpokenChunk {
+  text: string;
+  /** True when the chunk ends on her question to the child — becomes a CHECK_IN. */
+  isQuestion: boolean;
+}
+
+/**
+ * A REAL prompt to the child ("කාටද කියන්න පුළුවන්…?") — as opposed to her
+ * constant rhetorical tags ("නේද?", "හරිද?"), which are pacing, part of her
+ * rhythm, and must stay INSIDE the flow rather than stopping the lesson to
+ * wait. Only real prompts become CHECK_IN beats.
+ */
+const REAL_QUESTION = /(කවුද|කාටද|මොකක්ද|මොනවද|කීයක්ද|කීයද|කොහොමද|කියන්න පුළුවන්)/u;
+
+/**
+ * Groups her sentences into speakable beats of 2-3 sentences (~15-25s). A
+ * sentence that is a REAL question to the child closes its chunk as a
+ * CHECK_IN: she asks, waits, and any answer advances.
+ */
+export function chunkSpokenTranscript(text: string): SpokenChunk[] {
+  const sentences = splitSinhalaSentences(text);
+  const chunks: SpokenChunk[] = [];
+  let current: string[] = [];
+  const flush = (isQuestion: boolean) => {
+    if (current.length === 0) return;
+    chunks.push({ text: current.join(" "), isQuestion });
+    current = [];
+  };
+  // She asks constantly; in class the answers fly back without stopping
+  // the room. Halting one-to-one for every question would make the lesson
+  // unbearably stop-start, so only a SPACED, substantive question becomes
+  // a CHECK_IN — the rest stay inside the flow of her speech.
+  let sinceCheckIn = 2;
+  for (const sentence of sentences) {
+    current.push(sentence);
+    const joined = current.join(" ");
+    if (sentence.endsWith("?") && REAL_QUESTION.test(sentence) && sinceCheckIn >= 2 && joined.length >= 60) {
+      flush(true);
+      sinceCheckIn = 0;
+    } else if (current.length >= 6 || joined.length >= 200 || (current.length >= 2 && joined.length >= 120)) {
+      // Her spoken sentences are short ("හරි.", "බලන්න.") — chunk by
+      // accumulated length (~120-200 chars ≈ 15-25s), not sentence count.
+      flush(false);
+      sinceCheckIn += 1;
+    }
+  }
+  flush(false);
+  return chunks;
+}
+
+/**
+ * The transcript-driven explain run: her cleaned verbatim words, in her
+ * order, split into speakable beats — EXPLAIN for statements, CHECK_IN for
+ * her questions. Each segment's boardContent blocks are staged across that
+ * segment's beats (first block on the first beat, the rest spread), so the
+ * abacus never sits empty while she describes it.
+ *
+ * Used whenever every explanation row carries spokenTranscript; the older
+ * bullet-goal path remains only as a fallback for uncleaned rows.
+ */
+function buildSpokenExplainBeats(conceptTag: string, explanations: BankRow[]): Beat[] {
+  const beats: Beat[] = [];
+  let index = 0;
+  for (const row of explanations) {
+    const payload = payloadOf(row);
+    const spoken = typeof payload.spokenTranscript === "string" ? payload.spokenTranscript : "";
+    if (!spoken.trim()) continue;
+    const chunks = chunkSpokenTranscript(spoken);
+    const boardText = typeof payload.boardContent === "string" ? payload.boardContent : "";
+    const blocks: BoardBlock[] = boardText.trim() !== "" ? parseBoardContent(boardText) : [];
+
+    chunks.forEach((chunk, chunkIndex) => {
+      // Spread this segment's board blocks across its beats: block j lands
+      // on beat floor(j * chunks/blocks) — the first block (usually the
+      // number/abacus she introduces) on the segment's first beat.
+      const blockIndex = blocks.findIndex(
+        (_, j) => Math.floor((j * chunks.length) / Math.max(blocks.length, 1)) === chunkIndex,
+      );
+      const block = blockIndex !== -1 ? blocks[blockIndex] : null;
+      const beatId = `${conceptTag}#${index}:spoken-${index}`;
+      beats.push({
+        ...baseBeat(conceptTag, index, `spoken-${index}`),
+        type: chunk.isQuestion ? "CHECK_IN" : "EXPLAIN",
+        conceptTag,
+        mode: null,
+        itemId: row.id,
+        segmentIndex: -1,
+        goal: chunk.isQuestion ? "Her own question, verbatim — ask it and wait." : "Her own words, verbatim.",
+        spokenText: chunk.text,
+        maxSentences: 3,
+        boardDescription: block
+          ? block.kind === "abacus"
+            ? `the abacus building up ${block.digits.join("")}, bead by bead`
+            : block.kind === "expansion"
+              ? `${block.prompt} written in expanded form`
+              : block.kind === "table"
+                ? "the number-and-name table she used"
+                : "her board notes"
+          : "whatever is already showing",
+        board: block ? blockToBoardAction(block, beatId) : { kind: "none" },
+        endBy: chunk.isQuestion ? "asking" : "pausing",
+      });
+      index += 1;
+    });
+  }
+  return beats;
 }
 
 /**
@@ -706,7 +898,7 @@ export function buildScriptFromRows(
   };
 
   const lessonTitle = options.lessonTitle ?? `${subject} — lesson ${lesson}`;
-  const lessonGoals = buildLessonGoalsBeat(openingRows, orderedTags, descriptions, lessonTitle);
+  const lessonGoals = buildLessonGoalsBeats(openingRows, orderedTags, descriptions, lessonTitle);
 
   const work: Beat[] = [];
   blueprint.concepts.forEach((conceptBlueprint, conceptIndex) => {
@@ -717,7 +909,7 @@ export function buildScriptFromRows(
       conceptRows,
       // LESSON_GOALS already delivers the welcome + goals; don't have the
       // first concept's explain run say them again.
-      conceptIndex === 0 && lessonGoals !== null,
+      conceptIndex === 0 && lessonGoals.length > 0,
       lessonTitle,
     );
     // A concept with nothing but a TRANSITION isn't teachable.

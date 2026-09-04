@@ -7,6 +7,7 @@
  * whatever the model has already confirmed via submit_blank_answer.
  */
 import { useEffect, useState } from "react";
+import AnimatedAbacus from "@/components/AnimatedAbacus";
 import type {
   LessonComponent,
   DigitPickerPuzzleProps,
@@ -255,23 +256,13 @@ function PlaceValueTableView(props: PlaceValueTableProps & BlankState) {
   );
 }
 
-function AbacusDiagramView({ digits, label, numeral }: AbacusDiagramProps) {
+function AbacusDiagramView({ digits, label }: AbacusDiagramProps) {
+  // The animated manipulative, shown complete (no animation) when an
+  // AbacusDiagram appears inside ordinary lesson content.
   return (
-    <div className="flex flex-col items-center gap-3">
-      <div className="flex items-end gap-4">
-        {digits.map((digit, index) => (
-          <div key={index} className="flex flex-col items-center gap-1">
-            <div className="relative flex h-32 w-3 flex-col-reverse items-center gap-1 rounded-full bg-orange-200 py-1">
-              {Array.from({ length: digit }).map((_, beadIndex) => (
-                <span key={beadIndex} className="h-4 w-4 shrink-0 rounded-full bg-rose-500 shadow-sm" />
-              ))}
-            </div>
-            <span className="text-lg font-bold text-orange-900">{digit}</span>
-          </div>
-        ))}
-      </div>
-      <p className="text-lg font-semibold text-orange-900">{numeral}</p>
-      <p className="text-sm text-orange-600">{label}</p>
+    <div className="flex flex-col items-center gap-2">
+      <AnimatedAbacus digits={digits} shown={digits} selfAnimate={false} childAnswer={null} />
+      {label && <p className="text-sm text-stone-500">{label}</p>}
     </div>
   );
 }

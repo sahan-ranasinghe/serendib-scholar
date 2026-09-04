@@ -1,4 +1,6 @@
 import "server-only";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import type { ChildGender } from "@/lib/addressToken";
 
 /**
  * THE one place the active child's identity comes from.
@@ -21,4 +23,36 @@ export function getActiveChildId(): string {
     );
   }
   return id.trim();
+}
+
+export interface ActiveChild {
+  id: string;
+  displayName: string;
+  grade: number;
+  medium: string;
+  gender: ChildGender;
+}
+
+/**
+ * The active child's row, gender included — the server-side companion to
+ * getActiveChildId(). Tolerates the gender column not existing yet (before
+ * the ALTER has run) and any lookup failure by defaulting to
+ * "unspecified": the lesson must never be blocked on demographics.
+ */
+export async function getActiveChild(): Promise<ActiveChild> {
+  const id = getActiveChildId();
+  try {
+    const { data } = await supabaseAdmin.from("children").select("*").eq("id", id).maybeSingle();
+    const gender =
+      data?.gender === "boy" || data?.gender === "girl" ? (data.gender as ChildGender) : "unspecified";
+    return {
+      id,
+      displayName: typeof data?.display_name === "string" ? data.display_name : "",
+      grade: typeof data?.grade === "number" ? data.grade : 5,
+      medium: typeof data?.medium === "string" ? data.medium : "sinhala",
+      gender,
+    };
+  } catch {
+    return { id, displayName: "", grade: 5, medium: "sinhala", gender: "unspecified" };
+  }
 }

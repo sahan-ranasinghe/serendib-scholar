@@ -12,9 +12,11 @@ import {
   advance,
   beatSpec,
   buildConfirmBeat,
+  buildHookPraiseBeat,
   buildReteachBeats,
   resolveConfirmation,
   buildDirectorLine,
+  buildDirectorResult,
   buildFeedbackBeat,
   buildWaitBeat,
   conceptSummary,
@@ -30,6 +32,8 @@ import {
   type PlannerDecision,
 } from "@/lib/lessonOrchestrator";
 import { answersMatch } from "@/lib/answerCheck";
+import { AUTHORED_LINES } from "@/lib/authoredLines";
+import { resolveBeatAddress, type ChildGender } from "@/lib/addressToken";
 import {
   classifyConfirmation,
   fetchRecapBeats,
@@ -125,6 +129,8 @@ type ViewPatch = Partial<PageImageView> & Partial<TableBoardView> & {
   filledAnswer?: FilledAnswer;
   activeBlank?: { rowIndex: number; field: string } | null;
   expectedItemId?: string;
+  /** abacus_add_bead: beads landing on one rod of the animated abacus. */
+  abacusAddBead?: { rod: number; count: number };
 };
 
 interface ViewPatchToolResponse {
@@ -243,6 +249,14 @@ function applyViewPatch(current: BoardContent | null, patch: ViewPatch): BoardCo
     // set_active_blank's patch: `activeBlank` present (possibly null, to clear it).
     return { ...current, activeBlank: patch.activeBlank ?? null };
   }
+  if (current?.type === "abacus" && patch.abacusAddBead) {
+    const { rod, count } = patch.abacusAddBead;
+    const shown = [...current.shown];
+    if (rod >= 0 && rod < shown.length) {
+      shown[rod] = Math.min(current.digits[rod] ?? 0, shown[rod] + count);
+    }
+    return { ...current, shown, selfAnimate: false };
+  }
   console.warn(
     `[useGeminiLive] Ignored a view-only board action — current board content ` +
       `(${current?.type ?? "none"}) doesn't support it.`,
@@ -280,6 +294,9 @@ export interface UseGeminiLiveOptions {
 /** 24kHz mono PCM16 — 48 bytes per millisecond of audio. */
 const PCM_BYTES_PER_MS = 48;
 
+/** Mic stays gated this long after Zara's audio ends — her own tail can't trigger a turn. */
+const MIC_TAIL_MS = 400;
+
 export function useGeminiLive({
   subject = "maths",
   grade = 5,
@@ -293,10 +310,10 @@ export function useGeminiLive({
   // True exactly while the AI's voice is actually audible (real playback
   // state from PcmPlayer, not just "a chunk arrived over the network" —
   // playback lags behind receipt by a buffer) — drives the character's
-  // "talking" visual state (see CharacterState.tsx).
+  // "talking" visual state (see ZaraCharacter.tsx).
   const [isAiTalking, setIsAiTalking] = useState(false);
   // What the lesson covers and where in it we are, for the always-visible
-  // progress bar (LessonProgress.tsx). Both come from the orchestrator now:
+  // progress strip (LessonScreen.tsx). Both come from the orchestrator now:
   // the concept list from the fetched lesson script, the current concept
   // from orchestrator state.
   //
@@ -305,6 +322,13 @@ export function useGeminiLive({
   // the orchestrator (not the bar) is what knows that.
   const [lessonConcepts, setLessonConcepts] = useState<LessonConcept[]>([]);
   const [currentConceptTag, setCurrentConceptTag] = useState<string | null>(null);
+  // Which sitting is playing and how many the lesson has — the progress
+  // strip's eight stops (see LessonScreen.tsx).
+  const [currentSessionIndex, setCurrentSessionIndex] = useState(0);
+  const [sessionCount, setSessionCount] = useState(0);
+  // Bumped on every correct judged answer — LessonScreen turns it into the
+  // character's brief celebration.
+  const [celebrateNonce, setCelebrateNonce] = useState(0);
 
   // --- Lesson orchestrator -------------------------------------------
   // The teacher's brain (see lessonOrchestrator.ts). Refs rather than
@@ -344,12 +368,12 @@ export function useGeminiLive({
   const silenceExpiredRef = useRef(false);
   /** True while the model has been told to hold for the child on the active beat. */
   const holdingForChildRef = useRef(false);
-  /** Manual turn-taking (default) vs. the experimental open-mic-chat session mode. */
-  const openMicChatRef = useRef(false);
-  /** True while the push-to-talk button is held. */
-  const micHeldRef = useRef(false);
-  /** Chunks streamed during the current hold — a release with zero would make an audio-less activity window, which the API rejects. */
-  const chunksSentDuringHoldRef = useRef(0);
+  /** Parent mute: the mic is captured but nothing is ever sent while true. */
+  const mutedRef = useRef(false);
+  /** How spoken text addresses this child ({address} → පුතේ/දුවේ/dropped). */
+  const childGenderRef = useRef<ChildGender>("unspecified");
+  /** When Zara's audio last stopped — the mic stays gated for a short tail after (echo guard). */
+  const playbackEndedAtRef = useRef(0);
   /** Mirrors isAiTalking for handlers outside the render cycle. */
   const aiTalkingRef = useRef(false);
   /** This session's CHAT_OPENER personalisation (see /api/opener). */
@@ -408,7 +432,6 @@ export function useGeminiLive({
     pendingBeatsRef.current = [];
     returnAfterInterjectionRef.current = null;
     holdingForChildRef.current = false;
-    micHeldRef.current = false;
     recorderRef.current?.stop();
     recorderRef.current = null;
     streamRef.current?.getTracks().forEach((track) => track.stop());
@@ -420,7 +443,7 @@ export function useGeminiLive({
     setStatus("idle");
   }, []);
 
-  // Called by TeachingBoard (via HostScreen) whenever the child directly
+  // Called by TeachingBoard (via LessonScreen) whenever the child directly
   // manipulates the board — see PART B: manual interaction becomes the new
   // authoritative state, and subsequent AI view actions should be aware of
   // it (surfaced to the model as `board_state.child_interacted_manually` on
@@ -446,34 +469,15 @@ export function useGeminiLive({
     clientRef.current?.sendTextInput(text);
   }, []);
 
-  /**
-   * Push-to-talk: audio streams only while held (see onReady's recorder
-   * gating). Press is ignored while the model is speaking a non-chat beat —
-   * a teaching beat must not be interruptible by the mic.
-   */
-  const startTalking = useCallback(() => {
-    const beatType = activeBeatRef.current?.type;
-    const isChat = beatType === "CHAT_OPENER" || beatType === "BREAK_CHAT";
-    if (aiTalkingRef.current && !isChat) return;
-    if (micHeldRef.current) return;
-    micHeldRef.current = true;
-    chunksSentDuringHoldRef.current = 0;
-    if (!openMicChatRef.current) clientRef.current?.sendActivityStart();
+  /** Parent mute: mic keeps capturing, nothing is sent while muted. */
+  const [muted, setMuted] = useState(false);
+  const toggleMute = useCallback(() => {
+    mutedRef.current = !mutedRef.current;
+    setMuted(mutedRef.current);
   }, []);
 
-  const stopTalking = useCallback(() => {
-    if (!micHeldRef.current) return;
-    micHeldRef.current = false;
-    if (!openMicChatRef.current) {
-      // A tap-and-release before any mic chunk went out would close the
-      // window empty — and an audio-less activity window kills the whole
-      // session (1007 "Precondition check failed"). Pad it with silence.
-      if (chunksSentDuringHoldRef.current === 0) {
-        clientRef.current?.sendAudioChunk("A".repeat(4000));
-      }
-      clientRef.current?.sendActivityEnd();
-    }
-  }, []);
+  /** RMS of what's audible right now (0..~1) — drives the character's mouth. Safe before start(). */
+  const getOutputAmplitude = useCallback(() => playerRef.current?.getAmplitude() ?? 0, []);
 
   const start = useCallback(async () => {
     setError(null);
@@ -529,6 +533,7 @@ export function useGeminiLive({
       if (scriptJson?.ok && scriptJson.found) {
         scriptRef.current = scriptJson.script as LessonScript;
         setLessonConcepts(conceptsFromScript(scriptRef.current));
+        setSessionCount(scriptRef.current.sessions.length);
       } else {
         throw new Error("No lesson is ready to teach yet.");
       }
@@ -560,8 +565,17 @@ export function useGeminiLive({
       if (!sessionRes.ok) {
         throw new Error("Could not start a study session. Please try again.");
       }
-      const { token, model, openMicChat } = await sessionRes.json();
-      openMicChatRef.current = openMicChat === true;
+      const { token, model } = await sessionRes.json();
+
+      // Who is present, for the address form — resolved server-side; the
+      // client only learns the gender. Defaults hold if this fails.
+      try {
+        const childRes = await fetch("/api/active-child", { method: "POST" });
+        const child = await childRes.json();
+        childGenderRef.current = child?.gender === "boy" || child?.gender === "girl" ? child.gender : "unspecified";
+      } catch {
+        childGenderRef.current = "unspecified";
+      }
 
       // The session's CHAT_OPENER personalisation — fetched up front so
       // serving the opener beat never waits on the network.
@@ -579,6 +593,7 @@ export function useGeminiLive({
       const player = new PcmPlayer({
         onPlaybackStateChange: (talking) => {
           aiTalkingRef.current = talking;
+          if (!talking) playbackEndedAtRef.current = Date.now();
           setIsAiTalking(talking);
         },
       });
@@ -694,16 +709,10 @@ export function useGeminiLive({
        * activity pulse is a "your move" with nothing said in it.
        */
       const nudgeModelTurn = () => {
-        if (openMicChatRef.current) {
-          // Explicit activity signals are rejected while the API's own
-          // detection is on — silence handling is unavailable in this
-          // experimental mode.
-          console.warn("[useGeminiLive] Cannot nudge on silence in open-mic-chat mode.");
-          return;
-        }
-        // NEVER an empty start/end pair — an audio-less activity window
-        // kills the session with 1007 "Precondition check failed".
-        clientRef.current?.sendSilentTurn();
+        // An empty turn-complete clientContent — the one turn-forcing
+        // mechanism valid while automatic activity detection is on, and it
+        // carries no text that could leak anywhere.
+        clientRef.current?.sendTurnNudge();
       };
 
       const startSilenceTimer = (ms: number) => {
@@ -726,6 +735,7 @@ export function useGeminiLive({
         beatStartedAtRef.current = new Date().toISOString();
         beatAudioBytesRef.current = 0;
         if (beat.conceptTag !== FRAMING_CONCEPT) setCurrentConceptTag(beat.conceptTag);
+        if (beat.sessionIndex >= 0) setCurrentSessionIndex(beat.sessionIndex);
         if (beat.type === "CHAT_OPENER") {
           sessionStatsRef.current = { concepts: new Set<string>(), correct: 0, asked: 0 };
           openerReplyHandledRef.current = false;
@@ -756,19 +766,19 @@ export function useGeminiLive({
         let served = beat;
         if (beat.type === "CHAT_OPENER" && openerRef.current) {
           if (openerRef.current.skip) {
-            served = {
-              ...beat,
-              goal:
-                'Skip the small talk today: ask, warmly, exactly this — "අද ඉක්මනට පටන් ගමුද?" — and nothing else.',
-              maxSentences: 1,
-            };
+            // The quick start goes through the exact-words channel too.
+            served = { ...beat, spokenText: AUTHORED_LINES.quickStart, maxSentences: 1 };
             chatDeadlineRef.current = 0; // first reply ends the "chat"
           } else {
             served = { ...beat, goal: openerRef.current.goal };
           }
         }
+        // Resolve the {address} token for THIS child in everything speakable.
+        served = resolveBeatAddress(served, childGenderRef.current);
         await prepareBeat(served, options);
-        return { instruction: buildDirectorLine(served, directorContext()) };
+        // Exact-words beats return { say }; FEEDBACK { say_one_of };
+        // free-form beats { instruction }.
+        return buildDirectorResult(served, directorContext());
       };
 
       /** The instruction that yields the turn to the child without moving the lesson. */
@@ -906,6 +916,14 @@ export function useGeminiLive({
         const scripted = activeBeatScriptedRef.current;
         let decision: PlannerDecision | null = null;
 
+        // The HOOK is a doorway, not a test: a matching answer earns the
+        // exact praise line; anything else — wrong, silence, a story —
+        // advances warmly into the explain run with no correction and no
+        // planner call.
+        if (beat.type === "HOOK" && beat.expectedAnswer && said && answersMatch(beat.expectedAnswer, said)) {
+          pendingBeatsRef.current.unshift(buildHookPraiseBeat(beat));
+        }
+
         // A CONFIRM just resolved: the child answered "did you say X?" —
         // judged by the shared pure resolver against THIS beat's own
         // expected answer (see resolveConfirmation's doc for the bug this
@@ -951,9 +969,19 @@ export function useGeminiLive({
 
         if (decision) {
           sessionStatsRef.current.asked += 1;
-          if (decision.understood) sessionStatsRef.current.correct += 1;
+          if (decision.understood) {
+            sessionStatsRef.current.correct += 1;
+            setCelebrateNonce((n) => n + 1);
+          }
           if (beat.conceptTag !== FRAMING_CONCEPT) sessionStatsRef.current.concepts.add(beat.conceptTag);
           void recordAnswer(beat, decision.understood);
+          // On the abacus, the child's own number appears in a second
+          // colour beneath the rods for comparison.
+          if (boardContentRef.current?.type === "abacus" && said) {
+            const patched = { ...boardContentRef.current, childAnswer: said.slice(0, 24) };
+            boardContentRef.current = patched;
+            setBoardContent(patched);
+          }
         }
 
         await finishBeatLog(beat, decision);
@@ -999,23 +1027,21 @@ export function useGeminiLive({
         onReady: async () => {
           setStatus("listening");
           const recorder = await startPcmRecorder(stream, (chunk) => {
-            // Push-to-talk: audio flows ONLY while the button is held —
-            // stray mic noise can never reach (or interrupt) the model.
-            // The experimental open-mic mode streams freely during the two
-            // chat beat types.
+            // Natural turn-taking: the mic is always CAPTURED but chunks
+            // are NOT SENT while Zara's audio is playing, or for 400ms
+            // after it ends (echo/noise guard) — a teaching beat cannot be
+            // barged into. The two chat beat types allow barge-in. Parent
+            // mute silences sending entirely.
+            if (mutedRef.current) return;
             const beatType = activeBeatRef.current?.type;
-            const openMicNow =
-              openMicChatRef.current && (beatType === "CHAT_OPENER" || beatType === "BREAK_CHAT");
-            if (micHeldRef.current || openMicNow) {
-              client.sendAudioChunk(chunk);
-              if (micHeldRef.current) chunksSentDuringHoldRef.current += 1;
-            }
+            const chatBeat = beatType === "CHAT_OPENER" || beatType === "BREAK_CHAT";
+            const inPlaybackTail = Date.now() - playbackEndedAtRef.current < MIC_TAIL_MS;
+            if (!chatBeat && (aiTalkingRef.current || inPlaybackTail)) return;
+            client.sendAudioChunk(chunk);
           });
           recorderRef.current = recorder;
-          // In manual turn-taking, nothing happens until someone takes a
-          // turn — hand the model its first one so the lesson opens itself.
-          // Must carry audio: an empty activity window is rejected (1007).
-          if (!openMicChatRef.current) client.sendSilentTurn();
+          // Hand the model its first turn so the lesson opens itself.
+          client.sendTurnNudge();
         },
         onAudioChunk: (chunk) => {
           player.enqueue(chunk);
@@ -1205,7 +1231,11 @@ export function useGeminiLive({
     stop,
     notifyManualBoardInteraction,
     submitTypedAnswer,
-    startTalking,
-    stopTalking,
+    muted,
+    toggleMute,
+    getOutputAmplitude,
+    currentSessionIndex,
+    sessionCount,
+    celebrateNonce,
   };
 }

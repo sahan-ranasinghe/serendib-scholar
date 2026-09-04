@@ -32,10 +32,8 @@ ws.on("open", () => {
 ws.on("message", async (data) => {
   const msg = JSON.parse(data.toString());
   if (msg.setupComplete) {
-    console.log(ts(), "[setupComplete] — self-start silent turn (as the FIXED onReady does)");
-    send({ realtimeInput: { activityStart: {} } });
-    send({ realtimeInput: { audio: { data: "A".repeat(4000), mimeType: "audio/pcm;rate=16000" } } });
-    send({ realtimeInput: { activityEnd: {} } });
+    console.log(ts(), "[setupComplete] — self-start turn nudge (empty clientContent, VAD mode)");
+    send({ clientContent: { turns: [], turnComplete: true } });
     return;
   }
   if (msg.toolCall?.functionCalls?.length) {
@@ -43,10 +41,12 @@ ws.on("message", async (data) => {
       toolCalls += 1;
       console.log(ts(), `[toolCall #${toolCalls}]`, call.name, JSON.stringify(call.args ?? {}));
       if (call.name === "next_beat") {
-        send({ toolResponse: { functionResponses: [{ id: call.id, name: call.name, response: {
-          instruction: "[DIRECTOR] Board shows: a title card. Goal: Say exactly one short warm Sinhala greeting sentence to the child. Speak at most 1 sentence, slowly, in Sinhala. End by pausing and waiting for the child. Then stop.",
-        } }] } });
-        console.log(ts(), "  -> responded with a test director instruction");
+        const exact = process.argv[3] === "say";
+        const response = exact
+          ? { say_exactly: "බලන්න පුතේ, මේ තියෙන්නේ ගණක රාමුවක්. මේකෙන් අපිට ලොකු සංඛ්‍යා හදන්න පුළුවන්." }
+          : { instruction: "[DIRECTOR] Board shows: a title card. Goal: Say exactly one short warm Sinhala greeting sentence to the child. Speak at most 1 sentence, slowly, in Sinhala. End by pausing and waiting for the child. Then stop." };
+        send({ toolResponse: { functionResponses: [{ id: call.id, name: call.name, response }] } });
+        console.log(ts(), `  -> responded with ${exact ? "a {say} exact-words payload" : "a test director instruction"}`);
       } else {
         send({ toolResponse: { functionResponses: [{ id: call.id, name: call.name, response: { ok: true } }] } });
       }
@@ -63,10 +63,8 @@ ws.on("message", async (data) => {
       console.log(ts(), "[turnComplete] audioBytes:", audioBytes, "| said:", JSON.stringify(outputTranscript.slice(-200)));
       if (!heldOnce && toolCalls >= 1 && audioBytes > 0) {
         heldOnce = true;
-        console.log(ts(), "[simulating hold-to-speak] activityStart + 1s of mic audio + activityEnd");
-        send({ realtimeInput: { activityStart: {} } });
-        send({ realtimeInput: { audio: { data: Buffer.alloc(32000).toString("base64"), mimeType: "audio/pcm;rate=16000" } } });
-        send({ realtimeInput: { activityEnd: {} } });
+        console.log(ts(), "[simulating the child speaking] (text turn — VAD needs real speech audio, which a probe hasn't got)");
+        send({ clientContent: { turns: [{ role: "user", parts: [{ text: "හරි" }] }], turnComplete: true } });
       }
     }
     if (sc.interrupted) console.log(ts(), "[interrupted]");

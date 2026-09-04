@@ -4,6 +4,7 @@ import { answersMatch } from "./answerCheck";
 import {
   advance,
   buildConfirmBeat,
+  buildHookPraiseBeat,
   buildReteachBeats,
   resolveConfirmation,
   buildDirectorLine,
@@ -314,13 +315,14 @@ test("the session close names something specific from this sitting", () => {
   assert.match(line, /Next time: abacus\./);
 });
 
-test("the check-in beat never repeats the question or gives the answer", () => {
-  const wait = buildWaitBeat(askMode3());
+test("the wait beat is exact words that neither repeat the question nor give the answer", () => {
+  const asked = askMode3();
+  const wait = buildWaitBeat(asked);
   assert.equal(wait.type, "WAIT");
-  assert.equal(wait.maxSentences, 1);
   assert.equal(wait.board.kind, "none", "a check-in must not disturb the board");
-  assert.match(wait.goal, /Do NOT repeat the question/);
-  assert.match(wait.goal, /do NOT give the answer/);
+  assert.ok(wait.spokenText, "WAIT speaks exact words");
+  assert.ok(!wait.spokenText!.includes(asked.goal), "never repeats the question");
+  assert.ok(!wait.spokenText!.includes("42"), "never gives the answer");
 });
 
 test("the confirm beat repeats the doubtful number without judging it", () => {
@@ -331,14 +333,48 @@ test("the confirm beat repeats the doubtful number without judging it", () => {
   assert.equal(confirm.expectedAnswer, undefined, "the confirm itself is never judged against the answer");
 });
 
-test("feedback on a wrong answer withholds the answer and asks a guiding question", () => {
+test("the hook praise beat is the exact configured line; the hook itself is her/your words verbatim", () => {
+  const hook = beat({ type: "HOOK", segmentIndex: -1, mode: null, conceptTag: "abacusRepresentation" });
+  hook.spokenText = "…දහසේ කොළයක්, සීයේ කොළයක්… මුළු සල්ලි කීයද?";
+  hook.expectedAnswer = "1111";
+  hook.praiseText = "හරි! දහසේ එකක්, සීයේ එකක්, දහයේ එකක්, එකේ එකක් — ඒක තමයි අද අපි ඉගෙන ගන්න යන්නේ.";
+  const praise = buildHookPraiseBeat(hook);
+  assert.equal(praise.spokenText, hook.praiseText, "praise is the exact configured sentence");
+  assert.equal(praise.expectedAnswer, undefined, "the praise beat is never judged");
+  assert.equal(praise.endBy, "pausing");
+  // The doorway rule itself: only an exact match earns praise.
+  assert.ok(answersMatch("1111", "1111"));
+  assert.ok(answersMatch("1111", "1 111"), "spacing never counts against the child");
+  assert.ok(!answersMatch("1111", "111"));
+});
+
+test("feedback hands the model two exact candidate sentences, never an abstract goal", () => {
   const wrong = buildFeedbackBeat(askMode3(), false, "42");
-  assert.match(wrong.goal, /Do NOT give the answer yet/);
+  assert.equal(wrong.sayCandidates?.length, 2, "two candidates to choose between");
+  assert.ok(wrong.sayCandidates!.every((c) => !c.includes("42")), "candidates never give the answer");
   assert.equal(wrong.endBy, "asking");
 
   const right = buildFeedbackBeat(askMode3(), true);
-  assert.match(right.goal, /Praise the effort/);
+  assert.equal(right.sayCandidates?.length, 2);
   assert.equal(right.endBy, "pausing");
+
+  const beforeReteach = buildFeedbackBeat(askMode3(), false, "42", { reteachFollows: true });
+  assert.equal(beforeReteach.sayCandidates?.length, 2);
+  assert.equal(beforeReteach.endBy, "pausing", "no dangling question when a reteach follows");
+});
+
+test("buildDirectorResult: say for exact words, say_one_of for feedback, instruction otherwise", async () => {
+  const { buildDirectorResult } = await import("./lessonOrchestrator");
+  const spoken = beat({ type: "EXPLAIN", segmentIndex: -1, mode: null });
+  spoken.spokenText = "බලන්න පුතේ, මේ ගණක රාමුව.";
+  assert.deepEqual(
+    (buildDirectorResult(spoken) as { say_exactly: string }).say_exactly,
+    "බලන්න පුතේ, මේ ගණක රාමුව.",
+  );
+  const feedback = buildFeedbackBeat(askMode3(), true);
+  assert.ok(Array.isArray((buildDirectorResult(feedback) as { say_exactly_one_of: string[] }).say_exactly_one_of));
+  const free = askMode3();
+  assert.ok(typeof (buildDirectorResult(free) as { instruction: string }).instruction === "string");
 });
 
 test("every beat type has a registry entry with an estimate and a response mode", () => {

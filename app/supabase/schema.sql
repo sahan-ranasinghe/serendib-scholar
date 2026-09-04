@@ -304,3 +304,9 @@ create table if not exists child_profile (
   last_opener_topic text,
   notes text
 );
+
+-- Child address forms (පුතේ/දුවේ) resolve from this — collected by
+-- onboarding later; 'unspecified' drops the address word entirely.
+alter table children
+  add column if not exists gender text not null default 'unspecified'
+  check (gender in ('boy', 'girl', 'unspecified'));

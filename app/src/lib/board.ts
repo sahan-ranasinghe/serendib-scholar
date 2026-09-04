@@ -95,9 +95,23 @@ export type BoardContent =
   // goals, transitions, session close, a concept's opening explanation) —
   // the board is never just empty during a lesson.
   | { type: "title_card"; title: string; emoji?: string }
+  // The animated abacus manipulative (AnimatedAbacus.tsx): `digits` is the
+  // target number per rod, `shown` how many beads are currently on each rod
+  // (abacus_add_bead patches raise it), `selfAnimate` makes the beads land
+  // on their own, and `childAnswer` renders the child's spoken/typed number
+  // in a second colour beneath for comparison.
+  | {
+      type: "abacus";
+      digits: number[];
+      shown: number[];
+      selfAnimate: boolean;
+      childAnswer: string | null;
+    }
+  // Chalk-style verbatim text from the teacher's board.
+  | { type: "text_card"; text: string }
   | { type: "empty" };
 
-/** True when there's real content to show — used by TeachingBoard.tsx to render/collapse, and HostScreen.tsx's mobile character/board view toggle. */
+/** True when there's real content to show — used by TeachingBoard.tsx to render/collapse. */
 export function hasVisibleBoardContent(content: BoardContent | null): content is Exclude<BoardContent, { type: "empty" }> {
   return content !== null && content.type !== "empty";
 }
