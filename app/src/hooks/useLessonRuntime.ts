@@ -3,7 +3,7 @@
 import { useCallback, useRef, useState } from "react";
 import { PcmPlayer } from "@/lib/pcmAudio";
 import { closeRecordingContext, recordAnswer as recordAnswerClip, type AnswerRecorderHandle } from "@/lib/answerRecorder";
-import { clipMetaPath, clipUrl, clipKey, AUDIO_BUCKET, AUDIO_FORMAT_VERSION, type ClipMeta } from "@/lib/audioCache";
+import { clipKey, AUDIO_FORMAT_VERSION, type ClipMeta } from "@/lib/audioCache";
 import { useLiveChat } from "@/hooks/useLiveChat";
 import {
   advance,
@@ -75,6 +75,7 @@ import {
 
 export type RuntimeStatus =
   | "idle"
+  | "locked"
   | "preparing"
   | "teaching"
   | "listening"
@@ -88,10 +89,9 @@ export interface AnswerPad {
   options?: string[];
 }
 
-/** Playback needs the pinned voice + storage origin to find a clip. */
+/** Playback needs the pinned voice to NAME a clip (clips come via /api/clip). */
 interface AudioConfig {
   voice: string;
-  storageUrl: string;
 }
 
 const MIC_TAIL_MS = 400;
@@ -175,71 +175,92 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
   // -----------------------------------------------------------------
 
   /**
-   * Resolves a line to a playable clip. The fast path never touches the
-   * app server: the clip's key is derived from the words themselves, so
-   * the browser fetches the metadata and the audio straight from storage.
-   * A miss (a line the batch render hasn't reached, or one written at
-   * runtime) falls back to /api/speak-line, which renders and caches it.
+   * In-memory clip cache: key → in-flight or resolved clip. Preloading and
+   * playback share it, so the preloaded next-three clips are the ones that
+   * actually play. Bounded by eviction (a session's working set is small —
+   * the current clip plus the preload horizon).
    */
-  const fetchClip = async (
+  const clipCacheRef = useRef(new Map<string, Promise<{ text: string; audio: ArrayBuffer; meta: ClipMeta } | null>>());
+  const CLIP_CACHE_MAX = 12;
+
+  /** One clip from /api/clip/<key> (302 → 10-min signed URL; fetch follows it). */
+  const loadClipByKey = async (key: string, text: string): Promise<{ text: string; audio: ArrayBuffer; meta: ClipMeta } | null> => {
+    const metaResponse = await fetch(`/api/clip/${key}?meta=1`);
+    if (!metaResponse.ok) return null;
+    const meta = (await metaResponse.json()) as ClipMeta;
+    const audioResponse = await fetch(`/api/clip/${key}`);
+    if (!audioResponse.ok) return null;
+    return { text, audio: await audioResponse.arrayBuffer(), meta };
+  };
+
+  /**
+   * Resolves a line to a playable clip, via the session-gated clip door
+   * (/api/clip → signed URL; the bucket itself is private). A miss — a
+   * line the batch render hasn't reached, or one written at runtime —
+   * falls back to /api/speak-line, which renders, caches, and hands back
+   * the key.
+   */
+  const fetchClip = (
     text: string,
     fallback: { goal?: string; maxSentences?: number } = {},
   ): Promise<{ text: string; audio: ArrayBuffer; meta: ClipMeta } | null> => {
     const config = audioConfigRef.current;
-    if (config && text) {
-      const key = clipKey(text, config.voice);
-      try {
-        const metaResponse = await fetch(
-          `${config.storageUrl}/storage/v1/object/public/${AUDIO_BUCKET}/${clipMetaPath(key)}`,
-        );
-        if (metaResponse.ok) {
-          const meta = (await metaResponse.json()) as ClipMeta;
-          const audioResponse = await fetch(clipUrl(config.storageUrl, key));
-          if (audioResponse.ok) {
-            metricsRef.current.clipsPlayed += 1;
-            return { text, audio: await audioResponse.arrayBuffer(), meta };
-          }
-        }
-      } catch {
-        // Storage unreachable — fall through to the render route.
-      }
-    }
+    const cacheKey = text && config ? clipKey(text, config.voice) : `goal:${fallback.goal ?? ""}`;
+    const cached = clipCacheRef.current.get(cacheKey);
+    if (cached) return cached;
 
-    try {
-      const response = await fetch("/api/speak-line", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, goal: fallback.goal, max_sentences: fallback.maxSentences ?? 2 }),
-      });
-      const payload = await response.json();
-      if (!payload?.ok) throw new Error(payload?.error ?? "no clip");
-      const audioResponse = await fetch(payload.url);
-      if (!audioResponse.ok) throw new Error("clip fetch failed");
-      metricsRef.current.clipsPlayed += 1;
-      if (!payload.from_cache) metricsRef.current.clipsRendered += 1;
-      logEvent(`render ${payload.from_cache ? "cache" : "NEW"} "${String(payload.text).slice(0, 30)}…"`);
-      return {
-        text: payload.text as string,
-        audio: await audioResponse.arrayBuffer(),
-        meta: {
-          durationMs: payload.duration_ms as number,
-          sentences: payload.sentences as ClipMeta["sentences"],
-          text: payload.text as string,
-          voice: audioConfigRef.current?.voice ?? "",
-        },
-      };
-    } catch (err) {
-      console.error("[useLessonRuntime] Could not get a clip for:", text.slice(0, 60), err);
-      return null;
+    const load = (async () => {
+      if (text && config) {
+        try {
+          const clip = await loadClipByKey(clipKey(text, config.voice), text);
+          if (clip) {
+            metricsRef.current.clipsPlayed += 1;
+            return clip;
+          }
+        } catch {
+          // fall through to the render route
+        }
+      }
+      try {
+        const response = await fetch("/api/speak-line", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            text,
+            goal: fallback.goal,
+            max_sentences: fallback.maxSentences ?? 2,
+            session_id: sessionIdRef.current,
+          }),
+        });
+        const payload = await response.json();
+        if (!payload?.ok) throw new Error(payload?.error ?? "no clip");
+        metricsRef.current.clipsPlayed += 1;
+        if (!payload.from_cache) metricsRef.current.clipsRendered += 1;
+        logEvent(`render ${payload.from_cache ? "cache" : "NEW"} "${String(payload.text).slice(0, 30)}…"`);
+        const clip = await loadClipByKey(payload.key as string, payload.text as string);
+        if (!clip) throw new Error("rendered clip not fetchable");
+        return clip;
+      } catch (err) {
+        console.error("[useLessonRuntime] Could not get a clip for:", text.slice(0, 60), err);
+        clipCacheRef.current.delete(cacheKey); // never cache a failure
+        return null;
+      }
+    })();
+
+    clipCacheRef.current.set(cacheKey, load);
+    // Evict oldest entries beyond the horizon (Map preserves insert order).
+    while (clipCacheRef.current.size > CLIP_CACHE_MAX) {
+      const oldest = clipCacheRef.current.keys().next().value;
+      if (oldest === undefined) break;
+      clipCacheRef.current.delete(oldest);
     }
+    return load;
   };
 
-  /** Warms the browser cache for a line we're about to need. */
+  /** Warms the cache for a line we're about to need (same path playback uses). */
   const prefetchClip = (text: string | undefined) => {
-    const config = audioConfigRef.current;
-    if (!text || !config) return;
-    const key = clipKey(text, config.voice);
-    void fetch(clipUrl(config.storageUrl, key)).catch(() => undefined);
+    if (!text || !audioConfigRef.current) return;
+    void fetchClip(text);
   };
 
   /** The exact words this beat speaks, address token resolved. */
@@ -667,10 +688,15 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
       if (!next) break;
 
       const wasClose = next.type === "CLOSE_SESSION";
-      // Warm the next line while this one plays — playback should never
-      // wait on the network between beats.
-      const following = script.beats[stateRef.current.beatIndex + 1];
-      prefetchClip(following ? resolveAddress(lineFor(following) ?? "", childGenderRef.current) : undefined);
+      // Warm the next THREE lines while this one plays — playback should
+      // never wait on the network between beats, even across a couple of
+      // quick short beats.
+      for (let ahead = 1; ahead <= 3; ahead += 1) {
+        const following = script.beats[stateRef.current.beatIndex + ahead];
+        if (!following) break;
+        const line = lineFor(following);
+        if (line) prefetchClip(resolveAddress(line, childGenderRef.current));
+      }
 
       if (next.type === "RECAP") {
         // The placeholder expands into this child's own review question(s).
@@ -757,9 +783,44 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
     setRuntimeStatus("idle");
   }, [chat]);
 
+  /**
+   * The session cookie, before anything else. /api/* is deny-by-default
+   * (see proxy.ts): without this cookie every call the lesson makes would
+   * 401. A device that has never entered the access code lands in the
+   * "locked" state and the screen shows the code entry.
+   */
+  const ensureSession = async (accessCode?: string): Promise<"ok" | "locked" | "error"> => {
+    try {
+      const response = await fetch("/api/session-start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(accessCode ? { access_code: accessCode } : {}),
+      });
+      if (response.ok) return "ok";
+      if (response.status === 401) {
+        const payload = await response.json().catch(() => ({}));
+        if (payload?.error === "wrong_code") setError("කේතය වැරදියි. ආයෙ බලලා ලියන්න.");
+        return "locked";
+      }
+      return "error";
+    } catch {
+      return "error";
+    }
+  };
+
   const start = useCallback(async () => {
     setError(null);
     setRuntimeStatus("preparing");
+    const auth = await ensureSession();
+    if (auth === "locked") {
+      setRuntimeStatus("locked");
+      return;
+    }
+    if (auth === "error") {
+      setError("සම්බන්ධ වෙන්න බැරි වුණා. ආයෙ උත්සාහ කරන්න.");
+      setRuntimeStatus("error");
+      return;
+    }
     stoppedRef.current = false;
     pausedRef.current = false;
     pendingBeatsRef.current = [];
@@ -787,10 +848,7 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
         fetch("/api/active-child", { method: "POST" }).then((response) => response.json()),
         fetchResumePoint(),
       ]);
-      audioConfigRef.current =
-        audioConfig?.ok && audioConfig.voice && audioConfig.storage_url
-          ? { voice: audioConfig.voice, storageUrl: audioConfig.storage_url }
-          : null;
+      audioConfigRef.current = audioConfig?.ok && audioConfig.voice ? { voice: audioConfig.voice } : null;
       childGenderRef.current = child?.gender === "boy" || child?.gender === "girl" ? child.gender : "unspecified";
 
       let startIndex = 0;
@@ -830,6 +888,20 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [subject, grade, lesson]);
+
+  /** The access-code entry (parent-facing, once per device). */
+  const submitAccessCode = useCallback(async (code: string) => {
+    setError(null);
+    const outcome = await ensureSession(code.trim());
+    if (outcome === "ok") {
+      setRuntimeStatus("idle"); // the screen's auto-start retry takes it from here
+      void start();
+    } else if (outcome === "error") {
+      setError("සම්බන්ධ වෙන්න බැරි වුණා. ආයෙ උත්සාහ කරන්න.");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
 
   const togglePause = useCallback(() => {
     pausedRef.current = !pausedRef.current;
@@ -932,6 +1004,7 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
     resumeAudioOutput,
     getOutputAmplitude,
     getDebugSnapshot,
+    submitAccessCode,
   };
 }
 

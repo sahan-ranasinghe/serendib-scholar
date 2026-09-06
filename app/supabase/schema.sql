@@ -334,3 +334,40 @@ create table if not exists debug_reports (
 -- → ensureAudioBucket), so there is nothing to run here. It is public because
 -- clips are lesson content, never child data. Bumping AUDIO_FORMAT_VERSION in
 -- src/lib/audioCache.ts changes the prefix and so invalidates every clip.
+
+-- ---------------------------------------------------------------------------
+-- API rate limiting (see src/lib/rateLimit.ts and proxy.ts)
+--
+-- One row per bucket: a window start and a count. The server reads,
+-- checks, and upserts; when the window has passed the row resets. Until
+-- this table exists the limiters FAIL OPEN and log an error on every
+-- check — run this to activate them.
+create table if not exists api_rate_limits (
+  bucket text primary key,
+  window_started_at timestamptz not null,
+  count integer not null default 0
+);
+
+-- ---------------------------------------------------------------------------
+-- ROW LEVEL SECURITY — deny-all for anon/authenticated on every table.
+--
+-- The app talks to Postgres exclusively through the SERVICE ROLE key from
+-- server code (src/lib/supabaseAdmin.ts; the browser holds no Supabase
+-- key at all), and service role bypasses RLS by design. Enabling RLS with
+-- NO policies therefore changes nothing for the app and closes the door
+-- on anyone who finds the project URL and tries the anon key: every
+-- select/insert/update/delete is denied.
+alter table children             enable row level security;
+alter table child_profile        enable row level security;
+alter table child_progress       enable row level security;
+alter table child_weaknesses     enable row level security;
+alter table content_bank         enable row level security;
+alter table syllabus_chunks      enable row level security;
+alter table lesson_scripts       enable row level security;
+alter table session_log          enable row level security;
+alter table teacher_review_flags enable row level security;
+alter table api_rate_limits      enable row level security;
+-- debug_reports may not exist yet (its DDL is earlier in this file):
+alter table if exists debug_reports enable row level security;
+-- Deliberately NO create policy statements: no policies = deny-all for
+-- anon and authenticated. Service role is unaffected.

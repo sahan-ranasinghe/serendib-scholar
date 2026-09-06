@@ -1,5 +1,7 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { ZARA_VOICE as SHARED_ZARA_VOICE } from "@/lib/zaraVoice";
+import { requireSession } from "@/lib/sessionAuth";
+import { limitedResponseBody, takeBudget } from "@/lib/rateLimit";
 import { GoogleGenAI, Modality } from "@google/genai";
 import { buildSystemPrompt } from "@/lib/prompt";
 import { GEMINI_LIVE_TOOLS } from "@/lib/geminiLiveTools";
@@ -28,7 +30,31 @@ const ZARA_VOICE = SHARED_ZARA_VOICE;
  * so a compromised or tampered client can't swap out the system prompt or
  * tool set.
  */
-export async function POST() {
+/**
+ * Live-chat daily budget: 15 minutes per child per day, charged
+ * conservatively at 5 minutes per chat OPENING (the client closes a chat
+ * after 20s of quiet, so real chats are shorter; the charge caps how many
+ * can be opened, since the server cannot measure a WebSocket it is not a
+ * party to). The ephemeral token below also expires ≤30 min out, bounding
+ * any single session's life.
+ */
+const CHAT_DAILY_BUDGET_SECONDS = 15 * 60;
+const CHAT_CHARGE_PER_OPEN_SECONDS = 5 * 60;
+
+export async function POST(request: NextRequest) {
+  // Defense in depth behind the proxy: minting a Live token spends money.
+  const session = await requireSession(request);
+  if (!session) return NextResponse.json({ ok: false, error: "unauthenticated" }, { status: 401 });
+
+  const day = new Date().toISOString().slice(0, 10);
+  const chatBudget = await takeBudget(
+    `chat:${session.child_id}:${day}`,
+    CHAT_DAILY_BUDGET_SECONDS,
+    24 * 60 * 60,
+    CHAT_CHARGE_PER_OPEN_SECONDS,
+  );
+  if (!chatBudget.allowed) return NextResponse.json(limitedResponseBody(), { status: 429 });
+
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     return NextResponse.json(

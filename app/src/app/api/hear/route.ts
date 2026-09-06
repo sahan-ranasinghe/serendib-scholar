@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
+import { requireSession } from "@/lib/sessionAuth";
+import { limitedResponseBody, takeBudget } from "@/lib/rateLimit";
 
 /**
  * What the child just said — one request, one answer.
@@ -41,12 +43,21 @@ const PROMPT = [
 ].join("\n");
 
 export async function POST(request: NextRequest) {
+  // Defense in depth behind the proxy: this route spends model money.
+  const session = await requireSession(request);
+  if (!session) return NextResponse.json({ ok: false, error: "unauthenticated" }, { status: 401 });
+
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     return NextResponse.json({ ok: false, error: "GEMINI_API_KEY is not set." }, { status: 500 });
   }
 
   const body = await request.json().catch(() => ({}));
+  // 40 hearings / 10 minutes / session — far above honest use (a busy
+  // session asks ~25 questions in 20 minutes), low enough to cap a loop.
+  const sessionKey = typeof body.session_id === "string" ? body.session_id.slice(0, 40) : session.child_id;
+  const budget = await takeBudget(`hear:${sessionKey}`, 40, 600);
+  if (!budget.allowed) return NextResponse.json(limitedResponseBody(), { status: 429 });
   const audio = typeof body.audio === "string" ? body.audio : "";
   const mimeType = typeof body.mime_type === "string" ? body.mime_type : "audio/wav";
   if (!audio) {

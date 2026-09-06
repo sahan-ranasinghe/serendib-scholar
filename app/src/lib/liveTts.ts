@@ -148,12 +148,23 @@ export async function ensureClip(text: string, apiKey: string, options: { force?
   return { ...meta, key, rendered: true };
 }
 
-/** Creates the public clip bucket if it isn't there yet (no DDL needed). */
+/**
+ * Creates the clip bucket if it isn't there yet (no DDL needed) — PRIVATE:
+ * the browser reaches clips only through /api/clip/<key>, which requires a
+ * session and returns a short-lived signed URL.
+ */
 export async function ensureAudioBucket(): Promise<void> {
   const { data } = await supabaseAdmin.storage.getBucket(AUDIO_BUCKET);
-  if (data) return;
+  if (data) {
+    if (data.public) {
+      const { error } = await supabaseAdmin.storage.updateBucket(AUDIO_BUCKET, { public: false });
+      if (error) throw new Error(`could not make the ${AUDIO_BUCKET} bucket private: ${error.message}`);
+      console.warn(`[liveTts] The ${AUDIO_BUCKET} bucket was public — made it private.`);
+    }
+    return;
+  }
   const { error } = await supabaseAdmin.storage.createBucket(AUDIO_BUCKET, {
-    public: true,
+    public: false,
     fileSizeLimit: "20MB",
     allowedMimeTypes: ["audio/wav", "application/json"],
   });

@@ -53,7 +53,11 @@ export default function LessonScreen() {
     getDebugSnapshot,
     getOutputAmplitude,
     resumeAudioOutput,
+    submitAccessCode,
   } = useLessonRuntime();
+
+  // Access-code entry (parent-facing, once per device — see /api/session-start).
+  const [codeDraft, setCodeDraft] = useState("");
 
   // The two states the child sees a cue for: she is recording their answer
   // ("listening"), or their answer is being judged ("thinking").
@@ -314,7 +318,7 @@ export default function LessonScreen() {
               හිතනවා…
             </div>
           )}
-          {error && (
+          {error && status !== "locked" && (
             <button
               type="button"
               onClick={() => void start()}
@@ -322,6 +326,39 @@ export default function LessonScreen() {
             >
               {error} — නැවත උත්සාහ කරන්න
             </button>
+          )}
+
+          {/* device gate: the shared access code, entered once per device */}
+          {status === "locked" && (
+            <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-3 bg-[#26414e]/95 px-6">
+              <p className="text-center text-lg font-semibold text-white">ප්‍රවේශ කේතය ඇතුළත් කරන්න</p>
+              <p className="text-center text-xs text-white/70">
+                (දෙමාපියන් සඳහා — මේ උපකරණයේ එක වතාවක් පමණයි)
+              </p>
+              <form
+                className="flex items-center gap-2"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  if (codeDraft.trim()) void submitAccessCode(codeDraft);
+                }}
+              >
+                <input
+                  type="password"
+                  inputMode="text"
+                  autoFocus
+                  value={codeDraft}
+                  onChange={(event) => setCodeDraft(event.target.value)}
+                  className="w-44 rounded-xl border-2 border-white/40 bg-white px-3 py-2 text-center text-lg tracking-widest text-stone-800"
+                />
+                <button
+                  type="submit"
+                  className="rounded-xl bg-amber-400 px-4 py-2 text-lg font-bold text-[#26414e] active:scale-95"
+                >
+                  ඇතුල් වෙන්න
+                </button>
+              </form>
+              {error && <p className="text-sm font-semibold text-rose-300">{error}</p>}
+            </div>
           )}
           {/* the child's own way in: free conversation, on request */}
           {status !== "idle" && status !== "error" && (

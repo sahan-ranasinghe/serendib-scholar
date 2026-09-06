@@ -1,0 +1,63 @@
+name: CI
+
+# Every push and PR: types, lint, unit tests, the lesson dry-run's
+# assertions, and a dependency vulnerability audit. Pair this with branch
+# protection on master (see docs/SECURITY.md) so a red run blocks merging.
+on:
+  push:
+  pull_request:
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        run: npx tsc --noEmit -p .
+
+      - name: Lint
+        run: npx eslint src scripts proxy.ts
+
+      - name: Unit tests
+        run: |
+          npx tsx --test \
+            src/lib/lessonOrchestrator.test.ts \
+            src/lib/timeStretch.test.ts \
+            src/lib/addressToken.test.ts \
+            src/lib/boardContentParser.test.ts \
+            src/lib/pageReferenceDetection.test.ts \
+            scripts/ingest-syllabus.test.ts \
+            scripts/lib/geminiRetry.test.ts
+
+      # The dry run rebuilds the lesson from content_bank and walks its
+      # assertions — it needs read access to the database. Add these two
+      # repository secrets (Settings → Secrets and variables → Actions):
+      #   NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
+      # Without them this step SKIPS (visibly) rather than failing every
+      # fork/PR that can't see secrets.
+      - name: Lesson dry-run assertions
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ]; then
+            echo "::warning::Supabase secrets not configured — dry-run assertions SKIPPED"
+            exit 0
+          fi
+          npx tsx scripts/dry-run-lesson.ts
+
+      - name: Dependency audit (high+)
+        run: npm audit --audit-level=high

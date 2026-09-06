@@ -68,6 +68,24 @@ setTimeout(async () => {
   console.log(`${stamp()} tapped screen (gesture resume)`);
 }, 6000);
 
+// The device gate: if the access-code screen is up, type the code the way
+// a parent would (ACCESS_CODE env var of this script's own process).
+setTimeout(async () => {
+  const result = await send("Runtime.evaluate", {
+    returnByValue: true,
+    expression: `(() => {
+      const input = document.querySelector('input[type="password"]');
+      if (!input) return "no gate visible";
+      const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set;
+      setter.call(input, ${JSON.stringify(process.env.VERIFY_ACCESS_CODE ?? "")});
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      input.closest("form").requestSubmit();
+      return "code submitted";
+    })()`,
+  });
+  console.log(`${stamp()} gate: ${result?.result?.value}`);
+}, 9000);
+
 // Periodic AudioContext ground truth, straight from the page.
 const probe = setInterval(async () => {
   const r = await send("Runtime.evaluate", {

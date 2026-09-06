@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
 import { ensureAudioBucket, ensureClip, readCachedClip } from "@/lib/liveTts";
-import { clipUrl } from "@/lib/audioCache";
 import { getActiveChild } from "@/lib/activeChild";
 import { resolveAddress } from "@/lib/addressToken";
+import { requireSession } from "@/lib/sessionAuth";
+import { limitedResponseBody, takeBudget } from "@/lib/rateLimit";
 
 /**
  * One spoken line, on demand.
@@ -63,6 +64,8 @@ async function writeLine(goal: string, maxSentences: number, apiKey: string): Pr
 }
 
 export async function POST(request: NextRequest) {
+  const session = await requireSession(request);
+  if (!session) return NextResponse.json({ ok: false, error: "unauthenticated" }, { status: 401 });
   const apiKey = process.env.GEMINI_API_KEY;
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   if (!apiKey || !supabaseUrl) {
@@ -86,6 +89,8 @@ export async function POST(request: NextRequest) {
       written = true;
     }
 
+    // The clip itself is fetched through /api/clip/<key> (signed URL,
+    // session required) — this route hands back the key, never a public URL.
     const cached = await readCachedClip(text);
     if (cached) {
       return NextResponse.json({
@@ -93,11 +98,18 @@ export async function POST(request: NextRequest) {
         text,
         written,
         from_cache: true,
-        url: clipUrl(supabaseUrl, cached.key),
+        key: cached.key,
         duration_ms: cached.durationMs,
         sentences: cached.sentences,
       });
     }
+
+    // Only an actual render (a voice-model call) spends the budget — cache
+    // hits above are free. 20 per session; a healthy session renders 0-2
+    // (RETEACH lines and unusual CONFIRM values).
+    const sessionKey = typeof body.session_id === "string" ? body.session_id.slice(0, 40) : session.child_id;
+    const budget = await takeBudget(`render:${sessionKey}`, 20, 4 * 60 * 60);
+    if (!budget.allowed) return NextResponse.json(limitedResponseBody(), { status: 429 });
 
     await ensureAudioBucket();
     const clip = await ensureClip(text, apiKey);
@@ -106,7 +118,7 @@ export async function POST(request: NextRequest) {
       text,
       written,
       from_cache: false,
-      url: clipUrl(supabaseUrl, clip.key),
+      key: clip.key,
       duration_ms: clip.durationMs,
       sentences: clip.sentences,
     });
