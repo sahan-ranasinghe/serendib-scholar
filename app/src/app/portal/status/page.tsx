@@ -10,6 +10,11 @@
  */
 import { useEffect, useState } from "react";
 
+interface HealthPayload {
+  ok: boolean;
+  checks: Array<{ name: string; ok: boolean; detail: string }>;
+}
+
 interface StatusPayload {
   total: number;
   recorded: number;
@@ -31,6 +36,7 @@ interface StatusPayload {
 
 export default function PortalStatusPage() {
   const [status, setStatus] = useState<StatusPayload | null>(null);
+  const [health, setHealth] = useState<HealthPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -41,18 +47,22 @@ export default function PortalStatusPage() {
         return;
       }
       setStatus(await response.json());
+      // Health is a live round-trip through the recording path, so it is
+      // fetched alongside progress rather than on demand: the first real
+      // session failed on a bucket setting nobody could see from here.
+      setHealth(await fetch("/api/portal/health").then((r) => r.json()).catch(() => null));
     };
     void load();
     const timer = setInterval(() => void load(), 30000);
     return () => clearInterval(timer);
   }, []);
 
-  if (error) return <main className="p-8 text-sm">{error}</main>;
-  if (!status) return <main className="p-8 text-stone-500">Loading…</main>;
+  if (error) return <main className="min-h-dvh bg-white p-8 text-sm text-stone-900">{error}</main>;
+  if (!status) return <main className="min-h-dvh bg-white p-8 text-stone-700">Loading…</main>;
 
   const pct = Math.round((status.recorded / Math.max(1, status.total)) * 100);
   return (
-    <main className="mx-auto max-w-3xl p-6">
+    <main className="mx-auto min-h-dvh max-w-3xl bg-white p-6 text-stone-900">
       <h1 className="text-2xl font-bold">Recording progress</h1>
 
       <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -62,9 +72,9 @@ export default function PortalStatusPage() {
           { label: "minutes", value: status.minutes },
           { label: "her re-wordings", value: status.rewordings },
         ].map((tile) => (
-          <div key={tile.label} className="rounded-xl border border-stone-300 p-3">
+          <div key={tile.label} className="rounded-xl border border-stone-400 p-3">
             <div className="text-2xl font-bold">{tile.value}</div>
-            <div className="text-xs uppercase tracking-wide text-stone-500">{tile.label}</div>
+            <div className="text-xs uppercase tracking-wide text-stone-600">{tile.label}</div>
           </div>
         ))}
       </div>
@@ -80,11 +90,26 @@ export default function PortalStatusPage() {
         </p>
       )}
 
+      <h2 className="mt-6 text-lg font-semibold">Recording path</h2>
+      {!health && <p className="mt-2 text-sm text-stone-700">Checking…</p>}
+      {health && (
+        <ul className="mt-2 space-y-1 text-sm" data-portal="health">
+          {health.checks.map((check) => (
+            <li
+              key={check.name}
+              className={`rounded p-2 ${check.ok ? "bg-emerald-50 text-emerald-900" : "bg-rose-50 text-rose-900"}`}
+            >
+              <span className="font-mono text-xs">{check.ok ? "OK  " : "FAIL"}</span> <b>{check.name}</b> — {check.detail}
+            </li>
+          ))}
+        </ul>
+      )}
+
       <h2 className="mt-6 text-lg font-semibold">By concept</h2>
       <ul className="mt-2 space-y-1 text-sm">
         {status.byConcept.map((row) => (
           <li key={row.concept} className="flex items-center gap-3">
-            <span className="w-48 font-mono text-xs">{row.concept}</span>
+            <span className="w-48 font-mono text-xs text-stone-900">{row.concept}</span>
             <div className="h-2 flex-1 overflow-hidden rounded-full bg-stone-200">
               <div className="h-full bg-sky-500" style={{ width: `${(row.done / Math.max(1, row.total)) * 100}%` }} />
             </div>
@@ -94,15 +119,15 @@ export default function PortalStatusPage() {
       </ul>
 
       <h2 className="mt-6 text-lg font-semibold">Lines she flagged ({status.notes.length})</h2>
-      {status.notes.length === 0 && <p className="mt-2 text-sm text-stone-500">Nothing flagged.</p>}
+      {status.notes.length === 0 && <p className="mt-2 text-sm text-stone-700">Nothing flagged.</p>}
       <ul className="mt-2 space-y-3">
         {status.notes.map((note) => (
           <li key={note.beatId} className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm">
-            <div className="font-mono text-xs text-stone-600">
+            <div className="font-mono text-xs text-stone-700">
               {note.beatId} · {note.status} · {new Date(note.updatedAt).toLocaleString()}
             </div>
             <p className="mt-1 font-medium">“{note.note}”</p>
-            <p className="mt-1 text-stone-600">script: {note.originalText}</p>
+            <p className="mt-1 text-stone-700">script: {note.originalText}</p>
             {note.actorText && <p className="mt-1 text-emerald-800">hers: {note.actorText}</p>}
           </li>
         ))}

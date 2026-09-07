@@ -7,6 +7,7 @@ import { resolveAddress } from "@/lib/addressToken";
 import { clipKey } from "@/lib/audioCache";
 import { ZARA_VOICE } from "@/lib/zaraVoice";
 import { listLines, listTakes } from "@/lib/actorStore";
+import { ensureAudioBucket } from "@/lib/liveTts";
 
 /**
  * Everything the portal needs to draw a whole session, in one request.
@@ -41,7 +42,30 @@ function branchLines(beat: AuthoredBeat): Array<{ suffix: string; label: string;
   return branches;
 }
 
+/**
+ * The bucket's MIME allowlist, reconciled when the portal opens.
+ *
+ * The widen lived only in scripts/render-lesson-audio.ts, which nobody
+ * runs before a recording session — so production kept rejecting her takes
+ * with "mime type audio/webm is not supported" while the fix sat in the
+ * repo looking applied. Reconciling here means the first request the
+ * portal makes repairs the bucket, on every deployment, without anyone
+ * remembering to.
+ *
+ * Once per process, and never fatal: a bucket problem must show up as a
+ * failed health check, not as a portal that will not load.
+ */
+let bucketReconciled: Promise<void> | null = null;
+function reconcileBucketOnce(): Promise<void> {
+  bucketReconciled ??= ensureAudioBucket().catch((error) => {
+    bucketReconciled = null; // let the next request try again
+    console.error(`[portal] could not reconcile the audio bucket: ${String(error).slice(0, 200)}`);
+  });
+  return bucketReconciled;
+}
+
 export async function GET() {
+  await reconcileBucketOnce();
   const file = parseAuthoredScript(await readFile(authoredPath("maths", 5, 1), "utf8").catch(() => null));
   if (!file) {
     return NextResponse.json({ ok: true, lines: [], note: "Nothing authored yet — run npm run author:script." });

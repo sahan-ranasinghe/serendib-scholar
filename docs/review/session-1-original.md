@@ -1,8 +1,8 @@
 # Session 1 — Zara's original script (for review)
 
-Generated 2026-09-07 00:40 with gemini-flash-latest. 112 beats across readWrite4Digit, placeValue4Digit.
+Generated 2026-09-07 00:40 with gemini-flash-latest. 113 beats across readWrite4Digit, placeValue4Digit.
 
-63 of the 112 beats carry `humanEdited: true` — a native-speaker review rewrote them (docs/review/session-1-edits.json, then docs/review/gemini-review-decisions.json). Each is marked **· human-edited** below.
+78 of the 113 beats carry `humanEdited: true` — a native-speaker review rewrote them (docs/review/session-1-edits.json, then docs/review/gemini-review-decisions.json). Each is marked **· human-edited** below.
 
 **Status: APPROVED.** These are the words a child hears. Editing the JSON invalidates the cached script automatically; set `"approved": false` to take it back off the air.
 
@@ -105,21 +105,21 @@ Board: `{"kind":"none"}`
 
 ### `authored:readWrite4Digit:3`
 
-**SOFT_CHECK** · pause: SOFT_CHECK · guide: Display a row of numbers with up to 3 digits and have students read each number's name aloud. · expects **එකසිය එක** · max-sim J 0.15 · **human-edited**
+**EXPLAIN** · pause: — · guide: Display a row of numbers with up to 3 digits and have students read each number's name aloud. · max-sim J 0.00 · **human-edited**
 
-> හරියටම හරි, අසූ හතර. දැන් මේ ඊළඟ සංඛ්‍යාවේ සංඛ්‍යා නාමය කියන්නකෝ.
+> පළමු සංඛ්‍යාව අසූ හතරයි.
 
-Source: `හරියටම හරි, {number:84}. දැන් මේ ඊළඟ සංඛ්‍යාවේ සංඛ්‍යා නාමය කියන්නකෝ.`
+Source: `පළමු සංඛ්‍යාව {number:84}යි.`
 
 Board: `{"kind":"none"}`
 
 ### `authored:readWrite4Digit:4`
 
-**EXPLAIN** · pause: — · guide: Display a row of numbers with up to 3 digits and have students read each number's name aloud. · max-sim J 0.27 / C 0.77
+**EXPLAIN** · pause: — · guide: Display a row of numbers with up to 3 digits and have students read each number's name aloud. · max-sim J 0.25 · **human-edited**
 
-> දසස්ථානයේ බිංදුව තියෙන නිසා ඒ කොටස කියවෙන්නේ නැහැ. හරිම දක්ෂයි!
+> එහි දසස්ථානයේ බිංදුව තියෙන නිසා ඒ කොටස කියවෙන්නේ නැහැ.
 
-Source: `දසස්ථානයේ {number:0} තියෙන නිසා ඒ කොටස කියවෙන්නේ නැහැ. හරිම දක්ෂයි!`
+Source: `එහි දසස්ථානයේ {number:0} තියෙන නිසා ඒ කොටස කියවෙන්නේ නැහැ.`
 
 Board: `{"kind":"none"}`
 
@@ -165,9 +165,9 @@ Board: `{"kind":"text","text":"999 + 1 = ?"}`
 
 **EXPLAIN** · pause: — · guide: Show what comes after 999 using a build-up: 9+1=10, 99+1=100, 999+1=1000. · max-sim J 0.00 · **human-edited**
 
-> නියමයි! නවසිය අනූ නවයට එකක් එකතු වුණාම දහස හැදෙනවා.
+> ඔව්, නවසිය අනූ නවයට එකක් එකතු වුණාම දහස හැදෙනවා.
 
-Source: `නියමයි! {number:999}ට {number:1}ක් එකතු වුණාම {number:1000} හැදෙනවා.`
+Source: `ඔව්, {number:999}ට {number:1}ක් එකතු වුණාම {number:1000} හැදෙනවා.`
 
 Board: `{"kind":"text","text":"999 + 1 = 1000"}`
 
@@ -221,11 +221,11 @@ Board: `{"kind":"none"}`
 
 ### `authored:readWrite4Digit:16`
 
-**EXPLAIN** · pause: — · guide: guide step 3 of 5: Place cards with digits 0-9 on a table; a student picks 4 cards, forms a 4-digit number, and reads/writes it while another confirms. · max-sim J 0.00
+**EXPLAIN** · pause: — · guide: guide step 3 of 5: Place cards with digits 0-9 on a table; a student picks 4 cards, forms a 4-digit number, and reads/writes it while another confirms. · max-sim J 0.00 · **human-edited**
 
-> නියමයි, ඒ සංඛ්‍යාව තුන්දහස් පනස් අට.
+> ඒ සංඛ්‍යාව තුන්දහස් පනස් අටයි.
 
-Source: `නියමයි, ඒ සංඛ්‍යාව {number:3058}.`
+Source: `ඒ සංඛ්‍යාව {number:3058}යි.`
 
 Board: `{"kind":"text","text":"3058 - තුන්දහස් පනස් අට"}`
 
@@ -281,11 +281,11 @@ Board: `{"kind":"none"}`
 
 ### `authored:readWrite4Digit:23`
 
-**EXPLAIN** · pause: — · guide: Give groups a worksheet with a circle containing digits 1, 3, 6, 4. · max-sim J 0.00 · **human-edited**
+**EXPLAIN** · pause: — · guide: Give groups a worksheet with a circle containing digits 1, 3, 6, 4. · max-sim J 0.15 · **human-edited**
 
-> නියමයි! එක්දහස් තුන්සිය හැට හතර හරිම ලස්සන සංඛ්‍යාවක්.
+> උදාහරණයක් විදිහට අපිට එක්දහස් තුන්සිය හැට හතර හදන්නත් පුළුවන්.
 
-Source: `නියමයි! {number:1364} හරිම ලස්සන සංඛ්‍යාවක්.`
+Source: `උදාහරණයක් විදිහට අපිට {number:1364} හදන්නත් පුළුවන්.`
 
 Board: `{"kind":"text","text":"1364"}`
 
@@ -325,11 +325,11 @@ Board: `{"kind":"none"}`
 
 ### `authored:readWrite4Digit:28`
 
-**EXPLAIN** · pause: RHETORICAL · guide: Instruct students to form 5 four-digit numbers using the digits in the circle and write the number name of each. · max-sim J 0.18 · **human-edited**
+**EXPLAIN** · pause: — · guide: Instruct students to form 5 four-digit numbers using the digits in the circle and write the number name of each. · max-sim J 0.16 · **human-edited**
 
-> ශෝක්! මේ ඉලක්කම් එකතු වුණාම අපි ඒක කියවන්නේ එක්දහස් තුන්සිය හැට හතර කියලා නේද?
+> අපි හිතමු මේ ඉලක්කම් වලින් එක්දහස් තුන්සිය හැට හතර හැදුවා කියලා. ඒක කියවන්නේ එක්දහස් තුන්සිය හැට හතර කියලයි.
 
-Source: `ශෝක්! මේ ඉලක්කම් එකතු වුණාම අපි ඒක කියවන්නේ {number:1364} කියලා නේද?`
+Source: `අපි හිතමු මේ ඉලක්කම් වලින් {number:1364} හැදුවා කියලා. ඒක කියවන්නේ {number:1364} කියලයි.`
 
 Board: `{"kind":"text","text":"1364"}`
 
@@ -343,9 +343,9 @@ Board: `{"kind":"none"}`
 
 ### `authored:readWrite4Digit:30`
 
-**TRANSITION** · pause: — · guide: Instruct students to form 5 four-digit numbers using the digits in the circle and write the number name of each. · max-sim J 0.13 / C 0.85
+**EXPLAIN** · pause: — · guide: Instruct students to form 5 four-digit numbers using the digits in the circle and write the number name of each. · max-sim J 0.15 · **human-edited**
 
-> හරිම අපූරුයි, තවත් අලුත් සංඛ්‍යා පහක් හදන්න ලෑල්ලට යමු!
+> තවත් අලුත් සංඛ්‍යා පහක් හදන්න ලෑල්ලට යමු!
 
 Board: `{"kind":"exercise","itemId":"7daf0141-073d-4714-b69e-fb17069e982c"}`
 
@@ -482,35 +482,27 @@ Board: `{"kind":"none"}`
 
 ### `authored:placeValue4Digit:45`
 
-**EXPLAIN** · pause: — · guide: guide step 2 of 7: Ask the class about the digit shown by the beads at each place, the place value at each place, and the value represented by the digit at each place. · max-sim J 0.00
+**EXPLAIN** · pause: — · guide: guide step 2 of 7: Ask the class about the digit shown by the beads at each place, the place value at each place, and the value represented by the digit at each place. · max-sim J 0.00 · **human-edited**
 
-> හරිම දක්ෂයි. එතන පබළු එකක් නිසා අගය එකයි.
+> එතන පබළු එකක් නිසා අගය එකයි.
 
-Source: `හරිම දක්ෂයි. එතන පබළු {number:1} ක් නිසා අගය {number:1} යි.`
+Source: `එතන පබළු {number:1}ක් නිසා අගය {number:1}යි.`
 
 Board: `{"kind":"none"}`
 
 ### `authored:placeValue4Digit:46`
 
-**SOFT_CHECK** · pause: SOFT_CHECK · guide: Ask the class about the digit shown by the beads at each place, the place value at each place, and the value represented by the digit at each place. · expects **දෙක** · max-sim J 0.19 / C 0.79 · **human-edited**
+**EXPLAIN** · pause: — · guide: Ask the class about the digit shown by the beads at each place, the place value at each place, and the value represented by the digit at each place. · max-sim J 0.00 · **human-edited**
 
-> ඊළඟට තියෙන දහයස්ථානයේ පබළු කීයක් පෙනෙනවද?
+> දහයස්ථානයේ පබළු දෙකයි, ඒ නිසා අගය විස්සයි.
 
-Board: `{"kind":"none"}`
-
-### `authored:placeValue4Digit:47`
-
-**EXPLAIN** · pause: — · guide: guide step 2 of 7: Ask the class about the digit shown by the beads at each place, the place value at each place, and the value represented by the digit at each place. · max-sim J 0.00 · **human-edited**
-
-> දහයස්ථානයේ පබළු දෙකක් නිසා අගය විස්සයි.
-
-Source: `දහයස්ථානයේ පබළු {number:2}ක් නිසා අගය {number:20}යි.`
+Source: `දහයස්ථානයේ පබළු {number:2}යි, ඒ නිසා අගය {number:20}යි.`
 
 Board: `{"kind":"none"}`
 
 ### `authored:placeValue4Digit:48`
 
-**SOFT_CHECK** · pause: SOFT_CHECK · guide: Ask the class about the digit shown by the beads at each place, the place value at each place, and the value represented by the digit at each place. · expects **හතර** · max-sim J 0.00 · **human-edited**
+**ASK** · pause: ASK · guide: Ask the class about the digit shown by the beads at each place, the place value at each place, and the value represented by the digit at each place. · expects **හතර** · max-sim J 0.00 · **human-edited**
 
 > සියයස්ථානයේ තියෙන පබළු ගණන කියන්න පුළුවන්ද?
 
@@ -528,19 +520,11 @@ Board: `{"kind":"none"}`
 
 ### `authored:placeValue4Digit:50`
 
-**SOFT_CHECK** · pause: SOFT_CHECK · guide: Ask the class about the digit shown by the beads at each place, the place value at each place, and the value represented by the digit at each place. · expects **පහ** · max-sim J 0.00 · **human-edited**
+**EXPLAIN** · pause: — · guide: Ask the class about the digit shown by the beads at each place, the place value at each place, and the value represented by the digit at each place. · max-sim J 0.00 · **human-edited**
 
-> දහසස්ථානයේ පබළු කීයක් තියෙනවද {address}?
+> දහසස්ථානයේ පබළු පහයි, ඒ නිසා අගය පන්දහසයි.
 
-Board: `{"kind":"none"}`
-
-### `authored:placeValue4Digit:51`
-
-**EXPLAIN** · pause: — · guide: guide step 2 of 7: Ask the class about the digit shown by the beads at each place, the place value at each place, and the value represented by the digit at each place. · max-sim J 0.00
-
-> දහසස්ථානයේ පබළු පහක් නිසා දැක්වෙන අගය පන්දහසයි.
-
-Source: `දහසස්ථානයේ පබළු {number:5} ක් නිසා දැක්වෙන අගය {number:5000} යි.`
+Source: `දහසස්ථානයේ පබළු {number:5}යි, ඒ නිසා අගය {number:5000}යි.`
 
 Board: `{"kind":"none"}`
 
@@ -608,11 +592,11 @@ Board: `{"kind":"none"}`
 
 ### `authored:placeValue4Digit:59`
 
-**EXPLAIN** · pause: — · guide: guide step 3 of 7: Have students say and write the number name of the number on the abacus. · max-sim J 0.10 / C 0.75
+**EXPLAIN** · pause: — · guide: guide step 3 of 7: Have students say and write the number name of the number on the abacus. · max-sim J 0.00 · **human-edited**
 
-> හරිම අපූරුයි! ඔයා කිව්වේ හරියටම හරි, ඒක පන්දහස් හාරසිය විසි එක.
+> ඒ සංඛ්‍යාව පන්දහස් හාරසිය විසි එකයි.
 
-Source: `හරිම අපූරුයි! ඔයා කිව්වේ හරියටම හරි, ඒක {number:5421}.`
+Source: `ඒ සංඛ්‍යාව {number:5421}යි.`
 
 Board: `{"kind":"text","text":"5 421 - පන්දහස් හාරසිය විසි එක"}`
 
@@ -644,11 +628,11 @@ Board: `{"kind":"none"}`
 
 ### `authored:placeValue4Digit:63`
 
-**EXPLAIN** · pause: — · guide: guide step 3 of 7: Have students say and write the number name of the number on the abacus. · max-sim J 0.16 / C 0.82
+**EXPLAIN** · pause: — · guide: guide step 3 of 7: Have students say and write the number name of the number on the abacus. · max-sim J 0.17 · **human-edited**
 
-> නියමයි, ඒක හයදහස් අටසිය තිස් එක තමයි! ඔයා දැන් සංඛ්‍යා නාම ලියන්නත් දන්නවා.
+> ඒක හයදහස් අටසිය තිස් එක තමයි! දැන් ඔයා සංඛ්‍යා නාම කියවන්න හොඳටම දන්නවා.
 
-Source: `නියමයි, ඒක {number:6831} තමයි! ඔයා දැන් සංඛ්‍යා නාම ලියන්නත් දන්නවා.`
+Source: `ඒක {number:6831} තමයි! දැන් ඔයා සංඛ්‍යා නාම කියවන්න හොඳටම දන්නවා.`
 
 Board: `{"kind":"text","text":"6 831 - හයදහස් අටසිය තිස් එක"}`
 
@@ -682,37 +666,27 @@ Board: `{"kind":"none"}`
 
 ### `authored:placeValue4Digit:67`
 
-**EXPLAIN** · pause: — · guide: Show the number written in expanded form. · max-sim J 0.00
+**EXPLAIN** · pause: — · guide: Show the number written in expanded form. · max-sim J 0.00 · **human-edited**
 
-> හරිම දක්ෂයි! ඒක පන්දහසයි.
+> ඒක පන්දහසයි.
 
-Source: `හරිම දක්ෂයි! ඒක {number:5000}යි.`
+Source: `ඒක {number:5000}යි.`
 
 Board: `{"kind":"text","text":"5 421 = 5000 +"}`
 
 ### `authored:placeValue4Digit:68`
 
-**SOFT_CHECK** · pause: SOFT_CHECK · guide: Show the number written in expanded form. · expects **හාරසියය** · max-sim J 0.00 · **human-edited**
+**EXPLAIN** · pause: — · guide: Show the number written in expanded form. · max-sim J 0.00 · **human-edited**
 
-> සියයස්ථානයේ තියෙන්නේ හතරක්. එහි අගය කීයද?
+> සියයස්ථානයේ තියෙන්නේ හතරක්, ඒ නිසා අගය හාරසියයයි.
 
-Source: `සියයස්ථානයේ තියෙන්නේ {number:4}ක්. එහි අගය කීයද?`
+Source: `සියයස්ථානයේ තියෙන්නේ {number:4}ක්, ඒ නිසා අගය {number:400}යි.`
 
 Board: `{"kind":"none"}`
 
-### `authored:placeValue4Digit:69`
-
-**EXPLAIN** · pause: — · guide: Show the number written in expanded form. · max-sim J 0.00
-
-> හරි, ඒක හාරසියයයි. අපි ඒකත් එකතු කරමු.
-
-Source: `හරි, ඒක {number:400}යි. අපි ඒකත් එකතු කරමු.`
-
-Board: `{"kind":"text","text":"5 421 = 5000 + 400 +"}`
-
 ### `authored:placeValue4Digit:70`
 
-**SOFT_CHECK** · pause: SOFT_CHECK · guide: Show the number written in expanded form. · expects **විස්ස** · max-sim J 0.17 · **human-edited**
+**ASK** · pause: ASK · guide: Show the number written in expanded form. · expects **විස්ස** · max-sim J 0.17 · **human-edited**
 
 > ඊළඟට දහයස්ථානයේ තියෙන දෙකෙන් ලැබෙන අගය කීයද?
 
@@ -732,23 +706,13 @@ Board: `{"kind":"text","text":"5 421 = 5000 + 400 + 20 +"}`
 
 ### `authored:placeValue4Digit:72`
 
-**SOFT_CHECK** · pause: SOFT_CHECK · guide: Show the number written in expanded form. · expects **එක** · max-sim J 0.11 · **human-edited**
+**EXPLAIN** · pause: — · guide: Show the number written in expanded form. · max-sim J 0.10 · **human-edited**
 
-> අන්තිමට එකස්ථානයේ තියෙන එකෙන් ලැබෙන්නේ කීයද?
+> අන්තිමට එකස්ථානයේ තියෙන්නේ එකක්, ඒ නිසා ලැබෙන්නේ එකමයි.
 
-Source: `අන්තිමට එකස්ථානයේ තියෙන {number:1}ෙන් ලැබෙන්නේ කීයද?`
+Source: `අන්තිමට එකස්ථානයේ තියෙන්නේ {number:1}ක්, ඒ නිසා ලැබෙන්නේ {number:1}මයි.`
 
 Board: `{"kind":"none"}`
-
-### `authored:placeValue4Digit:73`
-
-**EXPLAIN** · pause: — · guide: Show the number written in expanded form. · max-sim J 0.00 · **human-edited**
-
-> විශිෂ්ටයි! එකස්ථානයේ එකෙන් ලැබෙන්නේ එකමයි.
-
-Source: `විශිෂ්ටයි! එකස්ථානයේ {number:1}ෙන් ලැබෙන්නේ {number:1}මයි.`
-
-Board: `{"kind":"text","text":"5 421 = 5000 + 400 + 20 + 1"}`
 
 ### `authored:placeValue4Digit:74`
 
@@ -804,9 +768,11 @@ Board: `{"kind":"none"}`
 
 ### `authored:placeValue4Digit:80`
 
-**EXPLAIN** · pause: — · guide: guide step 5 of 7: Repeat by representing several different numbers on the abacus and expanding each. · max-sim J 0.13 · **human-edited**
+**EXPLAIN** · pause: — · guide: guide step 5 of 7: Repeat by representing several different numbers on the abacus and expanding each. · max-sim J 0.03 · **human-edited**
 
-> හරිම පැහැදිලියි, කූරේ කිසිම පබළුවක් නෑ. ඒ නිසා එතන අගය බිංදුවයි.
+> කූරේ කිසිම පබළුවක් නෑ. ඒ නිසා එතන අගය බිංදුවයි.
+
+Source: `කූරේ කිසිම පබළුවක් නෑ. ඒ නිසා එතන අගය {number:0}යි.`
 
 Board: `{"kind":"text","text":"7000 + 0"}`
 
@@ -832,11 +798,11 @@ Board: `{"kind":"none"}`
 
 ### `authored:placeValue4Digit:83`
 
-**EXPLAIN** · pause: — · guide: guide step 5 of 7: Repeat by representing several different numbers on the abacus and expanding each. · max-sim J 0.05
+**EXPLAIN** · pause: — · guide: guide step 5 of 7: Repeat by representing several different numbers on the abacus and expanding each. · max-sim J 0.00 · **human-edited**
 
-> හරියටම හරි, ඒක දෙකම තමයි.
+> ඒක දෙකයි.
 
-Source: `හරියටම හරි, ඒක {number:2} ම තමයි.`
+Source: `ඒක {number:2}යි.`
 
 Board: `{"kind":"text","text":"7062 = 7000 + 0 + 60 + 2"}`
 
@@ -894,9 +860,9 @@ Board: `{"kind":"none"}`
 
 **EXPLAIN** · pause: — · guide: guide step 6 of 7: Give groups a card with four digits; have them form several numbers using the digits and write each in expanded form. · max-sim J 0.00 · **human-edited**
 
-> හරියටම හරි, ඒක හයදහසයි.
+> ඒක හයදහසයි.
 
-Source: `හරියටම හරි, ඒක {number:6000}යි.`
+Source: `ඒක {number:6000}යි.`
 
 Board: `{"kind":"text","text":"6 831 = 6000 + 800 + 30 + 1"}`
 
@@ -932,9 +898,9 @@ Board: `{"kind":"none"}`
 
 **EXPLAIN** · pause: — · guide: guide step 6 of 7: Give groups a card with four digits; have them form several numbers using the digits and write each in expanded form. · max-sim J 0.00 · **human-edited**
 
-> හරියටම හරි, ඒක අටදහසයි, හයසියයයි, දහයයි, තුනයි.
+> මුලින්ම ලියවෙන්නේ අටදහසයි. ඊටපස්සේ හයසියයයි, දහයයි, තුනයි එකතු වෙනවා.
 
-Source: `හරියටම හරි, ඒක {number:8000}යි, {number:600}යි, {number:10}යි, {number:3}යි.`
+Source: `මුලින්ම ලියවෙන්නේ {number:8000}යි. ඊටපස්සේ {number:600}යි, {number:10}යි, {number:3}යි එකතු වෙනවා.`
 
 Board: `{"kind":"text","text":"8 613 = 8000 + 600 + 10 + 3"}`
 
@@ -982,11 +948,11 @@ Board: `{"kind":"none"}`
 
 ### `authored:placeValue4Digit:99`
 
-**EXPLAIN** · pause: — · guide: guide step 7 of 7: Give students a worksheet of further expansion exercises to do alone. · max-sim J 0.07 / C 0.78
+**EXPLAIN** · pause: — · guide: guide step 7 of 7: Give students a worksheet of further expansion exercises to do alone. · max-sim J 0.00 · **human-edited**
 
-> හරිම දක්ෂයි, දහසස්ථානයේ ඉන්නේ පහ නේද.
+> දහසස්ථානයේ ඉන්නේ පහ නේද.
 
-Source: `හරිම දක්ෂයි, දහසස්ථානයේ ඉන්නේ {number:5} නේද.`
+Source: `දහසස්ථානයේ ඉන්නේ {number:5} නේද.`
 
 Board: `{"kind":"none"}`
 
@@ -1004,33 +970,85 @@ Board: `{"kind":"none"}`
 
 **EXPLAIN** · pause: — · guide: guide step 7 of 7: Give students a worksheet of further expansion exercises to do alone. · max-sim J 0.00 · **human-edited**
 
-> හරියටම හරි, ඒක පන්දහසයි.
+> ඒක පන්දහසයි.
 
-Source: `හරියටම හරි, ඒක {number:5000}යි.`
+Source: `ඒක {number:5000}යි.`
 
 Board: `{"kind":"text","text":"5 421 = 5000 + ..."}`
 
 ### `authored:placeValue4Digit:102`
 
-**SHOW_BOARD** · pause: — · guide: guide step 7 of 7: Give students a worksheet of further expansion exercises to do alone. · max-sim J 0.12 / C 0.79
+**SHOW_BOARD** · pause: — · guide: guide step 7 of 7: Give students a worksheet of further expansion exercises to do alone. · max-sim J 0.12 · **human-edited**
 
-> දැන් මේ වගුවේ තියෙන අනිත් කොටස් ඔයාට පුරවන්න පුළුවන්.
+> දැන් මේ වගුවේ තියෙන කොටස් අපි එකට පුරවමු.
 
 Board: `{"kind":"exercise","itemId":"7b58e436-334f-452c-bc2a-81f234d03268"}`
 
 ### `authored:placeValue4Digit:103`
 
-**SOFT_CHECK** · pause: SOFT_CHECK · guide: guide step 7 of 7: Give students a worksheet of further expansion exercises to do alone. · max-sim J 0.19 / C 0.87
+**ASK** · pause: ASK · guide: guide step 7 of 7: Give students a worksheet of further expansion exercises to do alone. · expects **6000** · max-sim J 0.00 · **human-edited**
 
-> එක් එක් ස්ථානයේ අගයන් දැන් හොඳටම මතකයි නේද?
+> හයදහස් පන්සිය හැත්තෑ දෙක කියන සංඛ්‍යාවේ හයෙන් පෙන්වන අගය කීයද?
 
-Board: `{"kind":"none"}`
+Source: `{number:6572} කියන සංඛ්‍යාවේ {number:6}ෙන් පෙන්වන අගය කීයද?`
+
+Board: `{"kind":"blank","itemId":"7b58e436-334f-452c-bc2a-81f234d03268","rowIndex":1,"field":"valueRepresented"}`
 
 ### `authored:placeValue4Digit:104`
 
-**EXPLAIN** · pause: — · guide: guide step 7 of 7: Give students a worksheet of further expansion exercises to do alone. · max-sim J 0.10 / C 0.73
+**EXPLAIN** · pause: — · guide: guide step 7 of 7: Give students a worksheet of further expansion exercises to do alone. · max-sim J 0.00 · **human-edited**
 
-> ඔයා මේ හැම අභ්‍යාසයක්ම හරිම ලස්සනට තනියම කළා, විශිෂ්ටයි!
+> ඒක හයදහසයි. ඒ හය තියෙන්නේ දහසස්ථානයේ.
+
+Source: `ඒක {number:6000}යි. ඒ {number:6} තියෙන්නේ දහසස්ථානයේ.`
+
+Board: `{"kind":"none"}`
+
+### `authored:placeValue4Digit:105`
+
+**ASK** · pause: ASK · guide: guide step 7 of 7: Give students a worksheet of further expansion exercises to do alone. · expects **4** · max-sim J 0.22 · **human-edited**
+
+> එහෙනම් පන්දහස් විසි හතර කියන සංඛ්‍යාවේ හතරෙන් පෙන්වන අගය කීයද?
+
+Source: `එහෙනම් {number:5024} කියන සංඛ්‍යාවේ {number:4}ෙන් පෙන්වන අගය කීයද?`
+
+Board: `{"kind":"blank","itemId":"7b58e436-334f-452c-bc2a-81f234d03268","rowIndex":2,"field":"valueRepresented"}`
+
+### `authored:placeValue4Digit:106`
+
+**EXPLAIN** · pause: — · guide: guide step 7 of 7: Give students a worksheet of further expansion exercises to do alone. · max-sim J 0.00 · **human-edited**
+
+> ඒක හතරයි. හතර තියෙන්නේ එකස්ථානයේ.
+
+Source: `ඒක {number:4}යි. {number:4} තියෙන්නේ එකස්ථානයේ.`
+
+Board: `{"kind":"none"}`
+
+### `authored:placeValue4Digit:107`
+
+**ASK** · pause: ASK · guide: guide step 7 of 7: Give students a worksheet of further expansion exercises to do alone. · expects **7** · max-sim J 0.14 · **human-edited**
+
+> අටදහස් හත්සියය කියන සංඛ්‍යාවේ හත්සියය අගය දෙන්නේ මොන ඉලක්කමද?
+
+Source: `{number:8700} කියන සංඛ්‍යාවේ {number:700} අගය දෙන්නේ මොන ඉලක්කමද?`
+
+Board: `{"kind":"blank","itemId":"7b58e436-334f-452c-bc2a-81f234d03268","rowIndex":3,"field":"digit"}`
+
+### `authored:placeValue4Digit:108`
+
+**EXPLAIN** · pause: — · guide: guide step 7 of 7: Give students a worksheet of further expansion exercises to do alone. · max-sim J 0.00 · **human-edited**
+
+> ඒක හතයි. හත තියෙන්නේ සියයස්ථානයේ.
+
+Source: `ඒක {number:7}යි. {number:7} තියෙන්නේ සියයස්ථානයේ.`
+
+Board: `{"kind":"none"}`
+
+### `authored:placeValue4Digit:109`
+
+**EXPLAIN** · pause: — · guide: guide step 7 of 7: Give students a worksheet of further expansion exercises to do alone. · max-sim J 0.19 · **human-edited**
+
+> අද ඔයා හොඳට වැඩ කළා. ස්ථානීය අගය මොකක්ද කියලා දැන් ඔයා දන්නවා.
 
 Board: `{"kind":"none"}`
 

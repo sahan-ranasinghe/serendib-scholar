@@ -34,19 +34,19 @@ export function PortalGate({ onUnlocked }: { onUnlocked: () => void }) {
   };
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-sm flex-col justify-center p-6">
+    <main className="mx-auto flex min-h-dvh max-w-sm flex-col justify-center bg-white p-6 text-stone-900">
       <h1 className="text-xl font-bold">Zara — recording portal</h1>
-      <p className="mt-1 text-sm text-stone-600">Enter the password once; this device will remember it for 30 days.</p>
+      <p className="mt-1 text-sm text-stone-700">Enter the password once; this device will remember it for 30 days.</p>
       <form onSubmit={submit} className="mt-4 flex flex-col gap-3">
         <input
           type="password"
           value={password}
           onChange={(event) => setPassword(event.target.value)}
           autoFocus
-          className="rounded-lg border border-stone-300 p-3"
+          className="rounded-lg border border-stone-400 bg-white p-3 text-stone-900"
           placeholder="Password"
         />
-        <button type="submit" disabled={busy} className="rounded-lg bg-sky-600 p-3 font-bold text-white disabled:opacity-50">
+        <button type="submit" disabled={busy} className="rounded-lg bg-sky-700 p-3 font-bold text-white disabled:opacity-60">
           {busy ? "Checking…" : "Enter"}
         </button>
         {error && <p className="rounded bg-rose-100 p-2 text-sm text-rose-900">{error}</p>}

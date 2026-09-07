@@ -561,6 +561,9 @@ function assertSpeechRules(authoredScript: AuthoredScriptFile | null): void {
       spokenText: beat.spokenText,
       sourceText: beat.sourceText,
       pauseType: beat.pauseType,
+      type: beat.type,
+      expectedAnswer: beat.expectedAnswer ?? null,
+      conceptTag: beat.conceptTag,
     })),
   );
   assert.ok(

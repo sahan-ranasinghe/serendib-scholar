@@ -74,12 +74,40 @@ interface EditsFile {
   replacements: Record<string, string>;
 }
 
+interface BeatRewrite {
+  text?: string;
+  type?: string;
+  pause?: string;
+  expectedAnswer?: string;
+  dropExpectedAnswer?: boolean;
+  board?: AuthoredBoardIntent;
+  why?: string;
+}
+
+interface AppendedBeat {
+  after: string;
+  beat: {
+    id: string;
+    type: string;
+    pause: string;
+    spokenText: string;
+    board: AuthoredBoardIntent;
+    expectedAnswer?: string;
+    why?: string;
+  };
+}
+
 interface CorrectionsFile {
   hookSwap: Record<string, string>;
   softenToSoftCheck: Record<string, string>;
   dropExpectedAnswer: string[];
   hookInUse: Record<string, string>;
   hookAnalogy: Record<string, string>;
+  /** Round 4: praise pulled out of the beat after a question. */
+  neutralConfirmation: Record<string, string>;
+  answerAssumption: Record<string, string>;
+  conversationalRuns: { rewrite: Record<string, BeatRewrite>; remove: Array<{ id: string; why: string }> };
+  ending: { rewrite: Record<string, BeatRewrite>; append: AppendedBeat[] };
 }
 
 interface DecisionsFile {
@@ -282,8 +310,27 @@ async function main(): Promise<void> {
 
   // 4. REPLACEMENTS — round 1 then round 2, second wins on a shared beat.
   const applied: Array<{ id: string; from: string; source: string }> = [];
+  // Round 4 folds four answer beats into the questions above them, so an
+  // earlier round's replacement can legitimately point at a beat that no
+  // longer exists. Skipping is right ONLY for those; any other unknown id
+  // is a typo in a review file and must still fail loudly.
+  const removedLater = new Set(corrections.conversationalRuns.remove.map((entry) => entry.id));
+
+  /**
+   * Beats round 4 re-types. It runs last and wins, so round 3's softening
+   * must not fight it — on a re-run the beat is already the type round 4
+   * chose, and asserting "this is not an ASK" would be the applier
+   * arguing with its own later decision.
+   */
+  const retypedByRound4 = new Set<string>([
+    ...beatEntries(corrections.neutralConfirmation).map(([id]) => id),
+    ...Object.keys(corrections.conversationalRuns.rewrite).filter((id) => id.startsWith("authored:")),
+    ...Object.keys(corrections.ending.rewrite).filter((id) => id.startsWith("authored:")),
+  ]);
+
   const apply = (id: string, sourceText: string, source: string): void => {
     const beat = byId.get(id);
+    if (!beat && removedLater.has(id)) return;
     assert.ok(beat, `replacement targets unknown beat ${id}`);
     applied.push({ id, from: source, source: sourceText });
     beat.sourceText = sourceText;
@@ -296,6 +343,7 @@ async function main(): Promise<void> {
     // The opening's own accepted lines are already in place — the opening
     // beats are built from them above, not patched afterwards.
     if (id.startsWith("authored:opening:")) continue;
+    if (removedLater.has(id)) continue;
     assert.ok(byId.has(id), `round 2 accepted an unknown beat ${id}`);
     apply(id, text, "file 2 accepted");
   }
@@ -333,7 +381,12 @@ async function main(): Promise<void> {
   const softened: Array<{ id: string; why: string }> = [];
   for (const [id, why] of beatEntries(corrections.softenToSoftCheck)) {
     const beat = byId.get(id);
+    if (!beat && removedLater.has(id)) continue;
     assert.ok(beat, `softenToSoftCheck targets unknown beat ${id}`);
+    if (retypedByRound4.has(id)) {
+      softened.push({ id, why: `${why} (superseded by round 4)` });
+      continue;
+    }
     // Re-runnable: already softened is the intended end state, anything
     // else means this list is pointing at the wrong beat.
     assert.ok(
@@ -358,6 +411,144 @@ async function main(): Promise<void> {
       ...candidates.filter((candidate) => candidate !== hook),
     ];
   }
+  // ---- ROUND 4: structural flow ----------------------------------------
+  //
+  // The words already passed review; what follows fixes what the SHAPE of
+  // the script assumed about the child. Applied after every wording round,
+  // because several of these rewrite lines earlier rounds had accepted.
+  const structural: Array<{ id: string; what: string; why: string }> = [];
+
+  const applyRewrite = (id: string, rewrite: BeatRewrite, why: string): void => {
+    const beat = byId.get(id);
+    assert.ok(beat, `round 4 targets unknown beat ${id}`);
+    const changes: string[] = [];
+    if (rewrite.text !== undefined && beat.sourceText !== rewrite.text) {
+      beat.sourceText = rewrite.text;
+      changes.push("words");
+    }
+    if (rewrite.type && beat.type !== rewrite.type) {
+      beat.type = rewrite.type as AuthoredBeat["type"];
+      changes.push(`type→${rewrite.type}`);
+    }
+    if (rewrite.pause !== undefined) {
+      const pause = rewrite.pause === "—" ? null : (rewrite.pause as AuthoredBeat["pauseType"]);
+      if (beat.pauseType !== pause) {
+        beat.pauseType = pause;
+        changes.push(`pause→${pause ?? "none"}`);
+      }
+    }
+    if (rewrite.expectedAnswer !== undefined && beat.expectedAnswer !== rewrite.expectedAnswer) {
+      beat.expectedAnswer = rewrite.expectedAnswer;
+      changes.push("expects");
+    }
+    if (rewrite.dropExpectedAnswer && beat.expectedAnswer !== undefined) {
+      delete beat.expectedAnswer;
+      changes.push("expects dropped");
+    }
+    if (rewrite.board) {
+      beat.boardIntent = rewrite.board;
+      changes.push("board");
+    }
+    if (changes.length > 0) {
+      humanEdited.add(id);
+      structural.push({ id, what: changes.join(", "), why: rewrite.why ?? why });
+    }
+  };
+
+  // 1. Praise out of the beat after a question. A statement is not a
+  //    question, so a beat that stops asking stops waiting too.
+  for (const [id, text] of beatEntries(corrections.neutralConfirmation)) {
+    const beat = byId.get(id);
+    assert.ok(beat, `neutralConfirmation targets unknown beat ${id}`);
+    const stillAsks = /[?？]/u.test(text);
+    applyRewrite(
+      id,
+      {
+        text,
+        ...(stillAsks ? {} : { type: "EXPLAIN", pause: "—", dropExpectedAnswer: true }),
+      },
+      "neutral confirmation — the runtime supplies the verdict",
+    );
+  }
+
+  // 3. Numbers no longer asserted as though the child had said them.
+  for (const [id, text] of beatEntries(corrections.answerAssumption)) {
+    const beat = byId.get(id);
+    assert.ok(beat, `answerAssumption targets unknown beat ${id}`);
+    // Round 2 left :28 paused RHETORICAL for a tag the new wording drops.
+    const keepsTag = /(?:නේද|හරිද|එහෙනම්)\s*\?\s*$/u.test(text.replace(/\{address\}/gu, "").trim());
+    applyRewrite(
+      id,
+      { text, ...(keepsTag ? {} : { pause: "—" }) },
+      "re-framed as an example — the child's own answer was never known here",
+    );
+  }
+
+  // 4. The interrogation runs become a conversation.
+  for (const [id, rewrite] of Object.entries(corrections.conversationalRuns.rewrite)) {
+    if (!id.startsWith("authored:")) continue;
+    applyRewrite(id, rewrite, "alternating run");
+  }
+  for (const removal of corrections.conversationalRuns.remove) {
+    const before = file.beats.length;
+    file.beats = file.beats.filter((beat) => beat.id !== removal.id);
+    if (file.beats.length < before) structural.push({ id: removal.id, what: "REMOVED", why: removal.why });
+    byId.delete(removal.id);
+  }
+
+  // 6. A real ending: the exercise is worked, not just displayed.
+  for (const [id, rewrite] of Object.entries(corrections.ending.rewrite)) {
+    if (!id.startsWith("authored:")) continue;
+    applyRewrite(id, rewrite, "ending");
+  }
+  for (const addition of corrections.ending.append) {
+    if (byId.has(addition.beat.id)) {
+      // Already added by an earlier run — UPDATE it rather than skip, or
+      // an edit to this file would silently never reach the beat.
+      applyRewrite(
+        addition.beat.id,
+        {
+          text: addition.beat.spokenText,
+          type: addition.beat.type,
+          pause: addition.beat.pause,
+          board: addition.beat.board,
+          ...(addition.beat.expectedAnswer !== undefined
+            ? { expectedAnswer: addition.beat.expectedAnswer }
+            : { dropExpectedAnswer: true }),
+        },
+        addition.beat.why ?? "ending",
+      );
+      continue;
+    }
+    const anchorIndex = file.beats.findIndex((beat) => beat.id === addition.after);
+    assert.ok(anchorIndex !== -1, `append anchor ${addition.after} not found`);
+    const template = file.beats[anchorIndex]!;
+    const created: AuthoredBeat = {
+      id: addition.beat.id,
+      conceptTag: template.conceptTag,
+      type: addition.beat.type as AuthoredBeat["type"],
+      sourceText: addition.beat.spokenText,
+      spokenText: "",
+      numbers: [],
+      humanEdited: true,
+      pauseType: addition.beat.pause === "—" ? null : (addition.beat.pause as AuthoredBeat["pauseType"]),
+      boardIntent: addition.beat.board,
+      expectedAnswer: addition.beat.expectedAnswer,
+      guideStep: template.guideStep,
+      maxSimilarity: { jaccard: 0, cosine: null, closest: "" },
+    };
+    file.beats.splice(anchorIndex + 1, 0, created);
+    byId.set(created.id, created);
+    humanEdited.add(created.id);
+    structural.push({ id: created.id, what: "ADDED", why: addition.beat.why ?? "ending" });
+  }
+
+  heading("3. STRUCTURAL FLOW (round 4)");
+  for (const change of structural) {
+    console.log(`  ${change.id.replace("authored:", "").padEnd(26)} ${change.what.padEnd(28)} ${change.why}`);
+  }
+  console.log(`  ${structural.length} structural change(s); ${file.beats.length} beats now.`);
+
   // The hook's everyday subject, kept apart from analogies — that field
   // records what the TEACHING reasons through, and a hook swap must not
   // overwrite it.
@@ -385,7 +576,7 @@ async function main(): Promise<void> {
     console.log(`    ${beat.id.replace("authored:", "")} [${beat.type}] expects ${beat.expectedAnswer ?? "—"}`);
   }
 
-  heading("3. OPENING (as spoken)");
+  heading("4. OPENING (as spoken)");
   for (const beat of openingBeats) {
     const from = decisions.accepted[beat.id] ? "file 2 accepted" : "file 1";
     console.log(`\n  ${beat.id}  [${beat.type} · pause ${beat.pauseType ?? "—"} · ${from}]`);
@@ -393,7 +584,7 @@ async function main(): Promise<void> {
     console.log(`    board: ${JSON.stringify(beat.boardIntent)}`);
   }
 
-  heading("4. placeValue4Digit:33 — preferred vs fallback");
+  heading("5. placeValue4Digit:33 — preferred vs fallback");
   console.log(choiceNote);
   console.log(`\n  chosen: ${byId.get(PENDING_CHOICE)!.sourceText}`);
 
@@ -423,13 +614,16 @@ async function main(): Promise<void> {
   }
 
   // 6. SPEECH RULES across the whole script.
-  heading("5. NEW VALIDATOR RULES — run across all beats");
+  heading("6. NEW VALIDATOR RULES — run across all beats");
   const speechBeats = (): SpeechBeat[] =>
     file.beats.map((beat) => ({
       id: beat.id,
       spokenText: beat.spokenText,
       sourceText: beat.sourceText,
       pauseType: beat.pauseType,
+      type: beat.type,
+      expectedAnswer: beat.expectedAnswer ?? null,
+      conceptTag: beat.conceptTag,
     }));
 
   const before = checkSpeechRules(speechBeats());
@@ -438,7 +632,7 @@ async function main(): Promise<void> {
 
   const extraFixes = applyExtraFixes(file, humanEdited);
   if (extraFixes.length) {
-    heading("6. EXTRA FIXES — hits neither review file covered");
+    heading("7. EXTRA FIXES — hits neither review file covered");
     for (const fix of extraFixes) {
       console.log(`\n  ${fix.id}  (${fix.rule})`);
       console.log(`    was: ${fix.was}`);
@@ -459,14 +653,14 @@ async function main(): Promise<void> {
   if (after.length) console.log(formatSpeechFindings(after));
 
   // 7. Deterministic validation.
-  heading("7. DETERMINISTIC VALIDATION");
+  heading("8. DETERMINISTIC VALIDATION");
   validate(file, originalSpoken);
 
   // 8. Approve.
   file.approved = after.length === 0;
   file.sessionsAuthored = [...new Set([...file.sessionsAuthored, 1])];
 
-  heading("8. RESULT");
+  heading("9. RESULT");
   const editedCount = file.beats.filter((beat) => beat.humanEdited).length;
   console.log(`  beats:        ${file.beats.length}`);
   console.log(`  humanEdited:  true ${editedCount} · absent ${file.beats.length - editedCount}`);
@@ -499,7 +693,10 @@ function applyExtraFixes(
 
   const rewrite = (id: string, next: string, rule: string, why: string): void => {
     const beat = byId.get(id);
-    assert.ok(beat, `extra fix targets unknown beat ${id}`);
+    // A beat an earlier round targeted may have been REMOVED by a later
+    // one (round 4 folds four answer beats into the questions above them).
+    // A fix with nothing left to fix is done, not broken.
+    if (!beat) return;
     if (beat.sourceText === next) return;
     fixes.push({ id, rule, was: beat.sourceText, now: next, why });
     beat.sourceText = next;

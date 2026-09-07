@@ -1,48 +1,251 @@
 {
-  "$comment": "Round 3 — factual corrections, applied AFTER session-1-edits.json and gemini-review-decisions.json. Entries here override both. No API calls.",
+  "$comment": "Rounds 3 and 4 — factual corrections and structural flow fixes, applied AFTER session-1-edits.json and gemini-review-decisions.json. Entries here override both.",
   "correctedBy": "project owner (Sri Lankan domain fact), 2026-09-07",
-
   "hookSwap": {
     "$comment": "The placeValue4Digit hook asserted something a Sri Lankan child knows is false. Books here cost 3-digit prices, so 'book prices are four-digit numbers' is wrong on the facts — and a hook that opens on something the child can see is untrue costs more than a weak hook does. A school bag genuinely runs to four digits. Round 2's logic fix is kept: what makes the number readable is knowing where its digits sit, not how many there are. Both sentences stay under 14 words.",
     "authored:placeValue4Digit:32": "අලුත් ඉස්කෝලේ බෑග් එකක් ගන්න ගියාම ඒකේ මිල ලොකු ගාණක් නේද {address}?",
     "authored:placeValue4Digit:33": "ඒ ගාණේ ඉලක්කම් හතරක් තියෙනවා. ඒ ඉලක්කම් තියෙන තැන දන්නවා නම් අපිට ඒක ලේසියෙන් කියවන්න පුළුවන්."
   },
-
   "softenToSoftCheck": {
     "$comment": "Half the authored ASKs become SOFT_CHECKs. An ASK stops the lesson, opens the mic for a judged answer and runs an 8s/12s/10s silence ladder into FEEDBACK or RETEACH; a SOFT_CHECK opens the mic for 3s, warmly acknowledges any sound, and flows on unjudged. The script asked one judged question every 35s, so a 12-minute sitting carried ~21 of them. Every beat kept below is a real checkpoint; every beat here is a repeat of the checkpoint before it, or a question that answers itself, or one that cannot be judged at all. Beat TYPE and pauseType both change; the words are untouched.",
-
     "authored:readWrite4Digit:3": "2nd of three warm-up 'read this number' beats. :2 is the checkpoint; the guide wants all three read aloud, which a 3s mic still invites.",
     "authored:readWrite4Digit:5": "3rd of the same three.",
-
     "authored:readWrite4Digit:22": "Open-ended: the child builds ANY number from 1/3/6/4. expectedAnswer was 1364, so a child answering 6431 — equally correct — was marked wrong and reteached. Cannot be judged; expectedAnswer dropped.",
     "authored:readWrite4Digit:27": "Same open-ended task, second pass. expectedAnswer dropped.",
     "authored:readWrite4Digit:29": "Same open-ended task, third pass ('make another one'). expectedAnswer dropped.",
-
     "authored:placeValue4Digit:46": "2nd of four consecutive 'how many beads at this place?' on the same abacus. :44 is the checkpoint.",
     "authored:placeValue4Digit:48": "3rd of the same four.",
     "authored:placeValue4Digit:50": "4th of the same four.",
-
     "authored:placeValue4Digit:68": "2nd of four consecutive 'what value does this place give?' on the same number. :66 is the checkpoint.",
     "authored:placeValue4Digit:70": "3rd of the same four.",
     "authored:placeValue4Digit:72": "4th of the same four.",
-
     "authored:placeValue4Digit:82": "The question states the answer inside itself ('එකස්ථානයේ තියෙන්නේ පබළු දෙකයි') and then asks for the value of those two at the ones place. Nothing is being diagnosed.",
     "authored:placeValue4Digit:100": "Immediate follow-on of :98, which already identified the digit; this asks the value of the 5 the child just named."
   },
-
   "dropExpectedAnswer": [
     "authored:readWrite4Digit:22",
     "authored:readWrite4Digit:27",
     "authored:readWrite4Digit:29"
   ],
-
   "hookInUse": {
     "$comment": "The hook now spoken is not one of the three generated candidates, so it is recorded as candidate 1 — hookCandidates[0] is by definition the one in use.",
     "placeValue4Digit": "අලුත් ඉස්කෝලේ බෑග් එකක් ගන්න ගියාම ඒකේ මිල ලොකු ගාණක් නේද {address}?"
   },
-
   "hookAnalogy": {
     "$comment": "The everyday thing the HOOK opens on. Distinct from analogies.placeValue4Digit, which records the analogy the TEACHING reasons through (coins in a till) and is unchanged by a hook swap.",
     "placeValue4Digit": "school bag price"
+  },
+  "neutralConfirmation": {
+    "$comment": "ROUND 4, THE SYSTEMIC ONE. The runtime already plays a praise or a miss clip based on what the child actually said (AUTHORED_LINES.feedbackCorrect / feedbackWrong, chosen by the planner). A scripted beat that ALSO congratulates therefore congratulates unconditionally — it plays word for word after a wrong answer, after a retry, and after silence that ended in Zara demonstrating the answer herself. Every beat that follows a question is now a NEUTRAL statement of the answer, which is true in all three cases. The praise did not go away; it moved to the only place that knows whether it is deserved.",
+    "authored:readWrite4Digit:3": "පළමු සංඛ්‍යාව {number:84}යි.",
+    "authored:readWrite4Digit:4": "එහි දසස්ථානයේ {number:0} තියෙන නිසා ඒ කොටස කියවෙන්නේ නැහැ.",
+    "authored:readWrite4Digit:9": "ඔව්, {number:999}ට {number:1}ක් එකතු වුණාම {number:1000} හැදෙනවා.",
+    "authored:readWrite4Digit:16": "ඒ සංඛ්‍යාව {number:3058}යි.",
+    "authored:placeValue4Digit:45": "එතන පබළු {number:1}ක් නිසා අගය {number:1}යි.",
+    "authored:placeValue4Digit:59": "ඒ සංඛ්‍යාව {number:5421}යි.",
+    "authored:placeValue4Digit:63": "ඒක {number:6831} තමයි! දැන් ඔයා සංඛ්‍යා නාම කියවන්න හොඳටම දන්නවා.",
+    "authored:placeValue4Digit:67": "ඒක {number:5000}යි.",
+    "authored:placeValue4Digit:80": "කූරේ කිසිම පබළුවක් නෑ. ඒ නිසා එතන අගය {number:0}යි.",
+    "authored:placeValue4Digit:89": "ඒක {number:6000}යි.",
+    "authored:placeValue4Digit:93": "මුලින්ම ලියවෙන්නේ {number:8000}යි. ඊටපස්සේ {number:600}යි, {number:10}යි, {number:3}යි එකතු වෙනවා.",
+    "authored:placeValue4Digit:99": "දහසස්ථානයේ ඉන්නේ {number:5} නේද.",
+    "authored:placeValue4Digit:101": "ඒක {number:5000}යි.",
+    "$auditNote": "The two below were NOT in the review list — the noVerdictAfterAQuestion rule found them when it ran across all 112 beats. Same systemic bug: praise written into a scripted beat that follows a question, so it plays whatever the child said.",
+    "authored:readWrite4Digit:30": "තවත් අලුත් සංඛ්‍යා පහක් හදන්න ලෑල්ලට යමු!",
+    "authored:placeValue4Digit:83": "ඒක {number:2}යි."
+  },
+  "answerAssumption": {
+    "$comment": "ROUND 4. Both beats follow an OPEN-ENDED invitation ('make any number you like from these digits') and then say a specific number as though the child had said it. Whatever she actually made, Zara announced 1364. Re-framed as an example, which is true no matter what the child chose.",
+    "authored:readWrite4Digit:23": "උදාහරණයක් විදිහට අපිට {number:1364} හදන්නත් පුළුවන්.",
+    "authored:readWrite4Digit:28": "අපි හිතමු මේ ඉලක්කම් වලින් {number:1364} හැදුවා කියලා. ඒක කියවන්නේ {number:1364} කියලයි."
+  },
+  "conversationalRuns": {
+    "$comment": "ROUND 4. placeValue4Digit 44-51 and 66-73 were four near-identical questions in a row, each with its own answer beat: a quiz, not a lesson. Now they ALTERNATE — the child does one place, Zara does the next, aloud, the way a teacher shares a worked example. The question beats that became statements absorb the answer beat that used to follow them, so 47/51/69/73 are removed rather than left saying the same thing twice.",
+    "rewrite": {
+      "authored:placeValue4Digit:46": {
+        "text": "දහයස්ථානයේ පබළු {number:2}යි, ඒ නිසා අගය {number:20}යි.",
+        "type": "EXPLAIN",
+        "pause": "—",
+        "dropExpectedAnswer": true,
+        "why": "Zara does the tens place herself; absorbs :47."
+      },
+      "authored:placeValue4Digit:50": {
+        "text": "දහසස්ථානයේ පබළු {number:5}යි, ඒ නිසා අගය {number:5000}යි.",
+        "type": "EXPLAIN",
+        "pause": "—",
+        "dropExpectedAnswer": true,
+        "why": "Zara does the thousands place herself; absorbs :51."
+      },
+      "authored:placeValue4Digit:68": {
+        "text": "සියයස්ථානයේ තියෙන්නේ {number:4}ක්, ඒ නිසා අගය {number:400}යි.",
+        "type": "EXPLAIN",
+        "pause": "—",
+        "dropExpectedAnswer": true,
+        "why": "Zara does the hundreds place herself; absorbs :69."
+      },
+      "authored:placeValue4Digit:72": {
+        "text": "අන්තිමට එකස්ථානයේ තියෙන්නේ {number:1}ක්, ඒ නිසා ලැබෙන්නේ {number:1}මයි.",
+        "type": "EXPLAIN",
+        "pause": "—",
+        "dropExpectedAnswer": true,
+        "why": "Zara does the ones place herself; absorbs :73."
+      },
+      "authored:placeValue4Digit:48": {
+        "type": "ASK",
+        "pause": "ASK",
+        "expectedAnswer": "හතර",
+        "why": "Restored to a real question — it is the child's turn in the alternation."
+      },
+      "authored:placeValue4Digit:70": {
+        "type": "ASK",
+        "pause": "ASK",
+        "expectedAnswer": "විස්ස",
+        "why": "Restored to a real question — the child's turn."
+      }
+    },
+    "remove": [
+      {
+        "id": "authored:placeValue4Digit:47",
+        "why": "Its sentence is now spoken by :46; leaving it would say the tens value twice."
+      },
+      {
+        "id": "authored:placeValue4Digit:51",
+        "why": "Absorbed by :50."
+      },
+      {
+        "id": "authored:placeValue4Digit:69",
+        "why": "Absorbed by :68."
+      },
+      {
+        "id": "authored:placeValue4Digit:73",
+        "why": "Absorbed by :72."
+      }
+    ]
+  },
+  "ending": {
+    "$comment": "ROUND 4. The lesson ended by staging an exercise, asking a rhetorical 'you remember all the place values now, don't you?', and then telling the child 'you did every one of these beautifully, on your own' — when nothing had been done at all. The exercise is now actually worked: three questions on real rows of the PlaceValueTable in content_bank 7b58e436-334f-452c-bc2a-81f234d03268, one blank made active for each so the answer goes through the number pad the board already has, each followed by a neutral confirmation. The close praises the session honestly instead of inventing work.",
+    "rewrite": {
+      "authored:placeValue4Digit:102": {
+        "text": "දැන් මේ වගුවේ තියෙන කොටස් අපි එකට පුරවමු.",
+        "why": "Introduces work they are about to do together, rather than handing it over silently."
+      },
+      "authored:placeValue4Digit:103": {
+        "text": "{number:6572} කියන සංඛ්‍යාවේ {number:6}ෙන් පෙන්වන අගය කීයද?",
+        "type": "ASK",
+        "pause": "ASK",
+        "expectedAnswer": "6000",
+        "board": {
+          "kind": "blank",
+          "itemId": "7b58e436-334f-452c-bc2a-81f234d03268",
+          "rowIndex": 1,
+          "field": "valueRepresented"
+        },
+        "why": "Row 1 of the table. Answer from the row's own verified answer key (valueRepresented 6000)."
+      },
+      "authored:placeValue4Digit:104": {
+        "text": "ඒක {number:6000}යි. ඒ {number:6} තියෙන්නේ දහසස්ථානයේ.",
+        "type": "EXPLAIN",
+        "pause": "—",
+        "dropExpectedAnswer": true,
+        "why": "Neutral confirmation, replacing the close that claimed work the child had not done."
+      }
+    },
+    "append": [
+      {
+        "after": "authored:placeValue4Digit:104",
+        "beat": {
+          "id": "authored:placeValue4Digit:105",
+          "type": "ASK",
+          "pause": "ASK",
+          "expectedAnswer": "4",
+          "spokenText": "එහෙනම් {number:5024} කියන සංඛ්‍යාවේ {number:4}ෙන් පෙන්වන අගය කීයද?",
+          "board": {
+            "kind": "blank",
+            "itemId": "7b58e436-334f-452c-bc2a-81f234d03268",
+            "rowIndex": 2,
+            "field": "valueRepresented"
+          },
+          "why": "Row 2. The ones place, where the digit and its value are the same number — the case children trip on."
+        }
+      },
+      {
+        "after": "authored:placeValue4Digit:105",
+        "beat": {
+          "id": "authored:placeValue4Digit:106",
+          "type": "EXPLAIN",
+          "pause": "—",
+          "spokenText": "ඒක {number:4}යි. {number:4} තියෙන්නේ එකස්ථානයේ.",
+          "board": {
+            "kind": "none"
+          },
+          "why": "Neutral confirmation."
+        }
+      },
+      {
+        "after": "authored:placeValue4Digit:106",
+        "beat": {
+          "id": "authored:placeValue4Digit:107",
+          "type": "ASK",
+          "pause": "ASK",
+          "expectedAnswer": "7",
+          "spokenText": "{number:8700} කියන සංඛ්‍යාවේ {number:700} අගය දෙන්නේ මොන ඉලක්කමද?",
+          "board": {
+            "kind": "blank",
+            "itemId": "7b58e436-334f-452c-bc2a-81f234d03268",
+            "rowIndex": 3,
+            "field": "digit"
+          },
+          "why": "Row 3, asked the other way round — value given, digit wanted — so the last question is not the same shape as the first two."
+        }
+      },
+      {
+        "after": "authored:placeValue4Digit:107",
+        "beat": {
+          "id": "authored:placeValue4Digit:108",
+          "type": "EXPLAIN",
+          "pause": "—",
+          "spokenText": "ඒක {number:7}යි. {number:7} තියෙන්නේ සියයස්ථානයේ.",
+          "board": {
+            "kind": "none"
+          },
+          "why": "Neutral confirmation."
+        }
+      },
+      {
+        "after": "authored:placeValue4Digit:108",
+        "beat": {
+          "id": "authored:placeValue4Digit:109",
+          "type": "EXPLAIN",
+          "pause": "—",
+          "spokenText": "අද ඔයා හොඳට වැඩ කළා. ස්ථානීය අගය මොකක්ද කියලා දැන් ඔයා දන්නවා.",
+          "board": {
+            "kind": "none"
+          },
+          "why": "An honest close: it praises the session, which happened, instead of a performance that did not. Worded away from the review's suggested 'අද ඔයා ගොඩක් දේවල් ඉගෙන ගත්තා', which measured 0.73 jaccard against the recorded teacher's own 'ගොඩක් දේවල් ඉගෙන ගත්තා' — the same sentence, not an echo of it."
+        }
+      }
+    ]
+  },
+  "authoringRule": {
+    "$comment": "ROUND 4, for every future lesson. Added to the author's prompt (scripts/author-script.ts) so this class of bug is not written again.",
+    "rule": "The beat following any question is a neutral statement of the answer. Never write praise or a verdict into a scripted beat; the runtime supplies praise and miss lines based on the real answer."
+  },
+  "validatorAudit": {
+    "$comment": "ROUND 4. What the two new rules found across all beats, and what was done about each.",
+    "noVerdictAfterAQuestion": {
+      "hitsBeyondTheList": [
+        "authored:readWrite4Digit:30",
+        "authored:placeValue4Digit:83"
+      ],
+      "action": "Both rewritten neutrally (see neutralConfirmation)."
+    },
+    "noAssumedAnswer": {
+      "hitsBeyondTheList": [
+        "authored:readWrite4Digit:25",
+        "authored:placeValue4Digit:38",
+        "authored:placeValue4Digit:91"
+      ],
+      "action": "NONE — all three were false positives, and the rule was narrowed instead. Each follows a SOFT_CHECK that ends on a rhetorical tag ('කූරු හතරේ පිළිවෙළ ඔයාට මතක හිටියා නේද?'), which is a confirmation rather than an invitation to produce a number; the number that follows is Zara choosing her own example, not assuming the child's. The rule now fires only on a question that actually asks the child to make something — 'ඔයා කැමති', or no expectedAnswer AND no rhetorical tag."
+    }
   }
 }

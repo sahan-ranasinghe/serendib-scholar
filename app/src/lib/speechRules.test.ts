@@ -8,6 +8,9 @@ const beat = (over: Partial<SpeechBeat> & { id: string }): SpeechBeat => ({
   ...over,
 });
 
+const ask = (id: string, spokenText: string, expectedAnswer?: string): SpeechBeat =>
+  beat({ id, spokenText, type: "ASK", pauseType: "ASK", expectedAnswer: expectedAnswer ?? null });
+
 test("a RHETORICAL beat must end with a tag", () => {
   // The two the review actually caught, before it rewrote them.
   const findings = checkSpeechRules([
@@ -86,4 +89,78 @@ test("a clean script reports nothing", () => {
     ]),
     [],
   );
+});
+
+/**
+ * The two flow rules. Both exist because the script's WORDS passed every
+ * earlier check while its structure ignored what the child had said.
+ */
+
+test("praise in the beat after a question is a bug, not a compliment", () => {
+  const findings = checkSpeechRules([
+    ask("q", "මුල්ම සංඛ්‍යාව මොකක්ද?", "අසූ හතර"),
+    beat({ id: "a", spokenText: "නියමයි! ඒ සංඛ්‍යාව අසූ හතරයි.", type: "EXPLAIN" }),
+  ]);
+  assert.deepEqual(findings.map((f) => [f.beatId, f.rule]), [["a", "noVerdictAfterAQuestion"]]);
+});
+
+test("a neutral statement of the same answer passes", () => {
+  const findings = checkSpeechRules([
+    ask("q", "මුල්ම සංඛ්‍යාව මොකක්ද?", "අසූ හතර"),
+    beat({ id: "a", spokenText: "පළමු සංඛ්‍යාව අසූ හතරයි.", type: "EXPLAIN" }),
+  ]);
+  assert.deepEqual(findings, []);
+});
+
+test("neutral openers are fine; a verdict later in the beat is not the target", () => {
+  const findings = checkSpeechRules([
+    ask("q", "කීයද?", "දහය"),
+    beat({ id: "a", spokenText: "ඔව්, ඒක දහයයි.", type: "EXPLAIN" }),
+  ]);
+  assert.deepEqual(findings, []);
+});
+
+test("praise where no question preceded is left alone", () => {
+  const findings = checkSpeechRules([
+    beat({ id: "explain", spokenText: "අපි දැන් ගණක රාමුව බලමු.", type: "EXPLAIN" }),
+    beat({ id: "praise", spokenText: "නියමයි! දැන් අපි ඉදිරියට යමු.", type: "TRANSITION" }),
+  ]);
+  assert.deepEqual(findings, []);
+});
+
+test("a number stated after an open-ended invitation is flagged", () => {
+  const findings = checkSpeechRules([
+    beat({ id: "q", spokenText: "ඔයා කැමති සංඛ්‍යාවක් හදලා මට කියන්න.", type: "SOFT_CHECK", pauseType: "SOFT_CHECK" }),
+    beat({ id: "a", spokenText: "එක්දහස් තුන්සිය හැට හතර ලස්සනයි.", sourceText: "{number:1364} ලස්සනයි.", type: "EXPLAIN" }),
+  ]);
+  assert.deepEqual(findings.map((f) => [f.beatId, f.rule]), [["a", "noAssumedAnswer"]]);
+});
+
+test("the same number framed as an example is allowed", () => {
+  for (const frame of ["උදාහරණයක් විදිහට අපිට එක්දහස් තුන්සිය හැට හතර හදන්නත් පුළුවන්.", "අපි හිතමු එක්දහස් තුන්සිය හැට හතර හැදුවා කියලා."]) {
+    const findings = checkSpeechRules([
+      beat({ id: "q", spokenText: "ඔයා කැමති සංඛ්‍යාවක් හදන්න.", type: "SOFT_CHECK", pauseType: "SOFT_CHECK" }),
+      beat({ id: "a", spokenText: frame, sourceText: "{number:1364}", type: "EXPLAIN" }),
+    ]);
+    assert.deepEqual(findings, [], frame);
+  }
+});
+
+test("a rhetorical soft check is a confirmation, not an invitation", () => {
+  // Zara asks "you remember the order, don't you?" and then names HER OWN
+  // example number. Nothing was assumed about the child's answer, and
+  // flagging it would make the rule noise.
+  const findings = checkSpeechRules([
+    beat({ id: "q", spokenText: "කූරු හතරේ පිළිවෙළ ඔයාට මතක හිටියා නේද {address}?", type: "SOFT_CHECK", pauseType: "SOFT_CHECK" }),
+    beat({ id: "a", spokenText: "ඔන්න අපි පන්දහස් හාරසිය විසි එක රාමුවට දාමු.", sourceText: "ඔන්න අපි {number:5421} රාමුවට දාමු.", type: "EXPLAIN" }),
+  ]);
+  assert.deepEqual(findings, []);
+});
+
+test("a question with one right answer may state it plainly", () => {
+  const findings = checkSpeechRules([
+    ask("q", "දහසස්ථානයේ අගය කීයද?", "6000"),
+    beat({ id: "a", spokenText: "ඒක හයදහසයි.", sourceText: "ඒක {number:6000}යි.", type: "EXPLAIN" }),
+  ]);
+  assert.deepEqual(findings, []);
 });

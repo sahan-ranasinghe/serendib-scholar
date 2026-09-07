@@ -26,6 +26,7 @@ import {
   ASK_HELP_TIMEOUT_MS,
   ASK_GIVEUP_TIMEOUT_MS,
   SOFT_CHECK_WINDOW_MS,
+  SOFT_CHECK_SILENCE_MS,
   FRAMING_CONCEPT,
   type Beat,
   type LessonScript,
@@ -312,7 +313,7 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
   const listenForAnswer = async (
     beat: Beat,
     onsetTimeoutMs: number,
-    options: { transcribe?: boolean } = {},
+    options: { transcribe?: boolean; silenceMs?: number } = {},
   ): Promise<{ transcript: string; number: string | null } | null> => {
     const stream = streamRef.current;
     if (!stream || stoppedRef.current) return null;
@@ -336,6 +337,7 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
     padAnswerRef.current = null;
     const handle = recordAnswerClip(stream, {
       onsetTimeoutMs,
+      silenceMs: options.silenceMs,
       onLevel: (rms) => setMicLevel(mutedRef.current ? 0 : rms),
       onSpeechStart: () => logEvent("child speaking"),
     });
@@ -465,6 +467,8 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
       // she only half-asked deserves to be on the record), never judged.
       const heard = await listenForAnswer(beat, SOFT_CHECK_WINDOW_MS, {
         transcribe: TRANSCRIBE_SOFT_CHECKS,
+        // The acknowledgement waits for her to finish, not for a clock.
+        silenceMs: SOFT_CHECK_SILENCE_MS,
       });
       if (heard) {
         childTranscriptRef.current = heard.transcript || "(the child responded)";

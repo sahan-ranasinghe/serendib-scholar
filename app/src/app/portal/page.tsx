@@ -23,13 +23,15 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTakeRecorder } from "@/hooks/useTakeRecorder";
+import { useRenderGuard } from "@/hooks/useRenderGuard";
 import { PortalGate } from "./PortalGate";
 import { LineList } from "./LineList";
 import { TrimEditor } from "./TrimEditor";
-import { LevelMeter } from "./LevelMeter";
+import { LevelMeter, StopRing } from "./LevelMeter";
 import type { PortalLine, UploadState } from "./types";
 
 export default function PortalPage() {
+  useRenderGuard("PortalPage");
   const [unlocked, setUnlocked] = useState<boolean | null>(null);
   const [lines, setLines] = useState<PortalLine[]>([]);
   const [index, setIndex] = useState(0);
@@ -122,17 +124,26 @@ export default function PortalPage() {
       try {
         const response = await fetch("/api/portal/take", { method: "POST", body: form });
         const payload = await response.json();
-        if (!response.ok || !payload.ok) throw new Error(payload?.error ?? "upload failed");
+        if (!response.ok || !payload.ok) {
+          throw new Error([payload?.error, payload?.hint].filter(Boolean).join(" — ") || "upload failed");
+        }
         setUploads((prev) => ({ ...prev, [line.id]: { state: "saved", attempts: prev[line.id]?.attempts ?? 1 } }));
         setPendingTake(null);
         await load();
         setIndex((i) => Math.min(lines.length - 1, i + 1));
-      } catch {
-        // Kept in memory and retried; she is told, and the line stays
-        // "not recorded" until it really is.
+      } catch (error) {
+        // Kept in memory and retried; she is told WHAT WENT WRONG, and the
+        // line stays "not recorded" until it really is. A generic message
+        // here cost the first session an hour chasing the network while
+        // the bucket was refusing the audio format by name.
         setUploads((prev) => ({
           ...prev,
-          [line.id]: { state: "failed", attempts: prev[line.id]?.attempts ?? 1, blob: take.blob },
+          [line.id]: {
+            state: "failed",
+            attempts: prev[line.id]?.attempts ?? 1,
+            blob: take.blob,
+            error: error instanceof Error ? error.message : String(error),
+          },
         }));
       }
     },
@@ -240,18 +251,28 @@ export default function PortalPage() {
   const upload = current ? uploads[current.id] : undefined;
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-5xl flex-col p-4 landscape:p-3">
-      <header className="flex flex-wrap items-center gap-3 text-sm">
-        <button type="button" onClick={() => setShowList((v) => !v)} className="rounded-lg border border-stone-300 px-3 py-1.5">
+    <main className="mx-auto flex min-h-dvh w-full max-w-5xl flex-col overflow-x-hidden bg-white p-4 text-stone-900 landscape:p-3">
+      <header className="flex w-full min-w-0 flex-wrap items-center gap-3 text-sm text-stone-900">
+        <button type="button" onClick={() => setShowList((v) => !v)} className="rounded-lg border border-stone-400 px-3 py-1.5 text-stone-900"
+          data-portal="toggle-lines">
           ☰ Lines
         </button>
         <span className="font-mono">
           {progress.done}/{progress.total} · {progress.minutes} min
         </span>
-        <div className="h-2 flex-1 overflow-hidden rounded-full bg-stone-200">
+        <div className="h-2 min-w-16 flex-1 overflow-hidden rounded-full bg-stone-300">
           <div className="h-full bg-emerald-500 transition-all" style={{ width: `${(progress.done / Math.max(1, progress.total)) * 100}%` }} />
         </div>
-        <LevelMeter level={recorder.level} peak={recorder.peak} clipping={recorder.clipping} noisy={recorder.roomNoisy} />
+        <label className="flex items-center gap-1.5 text-stone-900" title="Turn off if pauses in your delivery keep ending the take">
+          <input
+            type="checkbox"
+            checked={recorder.autoStop}
+            onChange={(event) => recorder.setAutoStop(event.target.checked)}
+            data-portal="auto-stop"
+          />
+          auto-stop
+        </label>
+        <LevelMeter meters={recorder.meters} clipping={recorder.clipping} noisy={recorder.roomNoisy} />
       </header>
 
       {recorder.micError && <p className="mt-3 rounded bg-rose-100 p-3 text-sm text-rose-900">{recorder.micError}</p>}
@@ -274,22 +295,31 @@ export default function PortalPage() {
 
       {current && (
         <section className="flex flex-1 flex-col items-center justify-center gap-4 py-4">
-          <p className="max-w-2xl text-center text-base text-stone-400 line-clamp-2">{lines[index - 1]?.canonicalText ?? " "}</p>
+          <p data-portal="context-line" className="max-w-2xl text-center text-base text-stone-600 line-clamp-2">
+            {lines[index - 1]?.canonicalText ?? " "}
+          </p>
 
-          <div className="w-full rounded-2xl border-2 border-stone-300 bg-white p-5 text-center shadow-sm">
-            <div className="mb-2 font-mono text-xs text-stone-500">
+          <div className="w-full rounded-2xl border-2 border-stone-400 bg-white p-5 text-center shadow-sm">
+            <div className="mb-2 font-mono text-xs text-stone-600">
               {current.id} · {current.type} · {current.concept}
               {current.branchLabel && (
                 <span className="ml-2 rounded bg-indigo-100 px-1.5 py-0.5 text-indigo-800">{current.branchLabel}</span>
               )}
             </div>
-            <p className="text-2xl leading-relaxed landscape:text-xl">{current.canonicalText}</p>
+            <p
+              data-portal="current-line"
+              className="font-sinhala text-[32px] font-medium leading-[1.7] break-words text-stone-950 sm:text-[34px] landscape:text-[28px]"
+            >
+              {current.canonicalText}
+            </p>
             {current.numbers.length > 0 && (
-              <p className="mt-2 text-xs text-stone-500">Numbers to say exactly: {current.numbers.join(", ")}</p>
+              <p className="mt-2 text-sm text-stone-700">Numbers to say exactly: {current.numbers.join(", ")}</p>
             )}
           </div>
 
-          <p className="max-w-2xl text-center text-base text-stone-400 line-clamp-2">{lines[index + 1]?.canonicalText ?? " "}</p>
+          <p data-portal="context-line-next" className="max-w-2xl text-center text-base text-stone-600 line-clamp-2">
+            {lines[index + 1]?.canonicalText ?? " "}
+          </p>
 
           {recorder.phase === "counting" && <div className="text-6xl font-bold text-rose-500">{recorder.countdown}</div>}
 
@@ -302,25 +332,33 @@ export default function PortalPage() {
             />
           )}
 
+          <StopRing meters={recorder.meters} />
+
           <div className="flex flex-wrap items-center justify-center gap-2">
             {recorder.phase === "recording" ? (
-              <button type="button" onClick={recorder.stop} className="rounded-full bg-rose-600 px-6 py-3 font-bold text-white">
-                ⏹ Stop <span className="opacity-70">(space)</span>
+              <button
+                type="button"
+                onClick={recorder.stop}
+                data-portal="stop"
+                className="rounded-full bg-rose-600 px-6 py-3 font-bold text-white"
+              >
+                ⏹ Stop <span className="opacity-80">(space)</span>
               </button>
             ) : (
               <button
                 type="button"
                 onClick={() => void record()}
                 disabled={recorder.phase !== "idle"}
-                className="rounded-full bg-sky-600 px-6 py-3 font-bold text-white disabled:opacity-40"
+                data-portal="record"
+                className="rounded-full bg-sky-700 px-6 py-3 font-bold text-white disabled:opacity-50"
               >
-                ● Record <span className="opacity-70">(space)</span>
+                ● Record <span className="opacity-80">(space)</span>
               </button>
             )}
             {pendingTake && (
               <>
-                <button type="button" onClick={() => void keep()} className="rounded-full bg-emerald-600 px-5 py-3 font-bold text-white">
-                  ✓ Keep <span className="opacity-70">(enter)</span>
+                <button type="button" onClick={() => void keep()} data-portal="keep" className="rounded-full bg-emerald-700 px-5 py-3 font-bold text-white">
+                  ✓ Keep <span className="opacity-80">(enter)</span>
                 </button>
                 <button
                   type="button"
@@ -328,16 +366,16 @@ export default function PortalPage() {
                     setPendingTake(null);
                     void record();
                   }}
-                  className="rounded-full border border-stone-400 px-5 py-3"
+                  className="rounded-full border border-stone-400 px-5 py-3 text-stone-900"
                 >
                   ↻ Retake <span className="opacity-60">(r)</span>
                 </button>
               </>
             )}
-            <button type="button" onClick={() => void playPreviousIntoCurrent()} className="rounded-full border border-stone-300 px-4 py-3 text-sm">
+            <button type="button" onClick={() => void playPreviousIntoCurrent()} className="rounded-full border border-stone-400 px-4 py-3 text-sm text-stone-900">
               ▶ Previous → this
             </button>
-            <button type="button" onClick={playReference} className="rounded-full border border-stone-300 px-4 py-3 text-sm">
+            <button type="button" onClick={playReference} className="rounded-full border border-stone-400 px-4 py-3 text-sm text-stone-900">
               🔊 Reference
             </button>
             {current.take && (
@@ -348,13 +386,13 @@ export default function PortalPage() {
           </div>
 
           <div className="flex items-center gap-3 text-sm">
-            <button type="button" onClick={() => move(-1)} className="rounded border border-stone-300 px-3 py-1">←</button>
-            <span className="font-mono text-stone-500">{index + 1} / {lines.length}</span>
-            <button type="button" onClick={() => move(1)} className="rounded border border-stone-300 px-3 py-1">→</button>
+            <button type="button" onClick={() => move(-1)} className="rounded border border-stone-400 px-3 py-1 text-stone-900">←</button>
+            <span className="font-mono text-stone-700">{index + 1} / {lines.length}</span>
+            <button type="button" onClick={() => move(1)} className="rounded border border-stone-400 px-3 py-1 text-stone-900">→</button>
           </div>
 
           <div className="w-full max-w-2xl">
-            <label htmlFor="note" className="text-sm text-stone-600">
+            <label htmlFor="note" className="text-sm text-stone-800">
               Note for this line (awkward wording, a better phrasing…)
             </label>
             <div className="mt-1 flex gap-2">
@@ -363,9 +401,9 @@ export default function PortalPage() {
                 value={noteDraft}
                 onChange={(event) => setNoteDraft(event.target.value)}
                 rows={2}
-                className="flex-1 rounded-lg border border-stone-300 p-2 text-sm"
+                className="flex-1 rounded-lg border border-stone-400 bg-white p-2 text-sm text-stone-900"
               />
-              <button type="button" onClick={() => void saveNote()} disabled={busy !== null} className="rounded-lg border border-stone-400 px-3 text-sm">
+              <button type="button" onClick={() => void saveNote()} disabled={busy !== null} className="rounded-lg border border-stone-400 px-3 text-sm text-stone-900">
                 Save
               </button>
             </div>
@@ -373,7 +411,12 @@ export default function PortalPage() {
 
           <p className="text-sm">
             {upload?.state === "uploading" && <span className="text-amber-700">Uploading…</span>}
-            {upload?.state === "failed" && <span className="text-rose-700">Upload failed — retrying automatically.</span>}
+            {upload?.state === "failed" && (
+              <span className="text-rose-800" data-portal="upload-error">
+                Upload failed: {upload.error ?? "unknown error"}
+                {upload.attempts > 1 && ` (attempt ${upload.attempts})`} — retrying.
+              </span>
+            )}
             {current.take?.status === "saved" && <span className="text-emerald-700">Saved ✓ {Math.round((current.take.durationMs ?? 0) / 100) / 10}s</span>}
             {current.take?.status === "pending_processing" && <span className="text-sky-700">Saved ✓ (conditioning pending)</span>}
           </p>

@@ -245,30 +245,29 @@
     {
       "id": "authored:readWrite4Digit:3",
       "conceptTag": "readWrite4Digit",
-      "type": "SOFT_CHECK",
-      "spokenText": "හරියටම හරි, අසූ හතර. දැන් මේ ඊළඟ සංඛ්‍යාවේ සංඛ්‍යා නාමය කියන්නකෝ.",
+      "type": "EXPLAIN",
+      "spokenText": "පළමු සංඛ්‍යාව අසූ හතරයි.",
       "numbers": [
         84
       ],
-      "pauseType": "SOFT_CHECK",
+      "pauseType": null,
       "boardIntent": {
         "kind": "none"
       },
-      "expectedAnswer": "එකසිය එක",
       "guideStep": "Display a row of numbers with up to 3 digits and have students read each number's name aloud.",
       "maxSimilarity": {
-        "jaccard": 0.14705882352941177,
+        "jaccard": 0,
         "cosine": null,
-        "closest": "කියන්නකෝ බලන්න මොකක්ද මේ සංඛ්‍යාව කියලා."
+        "closest": ""
       },
-      "sourceText": "හරියටම හරි, {number:84}. දැන් මේ ඊළඟ සංඛ්‍යාවේ සංඛ්‍යා නාමය කියන්නකෝ.",
+      "sourceText": "පළමු සංඛ්‍යාව {number:84}යි.",
       "humanEdited": true
     },
     {
       "id": "authored:readWrite4Digit:4",
       "conceptTag": "readWrite4Digit",
       "type": "EXPLAIN",
-      "spokenText": "දසස්ථානයේ බිංදුව තියෙන නිසා ඒ කොටස කියවෙන්නේ නැහැ. හරිම දක්ෂයි!",
+      "spokenText": "එහි දසස්ථානයේ බිංදුව තියෙන නිසා ඒ කොටස කියවෙන්නේ නැහැ.",
       "numbers": [
         0
       ],
@@ -278,11 +277,12 @@
       },
       "guideStep": "Display a row of numbers with up to 3 digits and have students read each number's name aloud.",
       "maxSimilarity": {
-        "jaccard": 0.2692307692307692,
-        "cosine": 0.7692059751724396,
+        "jaccard": 0.25,
+        "cosine": null,
         "closest": "මෙතන සිය ස්ථානය කියවෙන්නේ නැහැ."
       },
-      "sourceText": "දසස්ථානයේ {number:0} තියෙන නිසා ඒ කොටස කියවෙන්නේ නැහැ. හරිම දක්ෂයි!"
+      "sourceText": "එහි දසස්ථානයේ {number:0} තියෙන නිසා ඒ කොටස කියවෙන්නේ නැහැ.",
+      "humanEdited": true
     },
     {
       "id": "authored:readWrite4Digit:5",
@@ -380,7 +380,7 @@
       "id": "authored:readWrite4Digit:9",
       "conceptTag": "readWrite4Digit",
       "type": "EXPLAIN",
-      "spokenText": "නියමයි! නවසිය අනූ නවයට එකක් එකතු වුණාම දහස හැදෙනවා.",
+      "spokenText": "ඔව්, නවසිය අනූ නවයට එකක් එකතු වුණාම දහස හැදෙනවා.",
       "numbers": [
         999,
         1,
@@ -397,7 +397,7 @@
         "cosine": null,
         "closest": ""
       },
-      "sourceText": "නියමයි! {number:999}ට {number:1}ක් එකතු වුණාම {number:1000} හැදෙනවා.",
+      "sourceText": "ඔව්, {number:999}ට {number:1}ක් එකතු වුණාම {number:1000} හැදෙනවා.",
       "humanEdited": true
     },
     {
@@ -521,7 +521,7 @@
       "id": "authored:readWrite4Digit:16",
       "conceptTag": "readWrite4Digit",
       "type": "EXPLAIN",
-      "spokenText": "නියමයි, ඒ සංඛ්‍යාව තුන්දහස් පනස් අට.",
+      "spokenText": "ඒ සංඛ්‍යාව තුන්දහස් පනස් අටයි.",
       "numbers": [
         3058
       ],
@@ -536,7 +536,8 @@
         "cosine": null,
         "closest": ""
       },
-      "sourceText": "නියමයි, ඒ සංඛ්‍යාව {number:3058}."
+      "sourceText": "ඒ සංඛ්‍යාව {number:3058}යි.",
+      "humanEdited": true
     },
     {
       "id": "authored:readWrite4Digit:17",
@@ -661,7 +662,7 @@
       "id": "authored:readWrite4Digit:23",
       "conceptTag": "readWrite4Digit",
       "type": "EXPLAIN",
-      "spokenText": "නියමයි! එක්දහස් තුන්සිය හැට හතර හරිම ලස්සන සංඛ්‍යාවක්.",
+      "spokenText": "උදාහරණයක් විදිහට අපිට එක්දහස් තුන්සිය හැට හතර හදන්නත් පුළුවන්.",
       "numbers": [
         1364
       ],
@@ -672,11 +673,11 @@
       },
       "guideStep": "Give groups a worksheet with a circle containing digits 1, 3, 6, 4.",
       "maxSimilarity": {
-        "jaccard": 0,
+        "jaccard": 0.14516129032258066,
         "cosine": null,
-        "closest": ""
+        "closest": "මේක ඉතින් ඕනි විදිහට වෙනස් වෙන්න පුළුවන්."
       },
-      "sourceText": "නියමයි! {number:1364} හරිම ලස්සන සංඛ්‍යාවක්.",
+      "sourceText": "උදාහරණයක් විදිහට අපිට {number:1364} හදන්නත් පුළුවන්.",
       "humanEdited": true
     },
     {
@@ -764,22 +765,23 @@
       "id": "authored:readWrite4Digit:28",
       "conceptTag": "readWrite4Digit",
       "type": "EXPLAIN",
-      "spokenText": "ශෝක්! මේ ඉලක්කම් එකතු වුණාම අපි ඒක කියවන්නේ එක්දහස් තුන්සිය හැට හතර කියලා නේද?",
+      "spokenText": "අපි හිතමු මේ ඉලක්කම් වලින් එක්දහස් තුන්සිය හැට හතර හැදුවා කියලා. ඒක කියවන්නේ එක්දහස් තුන්සිය හැට හතර කියලයි.",
       "numbers": [
+        1364,
         1364
       ],
-      "pauseType": "RHETORICAL",
+      "pauseType": null,
       "boardIntent": {
         "kind": "text",
         "text": "1364"
       },
       "guideStep": "Instruct students to form 5 four-digit numbers using the digits in the circle and write the number name of each.",
       "maxSimilarity": {
-        "jaccard": 0.18181818181818182,
+        "jaccard": 0.15789473684210525,
         "cosine": null,
-        "closest": "ආ දැන් බලන්නකෝ ඔය ටික එකතු වුණාම මොකද වෙන්නේ කියලා."
+        "closest": "ආ මේ තියෙන්නේ ඉලක්කම."
       },
-      "sourceText": "ශෝක්! මේ ඉලක්කම් එකතු වුණාම අපි ඒක කියවන්නේ {number:1364} කියලා නේද?",
+      "sourceText": "අපි හිතමු මේ ඉලක්කම් වලින් {number:1364} හැදුවා කියලා. ඒක කියවන්නේ {number:1364} කියලයි.",
       "humanEdited": true
     },
     {
@@ -804,8 +806,8 @@
     {
       "id": "authored:readWrite4Digit:30",
       "conceptTag": "readWrite4Digit",
-      "type": "TRANSITION",
-      "spokenText": "හරිම අපූරුයි, තවත් අලුත් සංඛ්‍යා පහක් හදන්න ලෑල්ලට යමු!",
+      "type": "EXPLAIN",
+      "spokenText": "තවත් අලුත් සංඛ්‍යා පහක් හදන්න ලෑල්ලට යමු!",
       "numbers": [],
       "pauseType": null,
       "boardIntent": {
@@ -814,11 +816,12 @@
       },
       "guideStep": "Instruct students to form 5 four-digit numbers using the digits in the circle and write the number name of each.",
       "maxSimilarity": {
-        "jaccard": 0.125,
-        "cosine": 0.8458055310838317,
+        "jaccard": 0.14864864864864866,
+        "cosine": null,
         "closest": "මෙතන තියෙන දේවල් භාවිත කරලානේ අපි ඉලක්කම් හතරේ සංඛ්‍යා හදන්නේ."
       },
-      "sourceText": "හරිම අපූරුයි, තවත් අලුත් සංඛ්‍යා පහක් හදන්න ලෑල්ලට යමු!"
+      "sourceText": "තවත් අලුත් සංඛ්‍යා පහක් හදන්න ලෑල්ලට යමු!",
+      "humanEdited": true
     },
     {
       "conceptTag": "readWrite4Digit",
@@ -1111,7 +1114,7 @@
       "id": "authored:placeValue4Digit:45",
       "conceptTag": "placeValue4Digit",
       "type": "EXPLAIN",
-      "spokenText": "හරිම දක්ෂයි. එතන පබළු එකක් නිසා අගය එකයි.",
+      "spokenText": "එතන පබළු එකක් නිසා අගය එකයි.",
       "numbers": [
         1,
         1
@@ -1126,33 +1129,14 @@
         "cosine": null,
         "closest": ""
       },
-      "sourceText": "හරිම දක්ෂයි. එතන පබළු {number:1} ක් නිසා අගය {number:1} යි."
+      "sourceText": "එතන පබළු {number:1}ක් නිසා අගය {number:1}යි.",
+      "humanEdited": true
     },
     {
       "id": "authored:placeValue4Digit:46",
       "conceptTag": "placeValue4Digit",
-      "type": "SOFT_CHECK",
-      "spokenText": "ඊළඟට තියෙන දහයස්ථානයේ පබළු කීයක් පෙනෙනවද?",
-      "numbers": [],
-      "pauseType": "SOFT_CHECK",
-      "boardIntent": {
-        "kind": "none"
-      },
-      "expectedAnswer": "දෙක",
-      "guideStep": "Ask the class about the digit shown by the beads at each place, the place value at each place, and the value represented by the digit at each place.",
-      "maxSimilarity": {
-        "jaccard": 0.19444444444444445,
-        "cosine": 0.7893500705109924,
-        "closest": "ඊළඟට තියෙන ස්ථානය මොකක්ද?"
-      },
-      "sourceText": "ඊළඟට තියෙන දහයස්ථානයේ පබළු කීයක් පෙනෙනවද?",
-      "humanEdited": true
-    },
-    {
-      "id": "authored:placeValue4Digit:47",
-      "conceptTag": "placeValue4Digit",
       "type": "EXPLAIN",
-      "spokenText": "දහයස්ථානයේ පබළු දෙකක් නිසා අගය විස්සයි.",
+      "spokenText": "දහයස්ථානයේ පබළු දෙකයි, ඒ නිසා අගය විස්සයි.",
       "numbers": [
         2,
         20
@@ -1161,22 +1145,22 @@
       "boardIntent": {
         "kind": "none"
       },
-      "guideStep": "guide step 2 of 7: Ask the class about the digit shown by the beads at each place, the place value at each place, and the value represented by the digit at each place.",
+      "guideStep": "Ask the class about the digit shown by the beads at each place, the place value at each place, and the value represented by the digit at each place.",
       "maxSimilarity": {
         "jaccard": 0,
         "cosine": null,
         "closest": ""
       },
-      "sourceText": "දහයස්ථානයේ පබළු {number:2}ක් නිසා අගය {number:20}යි.",
+      "sourceText": "දහයස්ථානයේ පබළු {number:2}යි, ඒ නිසා අගය {number:20}යි.",
       "humanEdited": true
     },
     {
       "id": "authored:placeValue4Digit:48",
       "conceptTag": "placeValue4Digit",
-      "type": "SOFT_CHECK",
+      "type": "ASK",
       "spokenText": "සියයස්ථානයේ තියෙන පබළු ගණන කියන්න පුළුවන්ද?",
       "numbers": [],
-      "pauseType": "SOFT_CHECK",
+      "pauseType": "ASK",
       "boardIntent": {
         "kind": "none"
       },
@@ -1215,28 +1199,8 @@
     {
       "id": "authored:placeValue4Digit:50",
       "conceptTag": "placeValue4Digit",
-      "type": "SOFT_CHECK",
-      "spokenText": "දහසස්ථානයේ පබළු කීයක් තියෙනවද {address}?",
-      "numbers": [],
-      "pauseType": "SOFT_CHECK",
-      "boardIntent": {
-        "kind": "none"
-      },
-      "expectedAnswer": "පහ",
-      "guideStep": "Ask the class about the digit shown by the beads at each place, the place value at each place, and the value represented by the digit at each place.",
-      "maxSimilarity": {
-        "jaccard": 0,
-        "cosine": null,
-        "closest": ""
-      },
-      "sourceText": "දහසස්ථානයේ පබළු කීයක් තියෙනවද {address}?",
-      "humanEdited": true
-    },
-    {
-      "id": "authored:placeValue4Digit:51",
-      "conceptTag": "placeValue4Digit",
       "type": "EXPLAIN",
-      "spokenText": "දහසස්ථානයේ පබළු පහක් නිසා දැක්වෙන අගය පන්දහසයි.",
+      "spokenText": "දහසස්ථානයේ පබළු පහයි, ඒ නිසා අගය පන්දහසයි.",
       "numbers": [
         5,
         5000
@@ -1245,13 +1209,14 @@
       "boardIntent": {
         "kind": "none"
       },
-      "guideStep": "guide step 2 of 7: Ask the class about the digit shown by the beads at each place, the place value at each place, and the value represented by the digit at each place.",
+      "guideStep": "Ask the class about the digit shown by the beads at each place, the place value at each place, and the value represented by the digit at each place.",
       "maxSimilarity": {
         "jaccard": 0,
         "cosine": null,
         "closest": ""
       },
-      "sourceText": "දහසස්ථානයේ පබළු {number:5} ක් නිසා දැක්වෙන අගය {number:5000} යි."
+      "sourceText": "දහසස්ථානයේ පබළු {number:5}යි, ඒ නිසා අගය {number:5000}යි.",
+      "humanEdited": true
     },
     {
       "id": "authored:placeValue4Digit:52",
@@ -1403,7 +1368,7 @@
       "id": "authored:placeValue4Digit:59",
       "conceptTag": "placeValue4Digit",
       "type": "EXPLAIN",
-      "spokenText": "හරිම අපූරුයි! ඔයා කිව්වේ හරියටම හරි, ඒක පන්දහස් හාරසිය විසි එක.",
+      "spokenText": "ඒ සංඛ්‍යාව පන්දහස් හාරසිය විසි එකයි.",
       "numbers": [
         5421
       ],
@@ -1414,11 +1379,12 @@
       },
       "guideStep": "guide step 3 of 7: Have students say and write the number name of the number on the abacus.",
       "maxSimilarity": {
-        "jaccard": 0.1,
-        "cosine": 0.7505857722397798,
-        "closest": "ඇයි එහෙම කිව්වේ?"
+        "jaccard": 0,
+        "cosine": null,
+        "closest": ""
       },
-      "sourceText": "හරිම අපූරුයි! ඔයා කිව්වේ හරියටම හරි, ඒක {number:5421}."
+      "sourceText": "ඒ සංඛ්‍යාව {number:5421}යි.",
+      "humanEdited": true
     },
     {
       "id": "authored:placeValue4Digit:60",
@@ -1488,7 +1454,7 @@
       "id": "authored:placeValue4Digit:63",
       "conceptTag": "placeValue4Digit",
       "type": "EXPLAIN",
-      "spokenText": "නියමයි, ඒක හයදහස් අටසිය තිස් එක තමයි! ඔයා දැන් සංඛ්‍යා නාම ලියන්නත් දන්නවා.",
+      "spokenText": "ඒක හයදහස් අටසිය තිස් එක තමයි! දැන් ඔයා සංඛ්‍යා නාම කියවන්න හොඳටම දන්නවා.",
       "numbers": [
         6831
       ],
@@ -1499,11 +1465,12 @@
       },
       "guideStep": "guide step 3 of 7: Have students say and write the number name of the number on the abacus.",
       "maxSimilarity": {
-        "jaccard": 0.16071428571428573,
-        "cosine": 0.8155755893088814,
-        "closest": "පුංචි දූල පුතාලට තියෙන්නේ මේ සංඛ්‍යා නාම වලට අදාළ සංඛ්‍යාව ලියන්න."
+        "jaccard": 0.16666666666666666,
+        "cosine": null,
+        "closest": "ස්ථාන ටික දැන් හොඳටම දන්නවනේ."
       },
-      "sourceText": "නියමයි, ඒක {number:6831} තමයි! ඔයා දැන් සංඛ්‍යා නාම ලියන්නත් දන්නවා."
+      "sourceText": "ඒක {number:6831} තමයි! දැන් ඔයා සංඛ්‍යා නාම කියවන්න හොඳටම දන්නවා.",
+      "humanEdited": true
     },
     {
       "id": "authored:placeValue4Digit:64",
@@ -1576,7 +1543,7 @@
       "id": "authored:placeValue4Digit:67",
       "conceptTag": "placeValue4Digit",
       "type": "EXPLAIN",
-      "spokenText": "හරිම දක්ෂයි! ඒක පන්දහසයි.",
+      "spokenText": "ඒක පන්දහසයි.",
       "numbers": [
         5000
       ],
@@ -1591,42 +1558,21 @@
         "cosine": null,
         "closest": ""
       },
-      "sourceText": "හරිම දක්ෂයි! ඒක {number:5000}යි."
+      "sourceText": "ඒක {number:5000}යි.",
+      "humanEdited": true
     },
     {
       "id": "authored:placeValue4Digit:68",
       "conceptTag": "placeValue4Digit",
-      "type": "SOFT_CHECK",
-      "spokenText": "සියයස්ථානයේ තියෙන්නේ හතරක්. එහි අගය කීයද?",
-      "numbers": [
-        4
-      ],
-      "pauseType": "SOFT_CHECK",
-      "boardIntent": {
-        "kind": "none"
-      },
-      "expectedAnswer": "හාරසියය",
-      "guideStep": "Show the number written in expanded form.",
-      "maxSimilarity": {
-        "jaccard": 0,
-        "cosine": null,
-        "closest": ""
-      },
-      "sourceText": "සියයස්ථානයේ තියෙන්නේ {number:4}ක්. එහි අගය කීයද?",
-      "humanEdited": true
-    },
-    {
-      "id": "authored:placeValue4Digit:69",
-      "conceptTag": "placeValue4Digit",
       "type": "EXPLAIN",
-      "spokenText": "හරි, ඒක හාරසියයයි. අපි ඒකත් එකතු කරමු.",
+      "spokenText": "සියයස්ථානයේ තියෙන්නේ හතරක්, ඒ නිසා අගය හාරසියයයි.",
       "numbers": [
+        4,
         400
       ],
       "pauseType": null,
       "boardIntent": {
-        "kind": "text",
-        "text": "5 421 = 5000 + 400 +"
+        "kind": "none"
       },
       "guideStep": "Show the number written in expanded form.",
       "maxSimilarity": {
@@ -1634,17 +1580,18 @@
         "cosine": null,
         "closest": ""
       },
-      "sourceText": "හරි, ඒක {number:400}යි. අපි ඒකත් එකතු කරමු."
+      "sourceText": "සියයස්ථානයේ තියෙන්නේ {number:4}ක්, ඒ නිසා අගය {number:400}යි.",
+      "humanEdited": true
     },
     {
       "id": "authored:placeValue4Digit:70",
       "conceptTag": "placeValue4Digit",
-      "type": "SOFT_CHECK",
+      "type": "ASK",
       "spokenText": "ඊළඟට දහයස්ථානයේ තියෙන දෙකෙන් ලැබෙන අගය කීයද?",
       "numbers": [
         2
       ],
-      "pauseType": "SOFT_CHECK",
+      "pauseType": "ASK",
       "boardIntent": {
         "kind": "none"
       },
@@ -1684,46 +1631,23 @@
     {
       "id": "authored:placeValue4Digit:72",
       "conceptTag": "placeValue4Digit",
-      "type": "SOFT_CHECK",
-      "spokenText": "අන්තිමට එකස්ථානයේ තියෙන එකෙන් ලැබෙන්නේ කීයද?",
-      "numbers": [
-        1
-      ],
-      "pauseType": "SOFT_CHECK",
-      "boardIntent": {
-        "kind": "none"
-      },
-      "expectedAnswer": "එක",
-      "guideStep": "Show the number written in expanded form.",
-      "maxSimilarity": {
-        "jaccard": 0.1111111111111111,
-        "cosine": null,
-        "closest": "මේ තියෙන්නෙ, බිංදුවයි."
-      },
-      "sourceText": "අන්තිමට එකස්ථානයේ තියෙන {number:1}ෙන් ලැබෙන්නේ කීයද?",
-      "humanEdited": true
-    },
-    {
-      "id": "authored:placeValue4Digit:73",
-      "conceptTag": "placeValue4Digit",
       "type": "EXPLAIN",
-      "spokenText": "විශිෂ්ටයි! එකස්ථානයේ එකෙන් ලැබෙන්නේ එකමයි.",
+      "spokenText": "අන්තිමට එකස්ථානයේ තියෙන්නේ එකක්, ඒ නිසා ලැබෙන්නේ එකමයි.",
       "numbers": [
         1,
         1
       ],
       "pauseType": null,
       "boardIntent": {
-        "kind": "text",
-        "text": "5 421 = 5000 + 400 + 20 + 1"
+        "kind": "none"
       },
       "guideStep": "Show the number written in expanded form.",
       "maxSimilarity": {
-        "jaccard": 0,
+        "jaccard": 0.09523809523809523,
         "cosine": null,
-        "closest": ""
+        "closest": "සියයේ ඒවා පහක් තියෙනවා, ඒ නිසා වටිනාකම කීයද?"
       },
-      "sourceText": "විශිෂ්ටයි! එකස්ථානයේ {number:1}ෙන් ලැබෙන්නේ {number:1}මයි.",
+      "sourceText": "අන්තිමට එකස්ථානයේ තියෙන්නේ {number:1}ක්, ඒ නිසා ලැබෙන්නේ {number:1}මයි.",
       "humanEdited": true
     },
     {
@@ -1855,8 +1779,10 @@
       "id": "authored:placeValue4Digit:80",
       "conceptTag": "placeValue4Digit",
       "type": "EXPLAIN",
-      "spokenText": "හරිම පැහැදිලියි, කූරේ කිසිම පබළුවක් නෑ. ඒ නිසා එතන අගය බිංදුවයි.",
-      "numbers": [],
+      "spokenText": "කූරේ කිසිම පබළුවක් නෑ. ඒ නිසා එතන අගය බිංදුවයි.",
+      "numbers": [
+        0
+      ],
       "pauseType": null,
       "boardIntent": {
         "kind": "text",
@@ -1864,11 +1790,11 @@
       },
       "guideStep": "guide step 5 of 7: Repeat by representing several different numbers on the abacus and expanding each.",
       "maxSimilarity": {
-        "jaccard": 0.13333333333333333,
+        "jaccard": 0.02631578947368421,
         "cosine": null,
-        "closest": "පැහැදිලියි නේද හොඳට?"
+        "closest": "ගණක රාමුවක් දීලා තියෙනවා."
       },
-      "sourceText": "හරිම පැහැදිලියි, කූරේ කිසිම පබළුවක් නෑ. ඒ නිසා එතන අගය බිංදුවයි.",
+      "sourceText": "කූරේ කිසිම පබළුවක් නෑ. ඒ නිසා එතන අගය {number:0}යි.",
       "humanEdited": true
     },
     {
@@ -1922,7 +1848,7 @@
       "id": "authored:placeValue4Digit:83",
       "conceptTag": "placeValue4Digit",
       "type": "EXPLAIN",
-      "spokenText": "හරියටම හරි, ඒක දෙකම තමයි.",
+      "spokenText": "ඒක දෙකයි.",
       "numbers": [
         2
       ],
@@ -1933,11 +1859,12 @@
       },
       "guideStep": "guide step 5 of 7: Repeat by representing several different numbers on the abacus and expanding each.",
       "maxSimilarity": {
-        "jaccard": 0.05405405405405406,
+        "jaccard": 0,
         "cosine": null,
-        "closest": "මෙන්න මේක තමයි ඉලක්කම, හරි?"
+        "closest": ""
       },
-      "sourceText": "හරියටම හරි, ඒක {number:2} ම තමයි."
+      "sourceText": "ඒක {number:2}යි.",
+      "humanEdited": true
     },
     {
       "id": "authored:placeValue4Digit:84",
@@ -2052,7 +1979,7 @@
       "id": "authored:placeValue4Digit:89",
       "conceptTag": "placeValue4Digit",
       "type": "EXPLAIN",
-      "spokenText": "හරියටම හරි, ඒක හයදහසයි.",
+      "spokenText": "ඒක හයදහසයි.",
       "numbers": [
         6000
       ],
@@ -2067,7 +1994,7 @@
         "cosine": null,
         "closest": ""
       },
-      "sourceText": "හරියටම හරි, ඒක {number:6000}යි.",
+      "sourceText": "ඒක {number:6000}යි.",
       "humanEdited": true
     },
     {
@@ -2136,7 +2063,7 @@
       "id": "authored:placeValue4Digit:93",
       "conceptTag": "placeValue4Digit",
       "type": "EXPLAIN",
-      "spokenText": "හරියටම හරි, ඒක අටදහසයි, හයසියයයි, දහයයි, තුනයි.",
+      "spokenText": "මුලින්ම ලියවෙන්නේ අටදහසයි. ඊටපස්සේ හයසියයයි, දහයයි, තුනයි එකතු වෙනවා.",
       "numbers": [
         8000,
         600,
@@ -2154,7 +2081,7 @@
         "cosine": null,
         "closest": ""
       },
-      "sourceText": "හරියටම හරි, ඒක {number:8000}යි, {number:600}යි, {number:10}යි, {number:3}යි.",
+      "sourceText": "මුලින්ම ලියවෙන්නේ {number:8000}යි. ඊටපස්සේ {number:600}යි, {number:10}යි, {number:3}යි එකතු වෙනවා.",
       "humanEdited": true
     },
     {
@@ -2257,7 +2184,7 @@
       "id": "authored:placeValue4Digit:99",
       "conceptTag": "placeValue4Digit",
       "type": "EXPLAIN",
-      "spokenText": "හරිම දක්ෂයි, දහසස්ථානයේ ඉන්නේ පහ නේද.",
+      "spokenText": "දහසස්ථානයේ ඉන්නේ පහ නේද.",
       "numbers": [
         5
       ],
@@ -2267,11 +2194,12 @@
       },
       "guideStep": "guide step 7 of 7: Give students a worksheet of further expansion exercises to do alone.",
       "maxSimilarity": {
-        "jaccard": 0.07272727272727272,
-        "cosine": 0.7791936658376089,
-        "closest": "අමතක නම් ආයේ මතක් කරගන්න එකනේ වටින්නේ නේද?"
+        "jaccard": 0,
+        "cosine": null,
+        "closest": ""
       },
-      "sourceText": "හරිම දක්ෂයි, දහසස්ථානයේ ඉන්නේ {number:5} නේද."
+      "sourceText": "දහසස්ථානයේ ඉන්නේ {number:5} නේද.",
+      "humanEdited": true
     },
     {
       "id": "authored:placeValue4Digit:100",
@@ -2299,7 +2227,7 @@
       "id": "authored:placeValue4Digit:101",
       "conceptTag": "placeValue4Digit",
       "type": "EXPLAIN",
-      "spokenText": "හරියටම හරි, ඒක පන්දහසයි.",
+      "spokenText": "ඒක පන්දහසයි.",
       "numbers": [
         5000
       ],
@@ -2314,14 +2242,14 @@
         "cosine": null,
         "closest": ""
       },
-      "sourceText": "හරියටම හරි, ඒක {number:5000}යි.",
+      "sourceText": "ඒක {number:5000}යි.",
       "humanEdited": true
     },
     {
       "id": "authored:placeValue4Digit:102",
       "conceptTag": "placeValue4Digit",
       "type": "SHOW_BOARD",
-      "spokenText": "දැන් මේ වගුවේ තියෙන අනිත් කොටස් ඔයාට පුරවන්න පුළුවන්.",
+      "spokenText": "දැන් මේ වගුවේ තියෙන කොටස් අපි එකට පුරවමු.",
       "numbers": [],
       "pauseType": null,
       "boardIntent": {
@@ -2330,47 +2258,175 @@
       },
       "guideStep": "guide step 7 of 7: Give students a worksheet of further expansion exercises to do alone.",
       "maxSimilarity": {
-        "jaccard": 0.11842105263157894,
-        "cosine": 0.7944087179716897,
-        "closest": "මේ දෙක ඕනෑම ඉලක්කම් දෙකක් ඔයාලට ඕන එකක් දාගන්න පුළුවන්."
+        "jaccard": 0.11864406779661017,
+        "cosine": null,
+        "closest": "දැන් මේ වෙනකොට හොඳට ඉගෙනගෙන තියෙන්නෙ."
       },
-      "sourceText": "දැන් මේ වගුවේ තියෙන අනිත් කොටස් ඔයාට පුරවන්න පුළුවන්."
+      "sourceText": "දැන් මේ වගුවේ තියෙන කොටස් අපි එකට පුරවමු.",
+      "humanEdited": true
     },
     {
       "id": "authored:placeValue4Digit:103",
       "conceptTag": "placeValue4Digit",
-      "type": "SOFT_CHECK",
-      "spokenText": "එක් එක් ස්ථානයේ අගයන් දැන් හොඳටම මතකයි නේද?",
-      "numbers": [],
-      "pauseType": "SOFT_CHECK",
+      "type": "ASK",
+      "spokenText": "හයදහස් පන්සිය හැත්තෑ දෙක කියන සංඛ්‍යාවේ හයෙන් පෙන්වන අගය කීයද?",
+      "numbers": [
+        6572,
+        6
+      ],
+      "pauseType": "ASK",
       "boardIntent": {
-        "kind": "none"
+        "kind": "blank",
+        "itemId": "7b58e436-334f-452c-bc2a-81f234d03268",
+        "rowIndex": 1,
+        "field": "valueRepresented"
       },
       "guideStep": "guide step 7 of 7: Give students a worksheet of further expansion exercises to do alone.",
       "maxSimilarity": {
-        "jaccard": 0.19047619047619047,
-        "cosine": 0.8683524914014021,
-        "closest": "සිය ස්ථානයේ අගය බිංදුවයි."
+        "jaccard": 0,
+        "cosine": null,
+        "closest": ""
       },
-      "sourceText": "එක් එක් ස්ථානයේ අගයන් දැන් හොඳටම මතකයි නේද?"
+      "sourceText": "{number:6572} කියන සංඛ්‍යාවේ {number:6}ෙන් පෙන්වන අගය කීයද?",
+      "expectedAnswer": "6000",
+      "humanEdited": true
     },
     {
       "id": "authored:placeValue4Digit:104",
       "conceptTag": "placeValue4Digit",
       "type": "EXPLAIN",
-      "spokenText": "ඔයා මේ හැම අභ්‍යාසයක්ම හරිම ලස්සනට තනියම කළා, විශිෂ්ටයි!",
-      "numbers": [],
+      "spokenText": "ඒක හයදහසයි. ඒ හය තියෙන්නේ දහසස්ථානයේ.",
+      "numbers": [
+        6000,
+        6
+      ],
       "pauseType": null,
       "boardIntent": {
         "kind": "none"
       },
       "guideStep": "guide step 7 of 7: Give students a worksheet of further expansion exercises to do alone.",
       "maxSimilarity": {
-        "jaccard": 0.10294117647058823,
-        "cosine": 0.7294582756446333,
-        "closest": "ඒ විදිහ අභ්‍යාසයක් තියෙනවා."
+        "jaccard": 0,
+        "cosine": null,
+        "closest": ""
       },
-      "sourceText": "ඔයා මේ හැම අභ්‍යාසයක්ම හරිම ලස්සනට තනියම කළා, විශිෂ්ටයි!"
+      "sourceText": "ඒක {number:6000}යි. ඒ {number:6} තියෙන්නේ දහසස්ථානයේ.",
+      "humanEdited": true
+    },
+    {
+      "id": "authored:placeValue4Digit:105",
+      "conceptTag": "placeValue4Digit",
+      "type": "ASK",
+      "sourceText": "එහෙනම් {number:5024} කියන සංඛ්‍යාවේ {number:4}ෙන් පෙන්වන අගය කීයද?",
+      "spokenText": "එහෙනම් පන්දහස් විසි හතර කියන සංඛ්‍යාවේ හතරෙන් පෙන්වන අගය කීයද?",
+      "numbers": [
+        5024,
+        4
+      ],
+      "humanEdited": true,
+      "pauseType": "ASK",
+      "boardIntent": {
+        "kind": "blank",
+        "itemId": "7b58e436-334f-452c-bc2a-81f234d03268",
+        "rowIndex": 2,
+        "field": "valueRepresented"
+      },
+      "expectedAnswer": "4",
+      "guideStep": "guide step 7 of 7: Give students a worksheet of further expansion exercises to do alone.",
+      "maxSimilarity": {
+        "jaccard": 0.2222222222222222,
+        "cosine": null,
+        "closest": "එහෙනම් කියවමුද?"
+      }
+    },
+    {
+      "id": "authored:placeValue4Digit:106",
+      "conceptTag": "placeValue4Digit",
+      "type": "EXPLAIN",
+      "sourceText": "ඒක {number:4}යි. {number:4} තියෙන්නේ එකස්ථානයේ.",
+      "spokenText": "ඒක හතරයි. හතර තියෙන්නේ එකස්ථානයේ.",
+      "numbers": [
+        4,
+        4
+      ],
+      "humanEdited": true,
+      "pauseType": null,
+      "boardIntent": {
+        "kind": "none"
+      },
+      "guideStep": "guide step 7 of 7: Give students a worksheet of further expansion exercises to do alone.",
+      "maxSimilarity": {
+        "jaccard": 0,
+        "cosine": null,
+        "closest": ""
+      }
+    },
+    {
+      "id": "authored:placeValue4Digit:107",
+      "conceptTag": "placeValue4Digit",
+      "type": "ASK",
+      "sourceText": "{number:8700} කියන සංඛ්‍යාවේ {number:700} අගය දෙන්නේ මොන ඉලක්කමද?",
+      "spokenText": "අටදහස් හත්සියය කියන සංඛ්‍යාවේ හත්සියය අගය දෙන්නේ මොන ඉලක්කමද?",
+      "numbers": [
+        8700,
+        700
+      ],
+      "humanEdited": true,
+      "pauseType": "ASK",
+      "boardIntent": {
+        "kind": "blank",
+        "itemId": "7b58e436-334f-452c-bc2a-81f234d03268",
+        "rowIndex": 3,
+        "field": "digit"
+      },
+      "expectedAnswer": "7",
+      "guideStep": "guide step 7 of 7: Give students a worksheet of further expansion exercises to do alone.",
+      "maxSimilarity": {
+        "jaccard": 0.13513513513513514,
+        "cosine": null,
+        "closest": "අට කියන්නේ මොන ස්ථානයද?"
+      }
+    },
+    {
+      "id": "authored:placeValue4Digit:108",
+      "conceptTag": "placeValue4Digit",
+      "type": "EXPLAIN",
+      "sourceText": "ඒක {number:7}යි. {number:7} තියෙන්නේ සියයස්ථානයේ.",
+      "spokenText": "ඒක හතයි. හත තියෙන්නේ සියයස්ථානයේ.",
+      "numbers": [
+        7,
+        7
+      ],
+      "humanEdited": true,
+      "pauseType": null,
+      "boardIntent": {
+        "kind": "none"
+      },
+      "guideStep": "guide step 7 of 7: Give students a worksheet of further expansion exercises to do alone.",
+      "maxSimilarity": {
+        "jaccard": 0,
+        "cosine": null,
+        "closest": ""
+      }
+    },
+    {
+      "id": "authored:placeValue4Digit:109",
+      "conceptTag": "placeValue4Digit",
+      "type": "EXPLAIN",
+      "sourceText": "අද ඔයා හොඳට වැඩ කළා. ස්ථානීය අගය මොකක්ද කියලා දැන් ඔයා දන්නවා.",
+      "spokenText": "අද ඔයා හොඳට වැඩ කළා. ස්ථානීය අගය මොකක්ද කියලා දැන් ඔයා දන්නවා.",
+      "numbers": [],
+      "humanEdited": true,
+      "pauseType": null,
+      "boardIntent": {
+        "kind": "none"
+      },
+      "guideStep": "guide step 7 of 7: Give students a worksheet of further expansion exercises to do alone.",
+      "maxSimilarity": {
+        "jaccard": 0.18518518518518517,
+        "cosine": null,
+        "closest": "ඔව්, ඔයාලා දන්නවා."
+      }
     }
   ],
   "hookAnalogy": {

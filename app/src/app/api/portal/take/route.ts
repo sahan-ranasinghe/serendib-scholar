@@ -61,9 +61,25 @@ export async function POST(request: NextRequest) {
   const rawPath = rawTakePath(lineId, Date.now());
   const rawUpload = await storage.upload(rawPath, raw, { contentType: audio.type || "audio/webm", upsert: true });
   if (rawUpload.error) {
-    console.error(`[portal] raw upload failed for ${lineId}: ${rawUpload.error.message}`);
+    // The real message, not a generic one. "Upload failed — retrying
+    // automatically" sent the first session hunting for a network problem
+    // when the bucket was plainly saying "mime type audio/webm is not
+    // supported"; she should be able to read the cause off the screen.
+    const message = rawUpload.error.message;
+    console.error(`[portal] raw upload failed for ${lineId}: ${message}`);
     await upsertTake({ beat_id: lineId, status: "failed" });
-    return NextResponse.json({ ok: false, error: "upload_failed", retryable: true }, { status: 502 });
+    const mimeProblem = /mime type/i.test(message);
+    return NextResponse.json(
+      {
+        ok: false,
+        error: message,
+        hint: mimeProblem
+          ? "The audio bucket is rejecting this recording format. Open /portal/status — the health check says how to widen it."
+          : undefined,
+        retryable: !mimeProblem,
+      },
+      { status: 502 },
+    );
   }
 
   // 2. The line is now safe, whatever happens next.

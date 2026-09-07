@@ -27,12 +27,18 @@ export interface SpeechBeat {
   /** The same line with {number:N} markers, when the beat has one. */
   sourceText?: string;
   pauseType: "RHETORICAL" | "SOFT_CHECK" | "ASK" | null;
+  /** Needed by the two flow rules: what kind of beat this is, and whether it judges an answer. */
+  type?: string;
+  expectedAnswer?: string | null;
+  conceptTag?: string;
 }
 
 export type SpeechRule =
   | "rhetoricalMustEndWithTag"
   | "bannedInSpeech"
-  | "termConsistencyAfterIntroduction";
+  | "termConsistencyAfterIntroduction"
+  | "noVerdictAfterAQuestion"
+  | "noAssumedAnswer";
 
 export interface SpeechFinding {
   rule: SpeechRule;
@@ -140,6 +146,107 @@ function checkBanned(beat: SpeechBeat): SpeechFinding[] {
   return findings;
 }
 
+// --- 4. no verdict in the beat after a question ---------------------------
+
+/**
+ * The runtime already decides whether the child was right.
+ *
+ * When a scripted beat that FOLLOWS a question opens with "නියමයි!" or
+ * "හරියටම හරි", that praise is unconditional: it plays identically after a
+ * correct answer, after a wrong one the child then retried, and after
+ * silence that ended with Zara demonstrating the answer herself. A child
+ * congratulated for being wrong learns that the praise means nothing.
+ *
+ * So the beat after a question states the answer NEUTRALLY — true in all
+ * three cases — and the praise stays where it belongs, in the feedback
+ * clip the planner chooses from the real answer.
+ */
+const VERDICT_WORDS = [
+  "නියමයි",
+  "හරියටම හරි",
+  "හරිම දක්ෂයි",
+  "හරිම අපූරුයි",
+  "ශෝක්",
+  "විශිෂ්ටයි",
+  "හරිම පැහැදිලියි",
+  "ඔයා කිව්වේ හරි",
+  "ඔයා හරි",
+];
+
+/** A beat that stops and waits for the child to say something. */
+function isQuestion(beat: SpeechBeat): boolean {
+  return beat.type === "ASK" || beat.type === "SOFT_CHECK" || beat.type === "CHECK_MY_WORK";
+}
+
+/** The first sentence is where a verdict lands; later ones are commentary. */
+function firstSentence(text: string): string {
+  const match = /^[^.!?]*[.!?]?/u.exec(text.replace(/\{address\}/gu, "").trim());
+  return match ? match[0] : text;
+}
+
+function checkVerdicts(beats: SpeechBeat[]): SpeechFinding[] {
+  const findings: SpeechFinding[] = [];
+  beats.forEach((beat, index) => {
+    const previous = beats[index - 1];
+    if (!previous || !isQuestion(previous)) return;
+    const opening = firstSentence(beat.spokenText);
+    for (const verdict of VERDICT_WORDS) {
+      if (!opening.includes(verdict)) continue;
+      findings.push({
+        rule: "noVerdictAfterAQuestion",
+        beatId: beat.id,
+        detail: `opens with "${verdict}" straight after ${previous.id} asked a question — this praise plays even when the child was wrong`,
+        suggestion: "state the answer neutrally; the runtime supplies praise from the real answer",
+      });
+      break;
+    }
+  });
+  return findings;
+}
+
+// --- 5. no answer assumed from an open-ended question ---------------------
+
+/**
+ * "Make any number you like from these digits" — then Zara says 1364 as
+ * though the child had said it. Whatever she actually made, the lesson
+ * carried on about a different number.
+ *
+ * A beat may not state a number that came from an OPEN-ENDED response (a
+ * question with no expectedAnswer, or one that literally invites a choice
+ * with "ඔයා කැමති") unless it is framed as an example.
+ */
+const OPEN_ENDED_MARKER = "ඔයා කැමති";
+const EXAMPLE_FRAMES = ["උදාහරණයක්", "අපි හිතමු"];
+
+function checkAssumedAnswers(beats: SpeechBeat[]): SpeechFinding[] {
+  const findings: SpeechFinding[] = [];
+  beats.forEach((beat, index) => {
+    const previous = beats[index - 1];
+    if (!previous || !isQuestion(previous)) return;
+    // "No expectedAnswer" alone is too broad: a SOFT_CHECK that ends on a
+    // rhetorical tag ("…මතක හිටියා නේද?") is a confirmation, not an
+    // invitation to produce a number, and the beat after it is Zara
+    // choosing her own example. Only a question that actually asks the
+    // child to make something can have its answer assumed.
+    const invites =
+      previous.spokenText.includes(OPEN_ENDED_MARKER) ||
+      (!previous.expectedAnswer && !RHETORICAL_TAG_PATTERN.test(previous.spokenText.replace(/[,\s]*\{address\}/gu, "").trim()));
+    if (!invites) return;
+    if (beat.conceptTag && previous.conceptTag && beat.conceptTag !== previous.conceptTag) return;
+    // Markers are the reliable signal that a NUMBER is being stated.
+    const numbers = [...(beat.sourceText ?? "").matchAll(/\{number:(\d+)\}/gu)].map((m) => m[1]!);
+    if (numbers.length === 0) return;
+    if (EXAMPLE_FRAMES.some((frame) => beat.spokenText.includes(frame))) return;
+    findings.push({
+      rule: "noAssumedAnswer",
+      beatId: beat.id,
+      detail: `states ${numbers.join(", ")} after ${previous.id} let the child choose freely — the child may have said something else`,
+      suggestion: "frame it as an example (උදාහරණයක් විදිහට / අපි හිතමු), or ask a question with one answer",
+    });
+  });
+  return findings;
+}
+
 // --- 3. term consistency --------------------------------------------------
 
 /**
@@ -186,6 +293,8 @@ export function checkSpeechRules(beats: SpeechBeat[]): SpeechFinding[] {
     findings.push(...checkBanned(beat));
   }
   findings.push(...checkTermConsistency(beats));
+  findings.push(...checkVerdicts(beats));
+  findings.push(...checkAssumedAnswers(beats));
   const order = new Map(beats.map((beat, index) => [beat.id, index]));
   return findings.sort((a, b) => (order.get(a.beatId) ?? 0) - (order.get(b.beatId) ?? 0));
 }

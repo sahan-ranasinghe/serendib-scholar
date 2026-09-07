@@ -42,3 +42,6 @@ yarn-error.log*
 # scripts/ingest-syllabus.ts working output — regenerated fresh each run
 /scripts/skipped-chunks.log
 next-env.d.ts
+
+# Browser-check artifacts (scripts/portal-check.ts)
+.portal-check/

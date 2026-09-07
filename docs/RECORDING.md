@@ -53,8 +53,22 @@ Your hands should not have to move.
 | **r** | Re-take — throws the last one away and counts you in again |
 | **←  →** | Previous / next line |
 
-You do not have to press stop. Recording ends on its own after about a
-second and a half of silence, so finish the line and just breathe out.
+You do not have to press stop. Recording ends on its own after **2.5
+seconds** of silence, so finish the line and just breathe out.
+
+It will not cut you off mid-line:
+
+- it never stops in the first 3 seconds of a take,
+- it never stops before you have actually started speaking,
+- it listens to *your* room — it measures the quiet in the first second of
+  each take, so a soft delivery in a very quiet room still counts as
+  speech,
+- in the last second before it stops, a **red ring** appears. If you are
+  only pausing for effect, keep talking and it goes away.
+
+If it still gets in your way — long dramatic pauses, or a very quiet
+delivery — untick **auto-stop** at the top of the screen and press space
+to stop each take yourself. The setting stays off for the session.
 
 After every take it plays back to you once, automatically. Then: **keep**,
 **re-take**, or **trim**.
@@ -113,7 +127,9 @@ hear but the recording keeps.
 
 If your internet drops, keep going: uploads retry on their own, and a line
 is only marked green once it is genuinely saved. If a line will not turn
-green, note it and move on.
+green, the message under the buttons says exactly why — if it mentions the
+audio format or the bucket, that is ours to fix, not yours: send us the
+message and move on to the next line.
 
 ---
 

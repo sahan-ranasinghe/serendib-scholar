@@ -127,6 +127,9 @@ function assertSpeechRules(tally: AssertionTally): void {
       spokenText: beat.spokenText,
       sourceText: beat.sourceText,
       pauseType: beat.pauseType,
+      type: beat.type,
+      expectedAnswer: beat.expectedAnswer ?? null,
+      conceptTag: beat.conceptTag,
     })),
   );
   tally.check(

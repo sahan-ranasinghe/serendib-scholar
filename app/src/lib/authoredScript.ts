@@ -30,7 +30,13 @@ export type AuthoredBoardIntent =
   | { kind: "text"; text: string }
   | { kind: "abacus"; digits: number[]; animate?: boolean; startEmpty?: boolean }
   | { kind: "abacus_add"; rod: number; count: number }
-  | { kind: "exercise"; itemId: string };
+  | { kind: "exercise"; itemId: string }
+  /**
+   * One blank of a staged exercise, made active so the child answers it
+   * through the board's own number pad. The closing questions use this:
+   * an exercise nobody fills in is a picture, not practice.
+   */
+  | { kind: "blank"; itemId: string; rowIndex: number; field: string };
 
 /**
  * The welcome-and-preview beats belong to no teachable concept — they are
@@ -130,6 +136,8 @@ function boardFor(intent: AuthoredBoardIntent, lessonTitle: string): BeatBoardAc
       return { kind: "abacus_add_bead", rod: intent.rod, count: intent.count };
     case "exercise":
       return { kind: "stage_item", itemId: intent.itemId };
+    case "blank":
+      return { kind: "set_active_blank", itemId: intent.itemId, rowIndex: intent.rowIndex, field: intent.field };
     default:
       return { kind: "none" };
   }
@@ -147,6 +155,8 @@ function describeBoard(intent: AuthoredBoardIntent): string {
       return `beads landing on rod ${intent.rod}`;
     case "exercise":
       return "a textbook exercise";
+    case "blank":
+      return `the exercise with row ${intent.rowIndex}'s ${intent.field} waiting to be filled in`;
     default:
       return "whatever is already showing";
   }
@@ -166,7 +176,10 @@ export function toRuntimeBeats(file: AuthoredScriptFile, lessonTitle: string): B
       conceptTag: authored.conceptTag,
       sessionIndex: 0,
       mode: null,
-      itemId: authored.boardIntent.kind === "exercise" ? authored.boardIntent.itemId : null,
+      itemId:
+      authored.boardIntent.kind === "exercise" || authored.boardIntent.kind === "blank"
+        ? authored.boardIntent.itemId
+        : null,
       segmentIndex: index,
       goal:
         authored.type === "CHECK_MY_WORK"

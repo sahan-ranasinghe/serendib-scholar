@@ -24,3 +24,17 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/**
+ * A Sinhala-safe stack for the line the actor reads.
+ *
+ * The default sans stack has no Sinhala coverage, so the browser silently
+ * substitutes per-glyph and the line she is reading from arrives in a
+ * different face from one phrase to the next. Named faces first, then the
+ * platform defaults that actually ship Sinhala (Noto on Android and most
+ * Linux, Iskoola Pota on Windows).
+ */
+.font-sinhala {
+  font-family: "Noto Sans Sinhala", "Iskoola Pota", "Nirmala UI", "Malithi Web",
+    var(--font-geist-sans), system-ui, sans-serif;
+}

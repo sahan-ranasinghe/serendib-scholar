@@ -251,8 +251,21 @@ export const MISSES_BEFORE_RETEACH = 2;
 export const ASK_SILENCE_TIMEOUT_MS = 8000;
 export const ASK_HELP_TIMEOUT_MS = 12000;
 export const ASK_GIVEUP_TIMEOUT_MS = 10000;
-/** SOFT_CHECK: the mic opens this long; silence just flows on. */
-export const SOFT_CHECK_WINDOW_MS = 3000;
+/**
+ * SOFT_CHECK: how long the mic waits for the child to START; silence for
+ * the whole window just flows on, unacknowledged.
+ *
+ * Three seconds closed while a child was still assembling an answer — a
+ * nine-year-old doing arithmetic needs longer to begin than an adult
+ * confirming something — and the acknowledgement then played over them.
+ */
+export const SOFT_CHECK_WINDOW_MS = 5000;
+/**
+ * ...and once she HAS started, the acknowledgement waits for this much
+ * quiet before it speaks. Never a timer: a child still talking is never
+ * interrupted, however long the sentence runs.
+ */
+export const SOFT_CHECK_SILENCE_MS = 1200;
 
 export function createInitialState(startBeat = 0): OrchestratorState {
   return {

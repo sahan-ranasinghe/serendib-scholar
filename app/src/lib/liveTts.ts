@@ -181,8 +181,15 @@ export async function ensureAudioBucket(): Promise<void> {
     // A bucket created before the portal existed allows only WAV + JSON,
     // and would silently refuse every take she records. Widened in place
     // rather than requiring the bucket to be recreated.
-    const allowed = data.allowed_mime_types ?? [];
-    if (AUDIO_MIME_TYPES.some((type) => !allowed.includes(type))) {
+    //
+    // A NULL allowlist means "accept anything", which is strictly more
+    // permissive than any list here — so it is left exactly as it is. An
+    // earlier version read null as an empty array and helpfully "widened"
+    // an unrestricted bucket into a restricted one, quietly undoing a
+    // human who had cleared the list by hand to unblock a recording
+    // session. Never narrow what someone deliberately opened.
+    const allowed = data.allowed_mime_types;
+    if (allowed !== null && allowed !== undefined && AUDIO_MIME_TYPES.some((type) => !allowed.includes(type))) {
       updates.allowedMimeTypes = [...new Set([...allowed, ...AUDIO_MIME_TYPES])];
       changed = true;
     }

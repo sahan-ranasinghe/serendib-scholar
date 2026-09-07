@@ -39,4 +39,6 @@ export interface UploadState {
   state: "uploading" | "saved" | "failed";
   attempts: number;
   blob?: Blob;
+  /** The server's own message, shown verbatim — never a generic string. */
+  error?: string;
 }
