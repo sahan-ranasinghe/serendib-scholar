@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseClient";
 import { AUDIO_BUCKET, clipMetaPath, clipPath } from "@/lib/audioCache";
+import { humanClipPath, humanMetaPath, voiceProfile } from "@/lib/humanClips";
 import { requireSession } from "@/lib/sessionAuth";
 
 /**
@@ -27,13 +28,31 @@ export async function GET(request: NextRequest, context: { params: Promise<{ key
     return NextResponse.json({ ok: false, error: "bad_key" }, { status: 400 });
   }
   const wantMeta = request.nextUrl.searchParams.get("meta") === "1";
-  const path = wantMeta ? clipMetaPath(key) : clipPath(key);
+  const storage = supabaseAdmin.storage.from(AUDIO_BUCKET);
+  const sign = async (path: string) => {
+    const { data, error } = await storage.createSignedUrl(path, SIGNED_URL_TTL_SECONDS);
+    return error || !data?.signedUrl ? null : data.signedUrl;
+  };
 
-  const { data, error } = await supabaseAdmin.storage.from(AUDIO_BUCKET).createSignedUrl(path, SIGNED_URL_TTL_SECONDS);
-  if (error || !data?.signedUrl) {
+  // VOICE_PROFILE=human prefers the actor's recording for these exact
+  // words and falls back to the rendered clip when she has not reached
+  // that line yet — so a half-recorded lesson still plays end to end, in
+  // the AI voice only where it has to. Which shelf answered is logged, so
+  // coverage is observable from the logs as well as from the dry run.
+  if (voiceProfile() === "human") {
+    const humanUrl = await sign(wantMeta ? humanMetaPath(key) : humanClipPath(key));
+    if (humanUrl) {
+      console.log(`[clip] ${key} → human`);
+      return NextResponse.redirect(humanUrl, 302);
+    }
+  }
+
+  const aiUrl = await sign(wantMeta ? clipMetaPath(key) : clipPath(key));
+  if (!aiUrl) {
     // A miss is normal for a line the batch render hasn't reached — the
     // client falls back to /api/speak-line, which renders and caches it.
     return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
   }
-  return NextResponse.redirect(data.signedUrl, 302);
+  console.log(`[clip] ${key} → ai${voiceProfile() === "human" ? " (no human take)" : ""}`);
+  return NextResponse.redirect(aiUrl, 302);
 }

@@ -75,7 +75,7 @@ import { GoogleGenAI } from "@google/genai";
 import { PDFParse } from "pdf-parse";
 import { supabaseAdmin } from "../src/lib/supabaseAdmin";
 import {
-  RETRY_BASE_DELAY_MS,
+  RETRY_DELAYS_MS,
   RETRY_MAX_ATTEMPTS,
   classifyRetryableApiError,
   sleep,
@@ -620,7 +620,7 @@ async function transcribePageWithVision(ai: GoogleGenAI, imageBuffer: Buffer): P
       if (!retryReason || attempt >= RETRY_MAX_ATTEMPTS) {
         throw error;
       }
-      const delayMs = RETRY_BASE_DELAY_MS * 2 ** attempt;
+      const delayMs = RETRY_DELAYS_MS[Math.min(attempt, RETRY_DELAYS_MS.length - 1)];
       console.warn(
         `  ${retryReason}, retrying in ${delayMs / 1000}s... (attempt ${attempt + 1}/${RETRY_MAX_ATTEMPTS})`,
       );
@@ -824,7 +824,7 @@ async function embed(
       if (!retryReason || attempt >= RETRY_MAX_ATTEMPTS) {
         throw error;
       }
-      const delayMs = RETRY_BASE_DELAY_MS * 2 ** attempt;
+      const delayMs = RETRY_DELAYS_MS[Math.min(attempt, RETRY_DELAYS_MS.length - 1)];
       console.warn(
         `  ${retryReason}, retrying in ${delayMs / 1000}s... (attempt ${attempt + 1}/${RETRY_MAX_ATTEMPTS})`,
       );

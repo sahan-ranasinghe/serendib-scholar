@@ -371,3 +371,70 @@ alter table api_rate_limits      enable row level security;
 alter table if exists debug_reports enable row level security;
 -- Deliberately NO create policy statements: no policies = deny-all for
 -- anon and authenticated. Service role is unaffected.
+
+-- ---------------------------------------------------------------------------
+-- THE VOICE ACTOR'S PORTAL (/portal)
+--
+-- The actor records from wherever she is, on a laptop or a phone, and none
+-- of her work may live only in her browser. Two tables and one storage
+-- prefix carry the whole session, so a dropped connection, a closed tab or
+-- a switch from laptop to phone loses nothing and resumes exactly.
+--
+-- Why the database and not the repo: the portal used to write her wording
+-- straight into src/data/lessons/authored/maths-5-1.json, which meant it
+-- only worked where the filesystem was writable — it refused to run in
+-- production. Her edits now live here and survive a deploy; the build reads
+-- them when composing the script, and scripts/export-actor-lines.ts folds
+-- them back into the authored JSON when a human accepts the wording.
+
+-- Her words: one row per beat she has said something about. actor_text is
+-- her re-wording ("say it your way"), note is her message to the author
+-- ("this sentence is awkward"); either may be present without the other.
+create table if not exists actor_lines (
+  beat_id       text primary key,
+  original_text text not null,
+  actor_text    text,
+  note          text,
+  -- pending: recorded, not yet judged · accepted: her wording is canonical
+  -- rejected: numbers or intent drifted (details in the portal)
+  -- note_only:  she left a comment, did not re-word the line
+  status        text not null default 'pending',
+  updated_at    timestamptz not null default now()
+);
+
+-- Her takes: one KEPT take per beat. A take is inserted the moment the
+-- upload starts and only reaches 'saved' once the audio is actually in
+-- Storage — the portal refuses to call a line done before that, so
+-- "recorded" in the UI and "recorded" in the bucket cannot disagree.
+create table if not exists actor_takes (
+  beat_id        text primary key,
+  lesson         text not null,
+  -- The clip cache key for the text she actually spoke: the human clip is
+  -- looked up by exactly the same key scheme as the AI one, so the runtime
+  -- can prefer hers without knowing anything about the portal.
+  clip_key       text,
+  raw_path       text,
+  clip_path      text,
+  opus_path      text,
+  duration_ms    integer,
+  -- Sentence spans, as the board timing needs them; the actor can drag
+  -- these markers in the portal.
+  sentences      jsonb,
+  trim_start_ms  integer not null default 0,
+  trim_end_ms    integer,
+  -- uploading → saved (audio in Storage, playable)
+  -- pending_processing: raw is safe, ffmpeg has not run yet
+  -- failed: upload or processing errored; the portal retries
+  status         text not null default 'uploading',
+  peak_dbfs      real,
+  noise_dbfs     real,
+  updated_at     timestamptz not null default now()
+);
+
+create index if not exists actor_takes_lesson_idx on actor_takes (lesson);
+create index if not exists actor_takes_status_idx on actor_takes (status);
+
+alter table actor_lines enable row level security;
+alter table actor_takes enable row level security;
+-- As everywhere else in this file: no policies = deny-all for anon and
+-- authenticated. The portal reaches these only through the service role.

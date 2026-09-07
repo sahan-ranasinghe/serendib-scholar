@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { SESSION_COOKIE, readCookie, verifyToken } from "@/lib/sessionAuth";
+import { hasPortalAccess } from "@/lib/portalAuth";
 
 /**
  * The API's front door (Next 16's proxy — the artist formerly known as
@@ -10,6 +11,14 @@ import { SESSION_COOKIE, readCookie, verifyToken } from "@/lib/sessionAuth";
  *    /api/session-start, where that cookie comes from. New routes are
  *    protected the day they are created — nobody has to remember to add a
  *    check.
+ *
+ *    /api/portal/* is the one branch gated DIFFERENTLY rather than not at
+ *    all: it needs the voice actor's own cookie (PORTAL_PASSWORD, see
+ *    src/lib/portalAuth.ts) and specifically NOT a child session. She is
+ *    not a child and must not have to start a lesson to earn a cookie
+ *    before she can record; equally, a child's session must not open the
+ *    door to the recording tools. Neither cookie is accepted for the
+ *    other's routes.
  *
  * 2. PER-IP RATE LIMIT: 60 requests/min across all API routes, counted in
  *    the api_rate_limits table (see supabase/schema.sql) so the count
@@ -83,6 +92,14 @@ export default async function proxy(request: NextRequest) {
   }
 
   if (PUBLIC_API_ROUTES.has(path)) return NextResponse.next();
+
+  // The actor's routes: her cookie, and only hers. /api/portal/enter is
+  // where that cookie is minted, so it cannot require one.
+  if (path.startsWith("/api/portal/")) {
+    if (path === "/api/portal/enter") return NextResponse.next();
+    if (await hasPortalAccess(request.headers.get("cookie"))) return NextResponse.next();
+    return NextResponse.json({ ok: false, error: "portal_locked" }, { status: 401 });
+  }
 
   const session = await verifyToken(readCookie(request.headers.get("cookie"), SESSION_COOKIE), "session");
   if (!session) {

@@ -3,19 +3,25 @@ import assert from "node:assert/strict";
 import { resolveAddress, resolveBeatAddress } from "./addressToken";
 import { AUTHORED_LINES } from "./authoredLines";
 
-test("boy and girl get the right vocative", () => {
-  assert.equal(resolveAddress("දැන් බලන්න {address}, මම පෙන්නන්නම්.", "boy"), "දැන් බලන්න පුතේ, මම පෙන්නන්නම්.");
-  assert.equal(resolveAddress("දැන් බලන්න {address}, මම පෙන්නන්නම්.", "girl"), "දැන් බලන්න දුවේ, මම පෙන්නන්නම්.");
+test("every child is addressed පුතේ — boy, girl and unspecified alike", () => {
+  const line = "දැන් බලන්න {address}, මම පෙන්නන්නම්.";
+  const spoken = "දැන් බලන්න පුතේ, මම පෙන්නන්නම්.";
+  assert.equal(resolveAddress(line, "boy"), spoken);
+  assert.equal(resolveAddress(line, "girl"), spoken);
+  assert.equal(resolveAddress(line, "unspecified"), spoken);
 });
 
-test("unspecified drops the word and the sentence still reads naturally", () => {
-  assert.equal(resolveAddress("දැන් බලන්න {address}, මම පෙන්නන්නම්.", "unspecified"), "දැන් බලන්න, මම පෙන්නන්නම්.");
-  assert.equal(resolveAddress("හරි නේද {address}? තේරුණාද?", "unspecified"), "හරි නේද? තේරුණාද?");
-  assert.equal(resolveAddress("හිතාගන්න වෙලාව ගන්න {address}.", "unspecified"), "හිතාගන්න වෙලාව ගන්න.");
-  assert.equal(
-    resolveAddress("හරි, දැන් මේක {address} තනියම කරලා බලන්න.", "unspecified"),
-    "හරි, දැන් මේක තනියම කරලා බලන්න.",
-  );
+test("gender adds no variants — one resolved line means one recorded clip", () => {
+  const lines = [
+    "හරි නේද {address}? තේරුණාද?",
+    "හිතාගන්න වෙලාව ගන්න {address}.",
+    "හරි, දැන් මේක {address} තනියම කරලා බලන්න.",
+  ];
+  for (const line of lines) {
+    const rendered = new Set((["boy", "girl", "unspecified"] as const).map((g) => resolveAddress(line, g)));
+    assert.equal(rendered.size, 1, `${line} rendered ${rendered.size} ways`);
+    assert.ok(!rendered.values().next().value!.includes("{address}"), "the token survived");
+  }
 });
 
 test("resolution covers every speakable field of a beat", () => {
@@ -28,9 +34,9 @@ test("resolution covers every speakable field of a beat", () => {
     },
     "girl",
   );
-  assert.equal(resolved.spokenText, "බලන්න දුවේ.");
-  assert.deepEqual(resolved.sayCandidates, ["හොඳයි දුවේ!", "නියමයි!"]);
-  assert.equal(resolved.praiseText, "හරි දුවේ!");
+  assert.equal(resolved.spokenText, "බලන්න පුතේ.");
+  assert.deepEqual(resolved.sayCandidates, ["හොඳයි පුතේ!", "නියමයි!"]);
+  assert.equal(resolved.praiseText, "හරි පුතේ!");
 });
 
 test("no authored line hard-codes an address word; tokens only", () => {

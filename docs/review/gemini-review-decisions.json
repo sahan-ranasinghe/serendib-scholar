@@ -1,0 +1,110 @@
+{
+  "$comment": "Decisions on the Gemini Pro native review of session 1. Apply AFTER session-1-edits.json. No API calls.",
+  "reviewedBy": "Gemini Pro (native Sinhala review) + decisions 2026-09-07",
+
+  "accepted": {
+    "authored:opening:0": "ආයුබෝවන් {address}! අද අපි පහ ශ්‍රේණියේ ගණිත පාඩම් පටන් ගන්නවා නේද?",
+    "authored:opening:1": "දැන් ඔයා පහ ශ්‍රේණියේ නේද? ඒක හරිම වැදගත්, ලස්සන පන්තියක්.",
+    "authored:readWrite4Digit:15": "ඔයාට පුළුවන්ද මේ හැදුණු සංඛ්‍යාව කියවලා මට කියන්න?",
+    "authored:readWrite4Digit:19": "{address}, මේ රවුම ඇතුළේ තියෙන ඉලක්කම් ටික පේනවා නේද?",
+    "authored:readWrite4Digit:23": "නියමයි! {number:1364} හරිම ලස්සන සංඛ්‍යාවක්.",
+    "authored:readWrite4Digit:25": "දැන් අපි අර රවුම ඇතුළේ තිබුණු {number:1}, {number:3}, {number:6}, {number:4} ආයෙත් ගමු නේද?",
+    "authored:readWrite4Digit:26": "පිටින් කිසිම අලුත් ඉලක්කමක් මෙතනට ගන්න බැහැ. අපි මේ හතර දෙනාගෙන් විතරක් අලුත් සංඛ්‍යාවක් හදමු.",
+    "authored:readWrite4Digit:27": "ඔයා කැමති පිළිවෙළකට මේ ඉලක්කම් තියලා මට සංඛ්‍යාවක් කියන්න.",
+    "authored:readWrite4Digit:28": "ශෝක්! මේ ඉලක්කම් එකතු වුණාම අපි ඒක කියවන්නේ {number:1364} කියලා නේද?",
+    "authored:placeValue4Digit:49": "සියයස්ථානයේ පබළු {number:4}ක් නිසා අගය {number:400}යි.",
+    "authored:placeValue4Digit:54": "දැන් අපි ගණක රාමුවේ තියෙන සංඛ්‍යාව වචනයෙන් කියවන්න පුරුදු වෙමු.",
+    "authored:placeValue4Digit:57": "ඊළඟට සියයස්ථානයෙන් {number:400}කුත්, දහයස්ථානයෙන් {number:20}කුත්, එකස්ථානයෙන් {number:1}කුත් ලැබෙනවා.",
+    "authored:placeValue4Digit:58": "එහෙනම් {address}, මේ සංඛ්‍යාව කියවමු බලන්න.",
+    "authored:placeValue4Digit:61": "දැන් අපි තවත් අලුත් සංඛ්‍යාවක් ගණක රාමුවේ බලමුකෝ.",
+    "authored:placeValue4Digit:66": "එතකොට ඒ {number:5}ෙන් පෙන්වන අගය කීයද {address}?",
+    "authored:placeValue4Digit:77": "එක් පබළුවකින් {number:1000}ක් පෙන්වනවා නම්, පබළු {number:7}ක අගය {number:7000}යි.",
+    "authored:placeValue4Digit:80": "හරිම පැහැදිලියි, කූරේ කිසිම පබළුවක් නෑ. ඒ නිසා එතන අගය බිංදුවයි.",
+    "authored:placeValue4Digit:81": "දහයස්ථානයේ කූර දිහා බැලුවොත් අපට පබළු {number:6}ක් පේනවා. එකකින් {number:10}ක් පෙන්වන නිසා එතනින් {number:60}ක් හැදෙනවා.",
+    "authored:placeValue4Digit:82": "අවසාන කූරේ, ඒ කියන්නේ එකස්ථානයේ තියෙන්නේ පබළු {number:2}යි. එකස්ථානයේ ඒ පබළු {number:2}ෙන් හැදෙන අගය කීයද {address}?",
+    "authored:placeValue4Digit:85": "ඔන්න {address}, මම ඔයාට ඉලක්කම් කාඩ්පත් {number:4}ක් දෙනවා.",
+    "authored:placeValue4Digit:86": "මේ කාඩ්පත්වල තියෙන්නේ {number:1}, {number:3}, {number:8}, {number:6} නේද?",
+    "authored:placeValue4Digit:88": "මේකේ දහසස්ථානයේ තියෙන {number:6}ෙන් පෙන්වන අගය කීයද?",
+    "authored:placeValue4Digit:89": "හරියටම හරි, ඒක {number:6000}යි.",
+    "authored:placeValue4Digit:90": "එතකොට මේක දිගහැරලා ලිව්වාම එන්නේ මේ විදිහට නේද?",
+    "authored:placeValue4Digit:101": "හරියටම හරි, ඒක {number:5000}යි."
+  },
+
+  "acceptedWithChange": {
+    "authored:readWrite4Digit:7": {
+      "text": "ඒ වගේම {number:99}ට {number:1}ක් එකතු කළාම {number:100} හැදෙනවා.",
+      "why": "Gemini's verb (හැදෙනවා) accepted. Gemini's noun (සීය) rejected: this beat teaches the official name; textbook prints සියය; number names are deterministic."
+    },
+    "authored:readWrite4Digit:9": {
+      "text": "නියමයි! {number:999}ට {number:1}ක් එකතු වුණාම {number:1000} හැදෙනවා.",
+      "why": "Same: හැදෙනවා accepted, දහස kept (not දාහක්)."
+    },
+    "authored:placeValue4Digit:64": {
+      "text": "දැන් අපි මේ සංඛ්‍යාව විහිදුවා ලියමු, {address}.",
+      "why": "Gemini right that විස්තරිත ආකාරය is bookish. But the textbook's own instruction is විහිදුවා ලියන්න (pages 3 and 5), which the child meets in exams. Term introduced here; දිගහැරලා allowed as the everyday word afterwards."
+    },
+    "authored:placeValue4Digit:74": {
+      "text": "මේ විදියට එකතු කිරීමක් ලෙස ලිවීමට තමයි විහිදුවා ලියනවා කියන්නේ, පැහැදිලියි නේද {address}?",
+      "why": "Same reasoning as :64."
+    },
+    "authored:placeValue4Digit:93": {
+      "text": "හරියටම හරි, ඒක {number:8000}යි, {number:600}යි, {number:10}යි, {number:3}යි.",
+      "why": "Gemini right that repeating එකතු කිරීම sounds robotic. Its alternative ධන is secondary-school register. Grade 5 classrooms read a sum with the -යි listing form. Deterministic via the joiner."
+    },
+    "authored:placeValue4Digit:33": {
+      "preferred": "පොත්වල මිල ගණන් තියෙන ඉලක්කම් හතරේ සංඛ්‍යාවල ස්ථානීය අගය දන්නවා නම් අපිට ඒවා ලේසියෙන් කියවන්න පුළුවන්.",
+      "fallback": "පොත්වල මිල ගණන් තියෙන ඉලක්කම් හතරේ සංඛ්‍යාවල ඉලක්කම් තියෙන තැන දන්නවා නම් අපිට ඒවා ලේසියෙන් කියවන්න පුළුවන්.",
+      "why": "Gemini's logic fix is correct. Use 'preferred' if the vocabulary gate has introduced ස්ථානීය අගය by this beat; otherwise 'fallback'. Claude Code decides mechanically."
+    }
+  },
+
+  "rejected": {
+    "authored:readWrite4Digit:17": {
+      "keep": "මෙතන සියයේ තැනට කිසිම අගයක් කියවෙන්නේ නැහැ, නේද?",
+      "why": "Gemini wants සියයස්ථානය. That term is introduced in activity 2 (placeValue4Digit). Beat 17 is activity 1. Vocabulary gate forbids it here."
+    }
+  },
+
+  "openingChange": {
+    "$comment": "Gemini's point stands: since {address} = පුතේ for everyone, 'පුතේ, දුවේ' addresses two children. Drop the literal exception. Opening:0 now uses {address} like everything else. Remove the openingUsesLiteral rule from session-1-edits.json."
+  },
+
+  "newValidatorRules": {
+    "$comment": "From Gemini's section B — recurring patterns. Enforce in code so they never recur in any lesson.",
+    "rhetoricalMustEndWithTag": {
+      "rule": "Every beat with pause RHETORICAL must end with a tag from: නේද?, හරිද?, එහෙනම්?, ඕනේ නේද?. Flag otherwise.",
+      "examplesCaught": ["readWrite4Digit:19", "readWrite4Digit:28"]
+    },
+    "bannedInSpeech": {
+      "rule": "Flag any spokenText containing these (bookish / translated forms). Suggested spoken replacements in parentheses.",
+      "words": [
+        "ශබ්ද නගලා (කියවලා)",
+        "නියෝජනය කරන (පෙන්වන)",
+        "නිරූපණය (පෙන්වන) — except inside the official phrase ඉලක්කමෙන් නිරූපිත අගය when reading a table heading",
+        "ගොඩනගමු (හදමු)",
+        "රැඳිලා (තියෙන)",
+        "විස්තරිත ආකාරය / විස්තෘත ආකාරය (විහිදුවා ලියනවා)",
+        "දිගහැරුම as a noun (දිගහැරලා ලිව්වාම)",
+        "අබකසය (ගණක රාමුව)",
+        "වටිනාකම when meaning place value (අගය)",
+        "සහ inside a spoken list of numbers (drop it)",
+        "බැගින් (කින්/ක් forms)",
+        "සංඛ්‍යාංක when merely pointing at digits (ඉලක්කම්) — allowed when the term itself is being taught"
+      ]
+    },
+    "termConsistencyAfterIntroduction": {
+      "rule": "Once a guide vocabulary term has been introduced (per the gate), later beats must use the term, not a plain paraphrase. Flag: සියයේ තැන / සියයේ කූර after සියයස්ථානය; දහයේ කූර after දහයස්ථානය; අබකසය ever.",
+      "examplesCaught": ["placeValue4Digit:57", "placeValue4Digit:81"]
+    },
+    "joinerInstrumentalFix": {
+      "rule": "{number:N}ෙන් must render with the vowel sign attached: පහෙන් not පහන්, දෙකෙන් not දෙකන්.",
+      "examplesCaught": ["placeValue4Digit:66"]
+    }
+  },
+
+  "geminiConfirmed": {
+    "numberNames": "All number names verified correct by native review: 84, 101, 997, 1364, 3058, 5421, 6831, 7062, 8613.",
+    "checkMyWork": "readWrite4Digit:31 approved — realistic child error.",
+    "overall": "Sequence and structure follow the MOE guide correctly; with the spoken-register fixes applied, judged suitable for 25 minutes of a Grade 5 child's attention."
+  }
+}

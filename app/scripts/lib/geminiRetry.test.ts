@@ -43,6 +43,30 @@ test("an auth failure is NOT retryable", () => {
   assert.equal(classifyRetryableApiError(new Error("403 PERMISSION_DENIED")), null);
 });
 
+test("a connect timeout is retryable as a network failure", () => {
+  const error = new TypeError("fetch failed");
+  (error as Error & { cause?: unknown }).cause = new Error("Connect Timeout Error (UND_ERR_CONNECT_TIMEOUT)");
+  assert.equal(classifyRetryableApiError(error), "network failure");
+});
+
+test("ECONNRESET is retryable as a network failure", () => {
+  assert.equal(classifyRetryableApiError(new Error("read ECONNRESET")), "network failure");
+});
+
+test("depleted prepayment credits abort immediately — never retried", () => {
+  assert.equal(
+    classifyRetryableApiError(new Error('{"error":{"code":429,"message":"Your prepayment credits are depleted.","status":"RESOURCE_EXHAUSTED"}}')),
+    null,
+  );
+});
+
+test("an exceeded spending cap aborts immediately — never retried", () => {
+  assert.equal(
+    classifyRetryableApiError(new Error('{"error":{"code":429,"message":"Your project has exceeded its monthly spending cap.","status":"RESOURCE_EXHAUSTED"}}')),
+    null,
+  );
+});
+
 test("an unrelated error is NOT retryable", () => {
   assert.equal(classifyRetryableApiError(new Error("Empty response from model")), null);
 });

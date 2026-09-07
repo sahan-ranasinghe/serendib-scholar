@@ -22,7 +22,18 @@
     "clean:transcripts": "node --env-file=.env.local ./node_modules/.bin/tsx scripts/clean-transcripts.ts",
     "audition:voice": "node --env-file=.env.local ./node_modules/.bin/tsx scripts/audition-voice.ts",
     "render:audio": "node --env-file=.env.local ./node_modules/.bin/tsx scripts/render-lesson-audio.ts",
-    "test:time-stretch": "tsx --test src/lib/timeStretch.test.ts"
+    "test:time-stretch": "tsx --test src/lib/timeStretch.test.ts",
+    "extract:design": "node --env-file=.env.local ./node_modules/.bin/tsx scripts/extract-lesson-design.ts",
+    "author:script": "node --env-file=.env.local ./node_modules/.bin/tsx scripts/author-script.ts",
+    "remap:concepts": "node --env-file=.env.local ./node_modules/.bin/tsx scripts/remap-concept-tags.ts",
+    "test:sinhala-number": "tsx --test src/lib/sinhalaNumber.test.ts",
+    "test:speech-rules": "tsx --test src/lib/speechRules.test.ts",
+    "apply:review-edits": "tsx scripts/apply-review-edits.ts",
+    "portal:process": "node --env-file=.env.local ./node_modules/.bin/tsx scripts/process-actor-takes.ts",
+    "portal:export-lines": "node --env-file=.env.local ./node_modules/.bin/tsx scripts/export-actor-lines.ts",
+    "portal:clips": "node --env-file=.env.local ./node_modules/.bin/tsx scripts/actor-clips.ts",
+    "portal:coverage": "node --env-file=.env.local ./node_modules/.bin/tsx scripts/voice-coverage.ts",
+    "compare:authors": "node --env-file=.env.local ./node_modules/.bin/tsx scripts/compare-authors.ts"
   },
   "dependencies": {
     "@google/genai": "^2.19.0",

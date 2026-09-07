@@ -41,6 +41,10 @@ import {
 } from "../src/lib/lessonOrchestrator";
 import { answersMatch } from "../src/lib/answerCheck";
 import { listAuthoredLines } from "../src/lib/authoredLines";
+import { parseAuthoredScript, type AuthoredScriptFile } from "../src/lib/authoredScript";
+import { checkSpeechRules, formatSpeechFindings } from "../src/lib/speechRules";
+import { formatCoverage, voiceCoverage } from "../src/lib/voiceCoverage";
+import { voiceProfile } from "../src/lib/humanClips";
 
 type ChildBehaviour = "correct" | "wrong" | "silent" | "offtopic";
 
@@ -288,30 +292,55 @@ async function main() {
 
   const descriptions = new Map(LESSON_1_NUMBERS_STEPS.map((step) => [step.conceptTag, step.conceptDescription]));
   const blueprintOverride = await loadOverride("maths", 5, 1);
-  const script = buildScriptFromRows(rows, descriptions, "maths", 5, 1, { blueprintOverride, lessonTitle: LESSON_1_NUMBERS_TITLE });
-
-  console.log(`\n${"=".repeat(78)}`);
-  console.log("AUTHORED SINHALA LINES (developer-written, for native-speaker review — src/lib/authoredLines.ts)");
-  console.log("=".repeat(78));
-  for (const [label, line] of listAuthoredLines()) {
-    console.log(`  ${label.padEnd(30)} ${line}`);
+  // The authored (original) script rides the same approved-only gate the
+  // server uses, so the dry run always shows what a child would hear.
+  const authoredScript = parseAuthoredScript(
+    await readFile(path.join(process.cwd(), "src/data/lessons/authored", "maths-5-1.json"), "utf8").catch(() => null),
+  );
+  if (authoredScript) {
+    console.log(
+      authoredScript.approved
+        ? `Authored script: APPROVED — ${authoredScript.beats.length} original beats replace ${authoredScript.concepts.join(", ")}.`
+        : `Authored script: ${authoredScript.beats.length} beats written but NOT APPROVED — transcript-derived script stands.`,
+    );
+  } else {
+    console.log("Authored script: none (npm run author:script).");
   }
+  const script = buildScriptFromRows(rows, descriptions, "maths", 5, 1, {
+    blueprintOverride,
+    lessonTitle: LESSON_1_NUMBERS_TITLE,
+    authoredScript,
+  });
+
+  // Every developer-authored Sinhala line, tabulated for native review.
+  console.log(`\n${"=".repeat(78)}\nAUTHORED LINES (for native-speaker review)\n${"=".repeat(78)}`);
+  for (const [key, text] of listAuthoredLines()) console.log(`  ${key.padEnd(28)} ${text}`);
 
   printSessionPlan(script);
   printBlueprint(script);
   printSessionBeats(script, SESSION);
   dryRun(script, script.sessions[SESSION]?.firstBeat ?? 0);
-  await runAssertions(script, rows);
+  await runAssertions(script, rows, authoredScript);
 }
 
 /**
  * Structural invariants, checked on every dry run so regressions announce
  * themselves here instead of in a live session with a child.
  */
-async function runAssertions(script: LessonScript, rows: (BankRow & { verified: boolean })[]): Promise<void> {
+async function runAssertions(
+  script: LessonScript,
+  rows: (BankRow & { verified: boolean })[],
+  authoredScript: AuthoredScriptFile | null,
+): Promise<void> {
   console.log(`\n${"=".repeat(78)}`);
   console.log("ASSERTIONS");
   console.log("=".repeat(78));
+
+  // First, because it is about the authored words themselves rather than
+  // the assembled script: it must report even when a later structural
+  // assertion aborts the run.
+  assertSpeechRules(authoredScript);
+  await reportVoiceCoverage(authoredScript);
 
   // 1. Every non-chat beat runs against a non-empty board: it either
   //    stages something (item, cell patch, title card) or inherits content
@@ -334,21 +363,26 @@ async function runAssertions(script: LessonScript, rows: (BankRow & { verified: 
   }
   console.log("  PASS  every non-chat beat has board content (staged or inherited within its session)");
 
-  // 2. Concept 1's first SHOW_BOARD stages the animated abacus with real digits.
-  const firstConcept = script.concepts[0];
+  // 2. The place-value concept's first SHOW_BOARD stages the animated
+  //    abacus with real digits. (Since the design re-map, the abacus lives
+  //    in placeValue4Digit — the guide's activity 2 — not in concept 1.)
+  const abacusConcept = script.concepts.find((c) => c.conceptTag === "placeValue4Digit");
+  assert.ok(abacusConcept, "the script contains the placeValue4Digit concept");
+  // (The merged concept also holds the 4-digit breakdown tables, which can
+  // stage first — the abacus demo just has to be in there with real digits.)
   const firstShow = script.beats
-    .slice(firstConcept.firstBeat, firstConcept.lastBeat + 1)
-    .find((beat) => beat.type === "SHOW_BOARD");
+    .slice(abacusConcept!.firstBeat, abacusConcept!.lastBeat + 1)
+    .find((beat) => beat.type === "SHOW_BOARD" && beat.board.kind === "abacus_set");
   assert.ok(
     firstShow && firstShow.board.kind === "abacus_set",
-    `concept 1's first SHOW_BOARD must stage the animated abacus (got ${JSON.stringify(firstShow?.board)})`,
+    "placeValue4Digit must contain a SHOW_BOARD staging the animated abacus",
   );
-  const digits = firstShow.board.kind === "abacus_set" ? firstShow.board.digits : [];
+  const digits = firstShow!.board.kind === "abacus_set" ? firstShow!.board.digits : [];
   assert.ok(
     digits.length >= 3 && digits.every((d) => typeof d === "number"),
     "the staged abacus has a real digits array",
   );
-  console.log(`  PASS  concept 1's first SHOW_BOARD stages the animated abacus with digits [${digits.join(", ")}]`);
+  console.log(`  PASS  placeValue4Digit stages the animated abacus with digits [${digits.join(", ")}]`);
 
   // 3. Every explanation row's boardContent is staged somewhere in that
   //    row's run of beats — what she wrote is what the child sees, aligned
@@ -373,25 +407,33 @@ async function runAssertions(script: LessonScript, rows: (BankRow & { verified: 
   // 4. Concept 1's 5421 introduction stages the self-animating abacus,
   //    aligned to a beat of her own speech (the boardContent "5 4 2 1"
   //    block from the segment where she demonstrates it).
-  const intro5421 = script.beats.find(
+  // (Was pinned to her 5421 demo; since the design re-map the merged
+  // concepts choose their own explain segments, so the invariant is the
+  // GENERAL one: somewhere, a spoken beat drives a self-animating abacus.)
+  // SHOW_BOARD is the authored script's own way of narrating a board move
+  // ("දහසස්ථානයේ කූරට අපි පබළු පහක් දානවා") — it carries spokenText like any
+  // other spoken beat, and it is what stages the animated abacus now that
+  // the authored script is approved.
+  const animatedIntro = script.beats.find(
     (beat) =>
-      (beat.type === "EXPLAIN" || beat.type === "SOFT_CHECK") &&
-      beat.conceptTag === script.concepts[0].conceptTag &&
+      (beat.type === "EXPLAIN" || beat.type === "SOFT_CHECK" || beat.type === "SHOW_BOARD") &&
       beat.spokenText !== undefined &&
       beat.board.kind === "abacus_set" &&
-      beat.board.animate === true &&
-      beat.board.digits.join(",") === "5,4,2,1",
+      beat.board.animate === true,
   );
-  assert.ok(intro5421, "a spoken beat in concept 1 stages abacus_set([5,4,2,1], animate)");
+  assert.ok(animatedIntro, "a spoken beat stages a self-animating abacus_set");
   console.log(
-    `  PASS  the 5421 introduction stages the animated abacus with [5,4,2,1] while she says: "${intro5421!.spokenText!.slice(0, 60)}…"`,
+    `  PASS  a spoken beat stages the self-animating abacus while she says: "${animatedIntro!.spokenText!.slice(0, 60)}…"`,
   );
 
   // 5. Abacus item demos: beads land per reveal and finish the number.
   const abacusShows = script.beats.filter(
     (beat) => beat.type === "SHOW_BOARD" && beat.board.kind === "abacus_set" && beat.board.startEmpty,
   );
-  assert.ok(abacusShows.length > 0, "at least one abacus demonstration starts with bare rods");
+  // Under the merged design concepts the transitional (pre-authored)
+  // script may schedule zero bare-rod demos — the bead-landing rule is
+  // asserted whenever one exists.
+  if (abacusShows.length === 0) console.log("  note  no bare-rod abacus demo in this transitional script");
   for (const show of abacusShows) {
     if (show.board.kind !== "abacus_set") continue;
     const shown = show.board.digits.map(() => 0);
@@ -409,35 +451,67 @@ async function runAssertions(script: LessonScript, rows: (BankRow & { verified: 
   }
   console.log(`  PASS  abacus demos land beads per reveal (${abacusShows.length} demo(s) simulated)`);
 
-  // 6. Concept 1's explain run is her real transcript: ~40-50 spoken
-  //    beats and ~10-12 minutes of speech, matching approximateMinutesSpent.
-  const c1 = script.concepts[0];
-  const c1Spoken = script.beats
-    .slice(c1.firstBeat, c1.lastBeat + 1)
-    .filter((b) => (b.type === "EXPLAIN" || b.type === "SOFT_CHECK" || b.type === "ASK") && b.spokenText);
-  const c1Seconds = c1Spoken.reduce((sum, b) => sum + estimateBeatSeconds(b), 0);
-  // (Retuned after the three-pause-type split: soft checks close chunks
-  // more often than the old damped check-ins did, so the same ~11.5 min of
-  // her speech now spans more, shorter beats.)
-  assert.ok(
-    c1Spoken.length >= 45 && c1Spoken.length <= 72,
-    `concept 1 should have ~50-70 transcript beats, got ${c1Spoken.length}`,
-  );
-  assert.ok(
-    c1Seconds >= 9.5 * 60 && c1Seconds <= 12.5 * 60,
-    `concept 1's spoken time should be ~10-12 min, got ${(c1Seconds / 60).toFixed(1)} min`,
-  );
-  console.log(
-    `  PASS  concept 1 explain run: ${c1Spoken.length} transcript beats, ~${(c1Seconds / 60).toFixed(1)} min of her speech`,
-  );
+  // 6. Every design concept has a real spoken run — no concept became an
+  //    empty shell in the re-map. (The tight per-concept beat bounds died
+  //    with the old video-derived concept list; the authored script has
+  //    its own budgets.)
+  for (const concept of script.concepts) {
+    const spoken = script.beats
+      .slice(concept.firstBeat, concept.lastBeat + 1)
+      .filter((b) => (b.type === "EXPLAIN" || b.type === "SOFT_CHECK" || b.type === "ASK") && b.spokenText);
+    assert.ok(spoken.length >= 3, `${concept.conceptTag} has only ${spoken.length} spoken beats`);
+  }
+  console.log(`  PASS  all ${script.concepts.length} design concepts have real spoken runs`);
 
-  // 7. Session 1's turn-taking shape: at most 8 real ASK waits, zero
-  //    mandatory yes/no questions, rhetoric stays inline as pause markers.
+  // 7. Session 1's turn-taking shape: at most SESSION_ASK_LIMIT real ASK
+  //    waits, zero mandatory yes/no questions, rhetoric stays inline as
+  //    pause markers. The packer now enforces the same ceiling while it
+  //    cuts sessions, so this asserts the two agree.
   const s1 = script.beats.slice(script.sessions[0].firstBeat, script.sessions[0].lastBeat + 1);
   const s1Asks = s1.filter((b) => b.type === "ASK");
   const s1Softs = s1.filter((b) => b.type === "SOFT_CHECK");
   const s1Rhetorical = s1.reduce((n, b) => n + (b.spokenText?.match(/\?…/gu)?.length ?? 0), 0);
-  assert.ok(s1Asks.length <= 8, `session 1 should have ≤8 ASK beats, got ${s1Asks.length}`);
+  // The packer's contract, asserted exactly rather than as a fitted number:
+  // a sitting may pass the 12-question ceiling only while it has no way to
+  // stop. Once it is BOTH over the ceiling and past the 12-minute floor,
+  // every later beat must be a non-boundary — because the packer would
+  // have cut at the first boundary it saw.
+  const ASK_CEILING = 12;
+  const FLOOR_SECONDS = 720;
+  const isCut = (type: string): boolean =>
+    type === "SHOW_BOARD" || type === "EXPLAIN" || type === "HOOK" || type === "TRANSITION";
+
+  for (const [index, session] of script.sessions.entries()) {
+    // Mirror the packer's own accounting: it budgets the WORK stream only.
+    // Framing (SESSION_START / RECAP / BREAK_CHAT / CLOSE_SESSION) is added
+    // per slice afterwards, so counting it here would make a session look
+    // past the floor while the packer still had it under.
+    const slice = script.beats
+      .slice(session.firstBeat, session.lastBeat + 1)
+      .filter((beat) => beat.conceptTag !== FRAMING_CONCEPT);
+    let asks = 0;
+    let seconds = 0;
+    let missed: string | null = null;
+    for (const beat of slice) {
+      if (asks >= ASK_CEILING && seconds >= FLOOR_SECONDS && isCut(beat.type) && !missed) {
+        missed = `${beat.id} (${beat.type})`;
+      }
+      seconds += estimateBeatSeconds(beat);
+      if (beat.type === "ASK") asks += 1;
+    }
+    const minutes = session.estimatedSeconds / 60;
+    if (asks > ASK_CEILING) {
+      console.log(
+        `  WARN  session ${index + 1} asks ${asks} questions in ${minutes.toFixed(1)} min ` +
+          `— one every ${((minutes * 60) / asks).toFixed(0)}s, over the ${ASK_CEILING}-question ceiling.`,
+      );
+    }
+    assert.ok(
+      !missed,
+      `session ${index + 1} carried ${asks} questions past the ceiling and the floor with a safe cut point ` +
+        `still available at ${missed} — the packer is ignoring its own ASK budget`,
+    );
+  }
   for (const ask of s1Asks) {
     assert.ok(
       !/(නේද|හරිද|තේරුණාද|එහෙමද)\s*\?\s*$/u.test(ask.spokenText ?? ""),
@@ -445,7 +519,8 @@ async function runAssertions(script: LessonScript, rows: (BankRow & { verified: 
     );
   }
   console.log(
-    `  PASS  session 1 pause types: RHETORICAL(inline)=${s1Rhetorical}, SOFT_CHECK=${s1Softs.length}, ASK=${s1Asks.length} (≤8, none yes/no)`,
+    `  PASS  session 1 pause types: RHETORICAL(inline)=${s1Rhetorical}, SOFT_CHECK=${s1Softs.length}, ASK=${s1Asks.length}` +
+      `${s1Asks.length > 12 ? " (over the 12 ceiling — see WARN above)" : " (≤12)"}, none yes/no`,
   );
 
   // 8. Nothing the tutor is given to SAY contains instruction vocabulary.
@@ -471,6 +546,48 @@ async function runAssertions(script: LessonScript, rows: (BankRow & { verified: 
   //    beat's own words, and the caption renders that clip text — director
   //    lines exist only for the log and for writing a RETEACH line.
   await assertSpeechChannel();
+}
+
+/**
+ * The spoken-register rules (src/lib/speechRules.ts). They gate approval,
+ * so an approved script that breaks one is a hard failure — those words
+ * are already going to a child.
+ */
+function assertSpeechRules(authoredScript: AuthoredScriptFile | null): void {
+  if (!authoredScript) return;
+  const findings = checkSpeechRules(
+    authoredScript.beats.map((beat) => ({
+      id: beat.id,
+      spokenText: beat.spokenText,
+      sourceText: beat.sourceText,
+      pauseType: beat.pauseType,
+    })),
+  );
+  assert.ok(
+    findings.length === 0 || !authoredScript.approved,
+    `the APPROVED authored script breaks ${findings.length} spoken-register rule(s):\n${formatSpeechFindings(findings)}`,
+  );
+  console.log(
+    findings.length === 0
+      ? `  PASS  all ${authoredScript.beats.length} authored beats pass the spoken-register rules`
+      : `  WARN  ${findings.length} spoken-register hit(s) in the unapproved script:\n${formatSpeechFindings(findings)}`,
+  );
+}
+
+/**
+ * Which lines exist in which voice. Printed, never asserted: a
+ * part-recorded lesson is the normal state while the actor works through
+ * it, and a dry run that failed on it would be red for weeks.
+ */
+async function reportVoiceCoverage(authoredScript: AuthoredScriptFile | null): Promise<void> {
+  if (!authoredScript) return;
+  try {
+    const coverage = await voiceCoverage(authoredScript);
+    console.log(`\n  VOICE COVERAGE`);
+    console.log(formatCoverage(coverage, voiceProfile()));
+  } catch (error) {
+    console.log(`  note  voice coverage unavailable (${String(error).slice(0, 80)})`);
+  }
 }
 
 async function assertSpeechChannel(): Promise<void> {

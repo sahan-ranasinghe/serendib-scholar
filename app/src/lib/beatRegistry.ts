@@ -80,6 +80,13 @@ export const BEAT_REGISTRY = {
   // --- session framing --------------------------------------------------
   /** ONE greeting line (say_exactly), then straight into content. Chat only if the child starts it. */
   SESSION_START: spec(8, "none"),
+  /**
+   * The guide's peer-check step, translated for one child: Zara works a
+   * problem WITH one deliberate plausible error (dropped zero, wrong
+   * place) and the child must find it. Judged — spotting the error is the
+   * expected answer.
+   */
+  CHECK_MY_WORK: spec(45, "judge"),
   /** Legacy type: no longer emitted by the builder (sessions open with SESSION_START now). */
   CHAT_OPENER: spec(
     150,
@@ -131,16 +138,44 @@ export function beatSpec(type: BeatType): BeatTypeSpec {
 const SPOKEN_CHARS_PER_SECOND = 9;
 
 /**
+ * The child's own turn on a beat that stops and waits for an answer.
+ *
+ * Mirrors ASK_SILENCE_TIMEOUT_MS (lessonOrchestrator): the runtime gives a
+ * child this long to think and reply before it nudges. Defined here rather
+ * than imported because lessonOrchestrator imports this module.
+ */
+const CHILD_TURN_SECONDS = 8;
+
+/** A SOFT_CHECK's mic window (SOFT_CHECK_WINDOW_MS): brief, and silence just flows on. */
+const SOFT_CHECK_TURN_SECONDS = 3;
+
+/** How long the child holds the turn on a beat that opens the mic. */
+function childTurnSeconds(type: BeatType): number {
+  if (type === "ASK" || type === "CHECK_MY_WORK") return CHILD_TURN_SECONDS;
+  // A soft check still waits — briefly, and without judging. Counting it
+  // keeps softening an ASK honest: it buys back most of the time, not all.
+  if (type === "SOFT_CHECK") return SOFT_CHECK_TURN_SECONDS;
+  return 0;
+}
+
+/**
  * Planning estimate for one beat: exact-words beats are estimated from
  * their actual text length; free-form beats from the per-type figure.
+ *
+ * A question also costs the child's turn. Counting only Zara's speaking
+ * time made a question-dense stretch look SHORT — the authored session-1
+ * material measured 12 minutes while asking 24 questions — so the time
+ * budget and the ASK budget pulled against each other instead of agreeing
+ * about how long a sitting really is.
  */
 export function estimateBeatSeconds(beat: { type: BeatType; spokenText?: string }): number {
+  const childTurn = childTurnSeconds(beat.type);
   if (beat.spokenText) {
     // min 4s: the pause split produces genuinely short beats (a lone soft
     // question); an 8s floor inflated totals by ~10%.
-    return Math.min(30, Math.max(4, Math.round(beat.spokenText.length / SPOKEN_CHARS_PER_SECOND)));
+    return Math.min(30, Math.max(4, Math.round(beat.spokenText.length / SPOKEN_CHARS_PER_SECOND))) + childTurn;
   }
-  return BEAT_REGISTRY[beat.type].estimateSeconds;
+  return BEAT_REGISTRY[beat.type].estimateSeconds + childTurn;
 }
 
 /** Planning estimate for a run of beats — how sessions get sized and breaks get placed. */

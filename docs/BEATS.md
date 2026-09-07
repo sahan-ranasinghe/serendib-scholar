@@ -74,6 +74,7 @@ the runtime dispatches on the response mode.
 | `BREAK_CHAT` | 60s | chat | mid-sitting OFFER ("පොඩි කතාවක් කරමුද?") — only a yes opens the live chat |
 | `TRANSITION` | 15s | none | one-sentence wrap of a concept |
 | `CLOSE_SESSION` | 45s | none | warm close (authored line) |
+| `CHECK_MY_WORK` | 45s | judge | Zara works a problem with ONE deliberate plausible error; the child must find it (the guide's peer-check step, translated for one child) |
 
 ## How a beat is spoken and heard
 

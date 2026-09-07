@@ -1,0 +1,48 @@
+{
+  "$comment": "Round 3 — factual corrections, applied AFTER session-1-edits.json and gemini-review-decisions.json. Entries here override both. No API calls.",
+  "correctedBy": "project owner (Sri Lankan domain fact), 2026-09-07",
+
+  "hookSwap": {
+    "$comment": "The placeValue4Digit hook asserted something a Sri Lankan child knows is false. Books here cost 3-digit prices, so 'book prices are four-digit numbers' is wrong on the facts — and a hook that opens on something the child can see is untrue costs more than a weak hook does. A school bag genuinely runs to four digits. Round 2's logic fix is kept: what makes the number readable is knowing where its digits sit, not how many there are. Both sentences stay under 14 words.",
+    "authored:placeValue4Digit:32": "අලුත් ඉස්කෝලේ බෑග් එකක් ගන්න ගියාම ඒකේ මිල ලොකු ගාණක් නේද {address}?",
+    "authored:placeValue4Digit:33": "ඒ ගාණේ ඉලක්කම් හතරක් තියෙනවා. ඒ ඉලක්කම් තියෙන තැන දන්නවා නම් අපිට ඒක ලේසියෙන් කියවන්න පුළුවන්."
+  },
+
+  "softenToSoftCheck": {
+    "$comment": "Half the authored ASKs become SOFT_CHECKs. An ASK stops the lesson, opens the mic for a judged answer and runs an 8s/12s/10s silence ladder into FEEDBACK or RETEACH; a SOFT_CHECK opens the mic for 3s, warmly acknowledges any sound, and flows on unjudged. The script asked one judged question every 35s, so a 12-minute sitting carried ~21 of them. Every beat kept below is a real checkpoint; every beat here is a repeat of the checkpoint before it, or a question that answers itself, or one that cannot be judged at all. Beat TYPE and pauseType both change; the words are untouched.",
+
+    "authored:readWrite4Digit:3": "2nd of three warm-up 'read this number' beats. :2 is the checkpoint; the guide wants all three read aloud, which a 3s mic still invites.",
+    "authored:readWrite4Digit:5": "3rd of the same three.",
+
+    "authored:readWrite4Digit:22": "Open-ended: the child builds ANY number from 1/3/6/4. expectedAnswer was 1364, so a child answering 6431 — equally correct — was marked wrong and reteached. Cannot be judged; expectedAnswer dropped.",
+    "authored:readWrite4Digit:27": "Same open-ended task, second pass. expectedAnswer dropped.",
+    "authored:readWrite4Digit:29": "Same open-ended task, third pass ('make another one'). expectedAnswer dropped.",
+
+    "authored:placeValue4Digit:46": "2nd of four consecutive 'how many beads at this place?' on the same abacus. :44 is the checkpoint.",
+    "authored:placeValue4Digit:48": "3rd of the same four.",
+    "authored:placeValue4Digit:50": "4th of the same four.",
+
+    "authored:placeValue4Digit:68": "2nd of four consecutive 'what value does this place give?' on the same number. :66 is the checkpoint.",
+    "authored:placeValue4Digit:70": "3rd of the same four.",
+    "authored:placeValue4Digit:72": "4th of the same four.",
+
+    "authored:placeValue4Digit:82": "The question states the answer inside itself ('එකස්ථානයේ තියෙන්නේ පබළු දෙකයි') and then asks for the value of those two at the ones place. Nothing is being diagnosed.",
+    "authored:placeValue4Digit:100": "Immediate follow-on of :98, which already identified the digit; this asks the value of the 5 the child just named."
+  },
+
+  "dropExpectedAnswer": [
+    "authored:readWrite4Digit:22",
+    "authored:readWrite4Digit:27",
+    "authored:readWrite4Digit:29"
+  ],
+
+  "hookInUse": {
+    "$comment": "The hook now spoken is not one of the three generated candidates, so it is recorded as candidate 1 — hookCandidates[0] is by definition the one in use.",
+    "placeValue4Digit": "අලුත් ඉස්කෝලේ බෑග් එකක් ගන්න ගියාම ඒකේ මිල ලොකු ගාණක් නේද {address}?"
+  },
+
+  "hookAnalogy": {
+    "$comment": "The everyday thing the HOOK opens on. Distinct from analogies.placeValue4Digit, which records the analogy the TEACHING reasons through (coins in a till) and is unchanged by a hook swap.",
+    "placeValue4Digit": "school bag price"
+  }
+}

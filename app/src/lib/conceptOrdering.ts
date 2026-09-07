@@ -42,6 +42,16 @@ export interface ConceptOrderRow {
  * Concepts with only textbook rows have no timestamp and follow, in textbook
  * step order.
  */
+/**
+ * The teacher's GUIDE order (see src/lib/lessonDesign.ts) outranks the
+ * recorded video's order: since the design pass, concepts follow the
+ * guide's four activities. Tags not in the design list (older data, other
+ * lessons) keep the data-driven ordering after them.
+ */
+import { DESIGN_CONCEPTS } from "@/lib/lessonDesign";
+
+const DESIGN_ORDER = new Map(DESIGN_CONCEPTS.map((tag, index) => [tag as string, index]));
+
 export function orderConceptTags(rows: ConceptOrderRow[]): string[] {
   const earliest = new Map<string, { video: number; textbook: number }>();
   for (const row of rows) {
@@ -54,6 +64,10 @@ export function orderConceptTags(rows: ConceptOrderRow[]): string[] {
     earliest.set(row.concept_tag, entry);
   }
   return [...earliest.entries()]
-    .sort(([, a], [, b]) => a.video - b.video || a.textbook - b.textbook)
+    .sort(([tagA, a], [tagB, b]) => {
+      const designA = DESIGN_ORDER.get(tagA) ?? Number.MAX_SAFE_INTEGER;
+      const designB = DESIGN_ORDER.get(tagB) ?? Number.MAX_SAFE_INTEGER;
+      return designA - designB || a.video - b.video || a.textbook - b.textbook;
+    })
     .map(([tag]) => tag);
 }

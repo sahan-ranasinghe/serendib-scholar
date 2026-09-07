@@ -153,20 +153,51 @@ export async function ensureClip(text: string, apiKey: string, options: { force?
  * the browser reaches clips only through /api/clip/<key>, which requires a
  * session and returns a short-lived signed URL.
  */
+/**
+ * What the bucket accepts. Rendered clips are WAV + JSON; the voice
+ * actor's portal adds her RAW takes (whatever MediaRecorder produced —
+ * webm on Chrome and Android, mp4 on iOS) and the Opus copies of her
+ * processed clips. A bucket that rejects her container rejects the take,
+ * which is the one thing the upload path is built never to do.
+ */
+const AUDIO_MIME_TYPES = [
+  "audio/wav",
+  "application/json",
+  "audio/webm",
+  "audio/ogg",
+  "audio/opus",
+  "audio/mp4",
+  "audio/mpeg",
+  "video/webm", // Chrome labels an audio-only MediaRecorder blob this way
+];
+
 export async function ensureAudioBucket(): Promise<void> {
   const { data } = await supabaseAdmin.storage.getBucket(AUDIO_BUCKET);
   if (data) {
-    if (data.public) {
-      const { error } = await supabaseAdmin.storage.updateBucket(AUDIO_BUCKET, { public: false });
-      if (error) throw new Error(`could not make the ${AUDIO_BUCKET} bucket private: ${error.message}`);
-      console.warn(`[liveTts] The ${AUDIO_BUCKET} bucket was public — made it private.`);
+    // `public` is required by updateBucket's type, so it is always sent —
+    // as its current value unless it needs flipping.
+    const updates: { public: boolean; allowedMimeTypes?: string[] } = { public: false };
+    let changed = data.public === true;
+    // A bucket created before the portal existed allows only WAV + JSON,
+    // and would silently refuse every take she records. Widened in place
+    // rather than requiring the bucket to be recreated.
+    const allowed = data.allowed_mime_types ?? [];
+    if (AUDIO_MIME_TYPES.some((type) => !allowed.includes(type))) {
+      updates.allowedMimeTypes = [...new Set([...allowed, ...AUDIO_MIME_TYPES])];
+      changed = true;
+    }
+    if (changed) {
+      const { error } = await supabaseAdmin.storage.updateBucket(AUDIO_BUCKET, updates);
+      if (error) throw new Error(`could not update the ${AUDIO_BUCKET} bucket: ${error.message}`);
+      if (data.public) console.warn(`[liveTts] The ${AUDIO_BUCKET} bucket was public — made it private.`);
+      if (updates.allowedMimeTypes) console.warn(`[liveTts] Widened ${AUDIO_BUCKET} to accept the actor's recording formats.`);
     }
     return;
   }
   const { error } = await supabaseAdmin.storage.createBucket(AUDIO_BUCKET, {
     public: false,
     fileSizeLimit: "20MB",
-    allowedMimeTypes: ["audio/wav", "application/json"],
+    allowedMimeTypes: AUDIO_MIME_TYPES,
   });
   if (error && !/already exists/i.test(error.message)) {
     throw new Error(`could not create the ${AUDIO_BUCKET} bucket: ${error.message}`);

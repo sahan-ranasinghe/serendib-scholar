@@ -1,0 +1,126 @@
+{
+  "$comment": "Native-speaker review edits for maths-5-1 session 1. Apply to src/data/lessons/authored/maths-5-1.json. No API calls required.",
+  "editedBy": "native speaker review, 2026-09-07",
+  "scriptFormatVersionBump": true,
+
+  "addressPolicy": {
+    "$comment": "පුතේ is used for both boys and girls in everyday Sri Lankan Sinhala. Open once with both, then පුතේ for everyone. One recording per line.",
+    "resolveTokenTo": "පුතේ",
+    "applyForGenders": ["boy", "girl", "unspecified"],
+    "keepTokenInData": true,
+    "openingUsesLiteral": "පුතේ, දුවේ"
+  },
+
+  "suffixJoinerRule": {
+    "$comment": "Number names from sinhalaNumberName must join case endings with NO space, and vowel-sign endings must replace the inherent vowel. This bug affects every beat, not just the ones listed below.",
+    "noSpaceBefore": ["ට", "ක්", "යි", "න්", "ක", "කුත්", "කින්", "ක්ම", "ට ම"],
+    "vowelSignEndings": {
+      "ෙන්": "attach to final consonant: දෙක+ෙන් → දෙකෙන්, එක+ෙන් → එකෙන්",
+      "ේ": "attach to final consonant: දෙක+ේ → දෙකේ, එක+ේ → එකේ",
+      "ෙ": "attach to final consonant"
+    },
+    "examples": [
+      ["නවය ට එක ක්", "නවයට එකක්"],
+      ["අනූ නවය ට", "අනූ නවයට"],
+      ["පන්දහස ක", "පන්දහසක"],
+      ["දෙකන්", "දෙකෙන්"],
+      ["එකන්", "එකෙන්"],
+      ["දෙකක අගය", "දෙකේ අගය"]
+    ]
+  },
+
+  "openingBeats": {
+    "$comment": "Insert BEFORE authored:readWrite4Digit:0, first session only. Returning sessions keep SESSION_START. No vocabulary term from the guide's list is used here — the opening only previews topics in plain words.",
+    "insertBefore": "authored:readWrite4Digit:0",
+    "beats": [
+      {
+        "id": "authored:opening:0",
+        "type": "LESSON_GOALS",
+        "pause": "RHETORICAL",
+        "spokenText": "ආයුබෝවන් පුතේ, දුවේ! අද අපි පහ ශ්‍රේණියේ ගණිත පාඩම් පටන් ගන්නවා.",
+        "board": { "kind": "title", "title": "සංඛ්‍යා - 1" }
+      },
+      {
+        "id": "authored:opening:1",
+        "type": "LESSON_GOALS",
+        "pause": "RHETORICAL",
+        "spokenText": "දැන් ඔයා පහ ශ්‍රේණියේ නේද? ඒක ලොකු වගකීමක් තියෙන, හරිම ලස්සන පන්තියක්.",
+        "board": { "kind": "none" }
+      },
+      {
+        "id": "authored:opening:2",
+        "type": "LESSON_GOALS",
+        "pause": "—",
+        "spokenText": "බය වෙන්න එපා {address}. ඔයාට පුළුවන්, මම ඔයා එක්කම ඉන්නවා.",
+        "board": { "kind": "none" }
+      },
+      {
+        "id": "authored:opening:3",
+        "type": "LESSON_GOALS",
+        "pause": "—",
+        "spokenText": "අපේ පළමු පාඩම තමයි සංඛ්‍යා. හරි සරලයි, ඒත් හරිම වැදගත්.",
+        "board": { "kind": "title", "title": "සංඛ්‍යා - 1" }
+      },
+      {
+        "id": "authored:opening:4",
+        "type": "LESSON_GOALS",
+        "pause": "—",
+        "spokenText": "මේ පාඩමෙන් අපි {number:100000} දක්වා ලොකු සංඛ්‍යා කියවන්න, ලියන්න ඉගෙන ගන්නවා.",
+        "board": { "kind": "text", "text": "100 000" }
+      },
+      {
+        "id": "authored:opening:5",
+        "type": "LESSON_GOALS",
+        "pause": "—",
+        "spokenText": "සංඛ්‍යාවක ඉලක්කම් තියෙන තැන අනුව ඒවායේ අගය හඳුනාගන්නත් අපි ඉගෙන ගන්නවා.",
+        "board": { "kind": "text", "text": "ලොකු සංඛ්‍යා" }
+      },
+      {
+        "id": "authored:opening:6",
+        "type": "LESSON_GOALS",
+        "pause": "SOFT_CHECK",
+        "spokenText": "ඔයා ලෑස්තිද {address}? එහෙනම් අපි පටන් ගමු!",
+        "board": { "kind": "none" }
+      }
+    ]
+  },
+
+  "hookSwap": {
+    "$comment": "placeValue4Digit reused the cricket hook from readWrite4Digit. Switch to candidate 3 (school bookshop) and fix the follow-on beat that still referred to cricket scores.",
+    "authored:placeValue4Digit:32": "පාසල් පොත් සාප්පුවෙන් අලුත් පොත් ගන්න ගියාම ලොකු ගණන් පේනවා නේද {address}?",
+    "authored:placeValue4Digit:33": "පොත්වල මිල ගණන් ඉලක්කම් හතරේ සංඛ්‍යාවලින් පෙන්වද්දී අපිට ඒක ලේසියෙන් හඳුනාගන්න පුළුවන්."
+  },
+
+  "replacements": {
+    "$comment": "Exact spokenText replacements. Keys are beat ids.",
+    "authored:readWrite4Digit:1":  "කලින් පාඩම්වලදී අපි සංඛ්‍යා කියවන්න ඉගෙන ගත්ත දේවල් ඔයාට මතකයි නේද?",
+    "authored:readWrite4Digit:6":  "ඔන්න {address}, {number:9}ට {number:1}ක් එකතු කළාම {number:10} හැදෙනවා නේද?",
+    "authored:readWrite4Digit:7":  "ඒ වගේම {number:99}ට {number:1}ක් එකතු කළාම {number:100} වෙනවා.",
+    "authored:readWrite4Digit:8":  "එහෙනම් {number:999}ට {number:1}ක් එකතු කළාම කීයද එන්නේ?",
+    "authored:readWrite4Digit:9":  "නියමයි! {number:999}ට {number:1}ක් එකතු වුණාම {number:1000} ලැබෙනවා.",
+    "authored:readWrite4Digit:11": "ඊළඟට අපි කාඩ්පත් පාවිච්චි කරලා අලුත් සංඛ්‍යා හදමු.",
+    "authored:readWrite4Digit:13": "මෙතනින් අපි වෙනස් කාඩ්පත් හතරක් ගමු.",
+    "authored:readWrite4Digit:14": "ඒ ඉලක්කම් එක ළඟින් තියලා අපි සංඛ්‍යාවක් හදමු.",
+    "authored:readWrite4Digit:18": "නම කියද්දී නොකියවුණත් ඒ තැනට බිංදුවක් ලියන්න ඕනේ, හරිද?",
+    "authored:readWrite4Digit:19": "{address}, බලන්නකෝ මේ රවුම ඇතුළේ තියෙන ඉලක්කම් ටික දිහා.",
+    "authored:readWrite4Digit:20": "මෙතැන තියෙන්නේ {number:1}, {number:3}, {number:6}, {number:4} නේද?",
+    "authored:readWrite4Digit:21": "පිටින් කිසිම අලුත් ඉලක්කමක් නොගෙන, මේවා විතරක් පාවිච්චි කරමු.",
+    "authored:readWrite4Digit:22": "මේ ඉලක්කම් වලින් ඔයා කැමති සංඛ්‍යාවක් හදලා මට කියන්න.",
+    "authored:readWrite4Digit:25": "බලන්න {address}, ලෑල්ල උඩ රවුමක් ඇඳලා තියෙනවා නේද? ඒක ඇතුළේ {number:1}, {number:3}, {number:6}, {number:4} තියෙනවා.",
+    "authored:readWrite4Digit:28": "ශෝක්! {number:1364}. ඔව්, {number:1364}. මේ ඉලක්කම් එකතු වුණාම අපි ඒක කියවන්නේ {number:1364} කියලයි.",
+    "authored:readWrite4Digit:29": "දැන් ඔය හදපු එක ආයෙත් ගන්නේ නැතුව, තව සංඛ්‍යාවක් හදමුද?",
+    "authored:placeValue4Digit:56": "ඒ පබළු වලින් පෙන්වන්නේ {number:5000}ක අගයක්.",
+    "authored:placeValue4Digit:70": "ඊළඟට දහයස්ථානයේ තියෙන {number:2}ෙන් ලැබෙන අගය කීයද?",
+    "authored:placeValue4Digit:71": "ඔව්, දහයස්ථානයේ {number:2}ේ අගය {number:20}යි.",
+    "authored:placeValue4Digit:72": "අන්තිමට එකස්ථානයේ තියෙන {number:1}ෙන් ලැබෙන්නේ කීයද?",
+    "authored:placeValue4Digit:73": "විශිෂ්ටයි! එකස්ථානයේ {number:1}ෙන් ලැබෙන්නේ {number:1}මයි.",
+    "authored:placeValue4Digit:91": "තව ක්‍රමයකට හැදුවොත් අපිට {number:8613} ලැබෙනවා."
+  },
+
+  "reviewerNotes": {
+    "$comment": "For the record — what was checked and found correct.",
+    "numberNamesVerified": ["84 අසූ හතර", "101 එකසිය එක", "999 නවසිය අනූ නවය", "3058 තුන්දහස් පනස් අට", "1364 එක්දහස් තුන්සිය හැට හතර", "5421 පන්දහස් හාරසිය විසි එක", "6831 හයදහස් අටසිය තිස් එක", "8613 අටදහස් හයසිය දහතුන"],
+    "checkMyWorkApproved": "authored:readWrite4Digit:31 — 84 = 8 + 4 is a plausible place-value error; keep.",
+    "textbookWordsToAvoidInSpeech": ["සංඛ්‍යාංක", "පෙළගස්වලා", "පෙළගැස්වුවොත්", "නිරූපණය", "ගොඩනගමු", "සහ (in spoken lists)", "ඉන්නවා (for numbers — use තියෙනවා)"]
+  }
+}

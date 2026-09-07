@@ -30,6 +30,8 @@ import { supabaseAdmin } from "../src/lib/supabaseAdmin";
 import { buildScriptFromRows, type BankRow } from "../src/lib/lessonScriptBuilder";
 import { LESSON_1_NUMBERS_STEPS, LESSON_1_NUMBERS_TITLE } from "../src/data/lessons/lesson1-numbers";
 import { buildRecapAskBeat, recapAskable } from "../src/lib/recapBeat";
+import { parseAuthoredScript } from "../src/lib/authoredScript";
+import { checkSpeechRules, formatSpeechFindings } from "../src/lib/speechRules";
 import { answersMatch } from "../src/lib/answerCheck";
 import { resolveBeatAddress, type ChildGender } from "../src/lib/addressToken";
 import {
@@ -103,7 +105,40 @@ class AssertionTally {
   }
 }
 
+/**
+ * The spoken-register rules, read straight off the authored file — the
+ * runtime beat has no pauseType, and the rules are about the script rather
+ * than about any one run through it. Same gate the dry run applies: an
+ * APPROVED script must be clean, since those words reach a child.
+ */
+function assertSpeechRules(tally: AssertionTally): void {
+  let authored = null;
+  try {
+    authored = parseAuthoredScript(
+      fs.readFileSync(path.join(process.cwd(), "src/data/lessons/authored", "maths-5-1.json"), "utf8"),
+    );
+  } catch {
+    return;
+  }
+  if (!authored?.approved) return;
+  const findings = checkSpeechRules(
+    authored.beats.map((beat) => ({
+      id: beat.id,
+      spokenText: beat.spokenText,
+      sourceText: beat.sourceText,
+      pauseType: beat.pauseType,
+    })),
+  );
+  tally.check(
+    "the approved authored script passes every spoken-register rule",
+    findings.length === 0,
+    findings.length ? `\n${formatSpeechFindings(findings)}` : "",
+  );
+}
+
 function assertTrace(script: LessonScript, trace: TraceEntry[], tally: AssertionTally): void {
+  assertSpeechRules(tally);
+
   // 1. session 1 contains no RECAP beat (scripted plan + this run's trace).
   const session1 = script.beats.slice(script.sessions[0].firstBeat, script.sessions[0].lastBeat + 1);
   tally.check("session 1 contains no RECAP beat", session1.every((b) => b.type !== "RECAP"));
@@ -145,20 +180,30 @@ function assertTrace(script: LessonScript, trace: TraceEntry[], tally: Assertion
         .map((b) => b.id),
     ),
   );
+  // REPLAYED, not merely reached: a miss in concept A must not rewind into
+  // an explain run, but the lesson still walks forward into concept B's
+  // opening for the first time, and that is the lesson working. Membership
+  // alone flagged the latter as soon as a trace ran far enough to reach it.
+  const played = new Set<string>();
   let missSeen = false;
   for (const entry of trace) {
+    const baseId = entry.beat.id.replace(/:reteach-demo$/, "");
+    if (missSeen) {
+      tally.check(
+        "after a miss, no opening EXPLAIN/HOOK beat is replayed",
+        !openingExplainIds.has(baseId) || !played.has(baseId) || entry.beat.type === "RETEACH",
+        `replayed ${entry.beat.id} (${entry.beat.type}) after a miss`,
+      );
+    }
+    played.add(baseId);
     if (entry.decision && !entry.decision.understood) missSeen = true;
-    if (!missSeen) continue;
-    tally.check(
-      "after a miss, no opening EXPLAIN/HOOK beat is replayed",
-      !openingExplainIds.has(entry.beat.id.replace(/:reteach-demo$/, "")) || entry.beat.type === "RETEACH",
-      `replayed ${entry.beat.id} (${entry.beat.type}) after a miss`,
-    );
   }
   tally.check("after a miss, no opening EXPLAIN/HOOK beat is replayed", true);
 
-  // 4a. The address token never survives into speech — and a girl child
-  //     is never called පුතේ.
+  // 4a. The address token never survives into speech — and every child,
+  //     a girl included, is addressed පුතේ (the neutral vocative in
+  //     everyday Sinhala; see src/lib/addressToken.ts). දුවේ addresses only
+  //     girls, so a single stray one would mean gendered clips are back.
   for (const entry of trace) {
     for (const text of [entry.beat.spokenText, ...(entry.beat.sayCandidates ?? [])]) {
       if (!text) continue;
@@ -167,17 +212,15 @@ function assertTrace(script: LessonScript, trace: TraceEntry[], tally: Assertion
         !text.includes("{address}"),
         `${entry.beat.id}: ${text.slice(0, 80)}`,
       );
-      if (GENDER === "girl") {
-        tally.check(
-          "a girl child is never addressed පුතේ",
-          !text.includes("පුතේ"),
-          `${entry.beat.id}: ${text.slice(0, 80)}`,
-        );
-      }
+      tally.check(
+        "no gendered vocative reaches speech — පුතේ for every child",
+        !text.includes("දුවේ"),
+        `${entry.beat.id}: ${text.slice(0, 80)}`,
+      );
     }
   }
   tally.check("no literal {address} token in spoken output", true);
-  if (GENDER === "girl") tally.check("a girl child is never addressed පුතේ", true);
+  tally.check("no gendered vocative reaches speech — පුතේ for every child", true);
 
   // 4b. Exact speech never contains instruction vocabulary (the live leak
   //     was "ඔයාගේ උත්තරය: ඊළඟ එකට යන්න").
@@ -514,9 +557,25 @@ async function main() {
   } catch {
     console.log("Blueprint override: none.");
   }
+  let authoredScript = null;
+  try {
+    authoredScript = parseAuthoredScript(
+      fs.readFileSync(path.join(process.cwd(), "src/data/lessons/authored", "maths-5-1.json"), "utf8"),
+    );
+  } catch {
+    authoredScript = null;
+  }
+  if (authoredScript) {
+    console.log(
+      authoredScript.approved
+        ? `Authored script: APPROVED — asserting on Zara's original beats for ${authoredScript.concepts.join(", ")}.`
+        : "Authored script: written but NOT APPROVED — asserting on the transcript-derived script.",
+    );
+  }
   const script = buildScriptFromRows(rows, descriptions, "maths", 5, 1, {
     lessonTitle: LESSON_1_NUMBERS_TITLE,
     blueprintOverride,
+    authoredScript,
   });
 
   // Optional: put a REAL recap ASK (built by the same shared code as

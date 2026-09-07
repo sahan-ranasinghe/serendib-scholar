@@ -20,6 +20,7 @@ import { buildScriptFromRows, type BankRow } from "../src/lib/lessonScriptBuilde
 import { LESSON_1_NUMBERS_STEPS, LESSON_1_NUMBERS_TITLE } from "../src/data/lessons/lesson1-numbers";
 import { ensureAudioBucket, ensureClip, readCachedClip } from "../src/lib/liveTts";
 import { AUTHORED_LINES } from "../src/lib/authoredLines";
+import { parseAuthoredScript } from "../src/lib/authoredScript";
 import { resolveAddress, type ChildGender } from "../src/lib/addressToken";
 import { ZARA_VOICE } from "../src/lib/zaraVoice";
 import type { Beat, LessonBlueprintOverride } from "../src/lib/lessonOrchestrator";
@@ -77,9 +78,26 @@ async function main() {
   } catch {
     blueprintOverride = null;
   }
+  // Render what the child will actually HEAR: the approved authored
+  // script when there is one (clips are keyed by their words, so a newly
+  // approved script simply renders a new set).
+  const authoredScript = parseAuthoredScript(
+    await readFile(
+      path.join(process.cwd(), "src/data/lessons/authored", `${SUBJECT}-${GRADE}-${LESSON}.json`),
+      "utf8",
+    ).catch(() => null),
+  );
+  if (authoredScript) {
+    console.log(
+      authoredScript.approved
+        ? `Authored script: APPROVED — rendering Zara's original words for ${authoredScript.concepts.join(", ")}.`
+        : "Authored script: written but NOT APPROVED — rendering the transcript-derived words.",
+    );
+  }
   const script = buildScriptFromRows((data ?? []) as BankRow[], descriptions, SUBJECT, GRADE, LESSON, {
     blueprintOverride,
     lessonTitle: LESSON_1_NUMBERS_TITLE,
+    authoredScript,
   });
   const sessions = ALL ? script.sessions : script.sessions.filter((s) => s.index === SESSION - 1);
   if (sessions.length === 0) throw new Error(`No session ${SESSION} in this script (it has ${script.sessions.length}).`);

@@ -11,8 +11,10 @@
 // calls in quick succession starts returning 429 RESOURCE_EXHAUSTED. These
 // constants control retry-with-backoff for that, plus other transient
 // errors (503 UNAVAILABLE, deadline-exceeded).
-export const RETRY_MAX_ATTEMPTS = 3;
-export const RETRY_BASE_DELAY_MS = 5000; // backoff: 5s, 10s, 20s
+/** Total attempts (1 initial + 4 retries). */
+export const RETRY_MAX_ATTEMPTS = 5;
+/** Backoff between attempts: 2s, 5s, 12s, then 12s again. */
+export const RETRY_DELAYS_MS = [2000, 5000, 12000, 12000];
 
 export function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -36,8 +38,25 @@ export function classifyRetryableApiError(error: unknown): string | null {
     error && typeof error === "object" && "status" in error
       ? (error as { status?: unknown }).status
       : undefined;
-  const message = error instanceof Error ? error.message : String(error);
+  const cause = error instanceof Error && error.cause ? String(error.cause) : "";
+  const message = `${error instanceof Error ? error.message : String(error)} ${cause}`;
 
+  // BILLING is never transient: retrying a depleted account or an
+  // exceeded spend cap burns time against a wall. Abort immediately so
+  // the caller can checkpoint and report.
+  if (/prepayment credits|spending cap/i.test(message)) {
+    return null;
+  }
+  // Network-level failures — undici connect timeouts, resets, DNS blips.
+  // Observed live: a mid-run "fetch failed / ConnectTimeoutError" killed
+  // an authoring run that would have succeeded seconds later.
+  if (
+    /fetch failed|ConnectTimeoutError|UND_ERR_CONNECT_TIMEOUT|ECONNRESET|ETIMEDOUT|EAI_AGAIN|socket hang up|ENOTFOUND|network/i.test(
+      message,
+    )
+  ) {
+    return "network failure";
+  }
   if (status === 429 || /RESOURCE_EXHAUSTED|\b429\b/i.test(message)) {
     return "rate limited";
   }
@@ -60,7 +79,7 @@ export function classifyRetryableApiError(error: unknown): string | null {
  * retry log lines so nested progress output stays readable.
  */
 export async function withRetry<T>(call: () => Promise<T>, logPrefix = "  "): Promise<T> {
-  for (let attempt = 0; ; attempt++) {
+  for (let attempt = 1; ; attempt++) {
     try {
       return await call();
     } catch (error) {
@@ -68,9 +87,9 @@ export async function withRetry<T>(call: () => Promise<T>, logPrefix = "  "): Pr
       if (!retryReason || attempt >= RETRY_MAX_ATTEMPTS) {
         throw error;
       }
-      const delayMs = RETRY_BASE_DELAY_MS * 2 ** attempt;
+      const delayMs = RETRY_DELAYS_MS[Math.min(attempt - 1, RETRY_DELAYS_MS.length - 1)];
       console.warn(
-        `${logPrefix}${retryReason}, retrying in ${delayMs / 1000}s... (attempt ${attempt + 1}/${RETRY_MAX_ATTEMPTS})`,
+        `${logPrefix}${retryReason}, retrying in ${delayMs / 1000}s... (attempt ${attempt}/${RETRY_MAX_ATTEMPTS - 1} retries)`,
       );
       await sleep(delayMs);
     }

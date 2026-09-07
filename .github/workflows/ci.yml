@@ -29,13 +29,15 @@ jobs:
         run: npx tsc --noEmit -p .
 
       - name: Lint
-        run: npx eslint src scripts proxy.ts
+        run: npx eslint src scripts
 
       - name: Unit tests
         run: |
           npx tsx --test \
             src/lib/lessonOrchestrator.test.ts \
             src/lib/timeStretch.test.ts \
+            src/lib/sinhalaNumber.test.ts \
+            src/lib/scriptDistance.test.ts \
             src/lib/addressToken.test.ts \
             src/lib/boardContentParser.test.ts \
             src/lib/pageReferenceDetection.test.ts \

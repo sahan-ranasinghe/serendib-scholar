@@ -1,0 +1,638 @@
+{
+  "subject": "maths",
+  "grade": 5,
+  "lesson": 1,
+  "extractedAt": "2026-09-06T18:53:10.586Z",
+  "model": "gemini-3.1-pro-preview",
+  "denylistNumbers": [
+    15,
+    17,
+    28,
+    35,
+    38,
+    40,
+    48,
+    69,
+    70,
+    80,
+    200,
+    300,
+    602,
+    870,
+    1080,
+    3007,
+    4004,
+    4920,
+    5322,
+    6054,
+    6418,
+    7256,
+    8597,
+    8903,
+    25000,
+    28500,
+    34879,
+    35147,
+    40100,
+    40120,
+    40125,
+    40157,
+    40158,
+    40175,
+    40185,
+    48739,
+    76109,
+    79843,
+    82406,
+    85000,
+    85101,
+    87349,
+    96805,
+    98743
+  ],
+  "concepts": [
+    {
+      "conceptTag": "readWrite4Digit",
+      "activity": 1,
+      "vocabularyIntroduced": [
+        "සංඛ්‍යාව",
+        "සංඛ්‍යා නාමය"
+      ],
+      "textbookContent": [
+        {
+          "step": 1,
+          "contentBankIds": [
+            "7daf0141-073d-4714-b69e-fb17069e982c"
+          ],
+          "printedPages": [],
+          "summary": "Warm-up: child picks 4 digits at a time from the pool to build five different 4-digit numbers. exampleAnswer (3058) is a worked example, not the only correct answer."
+        },
+        {
+          "step": 2,
+          "contentBankIds": [
+            "4c2aa078-355a-4ba6-a32f-a2ed2d261a99"
+          ],
+          "printedPages": [],
+          "summary": "Practice converting between a numeral and its Sinhala number-name, both directions. Null cells are what the child fills in."
+        }
+      ],
+      "timeWeightMinutes": 9,
+      "objective": "9 999 තෙක් කුමන සංඛ්‍යාවක් වුව ද කියවයි. ඉලක්කමෙන් හා වචනයෙන් ලියයි. (Reads any number up to 9 999; writes it in digits and in words.)",
+      "guideSteps": [
+        "Display a row of numbers with up to 3 digits and have students read each number's name aloud.",
+        "Show what comes after 999 using a build-up: 9+1=10, 99+1=100, 999+1=1000.",
+        "Place cards with digits 0-9 on a table; a student picks 4 cards, forms a 4-digit number, and reads/writes it while another confirms.",
+        "Give groups a worksheet with a circle containing digits 1, 3, 6, 4.",
+        "Instruct students to form 5 four-digit numbers using the digits in the circle and write the number name of each."
+      ],
+      "officialExamples": [
+        "84",
+        "101",
+        "528",
+        "997",
+        "1, 3, 6, 4"
+      ],
+      "techniqueSequence": [
+        "Displays a specific set of digits and sets the task of forming multiple 4-digit numbers from them.",
+        "Solicits answers one by one, repeating each generated number aloud before confirming and writing it.",
+        "Transitions to a reading and writing exercise by presenting a 4-digit number in digits and asking the class to read it aloud.",
+        "Writes out the number name by vocalising each place value chunk sequentially (thousands, then hundreds, then tens/ones).",
+        "Reverses the exercise by presenting a number name in words and writing out the digits.",
+        "Stops at examples containing internal zeroes to explicitly explain that missing spoken places correspond to zeroes in the written digits."
+      ],
+      "sinhalaHandling": [
+        "Repeats each generated number twice aloud to ensure auditory clarity for the class.",
+        "Chunks the writing of large number names by pausing after the thousands place, then the hundreds place, matching spoken flow to written parts.",
+        "Uses the phrase 'කියවෙන්නේ නැහැ' (is not spoken/read) to describe place values that contain a zero."
+      ],
+      "questionPatterns": [
+        "Rhetorical: Asks if they remember their prior Grade 4 lessons to frame the activity as a comfortable review.",
+        "Real ask: Openly invites any student to suggest a newly formed 4-digit number.",
+        "Soft check-in: Frequently uses 'හරි නේද?' (Right?) after writing a number to maintain pacing and mild engagement.",
+        "Real ask: Demands the class read a displayed number aloud with adequate volume.",
+        "Real ask: Prompts the class to identify exactly which place values are missing from the spoken name when handling a number with zeroes."
+      ],
+      "misconceptionStops": [
+        "Using outside digits: Explicitly warns that numbers must be built exclusively from the digits provided in the box.",
+        "Forming duplicates: When a student offers an already-listed number, she points it out and insists on a unique combination.",
+        "Dropping internal zeroes: Deliberately pauses on numbers with zeroes (e.g., zero hundreds or zero tens) to stress that if a place value word is absent in the name, a zero must physically hold that spot in the digits."
+      ],
+      "analogySlot": "None used; the instruction relies purely on recalling prior mathematical rules and structural place value logic.",
+      "digitalActivities": [
+        "DigitPickerPuzzle — tap 4 digits from a pool",
+        "Board card + tap-to-answer, one number at a time"
+      ],
+      "assessment": "Confirm through observation during group activities (mastery model over logged answers in the app), provide worksheets for individual work, and use relevant exercises in the student's textbook.",
+      "vocabularyNotSpoken": {
+        "terms": [
+          "සංඛ්‍යාංකය"
+        ],
+        "why": "Guide vocabulary the child meets in the TEXTBOOK, not from Zara. Said aloud to one child it is a bookish way of pointing at ඉලක්කම්; both native reviewers of session 1 struck it from every beat that used it, independently and unprompted (docs/review/session-1-edits.json §5, docs/review/gemini-review-decisions.json bannedInSpeech). It is printed on the page the child is reading, so the term is still taught — by the book."
+      }
+    },
+    {
+      "conceptTag": "placeValue4Digit",
+      "activity": 2,
+      "vocabularyIntroduced": [
+        "එකස්ථානය",
+        "දහයස්ථානය",
+        "සියයස්ථානය",
+        "දහසස්ථානය",
+        "ස්ථානීය අගය"
+      ],
+      "textbookContent": [
+        {
+          "step": 3,
+          "contentBankIds": [
+            "7b58e436-334f-452c-bc2a-81f234d03268"
+          ],
+          "printedPages": [],
+          "summary": "Full place-value breakdown: for a given digit within a number, find its place name, the place's value (e.g. 1000), and the value that digit represents there (e.g. 2000). First row is the fully worked example."
+        },
+        {
+          "step": 4,
+          "contentBankIds": [
+            "dfae997d-2310-429d-b522-52b82459c047"
+          ],
+          "printedPages": [],
+          "summary": "Worked example only, on purpose — practice exercises for this abacus activity are omitted pending bead-count verification from the source image, per the user's explicit instruction not to guess at unverified data."
+        }
+      ],
+      "timeWeightMinutes": 21,
+      "objective": "ඉලක්කම් හතරේ සංඛ්‍යාවල ස්ථානීය අගය දක්වයි.",
+      "guideSteps": [
+        "Set up an abacus visible to all students; a student comes forward and represents a number on the abacus.",
+        "Ask the class about the digit shown by the beads at each place, the place value at each place, and the value represented by the digit at each place.",
+        "Have students say and write the number name of the number on the abacus.",
+        "Show the number written in expanded form.",
+        "Repeat by representing several different numbers on the abacus and expanding each.",
+        "Give groups a card with four digits; have them form several numbers using the digits and write each in expanded form.",
+        "Give students a worksheet of further expansion exercises to do alone."
+      ],
+      "officialExamples": [
+        "5 421",
+        "1, 3, 8, 6",
+        "7, 0, 6, 2",
+        "0, 8, 6, 3",
+        "6 831",
+        "8 613"
+      ],
+      "techniqueSequence": [
+        "Identifies the place value columns from right to left to orient the learner before starting.",
+        "Counts the beads on a specific rod one by one aloud.",
+        "States the fundamental value of a single bead at that specific place.",
+        "Calculates and names the total represented value for that rod based on the bead count.",
+        "Combines the calculated values from all places to state the complete number aloud.",
+        "Transitions from the visual abacus model to written expanded form, explicitly linking each calculated component.",
+        "Uses a tabular format to systematically distinguish between the digit, its place name, the base place value, and the final represented value."
+      ],
+      "sinhalaHandling": [
+        "Uses conversational variations for place names flexibly, smoothly switching between forms like the spoken thousands place and the formal written form.",
+        "Counts aloud sequentially step-by-step when tallying beads to maintain pacing.",
+        "Repeats place names distinctly while writing them down to reinforce the vocabulary.",
+        "Explicitly verbalizes empty places as having nothing there before officially declaring and writing zero.",
+        "Chunks the spoken number by stating the thousands component first, then reading the hundreds, tens, and ones together as a standard sequence."
+      ],
+      "questionPatterns": [
+        "Soft check-ins: Asks for confirmation of foundational knowledge before proceeding with a new step to ensure the audience is following.",
+        "Real asks: Prompts for specific bead counts, place names, or calculated values where an exact answer is required.",
+        "Rhetorical: Poses a 'how' or 'why' question immediately before demonstrating the upcoming calculation or writing step herself."
+      ],
+      "misconceptionStops": [
+        "Zero at a place: Explicitly points out when an abacus rod is empty or a digit is zero, emphasizing that the represented value is exactly zero and nothing is added.",
+        "Confusing place value with represented value: Uses table columns to heavily contrast the base value of a place with the actual calculated value of the digit sitting there."
+      ],
+      "analogySlot": "None. The explanation relies entirely on concrete manipulative models and abstract tables rather than real-world comparative analogies.",
+      "digitalActivities": [
+        "Zara sets a number on the animated abacus while narrating; then the child sets one themselves by tapping beads.",
+        "DigitPickerPuzzle primitive where the child selects 4 digits from a given pool to form numbers.",
+        "Board exercise cards with tap-to-answer mechanics to evaluate place values and complete expanded form sequences."
+      ],
+      "assessment": "Confirm through observation (mastery model over logged answers) during interactive activities whether students have achieved the outcomes, and provide targeted worksheets or textbook exercises for individual practice."
+    },
+    {
+      "conceptTag": "expandedForm4Digit",
+      "activity": 2,
+      "vocabularyIntroduced": [],
+      "textbookContent": [
+        {
+          "step": 5,
+          "contentBankIds": [
+            "7203227e-0344-4590-a25a-c46d72ae7a8f",
+            "ffb269a9-2aa6-4354-b6ba-7c4a81353129"
+          ],
+          "printedPages": [
+            2
+          ],
+          "summary": "Expand a 4-digit number into thousands/hundreds/tens/ones parts. Worked example first, then practice rows (null = blank for the child)."
+        }
+      ],
+      "timeWeightMinutes": 3,
+      "objective": "ඉලක්කම් හතරේ සංඛ්‍යාවල ස්ථානීය අගය දක්වයි. (States the place value of digits in 4-digit numbers and writes them in expanded form.)",
+      "guideSteps": [
+        "Set up an abacus visible to all students and have a student represent a 4-digit number.",
+        "Ask the class to identify the digit shown at each place, the place value, and the value represented by that digit.",
+        "Have students say and write the number name aloud.",
+        "Show how to write the number in expanded form as an addition of its place values.",
+        "Repeat the abacus representation and expansion for several different numbers.",
+        "Give groups a card with four digits, instructing them to form several numbers and write each in expanded form.",
+        "Distribute a worksheet for individual expansion exercises."
+      ],
+      "officialExamples": [
+        "5 421",
+        "1, 3, 8, 6",
+        "7, 0, 6, 2",
+        "0, 8, 6, 3",
+        "6 831",
+        "8 613"
+      ],
+      "techniqueSequence": [
+        "States the target number aloud in full.",
+        "Extracts and writes the highest place value (thousands).",
+        "Proceeds sequentially through the remaining places (hundreds, tens, ones), explicitly declaring the place and its corresponding value.",
+        "When evaluating a place with a zero, explicitly declares that the place holds no value and writes down a zero in the expanded sequence.",
+        "Summarizes by reading the complete expanded addition statement aloud to confirm it constructs the original number."
+      ],
+      "sinhalaHandling": [
+        "Reads the complete number naturally first before breaking it down.",
+        "Uses the specific term for value ('වටිනාකම') to differentiate the represented value from the digit itself.",
+        "Strongly emphasizes 'none' or 'nothing' ('නැහැ') when referring to places containing a zero.",
+        "Strings together the final expanded addition sequence orally using the conjunction suffix ('යි') to simulate adding the parts together."
+      ],
+      "questionPatterns": [
+        "Direct prompts asking the students to attempt reading the whole number.",
+        "Guided questions asking how to begin the expansion or what happens at a specific place.",
+        "Frequent soft check-ins and rhetorical tag questions seeking murmurs of validation from the class before moving to the next place value."
+      ],
+      "misconceptionStops": [
+        "Students omitting zero-value places entirely or misaligning the subsequent digits when expanding.",
+        "Deliberately models examples with zeroes in various positions (internal, terminal, consecutive), explicitly writing the zero in the addition chain to maintain structural integrity and proving that a zero digit equals zero value."
+      ],
+      "analogySlot": "None used. The instruction relies strictly on structural place value logic and direct pattern matching.",
+      "digitalActivities": [
+        "Animated abacus primitive: Zara sets a number and narrates the breakdown, followed by the child setting numbers by tapping beads.",
+        "DigitPickerPuzzle: Translates the physical card activity where the child taps 4 digits from a pool to form numbers.",
+        "Board exercise cards with tap-to-answer functionality to construct the expanded form sequentially."
+      ],
+      "assessment": "Observation of correct unaided answers during interactive digital tasks (mastery model), followed by individual digital worksheet equivalents mapped to the textbook practice items."
+    },
+    {
+      "conceptTag": "beyond9999",
+      "activity": 3,
+      "vocabularyIntroduced": [
+        "දස දහස",
+        "සියක් දහස"
+      ],
+      "textbookContent": [
+        {
+          "step": 6,
+          "contentBankIds": [
+            "300e9101-c03a-4e59-a8ac-2bc475d4056a"
+          ],
+          "printedPages": [
+            2
+          ],
+          "summary": "Reference note (not an exercise): naming round ten-thousands from 10,000 to 100,000, bracketed by the two 9999+1/99999+1 rollover facts."
+        },
+        {
+          "step": 7,
+          "contentBankIds": [
+            "4fc6f7f5-b7bc-4222-a744-9e5f65838880",
+            "691cea43-fd94-45d5-b17e-5cf7294a7992"
+          ],
+          "printedPages": [],
+          "summary": "Continue the rollover pattern from the worked example — for each expression, the child fills in the resulting round number and its Sinhala name (both blank cells in `parts`)."
+        },
+        {
+          "step": 10,
+          "contentBankIds": [
+            "0595cc1b-33a5-4cd6-bb66-6f6a4b5b2ba9"
+          ],
+          "printedPages": [],
+          "summary": "Before/number/after sequence practice — given any one of the three columns, the child fills in the other two (before = number - 1, after = number + 1). First row is the fully worked example."
+        }
+      ],
+      "timeWeightMinutes": 21,
+      "objective": "100 000 තෙක් සංඛ්‍යා කියයි. ලියයි. සංඛ්‍යා නාමය ලියයි. දස දහසස්ථානය තෙක් සංඛ්‍යාවල එක් එක් ඉලක්කමෙන් නිරූපිත අගය දක්වයි.",
+      "guideSteps": [
+        "Write several numbers close to 9 999 in ascending order and have students say each number name.",
+        "Establish the key fact explicitly: 9 999 + 1 = 10 000 (දස දහස).",
+        "Build the ten-thousands sequence with the students up to 100 000, saying each name.",
+        "Introduce 99 999 + 1 = 100 000 (සියක් දහස).",
+        "Explicitly teach the rule: when writing large numbers, leave a space starting from the ones place in groups of three digits.",
+        "Write a number between 10 000 and 20 000, enter it into a place-value table, and introduce දස දහසස්ථානය (the ten-thousands place).",
+        "Give groups number cards between 10 000 and 100 000, have them draw a place-value table, take turns filling the table and writing the number name.",
+        "Arrange the group's card numbers in order, smallest first."
+      ],
+      "officialExamples": [
+        "9 999",
+        "10 000",
+        "20 000",
+        "30 000",
+        "100 000",
+        "99 999",
+        "26 147",
+        "10 100",
+        "25 602",
+        "38 017",
+        "53 900",
+        "75 501"
+      ],
+      "techniqueSequence": [
+        "Builds the multiples of ten thousand by repeatedly asking what happens when 1 is added to numbers ending in 9,999.",
+        "Chants the entire ten-thousands sequence continuously from 20,000 to 100,000, then has the class repeat it.",
+        "Breaks down a 5-digit number using a place-value table, pointing out the quantity of units and the corresponding digit at each place.",
+        "Demonstrates writing digits from a spoken number name, physically enforcing the space left after the thousands group.",
+        "Explains how to read a 5-digit number with a zero in the hundreds place by defining it as an unpronounced place.",
+        "Demonstrates finding the preceding and succeeding numbers at major boundaries (like 40,000 or 100,000) by explicitly adding or subtracting 1."
+      ],
+      "sinhalaHandling": [
+        "Uses a rhythmic spoken boundary pattern continuously: '[Thousands] dahas nawsahia anuu nawayata ekak ekathu wunaama [Next Ten Thousand]'.",
+        "Describes the written digit-grouping space practically as an 'aath kirimak' (a separation).",
+        "Refers to places containing a zero as a 'nokiyawena sthaanayak' (an unread place) to explain why that place's name is skipped.",
+        "Verbally anchors finding previous/next numbers to operations: 'ekak adu karanawa' (subtract one) and 'ekak ekathu karanawa' (add one)."
+      ],
+      "questionPatterns": [
+        "Rhetorical scaffolding: Asks what is added to a number, immediately answering 'one' herself to maintain sequence momentum.",
+        "Real asks: 'What is the number formed when 1 is added to 19,999?' requiring a choral class response.",
+        "Soft check-ins: Uses 'hari neda?' (right?) murmured after demonstrating a boundary crossover.",
+        "Direct prompts: 'Who is writing quickly?' to spur action when converting number names to digits."
+      ],
+      "misconceptionStops": [
+        "Omitting the spacing when writing 5-digit numbers: Both the guide and the teacher explicitly enforce leaving a gap after the thousands to prevent misreading.",
+        "Reading numbers with internal zeros (e.g., 35 019): Students may try to pronounce the zero place; teacher intercepts by explicitly labeling it an unread place with a zero value.",
+        "Boundary crossings for previous/next numbers (e.g., before 40,000): Students struggle to visualize the turnover; teacher breaks it down mathematically by explicitly subtracting 1, linking it back to the x9,999 patterns."
+      ],
+      "analogySlot": "No everyday analogies are used; the conceptual leap relies entirely on the mathematical structure of adding 1 to numbers ending in 9,999 and mapping these to a place-value table.",
+      "digitalActivities": [
+        "The place-value strip primitive draws itself as Zara names each column",
+        "Successive board cards; the child fills the row",
+        "Drag-to-order, or tap-in-sequence on the board"
+      ],
+      "assessment": "Mastery model based on observing correct unaided answers across the concept, alongside providing standard practice items derived from worksheets and the textbook."
+    },
+    {
+      "conceptTag": "digitGroupingRule",
+      "activity": 3,
+      "vocabularyIntroduced": [],
+      "textbookContent": [],
+      "timeWeightMinutes": 0,
+      "objective": "100 000 තෙක් සංඛ්‍යා කියයි. ලියයි. සංඛ්‍යා නාමය ලියයි. (Focusing on writing formatting: separating digits in threes).",
+      "guideSteps": [
+        "Introduce 99 999 + 1 = 100 000 (සියක් දහස).",
+        "Explicit teaching point: when writing large numbers, leave a space starting from the ones place, in groups of three digits moving to the left, to make them easier to read (විශාල සංඛ්‍යා ලිවීමේ දී හඳුනා ගැනීමේ පහසුව සඳහා එකස්ථානයේ සිට වම් පැත්තට ඉලක්කම් තුනෙන් තුනට වෙන් වන බව හඳුන්වා දෙන්න)."
+      ],
+      "officialExamples": [
+        "10 000",
+        "20 000",
+        "30 000",
+        "100 000",
+        "26 147",
+        "10 100",
+        "25 602",
+        "38 017",
+        "53 900",
+        "75 501"
+      ],
+      "techniqueSequence": [
+        "Presents a 5-digit number entirely mashed together to highlight how visually confusing it is.",
+        "Counts aloud one-two-three starting from the rightmost digit (the ones place) moving to the left.",
+        "Splits the number by inserting a clear visual space between the hundreds and thousands.",
+        "Reads the number aloud, using the newly created space as a natural grouping boundary to simplify the reading."
+      ],
+      "sinhalaHandling": [
+        "Uses the spacing as a natural breath pause when speaking, reading the first two digits as a distinct thousands word (e.g. 'විසි හයදහස්') before finishing the rest of the number.",
+        "Repeats the direction phrase 'එකස්ථානයේ සිට වම් පැත්තට' (from the ones place to the left) to anchor the motor habit."
+      ],
+      "questionPatterns": [
+        "Rhetorical: Asking if a solid block of five digits is easy to read quickly.",
+        "Soft check-in: Prompting the class to count 'one, two, three' with her from the right.",
+        "Real ask: Presenting an unspaced number and asking the student exactly where the split should happen."
+      ],
+      "misconceptionStops": [
+        "Children often instinctively count three digits starting from the left (the way they read words), which breaks 5-digit numbers incorrectly (e.g. 261 47). The teacher must explicitly stress starting at the ones place (the right) to prevent this."
+      ],
+      "analogySlot": "Chunking a long phone number into parts so you don't lose your place while reading it.",
+      "digitalActivities": [
+        "Zara demonstrates the rule by counting from the right and animating the digits sliding apart to create a gap.",
+        "Board exercise: A tightly packed 5-digit number appears, and the child must tap the exact spot between digits where the space should be inserted."
+      ],
+      "assessment": "Confirm through observation during group activities whether students have achieved the relevant learning outcomes. Provide worksheets with suitable exercises for students to do individually. Use the relevant exercises in the student's textbook."
+    },
+    {
+      "conceptTag": "tenThousandsPlace",
+      "activity": 3,
+      "vocabularyIntroduced": [
+        "දස දහසස්ථානය"
+      ],
+      "textbookContent": [
+        {
+          "step": 8,
+          "contentBankIds": [
+            "74755e39-576c-4a9f-9b2b-fdb17b6c9c9f",
+            "4c2fd772-3379-4909-a968-d43089c00189"
+          ],
+          "printedPages": [
+            3
+          ],
+          "summary": "Convert each Sinhala number-name into its numeral, following the worked example."
+        }
+      ],
+      "timeWeightMinutes": 3,
+      "objective": "100 000 තෙක් සංඛ්‍යා කියයි. ලියයි. සංඛ්‍යා නාමය ලියයි.",
+      "guideSteps": [
+        "Write numbers close to 9 999 ascending, establishing that 9 999 plus 1 equals 10 000.",
+        "Build the ten-thousands sequence up to 100 000 collaboratively with students.",
+        "Explicitly teach the rule of leaving a space in groups of three digits starting from the ones place for readability.",
+        "Write a number between 10 000 and 20 000, enter it into a place-value table, and introduce the ten-thousands place.",
+        "Distribute number cards between 10 000 and 100 000 to groups.",
+        "Have each student draw a place-value table, enter their card number, write its name, and finally order the group's numbers smallest first."
+      ],
+      "officialExamples": [
+        "9 999",
+        "10 000",
+        "20 000",
+        "30 000",
+        "100 000",
+        "26 147",
+        "10 100",
+        "25 602",
+        "38 017",
+        "53 900",
+        "75 501"
+      ],
+      "techniqueSequence": [
+        "Presents a spoken number name that contains multiple zero-value places.",
+        "Systematically lists each standard place value from largest to smallest, explicitly noting which places were omitted in speech.",
+        "Maps the unspoken places to zeros to construct the full numeral.",
+        "Transitions to constructing numbers from explicit place-value digit assignments.",
+        "Establishes the rule to always write starting from the largest given place value.",
+        "Builds the final number by reading off the digits in descending place order."
+      ],
+      "sinhalaHandling": [
+        "Identifies zero-value places by emphasizing that those specific place names were not spoken aloud.",
+        "Chunks number names into the thousands block and the remaining block when pronouncing.",
+        "Uses the formal names of the places sequentially when reconstructing the digit from components."
+      ],
+      "questionPatterns": [
+        "Rhetorical: Asking how many places are missing from the spoken name.",
+        "Soft check-in: Prompting for agreement and clarity.",
+        "Real ask: Inviting the students to collaboratively build the next number for the exercise."
+      ],
+      "misconceptionStops": [
+        "Omitting internal zeros when converting a number name to digits: addressed by explicitly listing every intermediate place and checking if it was spoken.",
+        "Assembling digits out of order: prevented by explicitly stating the rule to always start with the largest place value regardless of presentation order."
+      ],
+      "analogySlot": "none",
+      "digitalActivities": [
+        "The place-value strip primitive draws itself as Zara names each column.",
+        "Successive board cards appear; the child fills the row.",
+        "Drag-to-order, or tap-in-sequence on the board to arrange numbers smallest first."
+      ],
+      "assessment": "Mastery model over logged answers across the concept, supplemented by practice worksheets and relevant textbook exercises."
+    },
+    {
+      "conceptTag": "placeValueTable5Digit",
+      "activity": 3,
+      "vocabularyIntroduced": [],
+      "textbookContent": [
+        {
+          "step": 9,
+          "contentBankIds": [
+            "07684ad8-d983-492c-a6a9-73acb0765347",
+            "b5dab623-90cf-4a0a-90ce-86a3771c2e92"
+          ],
+          "printedPages": [
+            3
+          ],
+          "summary": "Word problems: build a number from stated place values, given out of order. Part (c) is open-ended (any two digits at the tens place all satisfy it) — treat multiple correct answers as valid."
+        },
+        {
+          "step": 11,
+          "contentBankIds": [
+            "7eea06b9-2b32-49ec-a458-3e1454d19d43"
+          ],
+          "printedPages": [],
+          "summary": "Same place-value breakdown drill as step 3, now with 5-digit numbers (introduces දස දහසස්ථානය — ten-thousands place)."
+        }
+      ],
+      "timeWeightMinutes": 60,
+      "objective": "100 000 තෙක් සංඛ්‍යා කියයි. ලියයි. සංඛ්‍යා නාමය ලියයි. දස දහසස්ථානය තෙක් සංඛ්‍යාවල එක් එක් ඉලක්කමෙන් නිරූපිත අගය දක්වයි.",
+      "guideSteps": [
+        "Write several numbers close to 9,999 in ascending order and have students say each number name.",
+        "Establish explicitly that 9,999 + 1 = 10,000 (දස දහස).",
+        "Build the ten-thousands sequence with the students, saying each name (10,000, 20,000 ... 100,000).",
+        "Introduce the explicit rule for writing large numbers: leave a space starting from the ones place, in groups of three digits, for readability.",
+        "Write a number between 10,000 and 20,000 on the board, have students say its name together, and enter it into a place-value table.",
+        "Introduce the ten-thousands place (දස දහසස්ථානය) formally.",
+        "Give groups cards with numbers between 10,000 and 100,000 and have them draw a place-value table on a large sheet of paper.",
+        "Have each student take a turn writing their card's number into the table and its name into their book.",
+        "Arrange the group's numbers in order, smallest first."
+      ],
+      "officialExamples": [
+        "9 999",
+        "10 000",
+        "100 000",
+        "26 147",
+        "10 100",
+        "25 602",
+        "38 017",
+        "53 900",
+        "75 501"
+      ],
+      "techniqueSequence": [
+        "Presents a 5-digit number alongside an empty place-value table.",
+        "Interrogates the number digit by digit, identifying how many units belong to each place value.",
+        "Fills the place-value table column by column based on the identified digit counts.",
+        "Reads the complete number aloud, grouping the thousands and ten-thousands together.",
+        "Writes the number in standard form, deliberately demonstrating the visual spacing rule.",
+        "Recites the sequence of place names in order from ones up to ten-thousands.",
+        "Calculates the represented value of each digit by multiplying the digit by its place value.",
+        "Demonstrates expanded form by summing the individual represented values."
+      ],
+      "sinhalaHandling": [
+        "Chunks the first two digits when reading aloud, saying XX-thousand as a single phrase rather than separating ten-thousands and thousands.",
+        "Uses the 'X-é éwa' construction (e.g., 'eké éwa' for ones, 'dahasé éwa' for thousands) to describe the quantity of units in a column.",
+        "Uses English loanwords like 'gap ekak' or 'space ekak' alongside native terms ('paratharayak') to explain the thousands separator space.",
+        "Maintains strict vocabulary separation between the place name, the place's base value, and the final value represented by the digit."
+      ],
+      "questionPatterns": [
+        "Rhetorical: Asks what the number is or how to write it, before immediately demonstrating the process herself.",
+        "Real ask: Asks how many units are in a specific place value column, requiring students to extract and state the correct digit.",
+        "Soft check-in: Seeks confirmation at the end of a step or column fill with short prompts like 'Right?' or 'Understood?'."
+      ],
+      "misconceptionStops": [
+        "Zero as a placeholder: Deliberately pauses at places with a zero digit, explicitly stating that there are none of that unit, assigning it a represented value of zero, and ensuring students do not skip the column.",
+        "Confusing place value with represented value: Explicitly breaks down the difference between the digit itself, the inherent base value of its position, and the product of the two."
+      ],
+      "analogySlot": "None. The instruction relies entirely on abstract mathematical representations and concrete manipulatives like digit cards and tables, without everyday real-world analogies.",
+      "digitalActivities": [
+        "The place-value strip primitive draws itself as Zara names each column, replacing the group drawing on large paper.",
+        "Successive board cards prompt the child to fill the row in the table, replacing physical group turn-taking.",
+        "Drag-to-order or tap-in-sequence mechanics on the board to arrange the group's numbers from smallest to largest."
+      ],
+      "assessment": "Observation during board exercises acting as a mastery model over logged answers, followed by individual practice items replicating the textbook exercises."
+    },
+    {
+      "conceptTag": "expandedForm5Digit",
+      "activity": 4,
+      "vocabularyIntroduced": [],
+      "textbookContent": [
+        {
+          "step": 12,
+          "contentBankIds": [
+            "9926a828-f5e1-4710-9967-62a78d28eada",
+            "fc76c2e4-3c00-4d50-a95e-d56247c3e424"
+          ],
+          "printedPages": [],
+          "summary": "Same expansion drill as step 5, now with 5-digit numbers (ten-thousands + thousands + hundreds + tens + ones) — all five rows are fully open practice, nothing pre-filled."
+        }
+      ],
+      "timeWeightMinutes": 6,
+      "objective": "99 999ට නොවැඩි සංඛ්‍යා ස්ථානීය අගය අනුව විහිදුවා ලියයි. (Writes numbers up to 99 999 in expanded form by place value.)",
+      "guideSteps": [
+        "Give students a number below 100 000.",
+        "Show the number in a place-value table spanning ten-thousands to ones.",
+        "Explain which place each digit sits in and remind students of the standard place value of each column.",
+        "Demonstrate the value represented by the digit at each place using a four-column table showing the digit, place, place value, and represented value.",
+        "Show the final expanded form and explicitly teach that it is created by adding together the values represented by the digits at each place.",
+        "Provide groups with a worksheet requiring them to identify a specific digit's place, its place value, and its represented value.",
+        "Have groups swap worksheets to peer-check each other's work.",
+        "Assign relevant individual exercises in the workbook."
+      ],
+      "officialExamples": [
+        "68 507",
+        "35 421",
+        "60 000 + 8 000 + 500 + 0 + 7"
+      ],
+      "techniqueSequence": [
+        "Reads the entire number aloud to establish the goal.",
+        "Identifies the digit in the highest place value column and asks how many of that base unit are present.",
+        "States the resulting calculated value for that place and records it.",
+        "Moves systematically rightward across every column, identifying the digit, multiplying by the place value, and stating the resulting chunk.",
+        "Addresses zero digits directly by naming the place, identifying the zero, and writing a zero in the expanded sequence.",
+        "Reads back the final list of expanded values consecutively to ensure they synthesize back into the original spoken number."
+      ],
+      "sinhalaHandling": [
+        "Uses the structural prompt 'how many of [place value]' to lead into the value chunk.",
+        "Vocalizes the final expanded equation as a continuous list of chunked values rather than using the word 'plus'.",
+        "Explicitly states the word for zero when encountering empty places, reinforcing it as an active component of the expansion."
+      ],
+      "questionPatterns": [
+        "Rhetorical questions to transition between positional columns.",
+        "Soft check-ins asking for the value of a specific digit times its place.",
+        "Direct competitive challenges asking students to finish the expansion faster than the teacher."
+      ],
+      "misconceptionStops": [
+        "Zero as a placeholder: explicitly demonstrates that a zero digit results in a zero value in the expanded addition, stopping students from skipping the column entirely or sliding subsequent values into the wrong place."
+      ],
+      "analogySlot": "None used for concretising the concept; relies purely on a gamified speed challenge to motivate the students to complete the mechanical steps.",
+      "digitalActivities": [
+        "Place-value table primitive that populates its columns as they are named.",
+        "Successive board cards where the child fills in the row to determine place value and represented value.",
+        "Check-my-working pattern where the digital teacher creates a deliberately wrong expanded form and the child must spot the error, substituting the group peer-marking step."
+      ],
+      "assessment": "Mastery model evaluating logged answers during the interactive digital activities, followed by individual digital practice items mirroring the workbook exercises."
+    }
+  ]
+}

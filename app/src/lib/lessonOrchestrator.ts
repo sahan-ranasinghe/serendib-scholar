@@ -387,6 +387,14 @@ export function buildReteachBeats(
     ...missedAsk,
     id: `${missedAsk.id}:reteach`,
     type: "RETEACH",
+    // A RETEACH is the one beat written at runtime, from the goal below.
+    // Spreading the missed ask carries its fields across, and an AUTHORED
+    // beat brings fixed spokenText with it — which made the reteach say the
+    // missed question back word for word, immediately before advance()
+    // rewound and played that very beat again. Same words twice, and the
+    // "different way in" the angle asks for never happened.
+    spokenText: undefined,
+    sayCandidates: undefined,
     goal:
       `The child just missed ${subskill}. Re-explain ONLY that one piece — not the whole idea` +
       (angle

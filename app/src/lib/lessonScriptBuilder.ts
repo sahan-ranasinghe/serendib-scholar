@@ -3,6 +3,8 @@ import { blanksForItem, workedStepsForItem, solutionForItem, describeItem, type 
 import { parseBoardContent, blockToBoardAction, parseAbacusStep, type BoardBlock } from "@/lib/boardContentParser";
 import { estimateBeatSeconds } from "@/lib/beatRegistry";
 import { AUTHORED_LINES } from "@/lib/authoredLines";
+import { toRuntimeBeats, type AuthoredScriptFile } from "@/lib/authoredScript";
+import { DESIGN_CONCEPTS } from "@/lib/lessonDesign";
 import type {
   Beat,
   ConceptBlueprint,
@@ -61,11 +63,34 @@ const MAX_EXPLAIN_BEATS = 6;
 
 // --- session sizing (seconds, from beatRegistry estimates) ---------------
 /** Teaching (non-framing) time to aim for per sitting — with framing this lands sessions at 20-25 min. */
-const SESSION_TEACHING_TARGET_SECONDS = 1080;
+const SESSION_TEACHING_TARGET_SECONDS = 1320;
 /** Estimated teaching time after which the mid-session BREAK_CHAT goes in. */
 const BREAK_AFTER_TEACHING_SECONDS = 720;
-/** Don't close a session below this unless the lesson itself runs out. */
-const SESSION_TEACHING_MIN_SECONDS = 600;
+/**
+ * Don't close a session below this unless the lesson itself runs out.
+ *
+ * This floor governs BOTH budgets, and that is the point. When the ASK
+ * budget was allowed to cut without it, an ASK-dense stretch closed a
+ * sitting at five minutes while a sparse one ran the full twenty-two —
+ * the child got three stubs and then three lectures. A sitting that has
+ * used its twelve questions but not yet its twelve minutes keeps going to
+ * the next safe boundary and carries a thirteenth question instead.
+ */
+const SESSION_TEACHING_MIN_SECONDS = 720;
+/**
+ * A sitting also ends after this many real ASK waits.
+ *
+ * Minutes alone are the wrong measure of what tires a child: an ASK stops
+ * the lesson and puts the child on the spot, and a stretch dense with them
+ * is an interrogation however long it runs. The authored session-1 script
+ * made this concrete — 24 of its own ASK beats fell inside one sitting
+ * that was comfortably within the time budget.
+ *
+ * The two budgets bind TOGETHER: a sitting aims for 15-22 minutes and
+ * 8-12 questions, and closes at the next safe boundary once either upper
+ * bound is reached — but never before SESSION_TEACHING_MIN_SECONDS.
+ */
+const SESSION_ASK_LIMIT = 12;
 
 interface BankRow {
   id: string;
@@ -653,20 +678,26 @@ function assembleSessions(
   const slices: Beat[][] = [];
   let current: Beat[] = [];
   let currentSeconds = 0;
+  let currentAsks = 0;
   for (let i = 0; i < work.length; i += 1) {
     const beat = work[i];
     const estimate = estimateBeatSeconds(beat);
-    if (
-      currentSeconds + estimate > SESSION_TEACHING_TARGET_SECONDS &&
-      currentSeconds >= SESSION_TEACHING_MIN_SECONDS &&
-      isBoundary(beat)
-    ) {
+    // Two budgets that bind together: whichever upper bound is reached
+    // first ends the sitting at the next safe boundary — but the minimum
+    // length applies to both, so a question-dense stretch runs on and
+    // carries an extra ASK rather than closing a five-minute stub.
+    const outOfTime = currentSeconds + estimate > SESSION_TEACHING_TARGET_SECONDS;
+    const outOfAsks = currentAsks >= SESSION_ASK_LIMIT;
+    const longEnough = currentSeconds >= SESSION_TEACHING_MIN_SECONDS;
+    if ((outOfTime || outOfAsks) && longEnough && isBoundary(beat)) {
       slices.push(current);
       current = [];
       currentSeconds = 0;
+      currentAsks = 0;
     }
     current.push(beat);
     currentSeconds += estimate;
+    if (beat.type === "ASK") currentAsks += 1;
   }
   if (current.length > 0) slices.push(current);
 
@@ -947,6 +978,14 @@ export interface BuildOptions {
   blueprintOverride?: LessonBlueprintOverride | null;
   /** Shown on title cards (lesson goals, transitions, session close). */
   lessonTitle?: string;
+  /**
+   * Zara's ORIGINAL script (see src/lib/authoredScript.ts). When present
+   * AND approved, its beats REPLACE the transcript-derived beats for the
+   * concepts it covers — and, when it covers the lesson's first concept,
+   * the transcript-derived LESSON_GOALS opening is dropped too (the
+   * recorded teacher's sentences are not to be reused).
+   */
+  authoredScript?: AuthoredScriptFile | null;
 }
 
 export function buildScriptFromRows(
@@ -999,10 +1038,29 @@ export function buildScriptFromRows(
   };
 
   const lessonTitle = options.lessonTitle ?? `${subject} — lesson ${lesson}`;
-  const lessonGoals = buildLessonGoalsBeats(openingRows, orderedTags, descriptions, lessonTitle);
+  const authored = options.authoredScript;
+  const authoredActive = Boolean(authored?.approved && authored.beats.length > 0);
+  const authoredConcepts = new Set(authoredActive ? authored!.concepts : []);
+  // The transcript-derived opening goes when the authored script takes
+  // over the first concept: the whole point is not speaking her sentences.
+  const dropTranscriptGoals = authoredActive && authoredConcepts.has(DESIGN_CONCEPTS[0]);
+  const lessonGoals = dropTranscriptGoals
+    ? []
+    : buildLessonGoalsBeats(openingRows, orderedTags, descriptions, lessonTitle);
+  if (authored && !authored.approved) {
+    console.log(
+      "[lessonScriptBuilder] An authored script exists but is NOT APPROVED — the transcript-derived " +
+        "script stands. Review docs/review/session-1-original.md, then set \"approved\": true.",
+    );
+  }
 
   const work: Beat[] = [];
+  if (authoredActive) {
+    // Authored concepts lead, in design order, exactly as authored.
+    work.push(...toRuntimeBeats(authored!, lessonTitle));
+  }
   blueprint.concepts.forEach((conceptBlueprint, conceptIndex) => {
+    if (authoredConcepts.has(conceptBlueprint.conceptTag as (typeof DESIGN_CONCEPTS)[number])) return; // replaced
     const conceptRows = teachableRows.filter((row) => row.concept_tag === conceptBlueprint.conceptTag);
     const conceptBeats = buildConceptBeats(
       conceptBlueprint,
