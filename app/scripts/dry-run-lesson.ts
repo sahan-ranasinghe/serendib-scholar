@@ -39,7 +39,7 @@ import {
   type OrchestratorState,
   type PlannerDecision,
 } from "../src/lib/lessonOrchestrator";
-import { answersMatch } from "../src/lib/answerCheck";
+import { answersMatch, exampleAnswerFor } from "../src/lib/answerCheck";
 import { listAuthoredLines } from "../src/lib/authoredLines";
 import { parseAuthoredScript, type AuthoredScriptFile } from "../src/lib/authoredScript";
 import { checkSpeechRules, formatSpeechFindings } from "../src/lib/speechRules";
@@ -62,7 +62,7 @@ function childSays(beat: Beat): string {
   if (beatSpec(beat.type).onChildResponse !== "judge") return "";
   switch (BEHAVIOUR) {
     case "correct":
-      return beat.expectedAnswer ?? "";
+      return exampleAnswerFor(beat.expectedAnswer);
     case "wrong":
       return "දාහක්";
     case "silent":
@@ -99,6 +99,10 @@ function describeBoardAction(beat: Beat): string {
       return `show ${beat.board.components.map((c) => c.type).join("+")}`;
     case "text_card":
       return `chalk text card (${beat.board.text.length} chars)`;
+    case "clear":
+      return "CLEAR the board";
+    case "built_number":
+      return "the child's built number + its name, under the picker";
     case "none":
       return "unchanged";
   }
@@ -564,6 +568,8 @@ function assertSpeechRules(authoredScript: AuthoredScriptFile | null): void {
       type: beat.type,
       expectedAnswer: beat.expectedAnswer ?? null,
       conceptTag: beat.conceptTag,
+      board: beat.boardIntent as { kind: string; text?: string; digits?: number[]; title?: string },
+      numbers: beat.numbers,
     })),
   );
   assert.ok(

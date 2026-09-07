@@ -4,6 +4,10 @@ import { useCallback, useRef, useState } from "react";
 import { PcmPlayer } from "@/lib/pcmAudio";
 import { closeRecordingContext, recordAnswer as recordAnswerClip, type AnswerRecorderHandle } from "@/lib/answerRecorder";
 import { clipKey, AUDIO_FORMAT_VERSION, type ClipMeta } from "@/lib/audioCache";
+import { parseAnswerPredicate } from "@/lib/answerCheck";
+import { sinhalaNumberName } from "@/lib/sinhalaNumber";
+import { concatWavClips, numberClipPlan, pcmOfWav, NUMBER_FRAMES, type NumberFrame } from "@/lib/composeNumberAudio";
+import { CLIP_SAMPLE_RATE } from "@/lib/audioCache";
 import { useLiveChat } from "@/hooks/useLiveChat";
 import {
   advance,
@@ -148,6 +152,12 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
   const sessionStatsRef = useRef({ concepts: new Set<string>(), correct: 0, asked: 0 });
   const recorderRef = useRef<AnswerRecorderHandle | null>(null);
   const padAnswerRef = useRef<string | null>(null);
+  /**
+   * The number the child last built on the digit picker (judged correct by
+   * a permutation predicate). A "builtNumber" board draws it; the composed
+   * number clips speak it. Nothing else knows it — the script cannot.
+   */
+  const lastBuiltNumberRef = useRef<number | null>(null);
   const stoppedRef = useRef(false);
   const pausedRef = useRef(false);
   const mutedRef = useRef(false);
@@ -329,7 +339,9 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
     if (beat.expectedAnswer) {
       if (beat.answerChoices && beat.answerChoices.length >= 2) {
         setAnswerPad({ kind: "choices", options: beat.answerChoices });
-      } else if (/^[\d\s,]+$/.test(beat.expectedAnswer)) {
+      } else if (/^[\d\s,]+$/.test(beat.expectedAnswer) || parseAnswerPredicate(beat.expectedAnswer)) {
+        // A predicate question ("any arrangement of these digits") is
+        // answered by tapping digits, exactly like a plain number.
         setAnswerPad({ kind: "number" });
       }
     }
@@ -402,6 +414,69 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
 
   const boardContentRef = useRef<BoardContent | null>(null);
 
+  /**
+   * Draws a number on whatever board is up — "board always". A lesson
+   * content board gets the read-back overlay beneath the picker; the
+   * abacus already has a slot for the child's number; anything else gets
+   * a chalk card with the number and its name.
+   */
+  const showNumberOnBoard = (value: number) => {
+    const digits = String(value);
+    const name = sinhalaNumberName(value);
+    const current = boardContentRef.current;
+    let next: BoardContent;
+    if (current?.type === "lesson_content") next = { ...current, builtNumber: { digits, name } };
+    else if (current?.type === "abacus") next = { ...current, childAnswer: digits };
+    else next = { type: "text_card", text: `${digits}\n${name}` };
+    boardContentRef.current = next;
+    setBoardContent(next);
+  };
+
+  /**
+   * Says a number in the recorded voice by splicing her number-word clips
+   * (src/lib/composeNumberAudio.ts), optionally inside a recorded frame
+   * ("ඔයා කිව්වේ ___ නේද?"). Returns false — having played NOTHING — when
+   * any clip is missing: two voices spliced mid-sentence is worse than
+   * silence, and the caller decides what the fallback is.
+   */
+  const speakComposedNumber = async (value: number, frame?: NumberFrame): Promise<boolean> => {
+    const player = playerRef.current;
+    const config = audioConfigRef.current;
+    if (!player || !config || stoppedRef.current) return false;
+    if (!Number.isInteger(value) || value < 0 || value > 100_000) return false;
+    const plan = numberClipPlan(value, config.voice);
+    const words: string[] = [];
+    if (frame?.before) words.push(resolveAddress(frame.before, childGenderRef.current));
+    words.push(...plan.words.map((w) => w.word));
+    if (frame?.after) words.push(frame.after);
+    const clips: Uint8Array[] = [];
+    for (const word of words) {
+      const clip = await loadClipByKey(clipKey(word, config.voice), word).catch(() => null);
+      if (!clip) {
+        logEvent(`number clips missing for "${word}" — board only`);
+        console.warn(`[useLessonRuntime] no recorded clip for number word "${word}"; not composing ${value}`);
+        return false;
+      }
+      clips.push(new Uint8Array(clip.audio));
+    }
+    let audio: Uint8Array;
+    try {
+      audio = concatWavClips(clips);
+    } catch (error) {
+      console.warn("[useLessonRuntime] could not splice number clips:", error);
+      return false;
+    }
+    const durationMs = Math.round((pcmOfWav(audio).length / CLIP_SAMPLE_RATE) * 1000);
+    setCaption(words.join(" "));
+    beatAudioMsRef.current += durationMs;
+    logEvent(`composed number ${value} (${plan.spoken}) from ${clips.length} clip(s)`);
+    await player.playClip(audio.buffer.slice(audio.byteOffset, audio.byteOffset + audio.byteLength) as ArrayBuffer, {
+      sentences: [{ startMs: 0, endMs: durationMs }],
+    });
+    await wait(MIC_TAIL_MS);
+    return true;
+  };
+
   /** Board first (it is what she is about to talk about), then bookkeeping. */
   const prepareBeat = async (beat: Beat) => {
     activeBeatRef.current = beat;
@@ -415,7 +490,15 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
       sessionStatsRef.current = { concepts: new Set<string>(), correct: 0, asked: 0 };
     }
     try {
-      const staged = await stageBeatBoard(beatSpec(beat.type).boardAction(beat));
+      const action = beatSpec(beat.type).boardAction(beat);
+      if (action.kind === "built_number") {
+        // The script says "show what they built here"; only the runtime
+        // knows what that was. No number yet (she never answered) → the
+        // picker simply stays as it is.
+        if (lastBuiltNumberRef.current !== null) showNumberOnBoard(lastBuiltNumberRef.current);
+        return;
+      }
+      const staged = await stageBeatBoard(action);
       if (staged.board) {
         boardContentRef.current = staged.board;
         setBoardContent(staged.board);
@@ -434,11 +517,28 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
    * what the child owes afterwards. (A CONFIRM is delivered this way and
    * listened to by the code that raised it, so no window is opened twice.)
    */
-  const deliverBeat = async (rawBeat: Beat): Promise<Beat> => {
+  const deliverBeat = async (
+    rawBeat: Beat,
+    options: { composed?: { value: number; frame: NumberFrame } } = {},
+  ): Promise<Beat> => {
     const beat = resolveBeatAddress(rawBeat, childGenderRef.current);
     await prepareBeat(beat);
     setRuntimeStatus("teaching");
-    await speak(beat);
+    // A CONFIRM or give-up line may be spoken entirely from recorded clips
+    // (frame + number + frame). If every clip exists that IS the line;
+    // otherwise the ordinary path renders it, and the fallback is logged.
+    let spoken = false;
+    if (options.composed) {
+      spoken = await speakComposedNumber(options.composed.value, options.composed.frame);
+      if (!spoken) logEvent(`composed line unavailable for ${options.composed.value} — rendering it instead`);
+    }
+    if (!spoken) await speak(beat);
+    // The read-back: "look at the board" — then the number itself, in her
+    // voice, if the number-word clips exist. Never the AI voice for this:
+    // the board already carries the name, so silence loses nothing.
+    if (beatSpec(beat.type).boardAction(beat).kind === "built_number" && lastBuiltNumberRef.current !== null) {
+      await speakComposedNumber(lastBuiltNumberRef.current);
+    }
 
     // ↺ (repeat): say the same beat again, advance nothing.
     while (repeatRequestedRef.current && !stoppedRef.current) {
@@ -550,7 +650,18 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
         await finishBeatLog(beat, { understood: false, next: "advance", reason: "Not attempted (silence ladder)." });
         if (beat.expectedAnswer) void recordMastery(beat, false);
         advanceIfScripted(scripted, null);
-        await runBeat(buildGiveUpBeat(beat), false);
+        const giveUp = buildGiveUpBeat(beat);
+        const answer = (beat.expectedAnswer ?? "").replace(/[\s,]/g, "");
+        const answerValue = /^\d+$/.test(answer) ? Number(answer) : NaN;
+        // The demonstration: the answer on the board whatever it is, and
+        // in her voice when its number words are recorded.
+        if (Number.isInteger(answerValue) && giveUp.board.kind !== "reveal_part") showNumberOnBoard(answerValue);
+        if (Number.isInteger(answerValue)) {
+          await deliverBeat(giveUp, { composed: { value: answerValue, frame: NUMBER_FRAMES.answer } });
+          await finishBeatLog(giveUp, null);
+        } else {
+          await runBeat(giveUp, false);
+        }
       }
       if (stoppedRef.current) return;
     }
@@ -599,10 +710,17 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
         : null;
     if (!decision) decision = await runPlanner(beat, said);
 
-    // A doubtful number is never judged unheard: she reads it back first.
+    // A doubtful number is never judged unheard: she reads it back first —
+    // on the board always, and in her own voice when the number-word clips
+    // exist for the heard value.
     if (decision.ambiguousNumber && beat.expectedAnswer !== undefined) {
       const confirmBeat = buildConfirmBeat(beat, decision.ambiguousNumber);
-      await deliverBeat(confirmBeat);
+      const heardValue = /^\d+$/.test(decision.ambiguousNumber) ? Number(decision.ambiguousNumber) : NaN;
+      if (Number.isInteger(heardValue)) showNumberOnBoard(heardValue);
+      await deliverBeat(
+        confirmBeat,
+        Number.isInteger(heardValue) ? { composed: { value: heardValue, frame: NUMBER_FRAMES.heard } } : {},
+      );
       const reply = await listenForAnswer(confirmBeat, ASK_SILENCE_TIMEOUT_MS);
       const outcome = resolveConfirmation(
         beat,
@@ -624,6 +742,12 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
     if (decision.understood) {
       sessionStatsRef.current.correct += 1;
       setCelebrateNonce((n) => n + 1);
+      // An open build question: keep the number she made, so the next
+      // beat's board and the read-back can show and say it.
+      if (parseAnswerPredicate(beat.expectedAnswer)) {
+        const digits = said.replace(/\D/g, "");
+        if (digits) lastBuiltNumberRef.current = Number(digits);
+      }
     }
     if (beat.conceptTag !== FRAMING_CONCEPT) sessionStatsRef.current.concepts.add(beat.conceptTag);
     void recordMastery(beat, decision.understood);

@@ -32,7 +32,7 @@ import { LESSON_1_NUMBERS_STEPS, LESSON_1_NUMBERS_TITLE } from "../src/data/less
 import { buildRecapAskBeat, recapAskable } from "../src/lib/recapBeat";
 import { parseAuthoredScript } from "../src/lib/authoredScript";
 import { checkSpeechRules, formatSpeechFindings } from "../src/lib/speechRules";
-import { answersMatch } from "../src/lib/answerCheck";
+import { answersMatch, exampleAnswerFor } from "../src/lib/answerCheck";
 import { resolveBeatAddress, type ChildGender } from "../src/lib/addressToken";
 import {
   advance,
@@ -130,6 +130,8 @@ function assertSpeechRules(tally: AssertionTally): void {
       type: beat.type,
       expectedAnswer: beat.expectedAnswer ?? null,
       conceptTag: beat.conceptTag,
+      board: beat.boardIntent as { kind: string; text?: string; digits?: number[]; title?: string },
+      numbers: beat.numbers,
     })),
   );
   tally.check(
@@ -383,7 +385,7 @@ async function simulate(
         const said = String(await childBrain(beat, beat.expectedAnswer));
         entry.childSaid = said || "(silence)";
         log(`     CHILD: ${said ? `"${said}"` : "(silence)"}`);
-        if (said && answersMatch(beat.expectedAnswer, said === "correct" ? beat.expectedAnswer : said)) {
+        if (said && answersMatch(beat.expectedAnswer, said === "correct" ? exampleAnswerFor(beat.expectedAnswer) : said)) {
           queue.unshift(buildHookPraiseBeat(beat));
           log("     -> hook praise inserted");
         } else {
@@ -497,7 +499,7 @@ function scriptedChild(answers: string[]): ChildBrain {
     cursor += 1;
     if (token === "silence") return "";
     if (token === "wrong") return "දාහක්";
-    if (token === "correct") return expected ?? "";
+    if (token === "correct") return exampleAnswerFor(expected);
     if (token.endsWith("?")) return token; // doubtful hearing marker, handled by the sim
     return token;
   };

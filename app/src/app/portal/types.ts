@@ -15,6 +15,8 @@ export interface PortalLine {
   beatId: string;
   /** "if right" / "if wrong" for a branch line, else null. */
   branchLabel: string | null;
+  /** "lesson" or "number words" — the reusable library recorded once. */
+  group?: string;
   concept: string;
   type: string;
   pauseType: string | null;

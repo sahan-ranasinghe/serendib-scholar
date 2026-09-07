@@ -53,7 +53,13 @@ export type BeatBoardAction =
   /** Renders the given lesson components directly — EXPLAIN beats staging what the teacher had written. */
   | { kind: "show_components"; itemId: string; components: LessonComponent[] }
   /** A chalk-style verbatim card for board text nothing structured could be made of. */
-  | { kind: "text_card"; text: string }
+  /** `highlight` marks the item currently under discussion, so a row of
+   * numbers can stay on the board while attention moves along it. */
+  | { kind: "text_card"; text: string; highlight?: string }
+  /** Blank the board deliberately. `none` below inherits; this is the only action that empties it. */
+  | { kind: "clear" }
+  /** Show the number the child just built (the runtime knows which) beneath the digit picker. */
+  | { kind: "built_number" }
   | { kind: "none" };
 
 export interface Beat {

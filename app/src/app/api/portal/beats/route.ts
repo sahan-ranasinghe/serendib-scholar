@@ -8,6 +8,7 @@ import { clipKey } from "@/lib/audioCache";
 import { ZARA_VOICE } from "@/lib/zaraVoice";
 import { listLines, listTakes } from "@/lib/actorStore";
 import { ensureAudioBucket } from "@/lib/liveTts";
+import { numberWordLexemes, NUMBER_FRAMES } from "@/lib/composeNumberAudio";
 
 /**
  * Everything the portal needs to draw a whole session, in one request.
@@ -115,11 +116,69 @@ export async function GET() {
     return rows;
   });
 
+  /**
+   * THE NUMBER WORDS — a separate, reusable group.
+   *
+   * sinhalaNumberName emits only 77 distinct words across the whole
+   * 0–100 000 range, because Sinhala builds numbers by composition. Record
+   * those 77 once and every number in every lesson can be spoken in her
+   * voice by concatenation (src/lib/composeNumberAudio.ts): the read-back
+   * after an open question, CONFIRM, and the give-up demonstration all
+   * stop needing a live model.
+   *
+   * They are ordinary lines with ordinary clip keys, so nothing about
+   * recording or caching them is special — only the grouping is.
+   */
+  const numberWords = numberWordLexemes().map((word, index) => ({
+    id: `numberword:${index}`,
+    beatId: `numberword:${index}`,
+    branchLabel: null,
+    group: "number words",
+    concept: "numberWords",
+    type: "NUMBER_WORD",
+    pauseType: null,
+    text: word,
+    canonicalText: word,
+    numbers: [],
+    expectedAnswer: null,
+    clipKey: clipKey(word, ZARA_VOICE),
+    note: null,
+    lineStatus: null,
+    actorText: null,
+    take: takeByBeat.get(`numberword:${index}`)
+      ? { status: takeByBeat.get(`numberword:${index}`)!.status, durationMs: takeByBeat.get(`numberword:${index}`)!.duration_ms, clipKey: takeByBeat.get(`numberword:${index}`)!.clip_key, trimStartMs: takeByBeat.get(`numberword:${index}`)!.trim_start_ms, trimEndMs: takeByBeat.get(`numberword:${index}`)!.trim_end_ms, sentences: takeByBeat.get(`numberword:${index}`)!.sentences, peakDbfs: takeByBeat.get(`numberword:${index}`)!.peak_dbfs }
+      : null,
+  }));
+
+  // The fixed words around a spoken number, so the whole sentence is one voice.
+  const frames = Object.values(NUMBER_FRAMES).flatMap((frame) => [frame.before, frame.after]);
+  const frameLines = [...new Set(frames.map((text) => resolveAddress(text, "unspecified")))]
+    .filter((text) => text.trim().length > 1)
+    .map((text, index) => ({
+      id: `numberframe:${index}`,
+      beatId: `numberframe:${index}`,
+      branchLabel: null,
+      group: "number words",
+      concept: "numberWords",
+      type: "NUMBER_FRAME",
+      pauseType: null,
+      text,
+      canonicalText: text,
+      numbers: [],
+      expectedAnswer: null,
+      clipKey: clipKey(text, ZARA_VOICE),
+      note: null,
+      lineStatus: null,
+      actorText: null,
+      take: null,
+    }));
+
   return NextResponse.json({
     ok: true,
     approved: file.approved,
+    numberWordCount: numberWords.length,
     lesson: `${file.subject}-${file.grade}-${file.lesson}`,
     concepts: file.concepts,
-    lines,
+    lines: [...lines.map((line) => ({ ...line, group: "lesson" })), ...numberWords, ...frameLines],
   });
 }

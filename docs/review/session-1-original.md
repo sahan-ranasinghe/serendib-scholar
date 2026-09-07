@@ -1,8 +1,8 @@
 # Session 1 — Zara's original script (for review)
 
-Generated 2026-09-07 00:40 with gemini-flash-latest. 113 beats across readWrite4Digit, placeValue4Digit.
+Generated 2026-09-07 00:40 with gemini-flash-latest. 121 beats across readWrite4Digit, placeValue4Digit.
 
-78 of the 113 beats carry `humanEdited: true` — a native-speaker review rewrote them (docs/review/session-1-edits.json, then docs/review/gemini-review-decisions.json). Each is marked **· human-edited** below.
+90 of the 121 beats carry `humanEdited: true` — a native-speaker review rewrote them (docs/review/session-1-edits.json, then docs/review/gemini-review-decisions.json). Each is marked **· human-edited** below.
 
 **Status: APPROVED.** These are the words a child hears. Editing the JSON invalidates the cached script automatically; set `"approved": false` to take it back off the air.
 
@@ -17,7 +17,7 @@ Denylist (the recorded teacher's own numbers, never used): 15, 17, 28, 35, 38, 4
 
 > ආයුබෝවන් {address}! අද අපි පහ ශ්‍රේණියේ ගණිත පාඩම් පටන් ගන්නවා නේද?
 
-Board: `{"kind":"title","title":"සංඛ්‍යා - 1"}`
+Board shows: title card "සංඛ්‍යා - 1"
 
 ### `authored:opening:1`
 
@@ -25,7 +25,7 @@ Board: `{"kind":"title","title":"සංඛ්‍යා - 1"}`
 
 > දැන් ඔයා පහ ශ්‍රේණියේ නේද? ඒක හරිම වැදගත්, ලස්සන පන්තියක්.
 
-Board: `{"kind":"none"}`
+Board shows: title card "සංඛ්‍යා - 1" — inherited
 
 ### `authored:opening:2`
 
@@ -33,7 +33,7 @@ Board: `{"kind":"none"}`
 
 > බය වෙන්න එපා {address}. ඔයාට පුළුවන්, මම ඔයා එක්කම ඉන්නවා.
 
-Board: `{"kind":"none"}`
+Board shows: title card "සංඛ්‍යා - 1" — inherited
 
 ### `authored:opening:3`
 
@@ -41,7 +41,7 @@ Board: `{"kind":"none"}`
 
 > අපේ පළමු පාඩම තමයි සංඛ්‍යා. හරි සරලයි, ඒත් හරිම වැදගත්.
 
-Board: `{"kind":"title","title":"සංඛ්‍යා - 1"}`
+Board shows: title card "සංඛ්‍යා - 1"
 
 ### `authored:opening:4`
 
@@ -51,7 +51,7 @@ Board: `{"kind":"title","title":"සංඛ්‍යා - 1"}`
 
 Source: `මේ පාඩමෙන් අපි {number:100000} දක්වා ලොකු සංඛ්‍යා කියවන්න, ලියන්න ඉගෙන ගන්නවා.`
 
-Board: `{"kind":"text","text":"100 000"}`
+Board shows: "100 000"
 
 ### `authored:opening:5`
 
@@ -59,7 +59,7 @@ Board: `{"kind":"text","text":"100 000"}`
 
 > සංඛ්‍යාවක ඉලක්කම් තියෙන තැන අනුව ඒවායේ අගය හඳුනාගන්නත් අපි ඉගෙන ගන්නවා.
 
-Board: `{"kind":"text","text":"ලොකු සංඛ්‍යා"}`
+Board shows: "ලොකු සංඛ්‍යා"
 
 ### `authored:opening:6`
 
@@ -67,7 +67,7 @@ Board: `{"kind":"text","text":"ලොකු සංඛ්‍යා"}`
 
 > ඔයා ලෑස්තිද {address}? එහෙනම් අපි පටන් ගමු!
 
-Board: `{"kind":"none"}`
+Board shows: "ලොකු සංඛ්‍යා" — inherited
 
 ## readWrite4Digit
 
@@ -85,7 +85,7 @@ Hook candidates (first is in use):
 
 > ක්‍රිකට් මැච් එකක් බලද්දී ලකුණු පුවරුවේ තියෙන ලකුණු ඔයා කියවලා තියෙනවා නේද {address}?
 
-Board: `{"kind":"title","title":"සංඛ්‍යා කියවමු"}`
+Board shows: title card "සංඛ්‍යා කියවමු"
 
 ### `authored:readWrite4Digit:1`
 
@@ -93,15 +93,15 @@ Board: `{"kind":"title","title":"සංඛ්‍යා කියවමු"}`
 
 > කලින් පාඩම්වලදී අපි සංඛ්‍යා කියවන්න ඉගෙන ගත්ත දේවල් ඔයාට මතකයි නේද?
 
-Board: `{"kind":"text","text":"84   101   528   997"}`
+Board shows: "84   101   528   997"
 
 ### `authored:readWrite4Digit:2`
 
-**ASK** · pause: ASK · guide: Display a row of numbers with up to 3 digits and have students read each number's name aloud. · expects **අසූ හතර** · max-sim J 0.14 / C 0.82
+**ASK** · pause: ASK · guide: Display a row of numbers with up to 3 digits and have students read each number's name aloud. · expects **අසූ හතර** · max-sim J 0.14 / C 0.82 · **human-edited**
 
 > මෙන්න මේ පුවරුවේ තියෙන මුල්ම සංඛ්‍යාව මොකක්ද කියලා මට කියන්න බලන්න.
 
-Board: `{"kind":"none"}`
+Board shows: "84   101   528   997" (ringing 84)
 
 ### `authored:readWrite4Digit:3`
 
@@ -111,7 +111,23 @@ Board: `{"kind":"none"}`
 
 Source: `පළමු සංඛ්‍යාව {number:84}යි.`
 
-Board: `{"kind":"none"}`
+Board shows: "84   101   528   997" (ringing 84)
+
+### `authored:readWrite4Digit:3a`
+
+**ASK** · pause: ASK · guide: Display a row of numbers with up to 3 digits and have students read each number's name aloud. · expects **එකසිය එක** · max-sim J 0.00 · **human-edited**
+
+> ඊළඟ සංඛ්‍යාවේ නම කියන්න බලන්න.
+
+Board shows: "84   101   528   997" (ringing 101)
+
+### `authored:readWrite4Digit:3b`
+
+**EXPLAIN** · pause: — · guide: Display a row of numbers with up to 3 digits and have students read each number's name aloud. · max-sim J 0.28 · **human-edited**
+
+> සංඛ්‍යාවක් වචනයෙන් කියන එකට කියන්නේ සංඛ්‍යා නාමය කියලා.
+
+Board shows: "84   101   528   997" (ringing 101) — inherited
 
 ### `authored:readWrite4Digit:4`
 
@@ -121,7 +137,7 @@ Board: `{"kind":"none"}`
 
 Source: `එහි දසස්ථානයේ {number:0} තියෙන නිසා ඒ කොටස කියවෙන්නේ නැහැ.`
 
-Board: `{"kind":"none"}`
+Board shows: "84   101   528   997" (ringing 101)
 
 ### `authored:readWrite4Digit:5`
 
@@ -129,7 +145,17 @@ Board: `{"kind":"none"}`
 
 > එහෙනම් {address}, පුවරුවේ තියෙන අන්තිම සංඛ්‍යාවත් මට කියවලා පෙන්නන්න පුළුවන්ද?
 
-Board: `{"kind":"none"}`
+Board shows: "84   101   528   997" (ringing 997)
+
+### `authored:readWrite4Digit:5a`
+
+**EXPLAIN** · pause: — · guide: Display a row of numbers with up to 3 digits and have students read each number's name aloud. · max-sim J 0.00 · **human-edited**
+
+> අන්තිම එක නවසිය අනූ හතයි.
+
+Source: `අන්තිම එක {number:997}යි.`
+
+Board shows: "84   101   528   997" (ringing 997)
 
 ### `authored:readWrite4Digit:6`
 
@@ -139,7 +165,7 @@ Board: `{"kind":"none"}`
 
 Source: `ඔන්න {address}, {number:9}ට {number:1}ක් එකතු කළාම {number:10} හැදෙනවා නේද?`
 
-Board: `{"kind":"text","text":"9 + 1 = 10"}`
+Board shows: "9 + 1 = 10"
 
 ### `authored:readWrite4Digit:7`
 
@@ -149,7 +175,7 @@ Board: `{"kind":"text","text":"9 + 1 = 10"}`
 
 Source: `ඒ වගේම {number:99}ට {number:1}ක් එකතු කළාම {number:100} හැදෙනවා.`
 
-Board: `{"kind":"text","text":"99 + 1 = 100"}`
+Board shows: "99 + 1 = 100"
 
 ### `authored:readWrite4Digit:8`
 
@@ -159,17 +185,17 @@ Board: `{"kind":"text","text":"99 + 1 = 100"}`
 
 Source: `එහෙනම් {number:999}ට {number:1}ක් එකතු කළාම කීයද එන්නේ?`
 
-Board: `{"kind":"text","text":"999 + 1 = ?"}`
+Board shows: "999 + 1 = ?"
 
 ### `authored:readWrite4Digit:9`
 
 **EXPLAIN** · pause: — · guide: Show what comes after 999 using a build-up: 9+1=10, 99+1=100, 999+1=1000. · max-sim J 0.00 · **human-edited**
 
-> ඔව්, නවසිය අනූ නවයට එකක් එකතු වුණාම දහස හැදෙනවා.
+> නවසිය අනූ නවයට එකක් එකතු වුණාම දහස හැදෙනවා.
 
-Source: `ඔව්, {number:999}ට {number:1}ක් එකතු වුණාම {number:1000} හැදෙනවා.`
+Source: `{number:999}ට {number:1}ක් එකතු වුණාම {number:1000} හැදෙනවා.`
 
-Board: `{"kind":"text","text":"999 + 1 = 1000"}`
+Board shows: "999 + 1 = 1000"
 
 ### `authored:readWrite4Digit:10`
 
@@ -177,7 +203,7 @@ Board: `{"kind":"text","text":"999 + 1 = 1000"}`
 
 > මෙතන ඉලක්කම් හතරක් තියෙනවා පේනවා නේද, {address}?
 
-Board: `{"kind":"text","text":"1000"}`
+Board shows: "1000"
 
 ### `authored:readWrite4Digit:11`
 
@@ -185,7 +211,7 @@ Board: `{"kind":"text","text":"1000"}`
 
 > ඊළඟට අපි කාඩ්පත් පාවිච්චි කරලා අලුත් සංඛ්‍යා හදමු.
 
-Board: `{"kind":"none"}`
+Board shows: "1000" — inherited
 
 ### `authored:readWrite4Digit:12`
 
@@ -193,7 +219,7 @@ Board: `{"kind":"none"}`
 
 > දැන් අපි කාඩ්පත් එක්ක සෙල්ලමක් කරමු {address}.
 
-Board: `{"kind":"text","text":"කාඩ්පත්: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9"}`
+Board shows: "කාඩ්පත්: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9"
 
 ### `authored:readWrite4Digit:13`
 
@@ -201,7 +227,7 @@ Board: `{"kind":"text","text":"කාඩ්පත්: 0, 1, 2, 3, 4, 5, 6, 7, 8,
 
 > මෙතනින් අපි වෙනස් කාඩ්පත් හතරක් ගමු.
 
-Board: `{"kind":"text","text":"තෝරාගත් ඉලක්කම්: 3, 0, 5, 8"}`
+Board shows: "තෝරාගත් ඉලක්කම්: 3, 0, 5, 8"
 
 ### `authored:readWrite4Digit:14`
 
@@ -209,7 +235,7 @@ Board: `{"kind":"text","text":"තෝරාගත් ඉලක්කම්: 3, 0
 
 > ඒ ඉලක්කම් එක ළඟින් තියලා අපි සංඛ්‍යාවක් හදමු.
 
-Board: `{"kind":"text","text":"3058"}`
+Board shows: "3058"
 
 ### `authored:readWrite4Digit:15`
 
@@ -217,7 +243,7 @@ Board: `{"kind":"text","text":"3058"}`
 
 > ඔයාට පුළුවන්ද මේ හැදුණු සංඛ්‍යාව කියවලා මට කියන්න?
 
-Board: `{"kind":"none"}`
+Board shows: "3058" — inherited
 
 ### `authored:readWrite4Digit:16`
 
@@ -227,7 +253,7 @@ Board: `{"kind":"none"}`
 
 Source: `ඒ සංඛ්‍යාව {number:3058}යි.`
 
-Board: `{"kind":"text","text":"3058 - තුන්දහස් පනස් අට"}`
+Board shows: "3058 - තුන්දහස් පනස් අට"
 
 ### `authored:readWrite4Digit:17`
 
@@ -235,7 +261,7 @@ Board: `{"kind":"text","text":"3058 - තුන්දහස් පනස් අ�
 
 > මෙතන සියයේ තැනට කිසිම අගයක් කියවෙන්නේ නැහැ, නේද?
 
-Board: `{"kind":"none"}`
+Board shows: "3058 - තුන්දහස් පනස් අට" — inherited
 
 ### `authored:readWrite4Digit:18`
 
@@ -243,7 +269,15 @@ Board: `{"kind":"none"}`
 
 > නම කියද්දී නොකියවුණත් ඒ තැනට බිංදුවක් ලියන්න ඕනේ, හරිද?
 
-Board: `{"kind":"none"}`
+Board shows: "3058 - තුන්දහස් පනස් අට" — inherited
+
+### `authored:readWrite4Digit:18b`
+
+**TRANSITION** · pause: — · guide: Give groups a worksheet with a circle containing digits 1, 3, 6, 4. · max-sim J 0.19 · **human-edited**
+
+> දැන් අපි වෙනත් අභ්‍යාසයක් බලමු.
+
+Board shows: the digit picker: 1, 3, 6, 4
 
 ### `authored:readWrite4Digit:19`
 
@@ -251,7 +285,7 @@ Board: `{"kind":"none"}`
 
 > {address}, මේ රවුම ඇතුළේ තියෙන ඉලක්කම් ටික පේනවා නේද?
 
-Board: `{"kind":"text","text":"1,  3,  6,  4"}`
+Board shows: the digit picker: 1, 3, 6, 4 — inherited
 
 ### `authored:readWrite4Digit:20`
 
@@ -261,7 +295,7 @@ Board: `{"kind":"text","text":"1,  3,  6,  4"}`
 
 Source: `මෙතැන තියෙන්නේ {number:1}, {number:3}, {number:6}, {number:4} නේද?`
 
-Board: `{"kind":"none"}`
+Board shows: the digit picker: 1, 3, 6, 4 — inherited
 
 ### `authored:readWrite4Digit:21`
 
@@ -269,15 +303,23 @@ Board: `{"kind":"none"}`
 
 > පිටින් කිසිම අලුත් ඉලක්කමක් නොගෙන, මේවා විතරක් පාවිච්චි කරමු.
 
-Board: `{"kind":"none"}`
+Board shows: the digit picker: 1, 3, 6, 4 — inherited
 
 ### `authored:readWrite4Digit:22`
 
-**SOFT_CHECK** · pause: SOFT_CHECK · guide: Give groups a worksheet with a circle containing digits 1, 3, 6, 4. · max-sim J 0.17 · **human-edited**
+**ASK** · pause: ASK · guide: Give groups a worksheet with a circle containing digits 1, 3, 6, 4. · expects **{"kind": "permutationOf", "digits": [1, 3, 6, 4], "length": 4}** · max-sim J 0.17 · **human-edited**
 
 > මේ ඉලක්කම් වලින් ඔයා කැමති සංඛ්‍යාවක් හදලා මට කියන්න.
 
-Board: `{"kind":"none"}`
+Board shows: the digit picker: 1, 3, 6, 4 — inherited
+
+### `authored:readWrite4Digit:22a`
+
+**EXPLAIN** · pause: — · guide: Give groups a worksheet with a circle containing digits 1, 3, 6, 4. · max-sim J 0.00 · **human-edited**
+
+> ඒ සංඛ්‍යාවේ නම බෝඩ් එකේ බලන්න.
+
+Board shows: the digit picker: 1, 3, 6, 4, plus the number the child just built, with its name
 
 ### `authored:readWrite4Digit:23`
 
@@ -287,25 +329,7 @@ Board: `{"kind":"none"}`
 
 Source: `උදාහරණයක් විදිහට අපිට {number:1364} හදන්නත් පුළුවන්.`
 
-Board: `{"kind":"text","text":"1364"}`
-
-### `authored:readWrite4Digit:24`
-
-**SOFT_CHECK** · pause: SOFT_CHECK · guide: Give groups a worksheet with a circle containing digits 1, 3, 6, 4. · max-sim J 0.13 / C 0.79
-
-> අපි මේ විදියට තව සංඛ්‍යා හදන්න සූදානම් වෙමු, හරි නේද?
-
-Board: `{"kind":"none"}`
-
-### `authored:readWrite4Digit:25`
-
-**SHOW_BOARD** · pause: RHETORICAL · guide: Give groups a worksheet with a circle containing digits 1, 3, 6, 4. · max-sim J 0.10 · **human-edited**
-
-> දැන් අපි අර රවුම ඇතුළේ තිබුණු එක, තුන, හය, හතර ආයෙත් ගමු නේද?
-
-Source: `දැන් අපි අර රවුම ඇතුළේ තිබුණු {number:1}, {number:3}, {number:6}, {number:4} ආයෙත් ගමු නේද?`
-
-Board: `{"kind":"text","text":"1, 3, 6, 4"}`
+Board shows: "1, 3, 6, 4   →   1 364"
 
 ### `authored:readWrite4Digit:26`
 
@@ -313,41 +337,63 @@ Board: `{"kind":"text","text":"1, 3, 6, 4"}`
 
 > පිටින් කිසිම අලුත් ඉලක්කමක් මෙතනට ගන්න බැහැ. අපි මේ හතර දෙනාගෙන් විතරක් අලුත් සංඛ්‍යාවක් හදමු.
 
-Board: `{"kind":"none"}`
-
-### `authored:readWrite4Digit:27`
-
-**SOFT_CHECK** · pause: SOFT_CHECK · guide: Instruct students to form 5 four-digit numbers using the digits in the circle and write the number name of each. · max-sim J 0.15 · **human-edited**
-
-> ඔයා කැමති පිළිවෙළකට මේ ඉලක්කම් තියලා මට සංඛ්‍යාවක් කියන්න.
-
-Board: `{"kind":"none"}`
-
-### `authored:readWrite4Digit:28`
-
-**EXPLAIN** · pause: — · guide: Instruct students to form 5 four-digit numbers using the digits in the circle and write the number name of each. · max-sim J 0.16 · **human-edited**
-
-> අපි හිතමු මේ ඉලක්කම් වලින් එක්දහස් තුන්සිය හැට හතර හැදුවා කියලා. ඒක කියවන්නේ එක්දහස් තුන්සිය හැට හතර කියලයි.
-
-Source: `අපි හිතමු මේ ඉලක්කම් වලින් {number:1364} හැදුවා කියලා. ඒක කියවන්නේ {number:1364} කියලයි.`
-
-Board: `{"kind":"text","text":"1364"}`
-
-### `authored:readWrite4Digit:29`
-
-**SOFT_CHECK** · pause: SOFT_CHECK · guide: Instruct students to form 5 four-digit numbers using the digits in the circle and write the number name of each. · max-sim J 0.06 · **human-edited**
-
-> දැන් ඔය හදපු එක ආයෙත් ගන්නේ නැතුව, තව සංඛ්‍යාවක් හදමුද?
-
-Board: `{"kind":"none"}`
+Board shows: "1, 3, 6, 4   →   1 364" — inherited
 
 ### `authored:readWrite4Digit:30`
 
 **EXPLAIN** · pause: — · guide: Instruct students to form 5 four-digit numbers using the digits in the circle and write the number name of each. · max-sim J 0.15 · **human-edited**
 
-> තවත් අලුත් සංඛ්‍යා පහක් හදන්න ලෑල්ලට යමු!
+> තවත් අලුත් සංඛ්‍යා පහක් හදන්න ලෑල්ලට යමු.
 
-Board: `{"kind":"exercise","itemId":"7daf0141-073d-4714-b69e-fb17069e982c"}`
+Board shows: the exercise 7daf0141 as its content_bank row defines it
+
+### `authored:readWrite4Digit:30a`
+
+**ASK** · pause: ASK · guide: Instruct students to form 5 four-digit numbers using the digits in the circle and write the number name of each. · expects **{"kind": "permutationOf", "digits": [1, 3, 6, 4], "length": 4}** · max-sim J 0.27 · **human-edited**
+
+> මේ ඉලක්කම් හතරෙන් සංඛ්‍යාවක් හදලා මට කියන්න.
+
+Board shows: the digit picker: 1, 3, 6, 4
+
+### `authored:readWrite4Digit:30b`
+
+**EXPLAIN** · pause: — · guide: Instruct students to form 5 four-digit numbers using the digits in the circle and write the number name of each. · max-sim J 0.00 · **human-edited**
+
+> ඒ සංඛ්‍යාවේ නම බෝඩ් එකේ බලන්න.
+
+Board shows: the digit picker: 1, 3, 6, 4, plus the number the child just built, with its name
+
+### `authored:readWrite4Digit:30c`
+
+**ASK** · pause: ASK · guide: Instruct students to form 5 four-digit numbers using the digits in the circle and write the number name of each. · expects **{"kind": "permutationOf", "digits": [1, 3, 6, 4], "length": 4}** · max-sim J 0.17 · **human-edited**
+
+> දැන් ඒකට වඩා වෙනස් සංඛ්‍යාවක් හදන්න පුළුවන්ද?
+
+Board shows: the digit picker: 1, 3, 6, 4
+
+### `authored:readWrite4Digit:30d`
+
+**EXPLAIN** · pause: — · guide: Instruct students to form 5 four-digit numbers using the digits in the circle and write the number name of each. · max-sim J 0.00 · **human-edited**
+
+> ඒ සංඛ්‍යාවේ නම බෝඩ් එකේ බලන්න.
+
+Board shows: the digit picker: 1, 3, 6, 4, plus the number the child just built, with its name
+
+### `authored:readWrite4Digit:30e`
+
+**ASK** · pause: ASK · guide: Instruct students to form 5 four-digit numbers using the digits in the circle and write the number name of each. · expects **{"kind": "permutationOf", "digits": [1, 3, 6, 4], "length": 4}** · max-sim J 0.04 · **human-edited**
+
+> අන්තිම වතාවට තව අලුත් සංඛ්‍යාවක් හදමු.
+
+Board shows: the digit picker: 1, 3, 6, 4
+
+### `authored:readWrite4Digit:30f`
+
+**EXPLAIN** · pause: — · guide: Instruct students to form 5 four-digit numbers using the digits in the circle and write the number name of each. · max-sim J 0.00 · **human-edited**
+
+> ඒ සංඛ්‍යාවේ නම බෝඩ් එකේ බලන්න.
+
+Board shows: the digit picker: 1, 3, 6, 4, plus the number the child just built, with its name
 
 ### `authored:readWrite4Digit:31`
 
@@ -359,7 +405,25 @@ Planted error: අට ළඟට බිංදුවක් දාලා නෑ.
 
 Source: `ඔන්න {address}, මම {number:84} කියන සංඛ්‍යාව වෙන් කරලා ලිව්වා. ඒත් මගේ වැඩේ පොඩි වැරැද්දක් වුණා වගේ. මට උදව්වක් විදිහට ඒ වැරැද්ද හොයලා කියන්න පුළුවන්ද?`
 
-Board: `{"kind":"text","text":"84 = 8 + 4"}`
+Board shows: "84 = 8 + 4"
+
+### `authored:readWrite4Digit:31a`
+
+**RESOLVE** · pause: — · guide: peer-check (guide) → find Zara's mistake · max-sim J 0.17 · **human-edited**
+
+> වැරැද්ද තමයි අටට බිංදුවක් නොදැමීම. ඒක අසූව විය යුතුයි — අසූ හතර කියන්නේ අසූවයි හතරයි.
+
+Source: `වැරැද්ද තමයි {number:8}ට බිංදුවක් නොදැමීම. ඒක {number:80} විය යුතුයි — {number:84} කියන්නේ {number:80}යි {number:4}යි.`
+
+Board shows: "84 = 80 + 4"
+
+### `authored:readWrite4Digit:31b`
+
+**TRANSITION** · pause: — · guide: peer-check (guide) → find Zara's mistake · max-sim J 0.14 · **human-edited**
+
+> දැන් අපි ලොකු සංඛ්‍යා ගැන බලමු.
+
+Board shows: "84 = 80 + 4" — inherited
 
 ## placeValue4Digit
 
@@ -380,7 +444,7 @@ Hook candidates (first is in use):
 
 > අලුත් ඉස්කෝලේ බෑග් එකක් ගන්න ගියාම ඒකේ මිල ලොකු ගාණක් නේද {address}?
 
-Board: `{"kind":"title","title":"ස්ථානීය අගය"}`
+Board shows: title card "ස්ථානීය අගය"
 
 ### `authored:placeValue4Digit:33`
 
@@ -388,7 +452,7 @@ Board: `{"kind":"title","title":"ස්ථානීය අගය"}`
 
 > ඒ ගාණේ ඉලක්කම් හතරක් තියෙනවා. ඒ ඉලක්කම් තියෙන තැන දන්නවා නම් අපිට ඒක ලේසියෙන් කියවන්න පුළුවන්.
 
-Board: `{"kind":"none"}`
+Board shows: title card "ස්ථානීය අගය" — inherited
 
 ### `authored:placeValue4Digit:34`
 
@@ -396,7 +460,7 @@ Board: `{"kind":"none"}`
 
 > අද අපි ගණක රාමුවකින් අලුත් සංඛ්‍යාවක් හදන්නයි ලෑස්ති වෙන්නේ.
 
-Board: `{"kind":"abacus","digits":[0,0,0,0],"startEmpty":true}`
+Board shows: the abacus [0, 0, 0, 0], rods bare
 
 ### `authored:placeValue4Digit:35`
 
@@ -404,7 +468,7 @@ Board: `{"kind":"abacus","digits":[0,0,0,0],"startEmpty":true}`
 
 > ගණක රාමුවේ දකුණු කෙළවරේම තියෙන කූර එකස්ථානය කියලයි අපි කියන්නේ.
 
-Board: `{"kind":"none"}`
+Board shows: the abacus [0, 0, 0, 0], rods bare — inherited
 
 ### `authored:placeValue4Digit:36`
 
@@ -412,7 +476,7 @@ Board: `{"kind":"none"}`
 
 > වමේ පැත්තට යද්දී දහයස්ථානය, සියයස්ථානය වගේම දහසස්ථානය පිහිටනවා.
 
-Board: `{"kind":"none"}`
+Board shows: the abacus [0, 0, 0, 0], rods bare — inherited
 
 ### `authored:placeValue4Digit:37`
 
@@ -420,7 +484,7 @@ Board: `{"kind":"none"}`
 
 > එතකොට කූරු හතරේ පිළිවෙළ ඔයාට මතක හිටියා නේද {address}?
 
-Board: `{"kind":"none"}`
+Board shows: the abacus [0, 0, 0, 0], rods bare — inherited
 
 ### `authored:placeValue4Digit:38`
 
@@ -430,7 +494,7 @@ Board: `{"kind":"none"}`
 
 Source: `ඔන්න අපි {number:5421} කියන ලස්සන සංඛ්‍යාව මේ රාමුවට දාමු.`
 
-Board: `{"kind":"none"}`
+Board shows: the abacus [0, 0, 0, 0], rods bare — inherited
 
 ### `authored:placeValue4Digit:39`
 
@@ -438,7 +502,7 @@ Board: `{"kind":"none"}`
 
 > දහසස්ථානයේ කූරට අපි පබළු එක, දෙක, තුන, හතර, පහක් දානවා.
 
-Board: `{"kind":"abacus_add","rod":0,"count":5}`
+Board shows: 5 bead(s) onto rod 0
 
 ### `authored:placeValue4Digit:40`
 
@@ -446,7 +510,7 @@ Board: `{"kind":"abacus_add","rod":0,"count":5}`
 
 > ඊළඟ සියයස්ථානයට පබළු හතරක් දාමු.
 
-Board: `{"kind":"abacus_add","rod":1,"count":4}`
+Board shows: 4 bead(s) onto rod 1
 
 ### `authored:placeValue4Digit:41`
 
@@ -454,7 +518,7 @@ Board: `{"kind":"abacus_add","rod":1,"count":4}`
 
 > දහයස්ථානයට පබළු දෙකකුත්, එකස්ථානයට එක පබළුවකුත් එකතු කරමු.
 
-Board: `{"kind":"abacus","digits":[5,4,2,1],"animate":true}`
+Board shows: the abacus [5, 4, 2, 1]
 
 ### `authored:placeValue4Digit:42`
 
@@ -462,7 +526,7 @@ Board: `{"kind":"abacus","digits":[5,4,2,1],"animate":true}`
 
 > බලන්නකෝ, හැම කූරකම තියෙන පබළු එකතු වෙලා අපේ මුළු සංඛ්‍යාව හැදුණා.
 
-Board: `{"kind":"none"}`
+Board shows: the abacus [5, 4, 2, 1] — inherited
 
 ### `authored:placeValue4Digit:43`
 
@@ -470,7 +534,7 @@ Board: `{"kind":"none"}`
 
 > දකුණු පැත්තේ මුල්ම කූර දිහා බලන්නකෝ {address}.
 
-Board: `{"kind":"abacus","digits":[5,4,2,1]}`
+Board shows: the abacus [5, 4, 2, 1]
 
 ### `authored:placeValue4Digit:44`
 
@@ -478,7 +542,7 @@ Board: `{"kind":"abacus","digits":[5,4,2,1]}`
 
 > එකස්ථානයේ පබළු කීයක් තියෙනවද?
 
-Board: `{"kind":"none"}`
+Board shows: the abacus [5, 4, 2, 1] — inherited
 
 ### `authored:placeValue4Digit:45`
 
@@ -488,7 +552,7 @@ Board: `{"kind":"none"}`
 
 Source: `එතන පබළු {number:1}ක් නිසා අගය {number:1}යි.`
 
-Board: `{"kind":"none"}`
+Board shows: the abacus [5, 4, 2, 1] — inherited
 
 ### `authored:placeValue4Digit:46`
 
@@ -498,7 +562,7 @@ Board: `{"kind":"none"}`
 
 Source: `දහයස්ථානයේ පබළු {number:2}යි, ඒ නිසා අගය {number:20}යි.`
 
-Board: `{"kind":"none"}`
+Board shows: the abacus [5, 4, 2, 1] — inherited
 
 ### `authored:placeValue4Digit:48`
 
@@ -506,7 +570,7 @@ Board: `{"kind":"none"}`
 
 > සියයස්ථානයේ තියෙන පබළු ගණන කියන්න පුළුවන්ද?
 
-Board: `{"kind":"none"}`
+Board shows: the abacus [5, 4, 2, 1] — inherited
 
 ### `authored:placeValue4Digit:49`
 
@@ -516,7 +580,7 @@ Board: `{"kind":"none"}`
 
 Source: `සියයස්ථානයේ පබළු {number:4}ක් නිසා අගය {number:400}යි.`
 
-Board: `{"kind":"none"}`
+Board shows: the abacus [5, 4, 2, 1] — inherited
 
 ### `authored:placeValue4Digit:50`
 
@@ -526,7 +590,7 @@ Board: `{"kind":"none"}`
 
 Source: `දහසස්ථානයේ පබළු {number:5}යි, ඒ නිසා අගය {number:5000}යි.`
 
-Board: `{"kind":"none"}`
+Board shows: the abacus [5, 4, 2, 1] — inherited
 
 ### `authored:placeValue4Digit:52`
 
@@ -534,7 +598,7 @@ Board: `{"kind":"none"}`
 
 > මේ විදිහට හැම ඉලක්කමකටම තමන්ගේම ස්ථානීය අගයක් තියෙනවා.
 
-Board: `{"kind":"exercise","itemId":"7b58e436-334f-452c-bc2a-81f234d03268"}`
+Board shows: the exercise 7b58e436 as its content_bank row defines it
 
 ### `authored:placeValue4Digit:53`
 
@@ -542,7 +606,7 @@ Board: `{"kind":"exercise","itemId":"7b58e436-334f-452c-bc2a-81f234d03268"}`
 
 > ස්ථානය අනුව අගය වෙනස් වෙන හැටි පැහැදිලියි නේද {address}?
 
-Board: `{"kind":"none"}`
+Board shows: the exercise 7b58e436 as its content_bank row defines it — inherited
 
 ### `authored:placeValue4Digit:54`
 
@@ -550,7 +614,7 @@ Board: `{"kind":"none"}`
 
 > දැන් අපි ගණක රාමුවේ තියෙන සංඛ්‍යාව වචනයෙන් කියවන්න පුරුදු වෙමු.
 
-Board: `{"kind":"abacus","digits":[5,4,2,1]}`
+Board shows: the abacus [5, 4, 2, 1]
 
 ### `authored:placeValue4Digit:55`
 
@@ -560,7 +624,7 @@ Board: `{"kind":"abacus","digits":[5,4,2,1]}`
 
 Source: `දහසස්ථානය පෙන්වන කූරේ තියෙන්නේ පබළු {number:5} යි නේද, {address}?`
 
-Board: `{"kind":"none"}`
+Board shows: the abacus [5, 4, 2, 1] — inherited
 
 ### `authored:placeValue4Digit:56`
 
@@ -570,7 +634,7 @@ Board: `{"kind":"none"}`
 
 Source: `ඒ පබළු වලින් පෙන්වන්නේ {number:5000}ක අගයක්.`
 
-Board: `{"kind":"none"}`
+Board shows: the abacus [5, 4, 2, 1] — inherited
 
 ### `authored:placeValue4Digit:57`
 
@@ -580,7 +644,7 @@ Board: `{"kind":"none"}`
 
 Source: `ඊළඟට සියයස්ථානයෙන් {number:400}කුත්, දහයස්ථානයෙන් {number:20}කුත්, එකස්ථානයෙන් {number:1}කුත් ලැබෙනවා.`
 
-Board: `{"kind":"none"}`
+Board shows: the abacus [5, 4, 2, 1] — inherited
 
 ### `authored:placeValue4Digit:58`
 
@@ -588,7 +652,7 @@ Board: `{"kind":"none"}`
 
 > එහෙනම් {address}, මේ සංඛ්‍යාව කියවමු බලන්න.
 
-Board: `{"kind":"none"}`
+Board shows: the abacus [5, 4, 2, 1] — inherited
 
 ### `authored:placeValue4Digit:59`
 
@@ -598,7 +662,7 @@ Board: `{"kind":"none"}`
 
 Source: `ඒ සංඛ්‍යාව {number:5421}යි.`
 
-Board: `{"kind":"text","text":"5 421 - පන්දහස් හාරසිය විසි එක"}`
+Board shows: "5 421 - පන්දහස් හාරසිය විසි එක"
 
 ### `authored:placeValue4Digit:60`
 
@@ -608,7 +672,7 @@ Board: `{"kind":"text","text":"5 421 - පන්දහස් හාරසිය 
 
 Source: `අපි මේ සංඛ්‍යාව අකුරෙන් ලියන්නේ {number:5421} කියලයි.`
 
-Board: `{"kind":"none"}`
+Board shows: "5 421 - පන්දහස් හාරසිය විසි එක" — inherited
 
 ### `authored:placeValue4Digit:61`
 
@@ -616,7 +680,7 @@ Board: `{"kind":"none"}`
 
 > දැන් අපි තවත් අලුත් සංඛ්‍යාවක් ගණක රාමුවේ බලමුකෝ.
 
-Board: `{"kind":"abacus","digits":[6,8,3,1]}`
+Board shows: the abacus [6, 8, 3, 1]
 
 ### `authored:placeValue4Digit:62`
 
@@ -624,7 +688,7 @@ Board: `{"kind":"abacus","digits":[6,8,3,1]}`
 
 > මෙතන තියෙන සංඛ්‍යාවත් වචනයෙන් කියන්න පුළුවන්ද {address}?
 
-Board: `{"kind":"none"}`
+Board shows: the abacus [6, 8, 3, 1] — inherited
 
 ### `authored:placeValue4Digit:63`
 
@@ -634,15 +698,17 @@ Board: `{"kind":"none"}`
 
 Source: `ඒක {number:6831} තමයි! දැන් ඔයා සංඛ්‍යා නාම කියවන්න හොඳටම දන්නවා.`
 
-Board: `{"kind":"text","text":"6 831 - හයදහස් අටසිය තිස් එක"}`
+Board shows: "6 831 - හයදහස් අටසිය තිස් එක"
 
 ### `authored:placeValue4Digit:64`
 
 **TRANSITION** · pause: — · guide: Show the number written in expanded form. · max-sim J 0.22 · **human-edited**
 
-> දැන් අපි මේ සංඛ්‍යාව විහිදුවා ලියමු, {address}.
+> දැන් අපි කලින් ගත්තු පන්දහස් හාරසිය විසි එක විහිදුවා ලියමු, {address}.
 
-Board: `{"kind":"abacus","digits":[5,4,2,1]}`
+Source: `දැන් අපි කලින් ගත්තු {number:5421} විහිදුවා ලියමු, {address}.`
+
+Board shows: the abacus [5, 4, 2, 1]
 
 ### `authored:placeValue4Digit:65`
 
@@ -652,7 +718,7 @@ Board: `{"kind":"abacus","digits":[5,4,2,1]}`
 
 Source: `බලන්න, දහසස්ථානයේ පබළු {number:5}ක් තියෙනවා නේද?`
 
-Board: `{"kind":"none"}`
+Board shows: the abacus [5, 4, 2, 1] — inherited
 
 ### `authored:placeValue4Digit:66`
 
@@ -662,7 +728,7 @@ Board: `{"kind":"none"}`
 
 Source: `එතකොට ඒ {number:5}ෙන් පෙන්වන අගය කීයද {address}?`
 
-Board: `{"kind":"none"}`
+Board shows: the abacus [5, 4, 2, 1] — inherited
 
 ### `authored:placeValue4Digit:67`
 
@@ -672,7 +738,7 @@ Board: `{"kind":"none"}`
 
 Source: `ඒක {number:5000}යි.`
 
-Board: `{"kind":"text","text":"5 421 = 5000 +"}`
+Board shows: "5 421 = 5000 +"
 
 ### `authored:placeValue4Digit:68`
 
@@ -682,7 +748,7 @@ Board: `{"kind":"text","text":"5 421 = 5000 +"}`
 
 Source: `සියයස්ථානයේ තියෙන්නේ {number:4}ක්, ඒ නිසා අගය {number:400}යි.`
 
-Board: `{"kind":"none"}`
+Board shows: "5 421 = 5000 +" — inherited
 
 ### `authored:placeValue4Digit:70`
 
@@ -692,17 +758,17 @@ Board: `{"kind":"none"}`
 
 Source: `ඊළඟට දහයස්ථානයේ තියෙන {number:2}ෙන් ලැබෙන අගය කීයද?`
 
-Board: `{"kind":"none"}`
+Board shows: "5 421 = 5000 +" — inherited
 
 ### `authored:placeValue4Digit:71`
 
 **EXPLAIN** · pause: — · guide: Show the number written in expanded form. · max-sim J 0.00 · **human-edited**
 
-> ඔව්, දහයස්ථානයේ දෙකේ අගය විස්සයි.
+> දහයස්ථානයේ දෙකේ අගය විස්සයි.
 
-Source: `ඔව්, දහයස්ථානයේ {number:2}ේ අගය {number:20}යි.`
+Source: `දහයස්ථානයේ {number:2}ේ අගය {number:20}යි.`
 
-Board: `{"kind":"text","text":"5 421 = 5000 + 400 + 20 +"}`
+Board shows: "5 421 = 5000 + 400 + 20 +"
 
 ### `authored:placeValue4Digit:72`
 
@@ -712,7 +778,7 @@ Board: `{"kind":"text","text":"5 421 = 5000 + 400 + 20 +"}`
 
 Source: `අන්තිමට එකස්ථානයේ තියෙන්නේ {number:1}ක්, ඒ නිසා ලැබෙන්නේ {number:1}මයි.`
 
-Board: `{"kind":"none"}`
+Board shows: "5 421 = 5000 + 400 + 20 +" — inherited
 
 ### `authored:placeValue4Digit:74`
 
@@ -720,7 +786,7 @@ Board: `{"kind":"none"}`
 
 > මේ විදියට එකතු කිරීමක් ලෙස ලිවීමට තමයි විහිදුවා ලියනවා කියන්නේ, පැහැදිලියි නේද {address}?
 
-Board: `{"kind":"none"}`
+Board shows: "5 421 = 5000 + 400 + 20 +" — inherited
 
 ### `authored:placeValue4Digit:75`
 
@@ -728,7 +794,7 @@ Board: `{"kind":"none"}`
 
 > අපි දැන් තවත් සංඛ්‍යාවක් ගණක රාමුවෙන් පෙන්වලා බලමු {address}.
 
-Board: `{"kind":"abacus","digits":[7,0,6,2]}`
+Board shows: the abacus [7, 0, 6, 2]
 
 ### `authored:placeValue4Digit:76`
 
@@ -738,7 +804,7 @@ Board: `{"kind":"abacus","digits":[7,0,6,2]}`
 
 Source: `මුලින්ම දහසස්ථානය දිහා බලන්න, එතන පබළු {number:7} ක් තියෙනවා නේද?`
 
-Board: `{"kind":"none"}`
+Board shows: the abacus [7, 0, 6, 2] — inherited
 
 ### `authored:placeValue4Digit:77`
 
@@ -748,7 +814,7 @@ Board: `{"kind":"none"}`
 
 Source: `එක් පබළුවකින් {number:1000}ක් පෙන්වනවා නම්, පබළු {number:7}ක අගය {number:7000}යි.`
 
-Board: `{"kind":"text","text":"7000"}`
+Board shows: "7000"
 
 ### `authored:placeValue4Digit:78`
 
@@ -756,7 +822,7 @@ Board: `{"kind":"text","text":"7000"}`
 
 > ඊළඟට තියෙන සියයස්ථානයේ කූර දිහා හොඳින් බලන්නකෝ.
 
-Board: `{"kind":"none"}`
+Board shows: "7000" — inherited
 
 ### `authored:placeValue4Digit:79`
 
@@ -764,7 +830,7 @@ Board: `{"kind":"none"}`
 
 > එතන පබළු කීයක් දකින්න තියෙනවද?
 
-Board: `{"kind":"none"}`
+Board shows: "7000" — inherited
 
 ### `authored:placeValue4Digit:80`
 
@@ -774,7 +840,7 @@ Board: `{"kind":"none"}`
 
 Source: `කූරේ කිසිම පබළුවක් නෑ. ඒ නිසා එතන අගය {number:0}යි.`
 
-Board: `{"kind":"text","text":"7000 + 0"}`
+Board shows: "7000 + 0"
 
 ### `authored:placeValue4Digit:81`
 
@@ -784,7 +850,7 @@ Board: `{"kind":"text","text":"7000 + 0"}`
 
 Source: `දහයස්ථානයේ කූර දිහා බැලුවොත් අපට පබළු {number:6}ක් පේනවා. එකකින් {number:10}ක් පෙන්වන නිසා එතනින් {number:60}ක් හැදෙනවා.`
 
-Board: `{"kind":"text","text":"7000 + 0 + 60"}`
+Board shows: "7000 + 0 + 60"
 
 ### `authored:placeValue4Digit:82`
 
@@ -794,7 +860,7 @@ Board: `{"kind":"text","text":"7000 + 0 + 60"}`
 
 Source: `අවසාන කූරේ, ඒ කියන්නේ එකස්ථානයේ තියෙන්නේ පබළු {number:2}යි. එකස්ථානයේ ඒ පබළු {number:2}ෙන් හැදෙන අගය කීයද {address}?`
 
-Board: `{"kind":"none"}`
+Board shows: "7000 + 0 + 60" — inherited
 
 ### `authored:placeValue4Digit:83`
 
@@ -804,7 +870,7 @@ Board: `{"kind":"none"}`
 
 Source: `ඒක {number:2}යි.`
 
-Board: `{"kind":"text","text":"7062 = 7000 + 0 + 60 + 2"}`
+Board shows: "7062 = 7000 + 0 + 60 + 2"
 
 ### `authored:placeValue4Digit:84`
 
@@ -814,7 +880,7 @@ Board: `{"kind":"text","text":"7062 = 7000 + 0 + 60 + 2"}`
 
 Source: `එහෙනම් මේ මුළු සංඛ්‍යාව {number:7062} යි, අපි එය දිගහැරලා ලිව්වා නේද?`
 
-Board: `{"kind":"none"}`
+Board shows: "7062 = 7000 + 0 + 60 + 2" — inherited
 
 ### `authored:placeValue4Digit:85`
 
@@ -824,7 +890,7 @@ Board: `{"kind":"none"}`
 
 Source: `ඔන්න {address}, මම ඔයාට ඉලක්කම් කාඩ්පත් {number:4}ක් දෙනවා.`
 
-Board: `{"kind":"text","text":"1, 3, 8, 6"}`
+Board shows: "1, 3, 8, 6"
 
 ### `authored:placeValue4Digit:86`
 
@@ -834,7 +900,7 @@ Board: `{"kind":"text","text":"1, 3, 8, 6"}`
 
 Source: `මේ කාඩ්පත්වල තියෙන්නේ {number:1}, {number:3}, {number:8}, {number:6} නේද?`
 
-Board: `{"kind":"none"}`
+Board shows: "1, 3, 8, 6" — inherited
 
 ### `authored:placeValue4Digit:87`
 
@@ -844,7 +910,7 @@ Board: `{"kind":"none"}`
 
 Source: `අපි මුලින්ම {number:6831} කියන සංඛ්‍යාව ලියලා බලමු.`
 
-Board: `{"kind":"text","text":"6 831"}`
+Board shows: "6 831"
 
 ### `authored:placeValue4Digit:88`
 
@@ -854,7 +920,7 @@ Board: `{"kind":"text","text":"6 831"}`
 
 Source: `මේකේ දහසස්ථානයේ තියෙන {number:6}ෙන් පෙන්වන අගය කීයද?`
 
-Board: `{"kind":"none"}`
+Board shows: "6 831" — inherited
 
 ### `authored:placeValue4Digit:89`
 
@@ -864,7 +930,7 @@ Board: `{"kind":"none"}`
 
 Source: `ඒක {number:6000}යි.`
 
-Board: `{"kind":"text","text":"6 831 = 6000 + 800 + 30 + 1"}`
+Board shows: "6 831 = 6000 + 800 + 30 + 1"
 
 ### `authored:placeValue4Digit:90`
 
@@ -872,7 +938,7 @@ Board: `{"kind":"text","text":"6 831 = 6000 + 800 + 30 + 1"}`
 
 > එතකොට මේක දිගහැරලා ලිව්වාම එන්නේ මේ විදිහට නේද?
 
-Board: `{"kind":"none"}`
+Board shows: "6 831 = 6000 + 800 + 30 + 1" — inherited
 
 ### `authored:placeValue4Digit:91`
 
@@ -882,7 +948,7 @@ Board: `{"kind":"none"}`
 
 Source: `තව ක්‍රමයකට හැදුවොත් අපිට {number:8613} ලැබෙනවා.`
 
-Board: `{"kind":"text","text":"8 613"}`
+Board shows: "8 613"
 
 ### `authored:placeValue4Digit:92`
 
@@ -892,7 +958,7 @@ Board: `{"kind":"text","text":"8 613"}`
 
 Source: `එහෙනම් {number:8613} දිගහරිද්දී මුලින්ම ලියවෙන්නේ මොන අගයද?`
 
-Board: `{"kind":"none"}`
+Board shows: "8 613" — inherited
 
 ### `authored:placeValue4Digit:93`
 
@@ -902,15 +968,17 @@ Board: `{"kind":"none"}`
 
 Source: `මුලින්ම ලියවෙන්නේ {number:8000}යි. ඊටපස්සේ {number:600}යි, {number:10}යි, {number:3}යි එකතු වෙනවා.`
 
-Board: `{"kind":"text","text":"8 613 = 8000 + 600 + 10 + 3"}`
+Board shows: "8 613 = 8000 + 600 + 10 + 3"
 
 ### `authored:placeValue4Digit:94`
 
-**SOFT_CHECK** · pause: SOFT_CHECK · guide: guide step 6 of 7: Give groups a card with four digits; have them form several numbers using the digits and write each in expanded form. · max-sim J 0.09 / C 0.87
+**SOFT_CHECK** · pause: SOFT_CHECK · guide: guide step 6 of 7: Give groups a card with four digits; have them form several numbers using the digits and write each in expanded form. · max-sim J 0.12 · **human-edited**
 
-> බිංදුවක් ආවොත් එතැනින් කිසිම අගයක් එකතු වෙන්නේ නෑ නේද {address}?
+> අපි කලින් ගත්තු හත්දහස් හැට දෙක දිහා ආයෙත් බලමු. බිංදුවක් ආවොත් එතැනින් කිසිම අගයක් එකතු වෙන්නේ නෑ නේද {address}?
 
-Board: `{"kind":"text","text":"7 062 = 7000 + 0 + 60 + 2"}`
+Source: `අපි කලින් ගත්තු {number:7062} දිහා ආයෙත් බලමු. බිංදුවක් ආවොත් එතැනින් කිසිම අගයක් එකතු වෙන්නේ නෑ නේද {address}?`
+
+Board shows: the abacus [7, 0, 6, 2]
 
 ### `authored:placeValue4Digit:95`
 
@@ -918,15 +986,17 @@ Board: `{"kind":"text","text":"7 062 = 7000 + 0 + 60 + 2"}`
 
 > දැන් {address} තනියම පුහුණු වෙන්න වෙලාව හරි.
 
-Board: `{"kind":"title","title":"තනිව විසඳමු"}`
+Board shows: title card "තනිව විසඳමු"
 
 ### `authored:placeValue4Digit:96`
 
-**SHOW_BOARD** · pause: — · guide: guide step 7 of 7: Give students a worksheet of further expansion exercises to do alone. · max-sim J 0.09 / C 0.82
+**SHOW_BOARD** · pause: — · guide: guide step 7 of 7: Give students a worksheet of further expansion exercises to do alone. · max-sim J 0.09 / C 0.82 · **human-edited**
 
 > මෙන්න ඔයාට විශේෂ අභ්‍යාස පත්‍රිකාවක් තිරයේ පෙනෙනවා.
 
-Board: `{"kind":"text","text":"5 421 = 5 000 + 400 + 20 + 1"}`
+Board shows: 5 421 = ▢ + ▢ + ▢ + ▢
+
+Stored answers: 5000, 400, 20, 1 — the reveal key, NOT on the board
 
 ### `authored:placeValue4Digit:97`
 
@@ -936,7 +1006,7 @@ Board: `{"kind":"text","text":"5 421 = 5 000 + 400 + 20 + 1"}`
 
 Source: `පළමුවැනි ගාණ විදිහට {number:5421} සංඛ්‍යාව දිගහැරලා ලියමු.`
 
-Board: `{"kind":"none"}`
+Board shows: 5 421 = ▢ + ▢ + ▢ + ▢ — inherited
 
 ### `authored:placeValue4Digit:98`
 
@@ -944,7 +1014,7 @@ Board: `{"kind":"none"}`
 
 > මේකෙ දහසස්ථානයේ තියෙන ඉලක්කම මොකක්ද {address}?
 
-Board: `{"kind":"none"}`
+Board shows: 5 421 = ▢ + ▢ + ▢ + ▢ — inherited
 
 ### `authored:placeValue4Digit:99`
 
@@ -954,7 +1024,7 @@ Board: `{"kind":"none"}`
 
 Source: `දහසස්ථානයේ ඉන්නේ {number:5} නේද.`
 
-Board: `{"kind":"none"}`
+Board shows: 5 421 = ▢ + ▢ + ▢ + ▢ — inherited
 
 ### `authored:placeValue4Digit:100`
 
@@ -964,7 +1034,7 @@ Board: `{"kind":"none"}`
 
 Source: `එහෙනම් ඒ {number:5} නිසා ලැබෙන අගය කීයද?`
 
-Board: `{"kind":"none"}`
+Board shows: 5 421 = ▢ + ▢ + ▢ + ▢ — inherited
 
 ### `authored:placeValue4Digit:101`
 
@@ -974,7 +1044,7 @@ Board: `{"kind":"none"}`
 
 Source: `ඒක {number:5000}යි.`
 
-Board: `{"kind":"text","text":"5 421 = 5000 + ..."}`
+Board shows: 5 421 = ▢ + ▢ + ▢ + ▢, plus "5000" written into row 0's part0
 
 ### `authored:placeValue4Digit:102`
 
@@ -982,7 +1052,7 @@ Board: `{"kind":"text","text":"5 421 = 5000 + ..."}`
 
 > දැන් මේ වගුවේ තියෙන කොටස් අපි එකට පුරවමු.
 
-Board: `{"kind":"exercise","itemId":"7b58e436-334f-452c-bc2a-81f234d03268"}`
+Board shows: the exercise 7b58e436 as its content_bank row defines it
 
 ### `authored:placeValue4Digit:103`
 
@@ -992,7 +1062,7 @@ Board: `{"kind":"exercise","itemId":"7b58e436-334f-452c-bc2a-81f234d03268"}`
 
 Source: `{number:6572} කියන සංඛ්‍යාවේ {number:6}ෙන් පෙන්වන අගය කීයද?`
 
-Board: `{"kind":"blank","itemId":"7b58e436-334f-452c-bc2a-81f234d03268","rowIndex":1,"field":"valueRepresented"}`
+Board shows: the staged exercise, row 1's valueRepresented blank and active
 
 ### `authored:placeValue4Digit:104`
 
@@ -1002,7 +1072,7 @@ Board: `{"kind":"blank","itemId":"7b58e436-334f-452c-bc2a-81f234d03268","rowInde
 
 Source: `ඒක {number:6000}යි. ඒ {number:6} තියෙන්නේ දහසස්ථානයේ.`
 
-Board: `{"kind":"none"}`
+Board shows: the staged exercise, row 1's valueRepresented blank and active — inherited
 
 ### `authored:placeValue4Digit:105`
 
@@ -1012,7 +1082,7 @@ Board: `{"kind":"none"}`
 
 Source: `එහෙනම් {number:5024} කියන සංඛ්‍යාවේ {number:4}ෙන් පෙන්වන අගය කීයද?`
 
-Board: `{"kind":"blank","itemId":"7b58e436-334f-452c-bc2a-81f234d03268","rowIndex":2,"field":"valueRepresented"}`
+Board shows: the staged exercise, row 2's valueRepresented blank and active
 
 ### `authored:placeValue4Digit:106`
 
@@ -1022,7 +1092,7 @@ Board: `{"kind":"blank","itemId":"7b58e436-334f-452c-bc2a-81f234d03268","rowInde
 
 Source: `ඒක {number:4}යි. {number:4} තියෙන්නේ එකස්ථානයේ.`
 
-Board: `{"kind":"none"}`
+Board shows: the staged exercise, row 2's valueRepresented blank and active — inherited
 
 ### `authored:placeValue4Digit:107`
 
@@ -1032,7 +1102,7 @@ Board: `{"kind":"none"}`
 
 Source: `{number:8700} කියන සංඛ්‍යාවේ {number:700} අගය දෙන්නේ මොන ඉලක්කමද?`
 
-Board: `{"kind":"blank","itemId":"7b58e436-334f-452c-bc2a-81f234d03268","rowIndex":3,"field":"digit"}`
+Board shows: the staged exercise, row 3's digit blank and active
 
 ### `authored:placeValue4Digit:108`
 
@@ -1042,7 +1112,7 @@ Board: `{"kind":"blank","itemId":"7b58e436-334f-452c-bc2a-81f234d03268","rowInde
 
 Source: `ඒක {number:7}යි. {number:7} තියෙන්නේ සියයස්ථානයේ.`
 
-Board: `{"kind":"none"}`
+Board shows: the staged exercise, row 3's digit blank and active — inherited
 
 ### `authored:placeValue4Digit:109`
 
@@ -1050,5 +1120,5 @@ Board: `{"kind":"none"}`
 
 > අද ඔයා හොඳට වැඩ කළා. ස්ථානීය අගය මොකක්ද කියලා දැන් ඔයා දන්නවා.
 
-Board: `{"kind":"none"}`
+Board shows: the staged exercise, row 3's digit blank and active — inherited
 

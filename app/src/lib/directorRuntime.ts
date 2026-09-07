@@ -10,6 +10,7 @@
  * means the dry-run harness can exercise the same code paths.
  */
 
+import { parseAnswerPredicate } from "@/lib/answerCheck";
 import type { Beat, BeatBoardAction, PlannerDecision } from "@/lib/lessonOrchestrator";
 import type { BoardContent } from "@/lib/board";
 
@@ -47,6 +48,17 @@ export async function stageBeatBoard(action: BeatBoardAction): Promise<StagedBoa
       return board ? { board } : {};
     }
     case "reveal_part": {
+      // A synthetic expansion (see authoredScript.expansionItemId) has no
+      // content_bank row for the route to look up; its reveal is the same
+      // view patch, built here.
+      if (action.itemId.startsWith("expansion:")) {
+        return {
+          viewPatch: {
+            expectedItemId: action.itemId,
+            filledAnswer: { rowIndex: action.rowIndex, field: action.field, value: action.value, source: "tutor" },
+          },
+        };
+      }
       const response = await post("/api/tools/reveal-answer", {
         item_id: action.itemId,
         row_index: action.rowIndex,
@@ -93,7 +105,15 @@ export async function stageBeatBoard(action: BeatBoardAction): Promise<StagedBoa
         },
       };
     case "text_card":
-      return { board: { type: "text_card", text: action.text } };
+      return { board: { type: "text_card", text: action.text, highlight: action.highlight } };
+    case "clear":
+      // The one deliberate blank. Everything else that says nothing about
+      // the board leaves it exactly as it was.
+      return { board: { type: "empty" } };
+    case "built_number":
+      // The runtime owns the number (it is whatever the child last built);
+      // it patches the board itself. Nothing to stage here.
+      return {};
     case "none":
       return {};
   }
@@ -173,7 +193,10 @@ export function looksLikeAnswerAttempt(beat: Beat, transcript: string): boolean 
   const said = transcript.trim();
   if (said === "") return false;
   const expected = beat.expectedAnswer ?? "";
-  const expectsNumber = /^[\d\s,]+$/.test(expected.trim()) && expected.trim() !== "";
+  // A predicate ("any arrangement of these digits") expects a number just
+  // as a plain "6000" does; only its JSON shape would fail the regex.
+  const expectsNumber =
+    parseAnswerPredicate(expected) !== null || (/^[\d\s,]+$/.test(expected.trim()) && expected.trim() !== "");
   if (!expectsNumber) return true;
   return /\d/.test(said) || SINHALA_NUMBER_WORDS.test(said);
 }

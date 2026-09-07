@@ -84,8 +84,9 @@ interface BeatRewrite {
   why?: string;
 }
 
-interface AppendedBeat {
-  after: string;
+interface InsertedBeat {
+  after?: string;
+  before?: string;
   beat: {
     id: string;
     type: string;
@@ -107,7 +108,13 @@ interface CorrectionsFile {
   neutralConfirmation: Record<string, string>;
   answerAssumption: Record<string, string>;
   conversationalRuns: { rewrite: Record<string, BeatRewrite>; remove: Array<{ id: string; why: string }> };
-  ending: { rewrite: Record<string, BeatRewrite>; append: AppendedBeat[] };
+  ending: { rewrite: Record<string, BeatRewrite>; append: InsertedBeat[] };
+  boardContinuity: { rewrite: Record<string, BeatRewrite>; insert: InsertedBeat[] };
+  activitiesThatHappen: { rewrite: Record<string, BeatRewrite & { remove?: boolean }>; insert: InsertedBeat[] };
+  /** Round 6: the question round 4 removed with the praise, put back. */
+  restoredPrompt: { insert: InsertedBeat[] };
+  /** Round 7: board continuity, the read-back, the 1364 redundancy, the early answer. */
+  visualContinuity: { rewrite: Record<string, BeatRewrite & { remove?: boolean }>; insert: InsertedBeat[] };
 }
 
 interface DecisionsFile {
@@ -314,7 +321,15 @@ async function main(): Promise<void> {
   // earlier round's replacement can legitimately point at a beat that no
   // longer exists. Skipping is right ONLY for those; any other unknown id
   // is a typo in a review file and must still fail loudly.
-  const removedLater = new Set(corrections.conversationalRuns.remove.map((entry) => entry.id));
+  const removedLater = new Set<string>([
+    ...corrections.conversationalRuns.remove.map((entry) => entry.id),
+    ...Object.entries(corrections.activitiesThatHappen.rewrite)
+      .filter(([, rewrite]) => rewrite.remove)
+      .map(([id]) => id),
+    ...Object.entries(corrections.visualContinuity.rewrite)
+      .filter(([, rewrite]) => rewrite.remove)
+      .map(([id]) => id),
+  ]);
 
   /**
    * Beats round 4 re-types. It runs last and wins, so round 3's softening
@@ -326,6 +341,7 @@ async function main(): Promise<void> {
     ...beatEntries(corrections.neutralConfirmation).map(([id]) => id),
     ...Object.keys(corrections.conversationalRuns.rewrite).filter((id) => id.startsWith("authored:")),
     ...Object.keys(corrections.ending.rewrite).filter((id) => id.startsWith("authored:")),
+    ...Object.keys(corrections.visualContinuity.rewrite).filter((id) => id.startsWith("authored:")),
   ]);
 
   const apply = (id: string, sourceText: string, source: string): void => {
@@ -420,6 +436,11 @@ async function main(): Promise<void> {
 
   const applyRewrite = (id: string, rewrite: BeatRewrite, why: string): void => {
     const beat = byId.get(id);
+    // A later round may have removed this beat (round 7 deletes :24 and
+    // :27-:29, which round 4 had rewritten). On a re-run the file already
+    // lacks them, and a rewrite with nothing left to rewrite is done —
+    // but any OTHER unknown id is a typo in a review file and still fails.
+    if (!beat && removedLater.has(id)) return;
     assert.ok(beat, `round 4 targets unknown beat ${id}`);
     const changes: string[] = [];
     if (rewrite.text !== undefined && beat.sourceText !== rewrite.text) {
@@ -458,6 +479,7 @@ async function main(): Promise<void> {
   // 1. Praise out of the beat after a question. A statement is not a
   //    question, so a beat that stops asking stops waiting too.
   for (const [id, text] of beatEntries(corrections.neutralConfirmation)) {
+    if (removedLater.has(id)) continue;
     const beat = byId.get(id);
     assert.ok(beat, `neutralConfirmation targets unknown beat ${id}`);
     const stillAsks = /[?？]/u.test(text);
@@ -473,6 +495,7 @@ async function main(): Promise<void> {
 
   // 3. Numbers no longer asserted as though the child had said them.
   for (const [id, text] of beatEntries(corrections.answerAssumption)) {
+    if (removedLater.has(id)) continue;
     const beat = byId.get(id);
     assert.ok(beat, `answerAssumption targets unknown beat ${id}`);
     // Round 2 left :28 paused RHETORICAL for a tag the new wording drops.
@@ -501,6 +524,48 @@ async function main(): Promise<void> {
     if (!id.startsWith("authored:")) continue;
     applyRewrite(id, rewrite, "ending");
   }
+  /** Inserts one beat before/after an anchor, or updates it if already there. */
+  const insertBeat = (addition: InsertedBeat, label: string): void => {
+    if (byId.has(addition.beat.id)) {
+      applyRewrite(
+        addition.beat.id,
+        {
+          text: addition.beat.spokenText,
+          type: addition.beat.type,
+          pause: addition.beat.pause,
+          board: addition.beat.board,
+          ...(addition.beat.expectedAnswer !== undefined
+            ? { expectedAnswer: addition.beat.expectedAnswer }
+            : { dropExpectedAnswer: true }),
+        },
+        addition.beat.why ?? label,
+      );
+      return;
+    }
+    const anchorId = addition.after ?? addition.before!;
+    const anchorIndex = file.beats.findIndex((beat) => beat.id === anchorId);
+    assert.ok(anchorIndex !== -1, `insert anchor ${anchorId} not found`);
+    const template = file.beats[anchorIndex]!;
+    const created: AuthoredBeat = {
+      id: addition.beat.id,
+      conceptTag: template.conceptTag,
+      type: addition.beat.type as AuthoredBeat["type"],
+      sourceText: addition.beat.spokenText,
+      spokenText: "",
+      numbers: [],
+      humanEdited: true,
+      pauseType: addition.beat.pause === "—" ? null : (addition.beat.pause as AuthoredBeat["pauseType"]),
+      boardIntent: addition.beat.board,
+      expectedAnswer: addition.beat.expectedAnswer,
+      guideStep: template.guideStep,
+      maxSimilarity: { jaccard: 0, cosine: null, closest: "" },
+    };
+    file.beats.splice(addition.after ? anchorIndex + 1 : anchorIndex, 0, created);
+    byId.set(created.id, created);
+    humanEdited.add(created.id);
+    structural.push({ id: created.id, what: "ADDED", why: addition.beat.why ?? label });
+  };
+
   for (const addition of corrections.ending.append) {
     if (byId.has(addition.beat.id)) {
       // Already added by an earlier run — UPDATE it rather than skip, or
@@ -542,6 +607,40 @@ async function main(): Promise<void> {
     humanEdited.add(created.id);
     structural.push({ id: created.id, what: "ADDED", why: addition.beat.why ?? "ending" });
   }
+
+  // ---- ROUND 5: board continuity and activities that happen -------------
+  for (const [id, rewrite] of Object.entries(corrections.boardContinuity.rewrite)) {
+    if (!id.startsWith("authored:")) continue;
+    applyRewrite(id, rewrite, "board continuity");
+  }
+  for (const addition of corrections.boardContinuity.insert ?? []) insertBeat(addition, "board continuity");
+  for (const [id, rewrite] of Object.entries(corrections.activitiesThatHappen.rewrite)) {
+    if (!id.startsWith("authored:")) continue;
+    if (rewrite.remove) {
+      const before = file.beats.length;
+      file.beats = file.beats.filter((beat) => beat.id !== id);
+      if (file.beats.length < before) structural.push({ id, what: "REMOVED", why: rewrite.why ?? "" });
+      byId.delete(id);
+      continue;
+    }
+    applyRewrite(id, rewrite, "activity");
+  }
+  for (const addition of corrections.activitiesThatHappen.insert) insertBeat(addition, "activity");
+  for (const addition of corrections.restoredPrompt.insert) insertBeat(addition, "restored prompt");
+
+  // ---- ROUND 7: visual continuity ---------------------------------------
+  for (const [id, rewrite] of Object.entries(corrections.visualContinuity.rewrite)) {
+    if (!id.startsWith("authored:")) continue;
+    if (rewrite.remove) {
+      const before = file.beats.length;
+      file.beats = file.beats.filter((beat) => beat.id !== id);
+      if (file.beats.length < before) structural.push({ id, what: "REMOVED", why: rewrite.why ?? "" });
+      byId.delete(id);
+      continue;
+    }
+    applyRewrite(id, rewrite, "visual continuity");
+  }
+  for (const addition of corrections.visualContinuity.insert) insertBeat(addition, "visual continuity");
 
   heading("3. STRUCTURAL FLOW (round 4)");
   for (const change of structural) {
@@ -624,6 +723,8 @@ async function main(): Promise<void> {
       type: beat.type,
       expectedAnswer: beat.expectedAnswer ?? null,
       conceptTag: beat.conceptTag,
+      board: beat.boardIntent as { kind: string; text?: string; digits?: number[]; title?: string },
+      numbers: beat.numbers,
     }));
 
   const before = checkSpeechRules(speechBeats());

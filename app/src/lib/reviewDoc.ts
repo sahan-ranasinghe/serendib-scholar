@@ -6,8 +6,47 @@
  * the author writes — a reviewer reads one format, whoever produced it.
  */
 import type { AuthoredScriptFile } from "@/lib/authoredScript";
-import { AUTHORED_OPENING_CONCEPT } from "@/lib/authoredScript";
+import { AUTHORED_OPENING_CONCEPT, textbookNumber, type AuthoredBoardIntent } from "@/lib/authoredScript";
 import type { LessonDesign } from "@/lib/lessonDesign";
+
+/**
+ * What a reviewer would SEE on the board for this intent — never what the
+ * intent merely stores. An expansion's `answers` are the key a later
+ * reveal writes in; printing them as the board's contents is what made
+ * the fourth review read :96 as showing the finished sum before asking
+ * for it.
+ */
+function visibleBoard(intent: AuthoredBoardIntent): { shows: string; stored?: string } {
+  switch (intent.kind) {
+    case "expansion":
+      return {
+        shows: `${textbookNumber(intent.number)} = ${intent.answers.map(() => "▢").join(" + ")}`,
+        stored: `${intent.answers.join(", ")} — the reveal key, NOT on the board`,
+      };
+    case "blank":
+      return { shows: `the staged exercise, row ${intent.rowIndex}'s ${intent.field} blank and active` };
+    case "reveal":
+      return { shows: `"${intent.value}" written into row ${intent.rowIndex}'s ${intent.field}` };
+    case "exercise":
+      return { shows: `the exercise ${intent.itemId.slice(0, 8)} as its content_bank row defines it` };
+    case "digitPicker":
+      return { shows: `the digit picker: ${intent.digits.join(", ")}` };
+    case "abacus":
+      return { shows: `the abacus [${intent.digits.join(", ")}]${intent.startEmpty ? ", rods bare" : ""}` };
+    case "abacus_add":
+      return { shows: `${intent.count} bead(s) onto rod ${intent.rod}` };
+    case "text":
+      return { shows: `"${intent.text}"${intent.highlight ? ` (ringing ${intent.highlight})` : ""}` };
+    case "title":
+      return { shows: `title card "${intent.title}"` };
+    case "builtNumber":
+      return { shows: "the number the child just built, with its name" };
+    case "clear":
+      return { shows: "nothing — deliberately blanked" };
+    case "none":
+      return { shows: "" };
+  }
+}
 
 export function renderReviewDoc(file: AuthoredScriptFile, design: LessonDesign): string {
   const lines: string[] = [];
@@ -59,6 +98,10 @@ export function renderReviewDoc(file: AuthoredScriptFile, design: LessonDesign):
       hooks.forEach((hook, index) => lines.push(`${index + 1}. ${hook}`));
     }
     lines.push("");
+    // Board state is carried across beats exactly as the runtime carries
+    // it, so the reviewer sees what is on the board during a beat — not
+    // the word "none", which every review so far has read as "blank".
+    let inherited: string | null = null;
     for (const beat of file.beats.filter((b) => b.conceptTag === section.tag)) {
       lines.push(`### \`${beat.id}\``);
       lines.push("");
@@ -77,7 +120,21 @@ export function renderReviewDoc(file: AuthoredScriptFile, design: LessonDesign):
         lines.push(`Source: \`${beat.sourceText}\``);
       }
       lines.push("");
-      lines.push(`Board: \`${JSON.stringify(beat.boardIntent)}\``);
+      const intent = beat.boardIntent;
+      const visible = visibleBoard(intent);
+      if (intent.kind === "none") {
+        lines.push(`Board shows: ${inherited ?? "_(nothing staged yet in this concept)_"} — inherited`);
+      } else if (intent.kind === "clear") {
+        lines.push("Board shows: **nothing** — deliberately cleared");
+        inherited = null;
+      } else if (intent.kind === "builtNumber" || intent.kind === "reveal") {
+        // Overlays: the base board stays underneath.
+        lines.push(`Board shows: ${inherited ?? "_(nothing)_"}, plus ${visible.shows}`);
+      } else {
+        lines.push(`Board shows: ${visible.shows}`);
+        inherited = visible.shows;
+      }
+      if (visible.stored) lines.push("", `Stored answers: ${visible.stored}`);
       lines.push("");
     }
   }

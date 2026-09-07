@@ -231,7 +231,9 @@
       "numbers": [],
       "pauseType": "ASK",
       "boardIntent": {
-        "kind": "none"
+        "kind": "text",
+        "text": "84   101   528   997",
+        "highlight": "84"
       },
       "expectedAnswer": "අසූ හතර",
       "guideStep": "Display a row of numbers with up to 3 digits and have students read each number's name aloud.",
@@ -240,7 +242,8 @@
         "cosine": 0.8162699209586776,
         "closest": "මෙන්න මෙතන තියෙන සංඛ්‍යාව මෙන්න මේ පෙතේ නිරූපණය කරලා පෙන්නුවා."
       },
-      "sourceText": "මෙන්න මේ පුවරුවේ තියෙන මුල්ම සංඛ්‍යාව මොකක්ද කියලා මට කියන්න බලන්න."
+      "sourceText": "මෙන්න මේ පුවරුවේ තියෙන මුල්ම සංඛ්‍යාව මොකක්ද කියලා මට කියන්න බලන්න.",
+      "humanEdited": true
     },
     {
       "id": "authored:readWrite4Digit:3",
@@ -252,7 +255,9 @@
       ],
       "pauseType": null,
       "boardIntent": {
-        "kind": "none"
+        "kind": "text",
+        "text": "84   101   528   997",
+        "highlight": "84"
       },
       "guideStep": "Display a row of numbers with up to 3 digits and have students read each number's name aloud.",
       "maxSimilarity": {
@@ -264,6 +269,47 @@
       "humanEdited": true
     },
     {
+      "id": "authored:readWrite4Digit:3a",
+      "conceptTag": "readWrite4Digit",
+      "type": "ASK",
+      "sourceText": "ඊළඟ සංඛ්‍යාවේ නම කියන්න බලන්න.",
+      "spokenText": "ඊළඟ සංඛ්‍යාවේ නම කියන්න බලන්න.",
+      "numbers": [],
+      "humanEdited": true,
+      "pauseType": "ASK",
+      "boardIntent": {
+        "kind": "text",
+        "text": "84   101   528   997",
+        "highlight": "101"
+      },
+      "expectedAnswer": "එකසිය එක",
+      "guideStep": "Display a row of numbers with up to 3 digits and have students read each number's name aloud.",
+      "maxSimilarity": {
+        "jaccard": 0,
+        "cosine": null,
+        "closest": ""
+      }
+    },
+    {
+      "id": "authored:readWrite4Digit:3b",
+      "conceptTag": "readWrite4Digit",
+      "type": "EXPLAIN",
+      "sourceText": "සංඛ්‍යාවක් වචනයෙන් කියන එකට කියන්නේ සංඛ්‍යා නාමය කියලා.",
+      "spokenText": "සංඛ්‍යාවක් වචනයෙන් කියන එකට කියන්නේ සංඛ්‍යා නාමය කියලා.",
+      "numbers": [],
+      "humanEdited": true,
+      "pauseType": null,
+      "boardIntent": {
+        "kind": "none"
+      },
+      "guideStep": "Display a row of numbers with up to 3 digits and have students read each number's name aloud.",
+      "maxSimilarity": {
+        "jaccard": 0.28205128205128205,
+        "cosine": null,
+        "closest": "බලන්න පළවෙනියට කියන්නේ මොකක්ද කියලා."
+      }
+    },
+    {
       "id": "authored:readWrite4Digit:4",
       "conceptTag": "readWrite4Digit",
       "type": "EXPLAIN",
@@ -273,7 +319,9 @@
       ],
       "pauseType": null,
       "boardIntent": {
-        "kind": "none"
+        "kind": "text",
+        "text": "84   101   528   997",
+        "highlight": "101"
       },
       "guideStep": "Display a row of numbers with up to 3 digits and have students read each number's name aloud.",
       "maxSimilarity": {
@@ -292,7 +340,9 @@
       "numbers": [],
       "pauseType": "SOFT_CHECK",
       "boardIntent": {
-        "kind": "none"
+        "kind": "text",
+        "text": "84   101   528   997",
+        "highlight": "997"
       },
       "expectedAnswer": "නවසිය අනූ හත",
       "guideStep": "Display a row of numbers with up to 3 digits and have students read each number's name aloud.",
@@ -303,6 +353,29 @@
       },
       "sourceText": "එහෙනම් {address}, පුවරුවේ තියෙන අන්තිම සංඛ්‍යාවත් මට කියවලා පෙන්නන්න පුළුවන්ද?",
       "humanEdited": true
+    },
+    {
+      "id": "authored:readWrite4Digit:5a",
+      "conceptTag": "readWrite4Digit",
+      "type": "EXPLAIN",
+      "sourceText": "අන්තිම එක {number:997}යි.",
+      "spokenText": "අන්තිම එක නවසිය අනූ හතයි.",
+      "numbers": [
+        997
+      ],
+      "humanEdited": true,
+      "pauseType": null,
+      "boardIntent": {
+        "kind": "text",
+        "text": "84   101   528   997",
+        "highlight": "997"
+      },
+      "guideStep": "Display a row of numbers with up to 3 digits and have students read each number's name aloud.",
+      "maxSimilarity": {
+        "jaccard": 0,
+        "cosine": null,
+        "closest": ""
+      }
     },
     {
       "id": "authored:readWrite4Digit:6",
@@ -380,7 +453,7 @@
       "id": "authored:readWrite4Digit:9",
       "conceptTag": "readWrite4Digit",
       "type": "EXPLAIN",
-      "spokenText": "ඔව්, නවසිය අනූ නවයට එකක් එකතු වුණාම දහස හැදෙනවා.",
+      "spokenText": "නවසිය අනූ නවයට එකක් එකතු වුණාම දහස හැදෙනවා.",
       "numbers": [
         999,
         1,
@@ -397,7 +470,7 @@
         "cosine": null,
         "closest": ""
       },
-      "sourceText": "ඔව්, {number:999}ට {number:1}ක් එකතු වුණාම {number:1000} හැදෙනවා.",
+      "sourceText": "{number:999}ට {number:1}ක් එකතු වුණාම {number:1000} හැදෙනවා.",
       "humanEdited": true
     },
     {
@@ -577,6 +650,32 @@
       "humanEdited": true
     },
     {
+      "id": "authored:readWrite4Digit:18b",
+      "conceptTag": "readWrite4Digit",
+      "type": "TRANSITION",
+      "sourceText": "දැන් අපි වෙනත් අභ්‍යාසයක් බලමු.",
+      "spokenText": "දැන් අපි වෙනත් අභ්‍යාසයක් බලමු.",
+      "numbers": [],
+      "humanEdited": true,
+      "pauseType": null,
+      "boardIntent": {
+        "kind": "digitPicker",
+        "digits": [
+          1,
+          3,
+          6,
+          4
+        ],
+        "instructions": "මේ ඉලක්කම් වලින් ඉලක්කම් හතරේ සංඛ්‍යා හදන්න."
+      },
+      "guideStep": "Give groups a worksheet with a circle containing digits 1, 3, 6, 4.",
+      "maxSimilarity": {
+        "jaccard": 0.19047619047619047,
+        "cosine": null,
+        "closest": "ඒ විදිහ අභ්‍යාසයක් තියෙනවා."
+      }
+    },
+    {
       "id": "authored:readWrite4Digit:19",
       "conceptTag": "readWrite4Digit",
       "type": "SHOW_BOARD",
@@ -584,8 +683,7 @@
       "numbers": [],
       "pauseType": "RHETORICAL",
       "boardIntent": {
-        "kind": "text",
-        "text": "1,  3,  6,  4"
+        "kind": "none"
       },
       "guideStep": "Give groups a worksheet with a circle containing digits 1, 3, 6, 4.",
       "maxSimilarity": {
@@ -642,10 +740,10 @@
     {
       "id": "authored:readWrite4Digit:22",
       "conceptTag": "readWrite4Digit",
-      "type": "SOFT_CHECK",
+      "type": "ASK",
       "spokenText": "මේ ඉලක්කම් වලින් ඔයා කැමති සංඛ්‍යාවක් හදලා මට කියන්න.",
       "numbers": [],
-      "pauseType": "SOFT_CHECK",
+      "pauseType": "ASK",
       "boardIntent": {
         "kind": "none"
       },
@@ -656,7 +754,27 @@
         "closest": "බලලා මට කියන්නකො."
       },
       "sourceText": "මේ ඉලක්කම් වලින් ඔයා කැමති සංඛ්‍යාවක් හදලා මට කියන්න.",
-      "humanEdited": true
+      "humanEdited": true,
+      "expectedAnswer": "{\"kind\": \"permutationOf\", \"digits\": [1, 3, 6, 4], \"length\": 4}"
+    },
+    {
+      "id": "authored:readWrite4Digit:22a",
+      "conceptTag": "readWrite4Digit",
+      "type": "EXPLAIN",
+      "sourceText": "ඒ සංඛ්‍යාවේ නම බෝඩ් එකේ බලන්න.",
+      "spokenText": "ඒ සංඛ්‍යාවේ නම බෝඩ් එකේ බලන්න.",
+      "numbers": [],
+      "humanEdited": true,
+      "pauseType": null,
+      "boardIntent": {
+        "kind": "builtNumber"
+      },
+      "guideStep": "Give groups a worksheet with a circle containing digits 1, 3, 6, 4.",
+      "maxSimilarity": {
+        "jaccard": 0,
+        "cosine": null,
+        "closest": ""
+      }
     },
     {
       "id": "authored:readWrite4Digit:23",
@@ -669,7 +787,7 @@
       "pauseType": null,
       "boardIntent": {
         "kind": "text",
-        "text": "1364"
+        "text": "1, 3, 6, 4   →   1 364"
       },
       "guideStep": "Give groups a worksheet with a circle containing digits 1, 3, 6, 4.",
       "maxSimilarity": {
@@ -678,49 +796,6 @@
         "closest": "මේක ඉතින් ඕනි විදිහට වෙනස් වෙන්න පුළුවන්."
       },
       "sourceText": "උදාහරණයක් විදිහට අපිට {number:1364} හදන්නත් පුළුවන්.",
-      "humanEdited": true
-    },
-    {
-      "id": "authored:readWrite4Digit:24",
-      "conceptTag": "readWrite4Digit",
-      "type": "SOFT_CHECK",
-      "spokenText": "අපි මේ විදියට තව සංඛ්‍යා හදන්න සූදානම් වෙමු, හරි නේද?",
-      "numbers": [],
-      "pauseType": "SOFT_CHECK",
-      "boardIntent": {
-        "kind": "none"
-      },
-      "guideStep": "Give groups a worksheet with a circle containing digits 1, 3, 6, 4.",
-      "maxSimilarity": {
-        "jaccard": 0.125,
-        "cosine": 0.7880046051318731,
-        "closest": "ඒවා ආයෙත් මතක් කරන්නයි අපි මේ සූදානම් වෙන්නේ."
-      },
-      "sourceText": "අපි මේ විදියට තව සංඛ්‍යා හදන්න සූදානම් වෙමු, හරි නේද?"
-    },
-    {
-      "id": "authored:readWrite4Digit:25",
-      "conceptTag": "readWrite4Digit",
-      "type": "SHOW_BOARD",
-      "spokenText": "දැන් අපි අර රවුම ඇතුළේ තිබුණු එක, තුන, හය, හතර ආයෙත් ගමු නේද?",
-      "numbers": [
-        1,
-        3,
-        6,
-        4
-      ],
-      "pauseType": "RHETORICAL",
-      "boardIntent": {
-        "kind": "text",
-        "text": "1, 3, 6, 4"
-      },
-      "guideStep": "Give groups a worksheet with a circle containing digits 1, 3, 6, 4.",
-      "maxSimilarity": {
-        "jaccard": 0.09523809523809523,
-        "cosine": null,
-        "closest": "එතකොට දැන් අපි හැමෝගෙම හරිනෙ නේද?"
-      },
-      "sourceText": "දැන් අපි අර රවුම ඇතුළේ තිබුණු {number:1}, {number:3}, {number:6}, {number:4} ආයෙත් ගමු නේද?",
       "humanEdited": true
     },
     {
@@ -743,71 +818,10 @@
       "humanEdited": true
     },
     {
-      "id": "authored:readWrite4Digit:27",
-      "conceptTag": "readWrite4Digit",
-      "type": "SOFT_CHECK",
-      "spokenText": "ඔයා කැමති පිළිවෙළකට මේ ඉලක්කම් තියලා මට සංඛ්‍යාවක් කියන්න.",
-      "numbers": [],
-      "pauseType": "SOFT_CHECK",
-      "boardIntent": {
-        "kind": "none"
-      },
-      "guideStep": "Instruct students to form 5 four-digit numbers using the digits in the circle and write the number name of each.",
-      "maxSimilarity": {
-        "jaccard": 0.15254237288135594,
-        "cosine": null,
-        "closest": "ඒ කියන්නේ මෙන්න මේ ඉලක්කම."
-      },
-      "sourceText": "ඔයා කැමති පිළිවෙළකට මේ ඉලක්කම් තියලා මට සංඛ්‍යාවක් කියන්න.",
-      "humanEdited": true
-    },
-    {
-      "id": "authored:readWrite4Digit:28",
-      "conceptTag": "readWrite4Digit",
-      "type": "EXPLAIN",
-      "spokenText": "අපි හිතමු මේ ඉලක්කම් වලින් එක්දහස් තුන්සිය හැට හතර හැදුවා කියලා. ඒක කියවන්නේ එක්දහස් තුන්සිය හැට හතර කියලයි.",
-      "numbers": [
-        1364,
-        1364
-      ],
-      "pauseType": null,
-      "boardIntent": {
-        "kind": "text",
-        "text": "1364"
-      },
-      "guideStep": "Instruct students to form 5 four-digit numbers using the digits in the circle and write the number name of each.",
-      "maxSimilarity": {
-        "jaccard": 0.15789473684210525,
-        "cosine": null,
-        "closest": "ආ මේ තියෙන්නේ ඉලක්කම."
-      },
-      "sourceText": "අපි හිතමු මේ ඉලක්කම් වලින් {number:1364} හැදුවා කියලා. ඒක කියවන්නේ {number:1364} කියලයි.",
-      "humanEdited": true
-    },
-    {
-      "id": "authored:readWrite4Digit:29",
-      "conceptTag": "readWrite4Digit",
-      "type": "SOFT_CHECK",
-      "spokenText": "දැන් ඔය හදපු එක ආයෙත් ගන්නේ නැතුව, තව සංඛ්‍යාවක් හදමුද?",
-      "numbers": [],
-      "pauseType": "SOFT_CHECK",
-      "boardIntent": {
-        "kind": "none"
-      },
-      "guideStep": "Instruct students to form 5 four-digit numbers using the digits in the circle and write the number name of each.",
-      "maxSimilarity": {
-        "jaccard": 0.061224489795918366,
-        "cosine": null,
-        "closest": "ඊට පස්සේ ගන්නේ මොකක්ද?"
-      },
-      "sourceText": "දැන් ඔය හදපු එක ආයෙත් ගන්නේ නැතුව, තව සංඛ්‍යාවක් හදමුද?",
-      "humanEdited": true
-    },
-    {
       "id": "authored:readWrite4Digit:30",
       "conceptTag": "readWrite4Digit",
       "type": "EXPLAIN",
-      "spokenText": "තවත් අලුත් සංඛ්‍යා පහක් හදන්න ලෑල්ලට යමු!",
+      "spokenText": "තවත් අලුත් සංඛ්‍යා පහක් හදන්න ලෑල්ලට යමු.",
       "numbers": [],
       "pauseType": null,
       "boardIntent": {
@@ -820,8 +834,146 @@
         "cosine": null,
         "closest": "මෙතන තියෙන දේවල් භාවිත කරලානේ අපි ඉලක්කම් හතරේ සංඛ්‍යා හදන්නේ."
       },
-      "sourceText": "තවත් අලුත් සංඛ්‍යා පහක් හදන්න ලෑල්ලට යමු!",
+      "sourceText": "තවත් අලුත් සංඛ්‍යා පහක් හදන්න ලෑල්ලට යමු.",
       "humanEdited": true
+    },
+    {
+      "id": "authored:readWrite4Digit:30a",
+      "conceptTag": "readWrite4Digit",
+      "type": "ASK",
+      "sourceText": "මේ ඉලක්කම් හතරෙන් සංඛ්‍යාවක් හදලා මට කියන්න.",
+      "spokenText": "මේ ඉලක්කම් හතරෙන් සංඛ්‍යාවක් හදලා මට කියන්න.",
+      "numbers": [],
+      "humanEdited": true,
+      "pauseType": "ASK",
+      "boardIntent": {
+        "kind": "digitPicker",
+        "digits": [
+          1,
+          3,
+          6,
+          4
+        ],
+        "instructions": "මේ ඉලක්කම් වලින් ඉලක්කම් හතරේ සංඛ්‍යා හදන්න."
+      },
+      "expectedAnswer": "{\"kind\": \"permutationOf\", \"digits\": [1, 3, 6, 4], \"length\": 4}",
+      "guideStep": "Instruct students to form 5 four-digit numbers using the digits in the circle and write the number name of each.",
+      "maxSimilarity": {
+        "jaccard": 0.26666666666666666,
+        "cosine": null,
+        "closest": "බලලා මට කියන්නකො."
+      }
+    },
+    {
+      "id": "authored:readWrite4Digit:30b",
+      "conceptTag": "readWrite4Digit",
+      "type": "EXPLAIN",
+      "sourceText": "ඒ සංඛ්‍යාවේ නම බෝඩ් එකේ බලන්න.",
+      "spokenText": "ඒ සංඛ්‍යාවේ නම බෝඩ් එකේ බලන්න.",
+      "numbers": [],
+      "humanEdited": true,
+      "pauseType": null,
+      "boardIntent": {
+        "kind": "builtNumber"
+      },
+      "guideStep": "Instruct students to form 5 four-digit numbers using the digits in the circle and write the number name of each.",
+      "maxSimilarity": {
+        "jaccard": 0,
+        "cosine": null,
+        "closest": ""
+      }
+    },
+    {
+      "id": "authored:readWrite4Digit:30c",
+      "conceptTag": "readWrite4Digit",
+      "type": "ASK",
+      "sourceText": "දැන් ඒකට වඩා වෙනස් සංඛ්‍යාවක් හදන්න පුළුවන්ද?",
+      "spokenText": "දැන් ඒකට වඩා වෙනස් සංඛ්‍යාවක් හදන්න පුළුවන්ද?",
+      "numbers": [],
+      "humanEdited": true,
+      "pauseType": "ASK",
+      "boardIntent": {
+        "kind": "digitPicker",
+        "digits": [
+          1,
+          3,
+          6,
+          4
+        ],
+        "instructions": "මේ ඉලක්කම් වලින් ඉලක්කම් හතරේ සංඛ්‍යා හදන්න."
+      },
+      "expectedAnswer": "{\"kind\": \"permutationOf\", \"digits\": [1, 3, 6, 4], \"length\": 4}",
+      "guideStep": "Instruct students to form 5 four-digit numbers using the digits in the circle and write the number name of each.",
+      "maxSimilarity": {
+        "jaccard": 0.16666666666666666,
+        "cosine": null,
+        "closest": "මේක ඉතින් ඕනි විදිහට වෙනස් වෙන්න පුළුවන්."
+      }
+    },
+    {
+      "id": "authored:readWrite4Digit:30d",
+      "conceptTag": "readWrite4Digit",
+      "type": "EXPLAIN",
+      "sourceText": "ඒ සංඛ්‍යාවේ නම බෝඩ් එකේ බලන්න.",
+      "spokenText": "ඒ සංඛ්‍යාවේ නම බෝඩ් එකේ බලන්න.",
+      "numbers": [],
+      "humanEdited": true,
+      "pauseType": null,
+      "boardIntent": {
+        "kind": "builtNumber"
+      },
+      "guideStep": "Instruct students to form 5 four-digit numbers using the digits in the circle and write the number name of each.",
+      "maxSimilarity": {
+        "jaccard": 0,
+        "cosine": null,
+        "closest": ""
+      }
+    },
+    {
+      "id": "authored:readWrite4Digit:30e",
+      "conceptTag": "readWrite4Digit",
+      "type": "ASK",
+      "sourceText": "අන්තිම වතාවට තව අලුත් සංඛ්‍යාවක් හදමු.",
+      "spokenText": "අන්තිම වතාවට තව අලුත් සංඛ්‍යාවක් හදමු.",
+      "numbers": [],
+      "humanEdited": true,
+      "pauseType": "ASK",
+      "boardIntent": {
+        "kind": "digitPicker",
+        "digits": [
+          1,
+          3,
+          6,
+          4
+        ],
+        "instructions": "මේ ඉලක්කම් වලින් ඉලක්කම් හතරේ සංඛ්‍යා හදන්න."
+      },
+      "expectedAnswer": "{\"kind\": \"permutationOf\", \"digits\": [1, 3, 6, 4], \"length\": 4}",
+      "guideStep": "Instruct students to form 5 four-digit numbers using the digits in the circle and write the number name of each.",
+      "maxSimilarity": {
+        "jaccard": 0.04081632653061224,
+        "cosine": null,
+        "closest": "බලන්න, මෙන්න තවත් සංඛ්‍යාවක් තියෙනවා."
+      }
+    },
+    {
+      "id": "authored:readWrite4Digit:30f",
+      "conceptTag": "readWrite4Digit",
+      "type": "EXPLAIN",
+      "sourceText": "ඒ සංඛ්‍යාවේ නම බෝඩ් එකේ බලන්න.",
+      "spokenText": "ඒ සංඛ්‍යාවේ නම බෝඩ් එකේ බලන්න.",
+      "numbers": [],
+      "humanEdited": true,
+      "pauseType": null,
+      "boardIntent": {
+        "kind": "builtNumber"
+      },
+      "guideStep": "Instruct students to form 5 four-digit numbers using the digits in the circle and write the number name of each.",
+      "maxSimilarity": {
+        "jaccard": 0,
+        "cosine": null,
+        "closest": ""
+      }
     },
     {
       "conceptTag": "readWrite4Digit",
@@ -845,6 +997,51 @@
       },
       "id": "authored:readWrite4Digit:31",
       "sourceText": "ඔන්න {address}, මම {number:84} කියන සංඛ්‍යාව වෙන් කරලා ලිව්වා. ඒත් මගේ වැඩේ පොඩි වැරැද්දක් වුණා වගේ. මට උදව්වක් විදිහට ඒ වැරැද්ද හොයලා කියන්න පුළුවන්ද?"
+    },
+    {
+      "id": "authored:readWrite4Digit:31a",
+      "conceptTag": "readWrite4Digit",
+      "type": "RESOLVE",
+      "sourceText": "වැරැද්ද තමයි {number:8}ට බිංදුවක් නොදැමීම. ඒක {number:80} විය යුතුයි — {number:84} කියන්නේ {number:80}යි {number:4}යි.",
+      "spokenText": "වැරැද්ද තමයි අටට බිංදුවක් නොදැමීම. ඒක අසූව විය යුතුයි — අසූ හතර කියන්නේ අසූවයි හතරයි.",
+      "numbers": [
+        8,
+        80,
+        84,
+        80,
+        4
+      ],
+      "humanEdited": true,
+      "pauseType": null,
+      "boardIntent": {
+        "kind": "text",
+        "text": "84 = 80 + 4"
+      },
+      "guideStep": "peer-check (guide) → find Zara's mistake",
+      "maxSimilarity": {
+        "jaccard": 0.16666666666666666,
+        "cosine": null,
+        "closest": "මොකද කියන්නේ?"
+      }
+    },
+    {
+      "id": "authored:readWrite4Digit:31b",
+      "conceptTag": "readWrite4Digit",
+      "type": "TRANSITION",
+      "sourceText": "දැන් අපි ලොකු සංඛ්‍යා ගැන බලමු.",
+      "spokenText": "දැන් අපි ලොකු සංඛ්‍යා ගැන බලමු.",
+      "numbers": [],
+      "humanEdited": true,
+      "pauseType": null,
+      "boardIntent": {
+        "kind": "none"
+      },
+      "guideStep": "peer-check (guide) → find Zara's mistake",
+      "maxSimilarity": {
+        "jaccard": 0.14285714285714285,
+        "cosine": null,
+        "closest": "ඔන්න දැන් අපි ලියනවා ඒක සියයස්ථානය."
+      }
     },
     {
       "id": "authored:placeValue4Digit:32",
@@ -1476,8 +1673,10 @@
       "id": "authored:placeValue4Digit:64",
       "conceptTag": "placeValue4Digit",
       "type": "TRANSITION",
-      "spokenText": "දැන් අපි මේ සංඛ්‍යාව විහිදුවා ලියමු, {address}.",
-      "numbers": [],
+      "spokenText": "දැන් අපි කලින් ගත්තු පන්දහස් හාරසිය විසි එක විහිදුවා ලියමු, {address}.",
+      "numbers": [
+        5421
+      ],
       "pauseType": null,
       "boardIntent": {
         "kind": "abacus",
@@ -1490,11 +1689,11 @@
       },
       "guideStep": "Show the number written in expanded form.",
       "maxSimilarity": {
-        "jaccard": 0.21621621621621623,
+        "jaccard": 0.2153846153846154,
         "cosine": null,
-        "closest": "කොහොමද සංඛ්‍යාව විහිදුවා ලිව්වහම?"
+        "closest": "දැන් විහිදුවා ලියන හැටි කලින් මගෙත් එක්ක කතා කරා."
       },
-      "sourceText": "දැන් අපි මේ සංඛ්‍යාව විහිදුවා ලියමු, {address}.",
+      "sourceText": "දැන් අපි කලින් ගත්තු {number:5421} විහිදුවා ලියමු, {address}.",
       "humanEdited": true
     },
     {
@@ -1609,7 +1808,7 @@
       "id": "authored:placeValue4Digit:71",
       "conceptTag": "placeValue4Digit",
       "type": "EXPLAIN",
-      "spokenText": "ඔව්, දහයස්ථානයේ දෙකේ අගය විස්සයි.",
+      "spokenText": "දහයස්ථානයේ දෙකේ අගය විස්සයි.",
       "numbers": [
         2,
         20
@@ -1625,7 +1824,7 @@
         "cosine": null,
         "closest": ""
       },
-      "sourceText": "ඔව්, දහයස්ථානයේ {number:2}ේ අගය {number:20}යි.",
+      "sourceText": "දහයස්ථානයේ {number:2}ේ අගය {number:20}යි.",
       "humanEdited": true
     },
     {
@@ -2088,20 +2287,28 @@
       "id": "authored:placeValue4Digit:94",
       "conceptTag": "placeValue4Digit",
       "type": "SOFT_CHECK",
-      "spokenText": "බිංදුවක් ආවොත් එතැනින් කිසිම අගයක් එකතු වෙන්නේ නෑ නේද {address}?",
-      "numbers": [],
+      "spokenText": "අපි කලින් ගත්තු හත්දහස් හැට දෙක දිහා ආයෙත් බලමු. බිංදුවක් ආවොත් එතැනින් කිසිම අගයක් එකතු වෙන්නේ නෑ නේද {address}?",
+      "numbers": [
+        7062
+      ],
       "pauseType": "SOFT_CHECK",
       "boardIntent": {
-        "kind": "text",
-        "text": "7 062 = 7000 + 0 + 60 + 2"
+        "kind": "abacus",
+        "digits": [
+          7,
+          0,
+          6,
+          2
+        ]
       },
       "guideStep": "guide step 6 of 7: Give groups a card with four digits; have them form several numbers using the digits and write each in expanded form.",
       "maxSimilarity": {
-        "jaccard": 0.09090909090909091,
-        "cosine": 0.873548435669318,
-        "closest": "එහෙම බැරි වෙන්නේ නැහැ."
+        "jaccard": 0.11864406779661017,
+        "cosine": null,
+        "closest": "තිස් නව දහස් නවසිය අනූනවයට එකක් එකතු වුණාම හතළිස් දහසයි කියලා අපි කලින් ඉගෙන ගත්තා නේද?"
       },
-      "sourceText": "බිංදුවක් ආවොත් එතැනින් කිසිම අගයක් එකතු වෙන්නේ නෑ නේද {address}?"
+      "sourceText": "අපි කලින් ගත්තු {number:7062} දිහා ආයෙත් බලමු. බිංදුවක් ආවොත් එතැනින් කිසිම අගයක් එකතු වෙන්නේ නෑ නේද {address}?",
+      "humanEdited": true
     },
     {
       "id": "authored:placeValue4Digit:95",
@@ -2130,8 +2337,14 @@
       "numbers": [],
       "pauseType": null,
       "boardIntent": {
-        "kind": "text",
-        "text": "5 421 = 5 000 + 400 + 20 + 1"
+        "kind": "expansion",
+        "number": 5421,
+        "answers": [
+          5000,
+          400,
+          20,
+          1
+        ]
       },
       "guideStep": "guide step 7 of 7: Give students a worksheet of further expansion exercises to do alone.",
       "maxSimilarity": {
@@ -2139,7 +2352,8 @@
         "cosine": 0.8210764441304238,
         "closest": "ඒ විදිහ අභ්‍යාසයක් තියෙනවා."
       },
-      "sourceText": "මෙන්න ඔයාට විශේෂ අභ්‍යාස පත්‍රිකාවක් තිරයේ පෙනෙනවා."
+      "sourceText": "මෙන්න ඔයාට විශේෂ අභ්‍යාස පත්‍රිකාවක් තිරයේ පෙනෙනවා.",
+      "humanEdited": true
     },
     {
       "id": "authored:placeValue4Digit:97",
@@ -2233,8 +2447,11 @@
       ],
       "pauseType": null,
       "boardIntent": {
-        "kind": "text",
-        "text": "5 421 = 5000 + ..."
+        "kind": "reveal",
+        "itemId": "expansion:5421",
+        "rowIndex": 0,
+        "field": "part0",
+        "value": "5000"
       },
       "guideStep": "guide step 7 of 7: Give students a worksheet of further expansion exercises to do alone.",
       "maxSimilarity": {

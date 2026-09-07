@@ -132,16 +132,36 @@ function BoardContentView({
           <span className="chalk-text text-4xl font-bold text-[#3d4f5c]">{content.title}</span>
         </div>
       );
-    case "text_card":
-      // The teacher's own board text, verbatim, chalk-style.
+    case "text_card": {
+      // The teacher's own board text, verbatim, chalk-style. When a
+      // `highlight` is set, that fragment is ringed in chalk and the rest
+      // stays put — the row of numbers she is working along does not have
+      // to be torn down and redrawn to move attention one item to the right.
+      const segments = content.highlight
+        ? content.text.split(content.highlight).flatMap((part, index) =>
+            index === 0 ? [part] : [{ mark: content.highlight as string }, part],
+          )
+        : [content.text];
       return (
         <div className="relative w-full max-w-2xl p-8">
           <ChalkBorder />
           <pre className="chalk-text overflow-x-auto whitespace-pre-wrap text-left text-lg leading-relaxed text-[#3d4f5c]">
-            {content.text}
+            {segments.map((segment, index) =>
+              typeof segment === "string" ? (
+                <span key={index}>{segment}</span>
+              ) : (
+                <span
+                  key={index}
+                  className="rounded-full bg-[#3d4f5c]/12 px-2 py-0.5 font-bold text-[#1f2c35] ring-2 ring-[#3d4f5c]/45"
+                >
+                  {segment.mark}
+                </span>
+              ),
+            )}
           </pre>
         </div>
       );
+    }
     case "abacus":
       return (
         <AnimatedAbacus
@@ -164,6 +184,15 @@ function BoardContentView({
               onSubmitTypedAnswer={onSubmitTypedAnswer ?? (() => {})}
             />
           ))}
+          {content.builtNumber && (
+            // The read-back: the child's own number and its name, beneath
+            // the picker they built it on. Rendered from real data — the
+            // digits they chose and sinhalaNumberName — never a model.
+            <div className="flex flex-col items-center gap-1 rounded-2xl bg-orange-100/70 px-4 py-3 text-center">
+              <span className="text-3xl font-bold tracking-widest text-orange-950">{content.builtNumber.digits}</span>
+              <span className="font-sinhala text-xl text-orange-900">{content.builtNumber.name}</span>
+            </div>
+          )}
         </div>
       );
   }

@@ -87,6 +87,15 @@ export const BEAT_REGISTRY = {
    * expected answer.
    */
   CHECK_MY_WORK: spec(45, "judge"),
+  /**
+   * The answer to a CHECK_MY_WORK, said aloud.
+   *
+   * A "find my mistake" that moves on without ever naming the mistake
+   * leaves the child holding a question — and the one who did NOT spot it
+   * is the one who most needs to hear it. Never skipped, never a judgement:
+   * it states what was wrong and why.
+   */
+  RESOLVE: spec(20, "none"),
   /** Legacy type: no longer emitted by the builder (sessions open with SESSION_START now). */
   CHAT_OPENER: spec(
     150,

@@ -39,7 +39,7 @@
     "$comment": "ROUND 4, THE SYSTEMIC ONE. The runtime already plays a praise or a miss clip based on what the child actually said (AUTHORED_LINES.feedbackCorrect / feedbackWrong, chosen by the planner). A scripted beat that ALSO congratulates therefore congratulates unconditionally — it plays word for word after a wrong answer, after a retry, and after silence that ended in Zara demonstrating the answer herself. Every beat that follows a question is now a NEUTRAL statement of the answer, which is true in all three cases. The praise did not go away; it moved to the only place that knows whether it is deserved.",
     "authored:readWrite4Digit:3": "පළමු සංඛ්‍යාව {number:84}යි.",
     "authored:readWrite4Digit:4": "එහි දසස්ථානයේ {number:0} තියෙන නිසා ඒ කොටස කියවෙන්නේ නැහැ.",
-    "authored:readWrite4Digit:9": "ඔව්, {number:999}ට {number:1}ක් එකතු වුණාම {number:1000} හැදෙනවා.",
+    "authored:readWrite4Digit:9": "{number:999}ට {number:1}ක් එකතු වුණාම {number:1000} හැදෙනවා.",
     "authored:readWrite4Digit:16": "ඒ සංඛ්‍යාව {number:3058}යි.",
     "authored:placeValue4Digit:45": "එතන පබළු {number:1}ක් නිසා අගය {number:1}යි.",
     "authored:placeValue4Digit:59": "ඒ සංඛ්‍යාව {number:5421}යි.",
@@ -51,8 +51,10 @@
     "authored:placeValue4Digit:99": "දහසස්ථානයේ ඉන්නේ {number:5} නේද.",
     "authored:placeValue4Digit:101": "ඒක {number:5000}යි.",
     "$auditNote": "The two below were NOT in the review list — the noVerdictAfterAQuestion rule found them when it ran across all 112 beats. Same systemic bug: praise written into a scripted beat that follows a question, so it plays whatever the child said.",
-    "authored:readWrite4Digit:30": "තවත් අලුත් සංඛ්‍යා පහක් හදන්න ලෑල්ලට යමු!",
-    "authored:placeValue4Digit:83": "ඒක {number:2}යි."
+    "authored:readWrite4Digit:30": "තවත් අලුත් සංඛ්‍යා පහක් හදන්න ලෑල්ලට යමු.",
+    "authored:placeValue4Digit:83": "ඒක {number:2}යි.",
+    "authored:placeValue4Digit:71": "දහයස්ථානයේ {number:2}ේ අගය {number:20}යි.",
+    "$ovNote": "ROUND 7: :9 and :71 lose their opening 'ඔව්'. After a SOFT_CHECK or a rhetorical tag ඔව් is a neutral opener; after an ASK it agrees with an answer the child may not have given, and plays unchanged after a wrong one. The validator now forbids it there and only there."
   },
   "answerAssumption": {
     "$comment": "ROUND 4. Both beats follow an OPEN-ENDED invitation ('make any number you like from these digits') and then say a specific number as though the child had said it. Whatever she actually made, Zara announced 1364. Re-framed as an example, which is true no matter what the child chose.",
@@ -221,7 +223,7 @@
           "board": {
             "kind": "none"
           },
-          "why": "An honest close: it praises the session, which happened, instead of a performance that did not. Worded away from the review's suggested 'අද ඔයා ගොඩක් දේවල් ඉගෙන ගත්තා', which measured 0.73 jaccard against the recorded teacher's own 'ගොඩක් දේවල් ඉගෙන ගත්තා' — the same sentence, not an echo of it."
+          "why": "An honest close: it praises the session, which happened, instead of a performance that did not. REVERTED in round 6 to this wording. The review's 'අද ඔයා ගොඩක් දේවල් ඉගෙන ගත්තා' measures 0.731 jaccard against the recorded teacher's own 'ගොඩක් දේවල් ඉගෙන ගත්තා' — it is her sentence, not an echo of it, and the distance guard exists precisely to keep her sentences out of Zara's mouth. Flagged twice, re-specified once, and withdrawn: the guard was right."
         }
       }
     ]
@@ -246,6 +248,389 @@
         "authored:placeValue4Digit:91"
       ],
       "action": "NONE — all three were false positives, and the rule was narrowed instead. Each follows a SOFT_CHECK that ends on a rhetorical tag ('කූරු හතරේ පිළිවෙළ ඔයාට මතක හිටියා නේද?'), which is a confirmation rather than an invitation to produce a number; the number that follows is Zara choosing her own example, not assuming the child's. The rule now fires only on a question that actually asks the child to make something — 'ඔයා කැමති', or no expectedAnswer AND no rhetorical tag."
+    }
+  },
+  "boardContinuity": {
+    "$comment": "ROUND 5, section B. The board kept being torn down between beats, so Zara said 'මේ සංඛ්‍යාව' at an empty wall and named numbers the child could not see. The row of four numbers now STAYS UP through the whole warm-up with the one under discussion ringed, and the two beats that reach back to an earlier number bring that number back with them.",
+    "rewrite": {
+      "authored:readWrite4Digit:2": {
+        "board": {
+          "kind": "text",
+          "text": "84   101   528   997",
+          "highlight": "84"
+        },
+        "why": "The row stays; 84 is ringed while it is the one being asked about."
+      },
+      "authored:readWrite4Digit:3": {
+        "board": {
+          "kind": "text",
+          "text": "84   101   528   997",
+          "highlight": "84"
+        },
+        "why": "Confirmation lands on the same board, still ringing 84."
+      },
+      "authored:readWrite4Digit:4": {
+        "board": {
+          "kind": "text",
+          "text": "84   101   528   997",
+          "highlight": "101"
+        },
+        "why": "The ring moves to 101 — the number whose silent tens place this beat explains."
+      },
+      "authored:readWrite4Digit:5": {
+        "board": {
+          "kind": "text",
+          "text": "84   101   528   997",
+          "highlight": "997"
+        },
+        "why": "The ring moves to the last number, which this beat asks for."
+      },
+      "authored:placeValue4Digit:64": {
+        "text": "දැන් අපි කලින් ගත්තු {number:5421} විහිදුවා ලියමු, {address}.",
+        "board": {
+          "kind": "abacus",
+          "digits": [
+            5,
+            4,
+            2,
+            1
+          ]
+        },
+        "why": "Names the number it is returning to, and brings it back onto the abacus in the same beat, instead of saying 'මේ සංඛ්‍යාව' about something last seen twenty beats earlier."
+      },
+      "authored:placeValue4Digit:94": {
+        "text": "අපි කලින් ගත්තු {number:7062} දිහා ආයෙත් බලමු. බිංදුවක් ආවොත් එතැනින් කිසිම අගයක් එකතු වෙන්නේ නෑ නේද {address}?",
+        "board": {
+          "kind": "abacus",
+          "digits": [
+            7,
+            0,
+            6,
+            2
+          ]
+        },
+        "why": "Same: the number being reasoned about is named and put back up. Split into two sentences — as one it ran to 18 words, over the 14-word limit."
+      }
+    },
+    "insert": [
+      {
+        "after": "authored:readWrite4Digit:5",
+        "beat": {
+          "id": "authored:readWrite4Digit:5a",
+          "type": "EXPLAIN",
+          "pause": "—",
+          "spokenText": "අන්තිම එක {number:997}යි.",
+          "board": {
+            "kind": "text",
+            "text": "84   101   528   997",
+            "highlight": "997"
+          },
+          "why": "Section B of the round-5 review asked for this and it was MISSED in that round — found by re-reading the spec against the applied result. :5 asked for the last number and the lesson went straight into the 9+1 build-up, so the child's answer was never confirmed and the ring jumped off 997 mid-thought."
+        }
+      }
+    ]
+  },
+  "activitiesThatHappen": {
+    "$comment": "ROUND 5, section C. Three activities were announced and never took place: the card exercise, the 'make five numbers' task, and the find-my-mistake, which was never resolved. A promise of work is what makes this a lesson rather than a video.",
+    "rewrite": {
+      "authored:readWrite4Digit:25": {
+        "remove": true,
+        "why": "Re-introduces the circle of digits that :19 already introduced, six beats later, as though for the first time."
+      },
+      "authored:placeValue4Digit:109": {
+        "text": "අද ඔයා හොඳට වැඩ කළා. ස්ථානීය අගය මොකක්ද කියලා දැන් ඔයා දන්නවා.",
+        "why": "Honest close. The earlier version told the child they had done the whole exercise alone, which had not happened. Wording kept in step with the ending.append entry — round 6 reverted both away from 'ගොඩක් දේවල් ඉගෙන ගත්තා', which is the recorded teacher's own sentence at 0.731 jaccard."
+      }
+    },
+    "insert": [
+      {
+        "before": "authored:readWrite4Digit:19",
+        "beat": {
+          "id": "authored:readWrite4Digit:18b",
+          "type": "TRANSITION",
+          "pause": "—",
+          "spokenText": "දැන් අපි වෙනත් අභ්‍යාසයක් බලමු.",
+          "board": {
+            "kind": "digitPicker",
+            "digits": [
+              1,
+              3,
+              6,
+              4
+            ],
+            "instructions": "මේ ඉලක්කම් වලින් ඉලක්කම් හතරේ සංඛ්‍යා හදන්න."
+          },
+          "why": "C1. The circle of digits arrived with no seam from the previous exercise; this is the seam, and it stages the digits it is about to talk about."
+        }
+      },
+      {
+        "after": "authored:readWrite4Digit:30",
+        "beat": {
+          "id": "authored:readWrite4Digit:30a",
+          "type": "ASK",
+          "pause": "ASK",
+          "expectedAnswer": "{\"kind\": \"permutationOf\", \"digits\": [1, 3, 6, 4], \"length\": 4}",
+          "spokenText": "මේ ඉලක්කම් හතරෙන් සංඛ්‍යාවක් හදලා මට කියන්න.",
+          "board": {
+            "kind": "digitPicker",
+            "digits": [
+              1,
+              3,
+              6,
+              4
+            ],
+            "instructions": "මේ ඉලක්කම් වලින් ඉලක්කම් හතරේ සංඛ්‍යා හදන්න."
+          },
+          "why": "C3. The 'make five numbers' exercise now actually happens. A permutation predicate means ANY arrangement of 1,3,6,4 is correct — which is why this can be a real ASK instead of the un-judged soft check it had to be before."
+        }
+      },
+      {
+        "after": "authored:readWrite4Digit:30a",
+        "beat": {
+          "id": "authored:readWrite4Digit:30b",
+          "type": "EXPLAIN",
+          "pause": "—",
+          "spokenText": "ඒ සංඛ්‍යාවේ නම බෝඩ් එකේ බලන්න.",
+          "board": {
+            "kind": "none"
+          },
+          "why": "Neutral: the board reads back whatever she built, in her own recorded number words."
+        }
+      },
+      {
+        "after": "authored:readWrite4Digit:30b",
+        "beat": {
+          "id": "authored:readWrite4Digit:30c",
+          "type": "ASK",
+          "pause": "ASK",
+          "expectedAnswer": "{\"kind\": \"permutationOf\", \"digits\": [1, 3, 6, 4], \"length\": 4}",
+          "spokenText": "දැන් ඒකට වඩා වෙනස් සංඛ්‍යාවක් හදන්න පුළුවන්ද?",
+          "board": {
+            "kind": "digitPicker",
+            "digits": [
+              1,
+              3,
+              6,
+              4
+            ],
+            "instructions": "මේ ඉලක්කම් වලින් ඉලක්කම් හතරේ සංඛ්‍යා හදන්න."
+          },
+          "why": "C3, second of three."
+        }
+      },
+      {
+        "after": "authored:readWrite4Digit:30c",
+        "beat": {
+          "id": "authored:readWrite4Digit:30d",
+          "type": "EXPLAIN",
+          "pause": "—",
+          "spokenText": "ඒ සංඛ්‍යාවේ නම බෝඩ් එකේ බලන්න.",
+          "board": {
+            "kind": "none"
+          },
+          "why": "Neutral read-back."
+        }
+      },
+      {
+        "after": "authored:readWrite4Digit:30d",
+        "beat": {
+          "id": "authored:readWrite4Digit:30e",
+          "type": "ASK",
+          "pause": "ASK",
+          "expectedAnswer": "{\"kind\": \"permutationOf\", \"digits\": [1, 3, 6, 4], \"length\": 4}",
+          "spokenText": "අන්තිම වතාවට තව අලුත් සංඛ්‍යාවක් හදමු.",
+          "board": {
+            "kind": "digitPicker",
+            "digits": [
+              1,
+              3,
+              6,
+              4
+            ],
+            "instructions": "මේ ඉලක්කම් වලින් ඉලක්කම් හතරේ සංඛ්‍යා හදන්න."
+          },
+          "why": "C3, third of three."
+        }
+      },
+      {
+        "after": "authored:readWrite4Digit:30e",
+        "beat": {
+          "id": "authored:readWrite4Digit:30f",
+          "type": "EXPLAIN",
+          "pause": "—",
+          "spokenText": "ඒ සංඛ්‍යාවේ නම බෝඩ් එකේ බලන්න.",
+          "board": {
+            "kind": "none"
+          },
+          "why": "Neutral read-back."
+        }
+      },
+      {
+        "after": "authored:readWrite4Digit:31",
+        "beat": {
+          "id": "authored:readWrite4Digit:31a",
+          "type": "RESOLVE",
+          "pause": "—",
+          "spokenText": "වැරැද්ද තමයි {number:8}ට බිංදුවක් නොදැමීම. ඒක {number:80} විය යුතුයි — {number:84} කියන්නේ {number:80}යි {number:4}යි.",
+          "board": {
+            "kind": "text",
+            "text": "84 = 80 + 4"
+          },
+          "why": "C4. A find-my-mistake that never names the mistake abandons the child who did not spot it — the one it exists for."
+        }
+      },
+      {
+        "after": "authored:readWrite4Digit:31a",
+        "beat": {
+          "id": "authored:readWrite4Digit:31b",
+          "type": "TRANSITION",
+          "pause": "—",
+          "spokenText": "දැන් අපි ලොකු සංඛ්‍යා ගැන බලමු.",
+          "board": {
+            "kind": "none"
+          },
+          "why": "C4. A real seam into concept 2 — previously the lesson jumped from an unresolved puzzle straight into a new hook."
+        }
+      }
+    ]
+  },
+  "restoredPrompt": {
+    "$comment": "ROUND 6. Round 4's neutral-confirmation rewrite of readWrite4Digit:3 removed its second half — the question that asked for the NEXT number's name — because a beat following a question must be a statement. That was right about the praise and wrong about the question: :4 was left explaining the silent zero in 101, a number the lesson had stopped naming. The question comes back as its own beat, where it should have been all along.\n\nසංඛ්‍යා නාමය went with it. That term is not like සංඛ්‍යාංකය, which both native reviewers struck deliberately as bookish — it is the name of the thing this entire concept teaches, and it disappeared by accident. It is reintroduced in the run the guide introduces it in ('have students read each number's name aloud').",
+    "insert": [
+      {
+        "after": "authored:readWrite4Digit:3",
+        "beat": {
+          "id": "authored:readWrite4Digit:3a",
+          "type": "ASK",
+          "pause": "ASK",
+          "expectedAnswer": "එකසිය එක",
+          "spokenText": "ඊළඟ සංඛ්‍යාවේ නම කියන්න බලන්න.",
+          "board": {
+            "kind": "text",
+            "text": "84   101   528   997",
+            "highlight": "101"
+          },
+          "why": "The prompt for 101, restored as its own beat. The ring moves to 101 here and stays there through :4, so the number being discussed is the number lit up."
+        }
+      },
+      {
+        "after": "authored:readWrite4Digit:3a",
+        "beat": {
+          "id": "authored:readWrite4Digit:3b",
+          "type": "EXPLAIN",
+          "pause": "—",
+          "spokenText": "සංඛ්‍යාවක් වචනයෙන් කියන එකට කියන්නේ සංඛ්‍යා නාමය කියලා.",
+          "board": {
+            "kind": "none"
+          },
+          "why": "Reintroduces සංඛ්‍යා නාමය at the guide's own position — the step whose instruction is to have the child read each number's NAME aloud. Neutral: it names the term, it does not judge the answer."
+        }
+      }
+    ]
+  },
+  "visualContinuity": {
+    "$comment": "ROUND 7 — the third native review: the script 'holds together conversationally'; what remained was the board. Two facts first. (1) At runtime a beat with board 'none' has ALWAYS inherited the previous board — stageBeatBoard returns nothing for it and the runtime only repaints on a staged board — so no beat below changed its runtime meaning. What changed is that 'none' is now DOCUMENTED as inherit, the review doc prints what is inherited instead of the word 'none', and blanking on purpose has its own word, {kind:'clear'}, which this script uses nowhere: both concept boundaries land on a title card, which replaces the board outright, and a clear before it would be the exact flash the new validator forbids. (2) No content_bank ExpansionExercise row contains 5421, so :96 stages a synthetic one.",
+    "rewrite": {
+      "authored:readWrite4Digit:19": {
+        "board": {
+          "kind": "none"
+        },
+        "why": "Inherit the digit picker :18b just staged, instead of replacing it with a chalk card of the same four digits — the picker is what the child builds on at :22, and it must still be up."
+      },
+      "authored:readWrite4Digit:22": {
+        "type": "ASK",
+        "pause": "ASK",
+        "expectedAnswer": "{\"kind\": \"permutationOf\", \"digits\": [1, 3, 6, 4], \"length\": 4}",
+        "board": {
+          "kind": "none"
+        },
+        "why": "The single early open question, now a real ASK with the same permutation predicate as :30a, so a child's FIRST attempt is judged and honoured rather than waved through."
+      },
+      "authored:readWrite4Digit:23": {
+        "board": {
+          "kind": "text",
+          "text": "1, 3, 6, 4   →   1 364"
+        },
+        "why": "The example keeps the four digits visible beside it; before, the card showed only 1364 and the digits the next beats talk about were gone."
+      },
+      "authored:readWrite4Digit:24": {
+        "remove": true,
+        "why": "Merged into :26, which already carries its intent ('let's make more, from just these four'); after :27–:29 go, :24 was a run-up to nothing."
+      },
+      "authored:readWrite4Digit:27": {
+        "remove": true,
+        "why": "Second open question, redundant with :22 and :30a–:30f."
+      },
+      "authored:readWrite4Digit:28": {
+        "remove": true,
+        "why": "Forced 1364 back after an open question; :23 already presents 1364 as the example."
+      },
+      "authored:readWrite4Digit:29": {
+        "remove": true,
+        "why": "Refers to 'the one you made' — which :28 had just overwritten with 1364."
+      },
+      "authored:readWrite4Digit:30b": {
+        "board": {
+          "kind": "builtNumber"
+        },
+        "why": "The read-back: the child's number and its name drawn UNDER the picker, not instead of it."
+      },
+      "authored:readWrite4Digit:30d": {
+        "board": {
+          "kind": "builtNumber"
+        },
+        "why": "Same."
+      },
+      "authored:readWrite4Digit:30f": {
+        "board": {
+          "kind": "builtNumber"
+        },
+        "why": "Same."
+      },
+      "authored:placeValue4Digit:96": {
+        "board": {
+          "kind": "expansion",
+          "number": 5421,
+          "answers": [
+            5000,
+            400,
+            20,
+            1
+          ]
+        },
+        "why": "Was a chalk card reading '5 421 = 5 000 + 400 + 20 + 1' — the whole worked answer on the board before :98-:101 asked the child for it. Now the expansion, which renders EVERY part blank (boardFor maps them to null; an ExpansionExercise cell shows a value only once a filledAnswer exists for it). The field is named `answers`, not `parts`: it is the key :101's reveal writes in, and the fourth review read the old name in the doc as the finished sum being displayed. Verified at the renderer, not inferred."
+      },
+      "authored:placeValue4Digit:101": {
+        "board": {
+          "kind": "reveal",
+          "itemId": "expansion:5421",
+          "rowIndex": 0,
+          "field": "part0",
+          "value": "5000"
+        },
+        "why": "The thousands part is written in when :101 confirms it — the only part :97–:101 actually ask about. The rest stay blank; the lesson moves to the table."
+      }
+    },
+    "insert": [
+      {
+        "after": "authored:readWrite4Digit:22",
+        "beat": {
+          "id": "authored:readWrite4Digit:22a",
+          "type": "EXPLAIN",
+          "pause": "—",
+          "spokenText": "ඒ සංඛ්‍යාවේ නම බෝඩ් එකේ බලන්න.",
+          "board": {
+            "kind": "builtNumber"
+          },
+          "why": "Read-back for :22, identical in shape to :30b — the child's own first number, named."
+        }
+      }
+    ],
+    "validatorAudit": {
+      "answerShownBeforeAsked": "Run across all beats: :100 was the only hit (5000 written on the board before it was asked); resolved by the :96/:101 change above. :88 (6000) and :92 (8000) do NOT hit — their expansions (:89, :93) are staged AFTER the question.",
+      "noClearInsideAnAskRun": "No hits — the script contains no clear.",
+      "clearIsAFlash": "No hits — the script contains no clear.",
+      "boardDisplaysALaterAnswer": "The forward-looking form of answerShownBeforeAsked, added in round 8. Displayed values only — an expansion's `answers` are excluded because the renderer blanks them, and an abacus's digits are excluded because reading them off IS the question. No hits across the script."
     }
   }
 }

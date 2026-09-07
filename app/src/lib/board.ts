@@ -90,6 +90,12 @@ export type BoardContent =
       filledAnswers: FilledAnswer[];
       /** Which blank (if any) the AI is currently asking the child about — see set_active_blank. Null once answered or when no blank is currently being discussed. */
       activeBlank: { rowIndex: number; field: string } | null;
+      /**
+       * The number the child built on the digit picker, with its Sinhala
+       * name, drawn beneath the components. The picker stays; this is the
+       * read-back ("ඒ සංඛ්‍යාවේ නම බෝඩ් එකේ බලන්න") written where she can see it.
+       */
+      builtNumber?: { digits: string; name: string } | null;
     }
   // A big friendly card for beats that have no exercise on screen (lesson
   // goals, transitions, session close, a concept's opening explanation) —
@@ -107,8 +113,11 @@ export type BoardContent =
       selfAnimate: boolean;
       childAnswer: string | null;
     }
-  // Chalk-style verbatim text from the teacher's board.
-  | { type: "text_card"; text: string }
+  // Chalk-style verbatim text from the teacher's board. `highlight` rings
+  // the one item currently being talked about, so a row of numbers can
+  // stay up while attention moves along it — the child never loses the
+  // thing being discussed, and the board stops flickering between cards.
+  | { type: "text_card"; text: string; highlight?: string }
   | { type: "empty" };
 
 /** True when there's real content to show — used by TeachingBoard.tsx to render/collapse. */

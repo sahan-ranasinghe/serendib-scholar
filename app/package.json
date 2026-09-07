@@ -28,6 +28,7 @@
     "remap:concepts": "node --env-file=.env.local ./node_modules/.bin/tsx scripts/remap-concept-tags.ts",
     "test:sinhala-number": "tsx --test src/lib/sinhalaNumber.test.ts",
     "test:take-recorder": "tsx --test src/hooks/useTakeRecorder.test.ts",
+    "test:number-audio": "tsx --test src/lib/composeNumberAudio.test.ts",
     "test:speech-rules": "tsx --test src/lib/speechRules.test.ts",
     "apply:review-edits": "tsx scripts/apply-review-edits.ts",
     "portal:process": "node --env-file=.env.local ./node_modules/.bin/tsx scripts/process-actor-takes.ts",

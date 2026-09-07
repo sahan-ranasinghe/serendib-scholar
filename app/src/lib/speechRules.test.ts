@@ -113,9 +113,11 @@ test("a neutral statement of the same answer passes", () => {
 });
 
 test("neutral openers are fine; a verdict later in the beat is not the target", () => {
+  // "එහෙනම්" presumes nothing about the answer. ("ඔව්" used to be here —
+  // it is now flagged after a judged ASK, see the round-7 test below.)
   const findings = checkSpeechRules([
     ask("q", "කීයද?", "දහය"),
-    beat({ id: "a", spokenText: "ඔව්, ඒක දහයයි.", type: "EXPLAIN" }),
+    beat({ id: "a", spokenText: "එහෙනම්, ඒක දහයයි.", type: "EXPLAIN" }),
   ]);
   assert.deepEqual(findings, []);
 });
@@ -163,4 +165,105 @@ test("a question with one right answer may state it plainly", () => {
     beat({ id: "a", spokenText: "ඒක හයදහසයි.", sourceText: "ඒක {number:6000}යි.", type: "EXPLAIN" }),
   ]);
   assert.deepEqual(findings, []);
+});
+
+/** Round 7: the board rules. */
+
+test("a worked answer on the board before its question is flagged — the old :96→:100 shape", () => {
+  const findings = checkSpeechRules([
+    beat({ id: "96", type: "SHOW_BOARD", spokenText: "මෙන්න අභ්‍යාසයක්.", board: { kind: "text", text: "5 421 = 5 000 + 400 + 20 + 1" } }),
+    ask("98", "දහසස්ථානයේ ඉලක්කම මොකක්ද?", "5"),
+    beat({ id: "99", type: "EXPLAIN", spokenText: "දහසස්ථානයේ ඉන්නේ පහ නේද." }),
+    ask("100", "ඒ පහ නිසා ලැබෙන අගය කීයද?", "5000"),
+  ]);
+  assert.deepEqual(
+    findings.map((f) => [f.beatId, f.rule]),
+    // Both halves of the same pair: the BOARD is flagged for displaying an
+    // answer still to be asked for, and the ASK is flagged for its answer
+    // already being up. (:98 asks for a DIGIT visible inside 5 421 — a
+    // read-the-digit question, not an answer given away.)
+    [
+      ["96", "boardDisplaysALaterAnswer"],
+      ["100", "answerShownBeforeAsked"],
+    ],
+  );
+});
+
+test("stored answers are not displayed answers — a blank expansion is clean", () => {
+  // The exact shape of :96. `answers` is the reveal key; boardFor maps
+  // every cell to null, so nothing is on the board to give away.
+  const findings = checkSpeechRules([
+    beat({ id: "96", type: "SHOW_BOARD", spokenText: "මෙන්න.", board: { kind: "expansion", number: 5421, answers: [5000, 400, 20, 1] } }),
+    ask("98", "දහසස්ථානයේ ඉලක්කම මොකක්ද?", "5"),
+    ask("100", "ඒ පහ නිසා ලැබෙන අගය කීයද?", "5000"),
+  ]);
+  assert.deepEqual(findings, []);
+});
+
+test("the same run with a blank expansion and a reveal after the confirmation is clean", () => {
+  const findings = checkSpeechRules([
+    beat({ id: "96", type: "SHOW_BOARD", spokenText: "මෙන්න අභ්‍යාසයක්.", board: { kind: "expansion", number: 5421 } }),
+    ask("98", "දහසස්ථානයේ ඉලක්කම මොකක්ද?", "5"),
+    beat({ id: "99", type: "EXPLAIN", spokenText: "දහසස්ථානයේ ඉන්නේ පහ නේද." }),
+    ask("100", "ඒ පහ නිසා ලැබෙන අගය කීයද?", "5000"),
+    beat({ id: "101", type: "EXPLAIN", spokenText: "ඒක පන්දහසයි.", sourceText: "ඒක {number:5000}යි.", numbers: [5000], board: { kind: "reveal", value: "5000" } }),
+  ]);
+  assert.deepEqual(findings, []);
+});
+
+test("an expansion staged AFTER the question is not an early answer (:88 / :92)", () => {
+  const findings = checkSpeechRules([
+    beat({ id: "87", type: "EXPLAIN", spokenText: "අපි මුලින්ම ලියලා බලමු.", board: { kind: "text", text: "6 831" } }),
+    ask("88", "දහසස්ථානයේ හයෙන් පෙන්වන අගය කීයද?", "6000"),
+    beat({ id: "89", type: "EXPLAIN", spokenText: "ඒක හයදහසයි.", board: { kind: "text", text: "6 831 = 6000 + 800 + 30 + 1" } }),
+  ]);
+  assert.deepEqual(findings, []);
+});
+
+test("a clear between two beats showing the same board is a flash", () => {
+  const picker = { kind: "digitPicker", digits: [1, 3, 6, 4] };
+  const findings = checkSpeechRules([
+    beat({ id: "a", type: "EXPLAIN", spokenText: "බලන්න.", board: picker }),
+    beat({ id: "b", type: "EXPLAIN", spokenText: "දැන් හදමු.", board: { kind: "clear" } }),
+    beat({ id: "c", type: "EXPLAIN", spokenText: "ආයෙත් බලන්න.", board: picker }),
+  ]);
+  assert.ok(findings.some((f) => f.beatId === "b" && f.rule === "clearIsAFlash"));
+});
+
+test("no beat may clear inside a run of questions on the picker", () => {
+  const picker = { kind: "digitPicker", digits: [1, 3, 6, 4] };
+  const pred = JSON.stringify({ kind: "permutationOf", digits: [1, 3, 6, 4], length: 4 });
+  const findings = checkSpeechRules([
+    ask("q1", "සංඛ්‍යාවක් හදන්න.", pred),
+    beat({ id: "q1", type: "ASK", pauseType: "ASK", expectedAnswer: pred, spokenText: "සංඛ්‍යාවක් හදන්න.", board: picker }),
+    beat({ id: "r1", type: "EXPLAIN", spokenText: "ඒ සංඛ්‍යාවේ නම බෝඩ් එකේ බලන්න.", board: { kind: "builtNumber" } }),
+    beat({ id: "oops", type: "EXPLAIN", spokenText: "දැන් තව එකක්.", board: { kind: "clear" } }),
+    beat({ id: "q2", type: "ASK", pauseType: "ASK", expectedAnswer: pred, spokenText: "වෙනස් එකක් හදන්න.", board: picker }),
+  ]);
+  assert.ok(findings.some((f) => f.beatId === "oops" && f.rule === "noClearInsideAnAskRun"));
+});
+
+test("inherit and the read-back overlay never count as a clear", () => {
+  const picker = { kind: "digitPicker", digits: [1, 3, 6, 4] };
+  const pred = JSON.stringify({ kind: "permutationOf", digits: [1, 3, 6, 4], length: 4 });
+  const findings = checkSpeechRules([
+    beat({ id: "q1", type: "ASK", pauseType: "ASK", expectedAnswer: pred, spokenText: "සංඛ්‍යාවක් හදන්න.", board: picker }),
+    beat({ id: "r1", type: "EXPLAIN", spokenText: "ඒ සංඛ්‍යාවේ නම බෝඩ් එකේ බලන්න.", board: { kind: "builtNumber" } }),
+    beat({ id: "q2", type: "ASK", pauseType: "ASK", expectedAnswer: pred, spokenText: "වෙනස් එකක් හදන්න.", board: { kind: "none" } }),
+    beat({ id: "r2", type: "EXPLAIN", spokenText: "ඒ සංඛ්‍යාවේ නම බෝඩ් එකේ බලන්න.", board: { kind: "builtNumber" } }),
+  ]);
+  assert.deepEqual(findings.filter((f) => f.rule.startsWith("clear") || f.rule.startsWith("noClear")), []);
+});
+
+test("ඔව් after a judged ASK presumes the child was right; after a soft check it is fine", () => {
+  const afterAsk = checkSpeechRules([
+    ask("q", "නවසිය අනූ නවයට එකක් එකතු කළාම කීයද?", "1000"),
+    beat({ id: "a", type: "EXPLAIN", spokenText: "ඔව්, නවසිය අනූ නවයට එකක් එකතු වුණාම දහස හැදෙනවා." }),
+  ]);
+  assert.deepEqual(afterAsk.map((f) => [f.beatId, f.rule]), [["a", "noVerdictAfterAQuestion"]]);
+  const afterSoft = checkSpeechRules([
+    beat({ id: "s", type: "SOFT_CHECK", pauseType: "SOFT_CHECK", spokenText: "පේනවා නේද?" }),
+    beat({ id: "a", type: "EXPLAIN", spokenText: "ඔව්, මෙතන ඉලක්කම් හතරක් තියෙනවා." }),
+  ]);
+  assert.deepEqual(afterSoft, []);
 });

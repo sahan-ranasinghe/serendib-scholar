@@ -50,6 +50,9 @@ export function LineList({
                 {line.canonicalText}
               </span>
               {line.branchLabel && <span className="shrink-0 rounded bg-indigo-100 px-1 text-xs text-indigo-900">{line.branchLabel}</span>}
+              {line.group === "number words" && (
+                <span className="shrink-0 rounded bg-teal-100 px-1 text-xs text-teal-900">number word</span>
+              )}
               {needsReview && <span className="shrink-0 rounded bg-amber-100 px-1 text-xs text-amber-900">needs review</span>}
               <span className={`w-24 shrink-0 text-right text-xs font-medium ${status?.text ?? "text-stone-600"}`}>
                 {status?.label ?? "not recorded"}
