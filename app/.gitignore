@@ -45,3 +45,4 @@ next-env.d.ts
 
 # Browser-check artifacts (scripts/portal-check.ts)
 .portal-check/
+.board-check/

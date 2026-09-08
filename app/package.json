@@ -35,12 +35,17 @@
     "portal:export-lines": "node --env-file=.env.local ./node_modules/.bin/tsx scripts/export-actor-lines.ts",
     "portal:clips": "node --env-file=.env.local ./node_modules/.bin/tsx scripts/actor-clips.ts",
     "portal:check": "tsx scripts/portal-check.ts",
+    "storyboard": "tsx scripts/storyboard.ts",
     "portal:coverage": "node --env-file=.env.local ./node_modules/.bin/tsx scripts/voice-coverage.ts",
-    "compare:authors": "node --env-file=.env.local ./node_modules/.bin/tsx scripts/compare-authors.ts"
+    "compare:authors": "node --env-file=.env.local ./node_modules/.bin/tsx scripts/compare-authors.ts",
+    "board:check": "tsx scripts/board-check.ts",
+    "board:coverage": "tsx scripts/board-coverage.ts",
+    "session:check": "node --env-file=.env.local ./node_modules/.bin/tsx scripts/session-check.ts"
   },
   "dependencies": {
     "@google/genai": "^2.19.0",
     "@supabase/supabase-js": "^2.109.0",
+    "framer-motion": "^13.2.0",
     "next": "16.3.3",
     "pdf-parse": "^2.4.5",
     "react": "19.2.8",

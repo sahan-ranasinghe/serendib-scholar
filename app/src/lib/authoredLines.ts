@@ -30,6 +30,8 @@ export const AUTHORED_LINES = {
   giveUpReveal: "කමක් නෑ {address}, බලන්න — උත්තරේ {value}. පස්සේ ආයෙ මේක එකට කරමු.",
   /** SOFT_CHECK acknowledgement when the child chimes in — then her own words continue. */
   softAck: "හරි!",
+  /** Said once when a concept's beats are finished — before the strip lights its stop. */
+  conceptDone: "නියමයි {address}! මේ කොටස අපි ඉවර කළා.",
   feedbackCorrect: ["හරි! ඔයා හරියටම කිව්වා! නියමයි!", "ඔව්, හරි උත්තරේ! හොඳයි {address}!"],
   feedbackWrongBeforeReteach: [
     "කමක් නෑ, ඒක ටිකක් අමාරුයි. අපි ආයේ එකට බලමු.",

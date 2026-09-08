@@ -42,6 +42,8 @@ import {
 import { answersMatch, exampleAnswerFor } from "../src/lib/answerCheck";
 import { listAuthoredLines } from "../src/lib/authoredLines";
 import { parseAuthoredScript, type AuthoredScriptFile } from "../src/lib/authoredScript";
+import { describeStage, eventKey, initialStage, isKnownEvent, reduceStage, type Storyboard } from "../src/lib/choreography";
+import { sentencesOf } from "../src/lib/scriptDistance";
 import { checkSpeechRules, formatSpeechFindings } from "../src/lib/speechRules";
 import { formatCoverage, voiceCoverage } from "../src/lib/voiceCoverage";
 import { voiceProfile } from "../src/lib/humanClips";
@@ -94,7 +96,9 @@ function describeBoardAction(beat: Beat): string {
     case "abacus_set":
       return `abacus set [${beat.board.digits.join(",")}]${beat.board.animate ? " (self-animating)" : beat.board.startEmpty ? " (empty, beads to come)" : " (complete)"}`;
     case "abacus_add_bead":
-      return `abacus: ${beat.board.count} bead(s) onto rod ${beat.board.rod}`;
+      return beat.board.adds
+        ? `abacus: ${beat.board.adds.map((a) => `${a.count} onto rod ${a.rod}`).join(", ")}`
+        : `abacus: ${beat.board.count} bead(s) onto rod ${beat.board.rod}`;
     case "show_components":
       return `show ${beat.board.components.map((c) => c.type).join("+")}`;
     case "text_card":
@@ -374,19 +378,22 @@ async function runAssertions(
   assert.ok(abacusConcept, "the script contains the placeValue4Digit concept");
   // (The merged concept also holds the 4-digit breakdown tables, which can
   // stage first — the abacus demo just has to be in there with real digits.)
+  // The abacus is staged bare by the spoken beat that announces it
+  // (":34 අද අපි ගණක රාමුවකින් … හදන්නයි", a TRANSITION); the SHOW_BOARD
+  // beats after it land the beads. Any spoken beat may do the staging.
   const firstShow = script.beats
     .slice(abacusConcept!.firstBeat, abacusConcept!.lastBeat + 1)
-    .find((beat) => beat.type === "SHOW_BOARD" && beat.board.kind === "abacus_set");
+    .find((beat) => beat.spokenText !== undefined && beat.board.kind === "abacus_set");
   assert.ok(
     firstShow && firstShow.board.kind === "abacus_set",
-    "placeValue4Digit must contain a SHOW_BOARD staging the animated abacus",
+    "placeValue4Digit must contain a spoken beat staging the abacus",
   );
   const digits = firstShow!.board.kind === "abacus_set" ? firstShow!.board.digits : [];
   assert.ok(
     digits.length >= 3 && digits.every((d) => typeof d === "number"),
     "the staged abacus has a real digits array",
   );
-  console.log(`  PASS  placeValue4Digit stages the animated abacus with digits [${digits.join(", ")}]`);
+  console.log(`  PASS  placeValue4Digit stages the abacus with digits [${digits.join(", ")}]`);
 
   // 3. Every explanation row's boardContent is staged somewhere in that
   //    row's run of beats — what she wrote is what the child sees, aligned
@@ -408,32 +415,40 @@ async function runAssertions(
   }
   console.log("  PASS  every explanation row's boardContent is staged within its run of beats");
 
-  // 4. Concept 1's 5421 introduction stages the self-animating abacus,
-  //    aligned to a beat of her own speech (the boardContent "5 4 2 1"
-  //    block from the segment where she demonstrates it).
-  // (Was pinned to her 5421 demo; since the design re-map the merged
-  // concepts choose their own explain segments, so the invariant is the
-  // GENERAL one: somewhere, a spoken beat drives a self-animating abacus.)
-  // SHOW_BOARD is the authored script's own way of narrating a board move
-  // ("දහසස්ථානයේ කූරට අපි පබළු පහක් දානවා") — it carries spokenText like any
-  // other spoken beat, and it is what stages the animated abacus now that
-  // the authored script is approved.
-  const animatedIntro = script.beats.find(
-    (beat) =>
-      (beat.type === "EXPLAIN" || beat.type === "SOFT_CHECK" || beat.type === "SHOW_BOARD") &&
-      beat.spokenText !== undefined &&
-      beat.board.kind === "abacus_set" &&
-      beat.board.animate === true,
+  // 4. The 5421 introduction builds the number in front of the child: a
+  //    spoken beat stages the abacus BARE, and the SHOW_BOARD beats that
+  //    follow ("දහසස්ථානයේ කූරට අපි පබළු … පහක් දානවා") land beads rod by
+  //    rod until every rod carries its digit — before anything re-stages
+  //    the board. (This replaced the self-animating re-stage: storyboard
+  //    board note B1 found it re-landing beads on rods already filled.)
+  const bareIntro = script.beats.find(
+    (beat) => beat.spokenText !== undefined && beat.board.kind === "abacus_set" && beat.board.startEmpty === true,
   );
-  assert.ok(animatedIntro, "a spoken beat stages a self-animating abacus_set");
-  console.log(
-    `  PASS  a spoken beat stages the self-animating abacus while she says: "${animatedIntro!.spokenText!.slice(0, 60)}…"`,
-  );
+  assert.ok(bareIntro && bareIntro.board.kind === "abacus_set", "a spoken beat stages the abacus bare, beads to come");
+  {
+    const target = bareIntro!.board.kind === "abacus_set" ? bareIntro!.board.digits : [];
+    const landed = target.map(() => 0);
+    let completedAt: string | undefined;
+    for (let i = script.beats.indexOf(bareIntro!) + 1; i < script.beats.length; i += 1) {
+      const beat = script.beats[i]!;
+      if (beat.board.kind === "abacus_add_bead") {
+        assert.ok(beat.type === "SHOW_BOARD" && beat.spokenText, `${beat.id}: beads land only under a spoken SHOW_BOARD`);
+        for (const add of beat.board.adds ?? [{ rod: beat.board.rod, count: beat.board.count }]) {
+          landed[add.rod] = (landed[add.rod] ?? 0) + add.count;
+          assert.ok(landed[add.rod]! <= target[add.rod]!, `${beat.id}: rod ${add.rod} would hold ${landed[add.rod]} beads for digit ${target[add.rod]}`);
+        }
+        if (landed.every((n, rod) => n === target[rod])) { completedAt = beat.id; break; }
+      } else if (beat.board.kind !== "none") {
+        break;
+      }
+    }
+    assert.ok(completedAt, `the bare abacus [${target.join(",")}] is never completed by bead-adds before the board changes`);
+    console.log(
+      `  PASS  the abacus is staged bare at ${bareIntro!.id} and the beads complete ${target.join("")} by ${completedAt} while she narrates each rod`,
+    );
+  }
 
-  // 5. Abacus item demos: beads land per reveal and finish the number.
-  const abacusShows = script.beats.filter(
-    (beat) => beat.type === "SHOW_BOARD" && beat.board.kind === "abacus_set" && beat.board.startEmpty,
-  );
+  const abacusShows = script.beats.filter((beat) => beat.board.kind === "abacus_set" && beat.board.startEmpty);
   // Under the merged design concepts the transitional (pre-authored)
   // script may schedule zero bare-rod demos — the bead-landing rule is
   // asserted whenever one exists.
@@ -444,7 +459,9 @@ async function runAssertions(
     for (let i = script.beats.indexOf(show) + 1; i < script.beats.length; i += 1) {
       const beat = script.beats[i];
       if (beat.itemId !== show.itemId || beat.segmentIndex !== show.segmentIndex) break;
-      if (beat.board.kind === "abacus_add_bead") shown[beat.board.rod] += beat.board.count;
+      if (beat.board.kind === "abacus_add_bead") {
+        for (const add of beat.board.adds ?? [{ rod: beat.board.rod, count: beat.board.count }]) shown[add.rod] += add.count;
+      }
     }
     // A MODE 2 demo deliberately reveals only part before asking — every
     // landed bead must at least match its rod's digit exactly or stay short.
@@ -466,6 +483,46 @@ async function runAssertions(
     assert.ok(spoken.length >= 3, `${concept.conceptTag} has only ${spoken.length} spoken beats`);
   }
   console.log(`  PASS  all ${script.concepts.length} design concepts have real spoken runs`);
+
+  // 6b. The storyboard fits the script it will choreograph: every session-1
+  //     authored beat has a storyboard beat and vice versa, each beat's
+  //     sentences match what the clip will split into, and every event
+  //     reduces onto the board (state carrying within a concept exactly as
+  //     the runtime carries it).
+  const storyboard = JSON.parse(
+    await readFile(path.join(process.cwd(), "src/data/storyboard", "maths-5-1-session-1.json"), "utf8"),
+  ) as Storyboard;
+  const byId = new Map(storyboard.beats.map((beat) => [beat.id, beat]));
+  const authoredInScript = script.beats.filter((beat) => beat.id.startsWith("authored:"));
+  const missingFromStoryboard = authoredInScript.filter((beat) => !byId.has(beat.id)).map((beat) => beat.id);
+  const missingFromScript = storyboard.beats.filter((sb) => !authoredInScript.some((beat) => beat.id === sb.id)).map((sb) => sb.id);
+  assert.deepStrictEqual(missingFromStoryboard, [], `authored beats with no storyboard beat: ${missingFromStoryboard.join(", ")}`);
+  assert.deepStrictEqual(missingFromScript, [], `storyboard beats not in the script: ${missingFromScript.join(", ")}`);
+  for (const beat of authoredInScript) {
+    const sb = byId.get(beat.id)!;
+    const spoken = sentencesOf(beat.spokenText ?? "");
+    assert.strictEqual(spoken.length, sb.sentences.length, `${beat.id}: the clip will split into ${spoken.length} sentence(s), the storyboard planned ${sb.sentences.length}`);
+    for (const event of sb.events) {
+      assert.ok(event.sentenceIndex < sb.sentences.length, `${beat.id}: event ${eventKey(event)} on sentence ${event.sentenceIndex} of ${sb.sentences.length}`);
+    }
+  }
+  let stage = initialStage();
+  const unknown: string[] = [];
+  let reduced = 0;
+  for (const sb of storyboard.beats) {
+    for (const event of sb.events) {
+      if (!isKnownEvent(event)) {
+        unknown.push(`${sb.id} ${eventKey(event)}`);
+        continue;
+      }
+      stage = reduceStage(stage, event, { lastBuilt: 1364 });
+      reduced += 1;
+    }
+  }
+  assert.deepStrictEqual(unknown, [], `storyboard events with no matching primitive: ${unknown.join(", ")}`);
+  console.log(
+    `  PASS  storyboard ↔ script: ${storyboard.beats.length} beats matched, ${reduced} events reduce onto the board (ends on ${describeStage(stage).slice(0, 60)})`,
+  );
 
   // 7. Session 1's turn-taking shape: at most SESSION_ASK_LIMIT real ASK
   //    waits, zero mandatory yes/no questions, rhetoric stays inline as

@@ -93,7 +93,7 @@ export async function stageBeatBoard(action: BeatBoardAction): Promise<StagedBoa
         },
       };
     case "abacus_add_bead":
-      return { viewPatch: { abacusAddBead: { rod: action.rod, count: action.count } } };
+      return { viewPatch: { abacusAddBead: action.adds ?? [{ rod: action.rod, count: action.count }] } };
     case "show_components":
       return {
         board: {
@@ -141,7 +141,7 @@ export interface SessionLogPayload {
   sequence: number;
   beat: Beat;
   directorText: string;
-  boardState: BoardContent | null;
+  boardState: BoardContent | Record<string, unknown> | string | null;
   childTranscript: string | null;
   plannerDecision: PlannerDecision | null;
   outputAudioMs: number | null;

@@ -1,0 +1,207 @@
+/*
+ * The whiteboard itself: a wooden frame, an off-white surface with a
+ * faint grid, a marker tray along the bottom. Colours here mirror
+ * theme.ts (BOARD) — the CSS cannot import it, so keep the two in step.
+ */
+
+.wb-frame {
+  --wb-pad: 14px;
+  --wb-tray: 26px;
+  position: relative;
+  box-sizing: border-box;
+  border-radius: 16px;
+  background:
+    repeating-linear-gradient(98deg, rgba(255, 255, 255, 0.05) 0 2px, transparent 2px 9px),
+    linear-gradient(135deg, #b8895a 0%, #8b5a35 48%, #6e4528 100%);
+  box-shadow:
+    0 12px 32px rgba(40, 25, 10, 0.28),
+    inset 0 2px 0 rgba(255, 255, 255, 0.2),
+    inset 0 -3px 0 rgba(0, 0, 0, 0.28);
+  color: #2a2418;
+  font-family: var(--font-noto-sinhala, "Noto Sans Sinhala"), "Noto Sans Sinhala", "Iskoola Pota", "Nirmala UI", system-ui, sans-serif;
+}
+.wb-frame[data-viewport="phone"] {
+  width: min(100%, 844px);
+  aspect-ratio: 844 / 390;
+}
+.wb-frame[data-viewport="desktop"] {
+  width: min(100%, 1024px);
+  aspect-ratio: 16 / 9;
+}
+.wb-frame[data-viewport="fill"] {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+}
+.wb-frame[data-viewport="stretch"] {
+  width: 100%;
+  height: 100%;
+}
+
+/* the child's turn: the answer surface breathes */
+.wb-your-turn {
+  animation: wb-breathe 1.7s ease-in-out infinite;
+}
+.wb-your-turn-soft {
+  animation: wb-breathe-soft 2.2s ease-in-out infinite;
+}
+@keyframes wb-breathe {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(243, 198, 75, 0.35), 0 0 0 rgba(243, 198, 75, 0); }
+  50% { box-shadow: 0 0 0 5px rgba(243, 198, 75, 0.7), 0 0 26px 6px rgba(243, 198, 75, 0.45); }
+}
+@keyframes wb-breathe-soft {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(243, 198, 75, 0); }
+  50% { box-shadow: 0 0 18px 3px rgba(243, 198, 75, 0.35); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wb-your-turn, .wb-your-turn-soft { animation: none; box-shadow: 0 0 0 4px rgba(243, 198, 75, 0.6); }
+}
+@media (max-width: 480px) {
+  .wb-frame {
+    --wb-pad: 9px;
+    --wb-tray: 20px;
+    border-radius: 12px;
+  }
+}
+
+.wb-surface {
+  position: absolute;
+  inset: var(--wb-pad) var(--wb-pad) calc(var(--wb-pad) + var(--wb-tray) * 0.55) var(--wb-pad);
+  overflow: hidden;
+  border-radius: 5px;
+  background-color: #f6f1e4;
+  background-image:
+    linear-gradient(rgba(74, 58, 30, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(74, 58, 30, 0.08) 1px, transparent 1px);
+  background-size: 28px 28px;
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.14),
+    inset 0 8px 22px rgba(60, 40, 10, 0.1);
+}
+/* a faint sheen — someone wiped this board a hundred times */
+.wb-surface::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 25% 15%, rgba(255, 255, 255, 0.35), transparent 55%),
+    radial-gradient(ellipse at 80% 90%, rgba(120, 100, 60, 0.06), transparent 60%);
+  z-index: 2;
+}
+
+.wb-content {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(8px, 2.2vw, 16px);
+  padding: 3.5% 4%;
+  box-sizing: border-box;
+  container-type: size;
+}
+.wb-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+}
+.wb-overlay > * {
+  position: absolute;
+}
+
+/* the marker wobble — a hand drew these strokes */
+.wb-surface .hand-stroke,
+.wb-surface .chalk-stroke {
+  filter: url(#marker-wobble);
+}
+
+.wb-eraser {
+  position: absolute;
+  top: 6%;
+  bottom: 6%;
+  left: 0;
+  width: 22%;
+  z-index: 7;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #6b6b6b, #3f3f3f 55%, #2b2b2b);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+}
+
+.wb-tray {
+  position: absolute;
+  left: 7%;
+  right: 7%;
+  bottom: 3px;
+  height: var(--wb-tray);
+  border-radius: 6px 6px 3px 3px;
+  background: linear-gradient(180deg, #c99a6a, #a7754a 60%, #7d5231);
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.25),
+    0 3px 6px rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 14px;
+  box-sizing: border-box;
+  z-index: 3;
+}
+.wb-marker {
+  height: 8px;
+  width: 54px;
+  border-radius: 4px;
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.25), 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+.wb-marker::after {
+  content: "";
+  display: block;
+  width: 12px;
+  height: 8px;
+  margin-left: 42px;
+  border-radius: 0 4px 4px 0;
+  background: #2a2418;
+}
+.wb-felt {
+  height: 12px;
+  width: 30px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #4c4c4c, #2e2e2e);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+.wb-mute {
+  margin-left: auto;
+  min-width: 48px;
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  color: #f6f1e4;
+  cursor: pointer;
+  border-radius: 24px;
+  touch-action: manipulation;
+}
+.wb-mute:focus-visible {
+  outline: 2px solid #f3c64b;
+  outline-offset: -6px;
+}
+
+/* every interactive thing on the board: one finger, no gestures */
+.wb-touch {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+}
+.wb-tap {
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+}

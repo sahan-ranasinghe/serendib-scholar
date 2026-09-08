@@ -33,14 +33,19 @@ export default function AnimatedAbacus({ digits, shown, selfAnimate, childAnswer
   // selfAnimate: an internal counter walks bead-by-bead (rod by rod) up to
   // `digits`, so beads land while she names each place. Otherwise the
   // parent's `shown` is authoritative (abacus_add_bead patches it).
-  const [selfShown, setSelfShown] = useState<number[]>(() => digits.map(() => 0));
+  // The counter starts from `shown`, not from zero: a rod that already
+  // carries its beads (built up by abacus_add_bead on earlier beats) keeps
+  // them, and only the bare rods animate. Re-staging a half-built abacus
+  // with animate used to re-land every rod — beads dropping onto rods the
+  // child had just watched fill.
+  const [selfShown, setSelfShown] = useState<number[]>(() => digits.map((d, i) => Math.min(d, shown[i] ?? 0)));
   const animKey = digits.join(",");
   const animKeyRef = useRef(animKey);
   useEffect(() => {
     if (!selfAnimate) return;
     if (animKeyRef.current !== animKey) {
       animKeyRef.current = animKey;
-      setSelfShown(digits.map(() => 0));
+      setSelfShown(digits.map((d, i) => Math.min(d, shown[i] ?? 0)));
     }
     const timer = setInterval(() => {
       setSelfShown((current) => {
@@ -57,6 +62,9 @@ export default function AnimatedAbacus({ digits, shown, selfAnimate, childAnswer
       });
     }, SELF_ANIMATE_STEP_MS);
     return () => clearInterval(timer);
+    // `shown` is deliberately not a dependency: it is the starting point,
+    // read when the animation (re)starts, not a live input.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selfAnimate, animKey, digits]);
 
   const effectiveShown = selfAnimate ? selfShown : shown;

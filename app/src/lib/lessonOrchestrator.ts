@@ -49,7 +49,7 @@ export type BeatBoardAction =
    * shown complete at once (MODE 3 / recap reading tasks).
    */
   | { kind: "abacus_set"; digits: number[]; animate: boolean; startEmpty?: boolean }
-  | { kind: "abacus_add_bead"; rod: number; count: number }
+  | { kind: "abacus_add_bead"; rod: number; count: number; adds?: Array<{ rod: number; count: number }> }
   /** Renders the given lesson components directly — EXPLAIN beats staging what the teacher had written. */
   | { kind: "show_components"; itemId: string; components: LessonComponent[] }
   /** A chalk-style verbatim card for board text nothing structured could be made of. */

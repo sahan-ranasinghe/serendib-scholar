@@ -13,6 +13,8 @@
  * formatting) — strip whitespace/commas before comparing so that formatting
  * alone never counts as a wrong answer.
  */
+import { sinhalaNumberName } from "@/lib/sinhalaNumber";
+
 export function normalizeAnswer(value: string | number): string {
   return String(value).replace(/[\s,]/g, "").toLowerCase();
 }
@@ -20,7 +22,14 @@ export function normalizeAnswer(value: string | number): string {
 export function answersMatch(expected: string | number, given: string | number): boolean {
   const predicate = parseAnswerPredicate(expected);
   if (predicate) return predicateMatches(predicate, given);
-  return normalizeAnswer(expected) === normalizeAnswer(given);
+  if (normalizeAnswer(expected) === normalizeAnswer(given)) return true;
+  // The question wants a number's NAME ("අසූ හතර") and the child tapped the
+  // number itself (84) — on the board, the pad, a card. Same answer.
+  const digits = String(given).replace(/[\s,]/g, "");
+  if (/^\d{1,6}$/.test(digits) && Number(digits) <= 100_000) {
+    return normalizeAnswer(sinhalaNumberName(Number(digits))) === normalizeAnswer(expected);
+  }
+  return false;
 }
 
 /**

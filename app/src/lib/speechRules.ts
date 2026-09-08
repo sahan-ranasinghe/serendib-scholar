@@ -43,6 +43,10 @@ export interface SpeechBeat {
     answers?: number[];
     /** reveal */
     value?: string;
+    /** abacus_add */
+    rod?: number;
+    count?: number;
+    adds?: Array<{ rod: number; count: number }>;
   };
   /** Numbers this beat speaks, from its {number:N} markers. */
   numbers?: number[];
@@ -348,7 +352,7 @@ const OPAQUE_BOARDS = new Set(["exercise", "blank", "digitPicker", "expansion"])
  * flag the lesson for teaching place value correctly.
  */
 /** Board kinds that draw ON the current board rather than replacing it. */
-const OVERLAY_BOARDS = new Set(["none", "builtNumber", "reveal"]);
+const OVERLAY_BOARDS = new Set(["none", "builtNumber", "reveal", "abacus_add"]);
 
 function numbersOnBoard(board: SpeechBeat["board"]): Set<string> {
   const shown = new Set<string>();
@@ -402,6 +406,13 @@ function checkBoardContinuity(beats: SpeechBeat[]): SpeechFinding[] {
       anythingStaged = false;
     } else if (beat.board?.kind === "reveal") {
       if (beat.board.value !== undefined) carried.add(beat.board.value);
+    } else if (beat.board?.kind === "abacus_add") {
+      // Beads landing make that rod's count and place value readable.
+      for (const { rod, count } of beat.board.adds ?? [{ rod: beat.board.rod ?? 0, count: beat.board.count ?? 0 }]) {
+        carried.add(String(count));
+        carried.add(String(count * 10 ** (3 - rod)));
+      }
+      anythingStaged = true;
     } else if (beat.board && !OVERLAY_BOARDS.has(beat.board.kind)) {
       opaque = OPAQUE_BOARDS.has(beat.board.kind);
       carried = numbersOnBoard(beat.board);

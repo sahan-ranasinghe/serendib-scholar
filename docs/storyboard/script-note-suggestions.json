@@ -1,0 +1,31 @@
+{
+  "$comment": "Hand-authored suggested lines for the script notes scripts/storyboard.ts raises. Keyed by beatId#kind. The script itself is NOT changed by anything here — these are for review. Every Sinhala line stays under 14 words a sentence and neutral (no verdict words).",
+  "authored:readWrite4Digit:31b#look": {
+    "suggested": "දැන් අපි ලොකු සංඛ්‍යා ගැන කතා කරමු.",
+    "note": "'බලමු' is figurative here, but the board is still showing '84 = 80 + 4' from the puzzle while she says 'let's look' — nothing to look at until :32's title card. Either say 'talk about' (above), or keep the line and move the ස්ථානීය අගය title card onto this beat so something does appear."
+  },
+  "authored:placeValue4Digit:36#too-much-to-show": {
+    "suggested": "වමේ පැත්තට යද්දී දහයස්ථානය, සියයස්ථානය පිහිටනවා. ඊට වම් පැත්තෙන්ම දහසස්ථානය තියෙනවා.",
+    "note": "Three places in one sentence means three rods glowing in ~2s, ahead of the words. Split so each sentence carries at most two rods: ද and සි glow on the first, දා on the second — the pointer walking left with her."
+  },
+  "authored:placeValue4Digit:57#too-much-to-show": {
+    "suggested": "ඊළඟට සියයස්ථානයෙන් හාරසියයකුත් ලැබෙනවා. දහයස්ථානයෙන් විස්සකුත්, එකස්ථානයෙන් එකකුත් ලැබෙනවා.",
+    "note": "Three places and three values in one breath. Split at the first place: සි glows alone on sentence one; ද then එ on sentence two. Same words, same order — only the full stop moves."
+  },
+  "authored:placeValue4Digit:86#too-much-to-show": {
+    "suggested": ":85 → \"ඔන්න පුතේ, මම ඔයාට ඉලක්කම් කාඩ්පත් හතරක් දෙනවා — එක, තුන, අට, හය.\"   :86 → \"මේ කාඩ්පත් හතර පේනවා නේද?\"",
+    "note": "Four digits named in one sentence would need four rings in ~2s. Better than splitting :86: name the digits on :85, where the cards DEAL in — each card can land as she says it (one numberCards.show, ≤600ms), and :86 becomes the check with the pointer sweeping the row. Two lines change: :85 gains the four digit words (12 words, under the limit), :86 gets shorter."
+  },
+  "authored:placeValue4Digit:41#board-reanimate": {
+    "suggested": "Replace the abacus re-stage with two abacus_add intents — rod ද ×2 on the first clause, rod එ ×1 on the second — so only the bare rods animate. (Or make `animate` skip rods already carrying beads.)",
+    "note": "At :41 rods දා and සි already hold 5 and 4 beads from :39/:40. The runtime intent `abacus [5,4,2,1] animate:true` re-lands all four rods; the storyboard shows beads landing on ද and එ only, which is what the line describes."
+  },
+  "authored:placeValue4Digit:68#board-abacus-gone": {
+    "suggested": "Keep the abacus. Stage the expansion BENEATH it (expansion.show at :67), and let each value fly from its rod into its slot as she names it: :67 දා→5000, :68 සි→400, :71 ද→20, :72 එ→1 (expansion.part_fly + part_reveal). The chalk cards at :67 and :71 should become expansion reveals, not text cards that replace the board.",
+    "note": "Runtime gap: the `expansion` intent replaces the board like every base board; it needs to overlay an abacus, and `part_fly` does not exist yet (see board-vocabulary.md). Until then the abacus vanishes at :67 and :68/:70/:72 talk about rods the child can no longer see."
+  },
+  "authored:placeValue4Digit:78#board-abacus-gone": {
+    "suggested": "Same as 5 421: keep the 7 062 abacus from :75 and stage the expansion beneath it. :77 දා→7000, :80 සි→0 (the empty rod — the whole point of this run), :81 ද→60, :83 එ→2. The text cards '7000', '7000 + 0', '7000 + 0 + 60' and the final line become expansion reveals over the abacus.",
+    "note": "This is the run where the zero rod is taught; :78 says 'look at the hundreds rod' and :79 'how many beads there?' while the board shows a card reading '7000'. The abacus has to stay for those lines to make sense."
+  }
+}

@@ -42,7 +42,12 @@ export type AuthoredBoardIntent =
   /** `highlight` marks the one item currently being asked about. */
   | { kind: "text"; text: string; highlight?: string }
   | { kind: "abacus"; digits: number[]; animate?: boolean; startEmpty?: boolean }
-  | { kind: "abacus_add"; rod: number; count: number }
+  /**
+   * Beads landing on a rod — or on several rods in one beat (`adds`), for
+   * a line that names two places in one breath: "දහයස්ථානයට දෙකකුත්,
+   * එකස්ථානයට එකකුත්". Rods already carrying beads are left alone.
+   */
+  | { kind: "abacus_add"; rod: number; count: number; adds?: Array<{ rod: number; count: number }> }
   | { kind: "exercise"; itemId: string }
   /**
    * One blank of a staged exercise, made active so the child answers it
@@ -184,7 +189,7 @@ function boardFor(intent: AuthoredBoardIntent, lessonTitle: string): BeatBoardAc
     case "abacus":
       return { kind: "abacus_set", digits: intent.digits, animate: intent.animate ?? false, startEmpty: intent.startEmpty };
     case "abacus_add":
-      return { kind: "abacus_add_bead", rod: intent.rod, count: intent.count };
+      return { kind: "abacus_add_bead", rod: intent.rod, count: intent.count, adds: intent.adds };
     case "exercise":
       return { kind: "stage_item", itemId: intent.itemId };
     case "blank":
@@ -236,7 +241,9 @@ function describeBoard(intent: AuthoredBoardIntent): string {
     case "abacus":
       return `the abacus showing [${intent.digits.join(", ")}]`;
     case "abacus_add":
-      return `beads landing on rod ${intent.rod}`;
+      return intent.adds
+        ? `beads landing on rods ${intent.adds.map((a) => `${a.rod} (+${a.count})`).join(", ")}`
+        : `beads landing on rod ${intent.rod}`;
     case "exercise":
       return "a textbook exercise";
     case "blank":

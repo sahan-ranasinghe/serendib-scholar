@@ -1034,7 +1034,8 @@
       "humanEdited": true,
       "pauseType": null,
       "boardIntent": {
-        "kind": "none"
+        "kind": "title",
+        "title": "ස්ථානීය අගය"
       },
       "guideStep": "peer-check (guide) → find Zara's mistake",
       "maxSimilarity": {
@@ -1051,8 +1052,7 @@
       "numbers": [],
       "pauseType": "RHETORICAL",
       "boardIntent": {
-        "kind": "title",
-        "title": "ස්ථානීය අගය"
+        "kind": "none"
       },
       "guideStep": "guide step 1 of 7: Set up an abacus visible to all students; a student comes forward and represents a number on the abacus.",
       "maxSimilarity": {
@@ -1092,10 +1092,10 @@
       "boardIntent": {
         "kind": "abacus",
         "digits": [
-          0,
-          0,
-          0,
-          0
+          5,
+          4,
+          2,
+          1
         ],
         "startEmpty": true
       },
@@ -1105,7 +1105,8 @@
         "cosine": 0.8573938162575686,
         "closest": "පෙන්නන්නද ඒ ගණක රාමුව?"
       },
-      "sourceText": "අද අපි ගණක රාමුවකින් අලුත් සංඛ්‍යාවක් හදන්නයි ලෑස්ති වෙන්නේ."
+      "sourceText": "අද අපි ගණක රාමුවකින් අලුත් සංඛ්‍යාවක් හදන්නයි ලෑස්ති වෙන්නේ.",
+      "humanEdited": true
     },
     {
       "id": "authored:placeValue4Digit:35",
@@ -1129,7 +1130,7 @@
       "id": "authored:placeValue4Digit:36",
       "conceptTag": "placeValue4Digit",
       "type": "EXPLAIN",
-      "spokenText": "වමේ පැත්තට යද්දී දහයස්ථානය, සියයස්ථානය වගේම දහසස්ථානය පිහිටනවා.",
+      "spokenText": "වමේ පැත්තට යද්දී දහයස්ථානය, සියයස්ථානය පිහිටනවා. ඊට වම් පැත්තෙන්ම දහසස්ථානය තියෙනවා.",
       "numbers": [],
       "pauseType": null,
       "boardIntent": {
@@ -1137,11 +1138,12 @@
       },
       "guideStep": "guide step 1 of 7: Set up an abacus visible to all students; a student comes forward and represents a number on the abacus.",
       "maxSimilarity": {
-        "jaccard": 0.10869565217391304,
-        "cosine": 0.7869986925276695,
-        "closest": "ඔව් පහ පිහිටනවා මොන ස්ථානයේද?"
+        "jaccard": 0.20833333333333334,
+        "cosine": null,
+        "closest": "සියයේ ඒවා හයක් තියෙනවා."
       },
-      "sourceText": "වමේ පැත්තට යද්දී දහයස්ථානය, සියයස්ථානය වගේම දහසස්ථානය පිහිටනවා."
+      "sourceText": "වමේ පැත්තට යද්දී දහයස්ථානය, සියයස්ථානය පිහිටනවා. ඊට වම් පැත්තෙන්ම දහසස්ථානය තියෙනවා.",
+      "humanEdited": true
     },
     {
       "id": "authored:placeValue4Digit:37",
@@ -1229,14 +1231,19 @@
       "numbers": [],
       "pauseType": null,
       "boardIntent": {
-        "kind": "abacus",
-        "digits": [
-          5,
-          4,
-          2,
-          1
-        ],
-        "animate": true
+        "kind": "abacus_add",
+        "rod": 2,
+        "count": 2,
+        "adds": [
+          {
+            "rod": 2,
+            "count": 2
+          },
+          {
+            "rod": 3,
+            "count": 1
+          }
+        ]
       },
       "guideStep": "guide step 1 of 7: Set up an abacus visible to all students; a student comes forward and represents a number on the abacus.",
       "maxSimilarity": {
@@ -1244,7 +1251,8 @@
         "cosine": 0.791595516625439,
         "closest": "9999ට 1ක් එකතු කරපුවහම දස දහසයි."
       },
-      "sourceText": "දහයස්ථානයට පබළු දෙකකුත්, එකස්ථානයට එක පබළුවකුත් එකතු කරමු."
+      "sourceText": "දහයස්ථානයට පබළු දෙකකුත්, එකස්ථානයට එක පබළුවකුත් එකතු කරමු.",
+      "humanEdited": true
     },
     {
       "id": "authored:placeValue4Digit:42",
@@ -1522,7 +1530,7 @@
       "id": "authored:placeValue4Digit:57",
       "conceptTag": "placeValue4Digit",
       "type": "EXPLAIN",
-      "spokenText": "ඊළඟට සියයස්ථානයෙන් හාරසියයකුත්, දහයස්ථානයෙන් විස්සකුත්, එකස්ථානයෙන් එකකුත් ලැබෙනවා.",
+      "spokenText": "ඊළඟට සියයස්ථානයෙන් හාරසියයකුත් ලැබෙනවා. දහයස්ථානයෙන් විස්සකුත්, එකස්ථානයෙන් එකකුත් ලැබෙනවා.",
       "numbers": [
         400,
         20,
@@ -1534,11 +1542,11 @@
       },
       "guideStep": "guide step 3 of 7: Have students say and write the number name of the number on the abacus.",
       "maxSimilarity": {
-        "jaccard": 0.1,
+        "jaccard": 0,
         "cosine": null,
-        "closest": "තවදුරටත් හොඳට අවබෝධ කරගන්න හැකියාව ලැබෙනවා."
+        "closest": ""
       },
-      "sourceText": "ඊළඟට සියයස්ථානයෙන් {number:400}කුත්, දහයස්ථානයෙන් {number:20}කුත්, එකස්ථානයෙන් {number:1}කුත් ලැබෙනවා.",
+      "sourceText": "ඊළඟට සියයස්ථානයෙන් {number:400}කුත් ලැබෙනවා. දහයස්ථානයෙන් {number:20}කුත්, එකස්ථානයෙන් {number:1}කුත් ලැබෙනවා.",
       "humanEdited": true
     },
     {
@@ -2089,9 +2097,12 @@
       "id": "authored:placeValue4Digit:85",
       "conceptTag": "placeValue4Digit",
       "type": "TRANSITION",
-      "spokenText": "ඔන්න {address}, මම ඔයාට ඉලක්කම් කාඩ්පත් හතරක් දෙනවා.",
+      "spokenText": "ඔන්න {address}, මම ඔයාට ඉලක්කම් කාඩ්පත් හතරක් දෙනවා — එක, තුන, අට, හය.",
       "numbers": [
-        4
+        1,
+        3,
+        8,
+        6
       ],
       "pauseType": null,
       "boardIntent": {
@@ -2100,35 +2111,30 @@
       },
       "guideStep": "Give groups a card with four digits; have them form several numbers using the digits and write each in expanded form.",
       "maxSimilarity": {
-        "jaccard": 0.12244897959183673,
+        "jaccard": 0.12,
         "cosine": null,
         "closest": "අපි හදමුද තවත් ඉලක්කම් පහේ සංඛ්‍යාවක්?"
       },
-      "sourceText": "ඔන්න {address}, මම ඔයාට ඉලක්කම් කාඩ්පත් {number:4}ක් දෙනවා.",
+      "sourceText": "ඔන්න {address}, මම ඔයාට ඉලක්කම් කාඩ්පත් හතරක් දෙනවා — {number:1}, {number:3}, {number:8}, {number:6}.",
       "humanEdited": true
     },
     {
       "id": "authored:placeValue4Digit:86",
       "conceptTag": "placeValue4Digit",
       "type": "EXPLAIN",
-      "spokenText": "මේ කාඩ්පත්වල තියෙන්නේ එක, තුන, අට, හය නේද?",
-      "numbers": [
-        1,
-        3,
-        8,
-        6
-      ],
+      "spokenText": "මේ කාඩ්පත් හතර පේනවා නේද?",
+      "numbers": [],
       "pauseType": "RHETORICAL",
       "boardIntent": {
         "kind": "none"
       },
       "guideStep": "guide step 6 of 7: Give groups a card with four digits; have them form several numbers using the digits and write each in expanded form.",
       "maxSimilarity": {
-        "jaccard": 0,
+        "jaccard": 0.13793103448275862,
         "cosine": null,
-        "closest": ""
+        "closest": "1000 යි කියලා කියනවා නේද?"
       },
-      "sourceText": "මේ කාඩ්පත්වල තියෙන්නේ {number:1}, {number:3}, {number:8}, {number:6} නේද?",
+      "sourceText": "මේ කාඩ්පත් හතර පේනවා නේද?",
       "humanEdited": true
     },
     {

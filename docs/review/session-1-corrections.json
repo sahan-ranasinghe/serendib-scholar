@@ -632,5 +632,70 @@
       "clearIsAFlash": "No hits — the script contains no clear.",
       "boardDisplaysALaterAnswer": "The forward-looking form of answerShownBeforeAsked, added in round 8. Displayed values only — an expansion's `answers` are excluded because the renderer blanks them, and an abacus's digits are excluded because reading them off IS the question. No hits across the script."
     }
+  },
+  "storyboard": {
+    "$comment": "STORYBOARD ROUND. docs/storyboard/script-notes.md put the visual plan against every line; four lines carried more than two things to show in one sentence, one said 'let's look' at a board with nothing new on it, and two board intents fought the picture. The accepted notes, applied. Text changes re-key their clips by construction (a clip key is the hash of the words); no human take existed for any of them.",
+    "rewrite": {
+      "authored:placeValue4Digit:32": {
+        "board": {
+          "kind": "none"
+        },
+        "why": "The title card moved up to :31b; this beat inherits it. The runtime carries the board across a concept boundary — only a title card or a clear replaces it."
+      },
+      "authored:placeValue4Digit:34": {
+        "board": {
+          "kind": "abacus",
+          "digits": [
+            5,
+            4,
+            2,
+            1
+          ],
+          "startEmpty": true
+        },
+        "why": "Found while applying B1. The bare abacus was staged as digits [0,0,0,0], and boardPatch caps beads at digits[rod] — so :39 and :40 landed NOTHING on the real board, and the old :41 full re-stage with animate was painting the finished abacus over that. Rods still start bare (startEmpty); the target is now the number being built, so each abacus_add lands its beads and the child watches 5 421 assemble rod by rod."
+      },
+      "authored:placeValue4Digit:36": {
+        "text": "වමේ පැත්තට යද්දී දහයස්ථානය, සියයස්ථානය පිහිටනවා. ඊට වම් පැත්තෙන්ම දහසස්ථානය තියෙනවා.",
+        "why": "Note 2. Three places in one sentence = three rods glowing in ~2s, ahead of the words. Split so ද and සි glow on the first sentence and දා on the second, the pointer walking left with her."
+      },
+      "authored:placeValue4Digit:41": {
+        "board": {
+          "kind": "abacus_add",
+          "rod": 2,
+          "count": 2,
+          "adds": [
+            {
+              "rod": 2,
+              "count": 2
+            },
+            {
+              "rod": 3,
+              "count": 1
+            }
+          ]
+        },
+        "why": "Board note B1. Was `abacus [5,4,2,1] animate:true`, which re-landed beads on rods දා and සි that :39/:40 had already filled. Now beads land on ද (×2) and එ (×1) only — exactly what the line describes. `animate` was also changed to skip rods already carrying beads, so a re-stage can never do this again."
+      },
+      "authored:placeValue4Digit:57": {
+        "text": "ඊළඟට සියයස්ථානයෙන් {number:400}කුත් ලැබෙනවා. දහයස්ථානයෙන් {number:20}කුත්, එකස්ථානයෙන් {number:1}කුත් ලැබෙනවා.",
+        "why": "Note 3. Three places and three values in one breath. Only the full stop moves: සි alone on sentence one, ද then එ on sentence two."
+      },
+      "authored:placeValue4Digit:85": {
+        "text": "ඔන්න {address}, මම ඔයාට ඉලක්කම් කාඩ්පත් හතරක් දෙනවා — {number:1}, {number:3}, {number:8}, {number:6}.",
+        "why": "Note 4. The four digits are named where the cards DEAL in, so each card lands as she says it — one animation, not four rings on the next beat."
+      },
+      "authored:placeValue4Digit:86": {
+        "text": "මේ කාඩ්පත් හතර පේනවා නේද?",
+        "why": "Note 4. Becomes the check; the pointer sweeps the row that :85 just dealt."
+      },
+      "authored:readWrite4Digit:31b": {
+        "board": {
+          "kind": "title",
+          "title": "ස්ථානීය අගය"
+        },
+        "why": "Note 1 (board alternative, accepted over the wording change). 'දැන් අපි ලොකු සංඛ්‍යා ගැන බලමු' now has something to look at: the concept-2 title card appears on this line instead of one beat later."
+      }
+    }
   }
 }

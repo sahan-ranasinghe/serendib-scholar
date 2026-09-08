@@ -17,8 +17,8 @@ type ViewPatch = Partial<PageImageView> & Partial<TableBoardView> & {
   filledAnswer?: FilledAnswer;
   activeBlank?: { rowIndex: number; field: string } | null;
   expectedItemId?: string;
-  /** abacus_add_bead: beads landing on one rod of the animated abacus. */
-  abacusAddBead?: { rod: number; count: number };
+  /** abacus_add_bead: beads landing on one or more rods of the animated abacus. */
+  abacusAddBead?: { rod: number; count: number } | Array<{ rod: number; count: number }>;
 };
 
 /**
@@ -82,10 +82,10 @@ export function applyViewPatch(current: BoardContent | null, patch: ViewPatch): 
     return { ...current, activeBlank: patch.activeBlank ?? null };
   }
   if (current?.type === "abacus" && patch.abacusAddBead) {
-    const { rod, count } = patch.abacusAddBead;
+    const adds = Array.isArray(patch.abacusAddBead) ? patch.abacusAddBead : [patch.abacusAddBead];
     const shown = [...current.shown];
-    if (rod >= 0 && rod < shown.length) {
-      shown[rod] = Math.min(current.digits[rod] ?? 0, shown[rod] + count);
+    for (const { rod, count } of adds) {
+      if (rod >= 0 && rod < shown.length) shown[rod] = Math.min(current.digits[rod] ?? 0, shown[rod] + count);
     }
     return { ...current, shown, selfAnimate: false };
   }

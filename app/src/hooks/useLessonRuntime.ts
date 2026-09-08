@@ -5,10 +5,34 @@ import { PcmPlayer } from "@/lib/pcmAudio";
 import { closeRecordingContext, recordAnswer as recordAnswerClip, type AnswerRecorderHandle } from "@/lib/answerRecorder";
 import { clipKey, AUDIO_FORMAT_VERSION, type ClipMeta } from "@/lib/audioCache";
 import { parseAnswerPredicate } from "@/lib/answerCheck";
-import { sinhalaNumberName } from "@/lib/sinhalaNumber";
+import { isNumberWord, sinhalaNumberName } from "@/lib/sinhalaNumber";
 import { concatWavClips, numberClipPlan, pcmOfWav, NUMBER_FRAMES, type NumberFrame } from "@/lib/composeNumberAudio";
 import { CLIP_SAMPLE_RATE } from "@/lib/audioCache";
 import { useLiveChat } from "@/hooks/useLiveChat";
+import STORYBOARD_JSON from "@/data/storyboard/maths-5-1-session-1.json";
+import {
+  alignSpans,
+  answerSurfaceFor,
+  conceptTitle,
+  describeStage,
+  eventKey,
+  initialStage,
+  isKnownEvent,
+  reduceStage,
+  stageFromLegacy,
+  type AlignedSpans,
+  type ReduceContext,
+  type StageBase,
+  type StageState,
+  type Storyboard,
+  type StoryboardBeat,
+  type StoryboardEvent,
+} from "@/lib/choreography";
+import { AUTHORED_LINES } from "@/lib/authoredLines";
+import type { Target } from "@/components/board/events";
+import type { YourTurn } from "@/components/board/BoardStage";
+import type { ConceptStop } from "@/components/ProgressStrip";
+import type { SessionSummary } from "@/components/SessionSummaryCard";
 import {
   advance,
   beatSpec,
@@ -31,7 +55,9 @@ import {
   ASK_GIVEUP_TIMEOUT_MS,
   SOFT_CHECK_WINDOW_MS,
   SOFT_CHECK_SILENCE_MS,
+  UNAIDED_CORRECT_TO_ADVANCE,
   FRAMING_CONCEPT,
+  type AdvanceResult,
   type Beat,
   type LessonScript,
   type OrchestratorState,
@@ -94,6 +120,38 @@ export interface AnswerPad {
   options?: string[];
 }
 
+/** The character's overriding mood — set by the orchestrator around feedback, never by a timer. */
+export type CharacterMood = "none" | "celebrate" | "encourage";
+
+/** A storyboarded beat in flight: its events fire on the clip's sentences. */
+interface ActiveChoreo {
+  beat: StoryboardBeat;
+  /** The board as it was before this beat — a repeat starts from here. */
+  snapshot: StageState;
+  /** The content-bank item this beat fetched, mapped, for the events that need it. */
+  legacy: StageBase;
+  /** Sentences whose events have fired. */
+  fired: number;
+}
+
+/** One line of the choreography trace — what fired, when, against which span. */
+export interface ChoreoLogEntry {
+  beatId: string;
+  sentenceIndex: number;
+  event: string;
+  /** Audio-clock position within the clip when the event fired. */
+  firedAtMs: number;
+  spanStartMs: number;
+  spanEndMs: number;
+  clipMs: number;
+  /** The spans were estimated (a clip without matching sentence spans). */
+  estimated: boolean;
+  /** Fired before its sentence or after the clip ended. */
+  outside: boolean;
+  /** The board library has this primitive and event. */
+  known: boolean;
+}
+
 /** Playback needs the pinned voice to NAME a clip (clips come via /api/clip). */
 interface AudioConfig {
   voice: string;
@@ -131,6 +189,26 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
   const [celebrateNonce, setCelebrateNonce] = useState(0);
   const [muted, setMuted] = useState(false);
   const [paused, setPaused] = useState(false);
+
+  // --- the choreography: the storyboard on the board ---------------------
+  const [stage, setStageState] = useState<StageState>(initialStage);
+  const stageRef = useRef<StageState>(initialStage());
+  const [yourTurn, setYourTurn] = useState<YourTurn | null>(null);
+  const [characterMood, setCharacterMood] = useState<CharacterMood>("none");
+  const [conceptStops, setConceptStops] = useState<ConceptStop[]>([]);
+  const [sessionSummary, setSessionSummary] = useState<SessionSummary | null>(null);
+  const storyboardRef = useRef(new Map((STORYBOARD_JSON as Storyboard).beats.map((b) => [b.id, b])));
+  const activeChoreoRef = useRef<ActiveChoreo | null>(null);
+  /** Events a pause froze: each fires when the audio reaches its sentence again. */
+  const frozenRef = useRef<Array<{ run: () => void; startMs: number }>>([]);
+  const choreoLogRef = useRef<ChoreoLogEntry[]>([]);
+  /** Audio-clock time the current clip started at. */
+  const clipStartRef = useRef(0);
+  /** This session's mastery log, per concept. */
+  const masteryRef = useRef(new Map<string, { asked: number; correct: number; mastered: boolean; done: boolean }>());
+  /** Where the child's answer lives on the board, for the feedback burst. */
+  const answerTargetRef = useRef<Target | null>(null);
+  const sessionStartedAtRef = useRef(0);
 
   const chat = useLiveChat();
 
@@ -179,6 +257,158 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
     debugEventsRef.current.push(`${new Date().toISOString().slice(11, 19)} ${event}`);
     if (debugEventsRef.current.length > 20) debugEventsRef.current.shift();
     console.debug(`[beat] ${event}`);
+  };
+
+  // -----------------------------------------------------------------
+  // The board: stage state, and the storyboard's events on it
+  // -----------------------------------------------------------------
+
+  const publishChoreo = () => {
+    if (typeof window === "undefined") return;
+    const w = window as unknown as { __stage?: string; __choreo?: unknown; __choreoLog?: ChoreoLogEntry[] };
+    w.__stage = describeStage(stageRef.current);
+    const active = activeChoreoRef.current;
+    w.__choreo = active ? { beatId: active.beat.id, fired: active.fired, sentences: active.beat.sentences.length } : null;
+    w.__choreoLog = choreoLogRef.current;
+  };
+
+  const setStage = (next: StageState) => {
+    stageRef.current = next;
+    setStageState(next);
+    publishChoreo();
+  };
+
+  const dispatchStage = (event: Pick<StoryboardEvent, "primitive" | "event" | "args">, ctx: ReduceContext = {}) => {
+    setStage(reduceStage(stageRef.current, event, ctx));
+  };
+
+  /** The audio clock's position inside the current clip. */
+  const positionMs = () => {
+    const debug = playerRef.current?.getPlaybackDebug();
+    return debug ? Math.round((debug.currentTime - clipStartRef.current) * 1000) : 0;
+  };
+
+  const fireFeedback = (kind: "correct" | "wrong" | "celebrate", at: Target | null) => {
+    setStage({ ...stageRef.current, feedback: { kind, at, nonce: stageRef.current.feedback.nonce + 1 } });
+  };
+
+  /**
+   * One sentence's storyboard events, applied to the board — or, while
+   * the lesson is paused, held until the audio reaches that sentence.
+   * Every firing is logged against the sentence's span so a run can be
+   * checked for events that landed outside their clip.
+   */
+  const fireSentence = (choreo: ActiveChoreo, index: number, spans: AlignedSpans, clipMs: number) => {
+    const span = spans.list[index] ?? { startMs: 0, endMs: clipMs };
+    const run = () => {
+      for (const event of choreo.beat.events.filter((e) => e.sentenceIndex === index)) {
+        const known = isKnownEvent(event);
+        if (known) dispatchStage(event, { legacy: choreo.legacy ?? undefined, lastBuilt: lastBuiltNumberRef.current });
+        else logEvent(`choreography: no primitive for ${eventKey(event)}`);
+        const at = positionMs();
+        choreoLogRef.current.push({
+          beatId: choreo.beat.id,
+          sentenceIndex: index,
+          event: eventKey(event),
+          firedAtMs: at,
+          spanStartMs: span.startMs,
+          spanEndMs: span.endMs,
+          clipMs,
+          estimated: spans.estimated,
+          outside: at < span.startMs - 250 || at > clipMs + 250,
+          known,
+        });
+      }
+      choreo.fired = Math.max(choreo.fired, index + 1);
+      publishChoreo();
+    };
+    if (pausedRef.current) frozenRef.current.push({ run, startMs: span.startMs });
+    else run();
+  };
+
+  /** The strip's stops: every concept of the lesson, the current one filling as beats pass. */
+  const refreshProgress = () => {
+    const script = scriptRef.current;
+    if (!script) return;
+    const index = stateRef.current.beatIndex;
+    const stops: ConceptStop[] = script.concepts
+      .filter((concept) => concept.conceptTag !== FRAMING_CONCEPT)
+      .map((concept) => {
+        const entry = masteryRef.current.get(concept.conceptTag);
+        const total = Math.max(1, concept.lastBeat - concept.firstBeat + 1);
+        const finished = entry?.done || index > concept.lastBeat;
+        const status: ConceptStop["status"] = finished ? (entry?.mastered ? "mastered" : "done") : index >= concept.firstBeat ? "current" : "upcoming";
+        return {
+          tag: concept.conceptTag,
+          title: conceptTitle(concept.conceptTag, concept.description),
+          status,
+          fraction: status === "current" ? Math.min(1, (index - concept.firstBeat + 1) / total) : status === "upcoming" ? 0 : 1,
+        };
+      });
+    setConceptStops(stops);
+  };
+
+  const noteMastery = (tag: string, correct: boolean) => {
+    if (!tag || tag === FRAMING_CONCEPT) return;
+    const entry = masteryRef.current.get(tag) ?? { asked: 0, correct: 0, mastered: false, done: false };
+    masteryRef.current.set(tag, { ...entry, asked: entry.asked + 1, correct: entry.correct + (correct ? 1 : 0) });
+  };
+
+  /**
+   * A concept finished: confetti once, its stop lights up (a star if it
+   * was mastered), and she says the recorded "concept done" line before
+   * the lesson moves on.
+   */
+  const conceptComplete = (tag: string, mastered: boolean) => {
+    const entry = masteryRef.current.get(tag) ?? { asked: 0, correct: 0, mastered: false, done: false };
+    masteryRef.current.set(tag, { ...entry, mastered: entry.mastered || mastered, done: true });
+    logEvent(`concept complete ${tag}${mastered ? " (mastered)" : ""}`);
+    fireFeedback("celebrate", null);
+    refreshProgress();
+    const current = activeBeatRef.current;
+    if (!current) return;
+    pendingBeatsRef.current.unshift({
+      ...current,
+      id: `${tag}:concept-done`,
+      type: "TRANSITION",
+      goal: "The concept is finished (verbatim line).",
+      spokenText: AUTHORED_LINES.conceptDone,
+      sayCandidates: undefined,
+      maxSentences: 1,
+      board: { kind: "none" },
+      expectedAnswer: undefined,
+      answerChoices: undefined,
+      endBy: "pausing",
+    });
+  };
+
+  /** After any advance: did the concept finish, and was it mastered? */
+  const noteAdvance = (result: AdvanceResult, beat: Beat | null, decision: PlannerDecision | null, before: OrchestratorState) => {
+    if (!result.movedConcept || !beat || beat.conceptTag === FRAMING_CONCEPT || beat.conceptTag === "lessonOpening") return;
+    // A concept the packer split across sittings is not finished at the
+    // sitting's end — only when no beat of it remains anywhere ahead.
+    const script = scriptRef.current;
+    const continues = script?.beats.slice(result.state.beatIndex).some((later) => later.conceptTag === beat.conceptTag) ?? false;
+    if (continues) return;
+    const unaided = before.unaidedCorrect + (decision?.understood && beat.mode === 3 ? 1 : 0);
+    conceptComplete(beat.conceptTag, unaided >= UNAIDED_CORRECT_TO_ADVANCE);
+  };
+
+  const buildSummary = (): SessionSummary => {
+    const script = scriptRef.current;
+    const order = script ? script.concepts.map((c) => c.conceptTag) : [...masteryRef.current.keys()];
+    const concepts = order
+      .filter((tag) => masteryRef.current.has(tag) || sessionStatsRef.current.concepts.has(tag))
+      .map((tag) => {
+        const entry = masteryRef.current.get(tag) ?? { asked: 0, correct: 0, mastered: false, done: false };
+        return { tag, title: conceptTitle(tag, script?.concepts.find((c) => c.conceptTag === tag)?.description), asked: entry.asked, correct: entry.correct, mastered: entry.mastered };
+      });
+    return {
+      concepts,
+      asked: sessionStatsRef.current.asked,
+      correct: sessionStatsRef.current.correct,
+      minutes: Math.max(1, Math.round((Date.now() - sessionStartedAtRef.current) / 60000)),
+    };
   };
 
   // -----------------------------------------------------------------
@@ -296,14 +526,46 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
       goal: text ? undefined : buildDirectorLine(beat),
       maxSentences: beat.maxSentences,
     });
-    if (!clip || stoppedRef.current) return;
+    if (stoppedRef.current) return;
+    if (!clip) {
+      // No clip at all (not cached, and the render budget is spent): the
+      // board still follows the storyboard, on spans estimated from the
+      // sentences, over the time the line would have taken — a silent beat
+      // is not a skipped one.
+      const silent = activeChoreoRef.current?.beat.id === beat.id ? activeChoreoRef.current : null;
+      if (silent) {
+        const spans = alignSpans(null, silent.beat.sentences);
+        const durationMs = spans.list[spans.list.length - 1]?.endMs ?? 0;
+        logEvent(`no clip for ${beat.id.slice(0, 40)} — choreography on estimated spans (${durationMs}ms)`);
+        setCaption(text ?? "");
+        clipStartRef.current = player.getPlaybackDebug().currentTime;
+        fireSentence(silent, 0, spans, durationMs);
+        for (let index = 1; index < spans.list.length; index += 1) {
+          const at = spans.list[index]!.startMs;
+          setTimeout(() => fireSentence(silent, index, spans, durationMs), at);
+        }
+        await wait(durationMs + MIC_TAIL_MS);
+      }
+      return;
+    }
     setCaption(clip.text);
     beatAudioMsRef.current += clip.meta.durationMs;
     metricsRef.current.cachedSeconds += clip.meta.durationMs / 1000;
+    // The choreography: this beat's storyboard events, on the clip's own
+    // sentence spans — estimated from the sentences when the clip has none
+    // that fit. Sentence 0 fires as the clip starts; the rest on the
+    // player's sentence boundaries.
+    const choreo = activeChoreoRef.current?.beat.id === beat.id ? activeChoreoRef.current : null;
+    const spans = choreo ? alignSpans(clip.meta, choreo.beat.sentences) : null;
+    const debug = player.getPlaybackDebug();
+    clipStartRef.current = Math.max(debug.currentTime, debug.lastScheduledEnd);
+    if (choreo && spans) fireSentence(choreo, 0, spans, clip.meta.durationMs);
+    const sentences = spans ? spans.list : clip.meta.sentences;
     await player.playClip(clip.audio, {
-      sentences: clip.meta.sentences,
+      sentences,
       onSentence: (index) => {
-        if (index > 0) logEvent(`sentence ${index + 1}/${clip.meta.sentences.length}`);
+        if (index > 0) logEvent(`sentence ${index + 1}/${sentences.length}`);
+        if (choreo && spans && index > 0) fireSentence(choreo, index, spans, clip.meta.durationMs);
       },
     });
     // The echo guard the mic path relied on before: never start listening
@@ -346,6 +608,29 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
       }
     }
 
+    // The child's turn on the board: the primitive up there is the answer
+    // surface, the pointer parks, and a touch answer meets a spoken one in
+    // the same judge. An abacus that already shows the answer is read, not
+    // rebuilt, so its beads stay put for a reading question.
+    const surface = answerSurfaceFor(stageRef.current);
+    const expectedDigits = (beat.expectedAnswer ?? "").replace(/\D/g, "");
+    const touchable = surface !== null && (surface.surface !== "abacus" || (expectedDigits !== "" && expectedDigits !== surface.shownNumber));
+    answerTargetRef.current = surface?.target ?? null;
+    setYourTurn({
+      kind: beat.type === "SOFT_CHECK" ? "soft" : "ask",
+      surface: surface?.surface ?? null,
+      touchable,
+      choices: beat.answerChoices && beat.answerChoices.length >= 2 ? beat.answerChoices : undefined,
+      // A number, a digit set, or a number NAME ("අසූ හතර") — the pad answers all three (see answersMatch).
+      numeric: Boolean(
+        beat.expectedAnswer &&
+          (/^[\d\s,]+$/.test(beat.expectedAnswer) ||
+            parseAnswerPredicate(beat.expectedAnswer) ||
+            beat.expectedAnswer.trim().split(/\s+/).every((token) => isNumberWord(token))),
+      ),
+    });
+    setStage({ ...stageRef.current, parked: true });
+
     padAnswerRef.current = null;
     const handle = recordAnswerClip(stream, {
       onsetTimeoutMs,
@@ -358,6 +643,8 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
     recorderRef.current = null;
     setMicLevel(0);
     setAnswerPad(null);
+    setYourTurn(null);
+    setStage({ ...stageRef.current, parked: false });
 
     // A tapped answer beats anything the mic heard.
     const tapped = padAnswerRef.current;
@@ -403,7 +690,7 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
       sequence: sequenceRef.current,
       beat,
       directorText: buildDirectorLine(beat),
-      boardState: boardContentRef.current,
+      boardState: activeChoreoRef.current ? describeStage(stageRef.current) : boardContentRef.current,
       childTranscript: childTranscriptRef.current.trim() || null,
       plannerDecision: decision,
       outputAudioMs: beatAudioMsRef.current,
@@ -423,6 +710,10 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
   const showNumberOnBoard = (value: number) => {
     const digits = String(value);
     const name = sinhalaNumberName(value);
+    const base = stageRef.current.base;
+    if (base?.kind === "digitPicker") dispatchStage({ primitive: "digitPicker", event: "built_number", args: { digits, name, by: "child" } });
+    else if (base?.kind === "abacus") dispatchStage({ primitive: "abacus", event: "child_answer_overlay", args: { text: digits } });
+    else dispatchStage({ primitive: "chalkText", event: "write", args: { text: `${digits} - ${name}` } });
     const current = boardContentRef.current;
     let next: BoardContent;
     if (current?.type === "lesson_content") next = { ...current, builtNumber: { digits, name } };
@@ -489,6 +780,16 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
     if (beat.type === "SESSION_START" || beat.id.endsWith("lesson-goals-0")) {
       sessionStatsRef.current = { concepts: new Set<string>(), correct: 0, asked: 0 };
     }
+    refreshProgress();
+    // A storyboarded beat: its board is its events, fired on the clip's
+    // sentences (see speak). A repeat (↺) starts from the board as it was
+    // before the beat, so the events replay over the audio.
+    const storyboarded = storyboardRef.current.get(beat.id) ?? null;
+    const repeating = storyboarded !== null && activeChoreoRef.current?.beat.id === beat.id;
+    if (repeating) setStage(activeChoreoRef.current!.snapshot);
+    const snapshot = repeating ? activeChoreoRef.current!.snapshot : stageRef.current;
+    activeChoreoRef.current = storyboarded ? { beat: storyboarded, snapshot, legacy: null, fired: 0 } : null;
+    publishChoreo();
     try {
       const action = beatSpec(beat.type).boardAction(beat);
       if (action.kind === "built_number") {
@@ -498,14 +799,31 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
         if (lastBuiltNumberRef.current !== null) showNumberOnBoard(lastBuiltNumberRef.current);
         return;
       }
+      // Only a content-bank item still needs fetching for a storyboarded
+      // beat — the pool or the rows its events draw.
+      if (action.kind === "none" || (storyboarded && action.kind !== "stage_item")) return;
       const staged = await stageBeatBoard(action);
       if (staged.board) {
+        // An abacus that self-animates over one already on the board keeps
+        // the beads on any rod whose digit has not changed — the animation
+        // lands the rest. Different number → every rod starts bare.
+        const previous = boardContentRef.current;
+        if (staged.board.type === "abacus" && staged.board.selfAnimate && previous?.type === "abacus") {
+          staged.board = {
+            ...staged.board,
+            shown: staged.board.digits.map((d, i) => (previous.digits[i] === d ? Math.min(d, previous.shown[i] ?? 0) : 0)),
+          };
+        }
         boardContentRef.current = staged.board;
         setBoardContent(staged.board);
+        const base = stageFromLegacy(staged.board);
+        if (storyboarded && activeChoreoRef.current) activeChoreoRef.current.legacy = base;
+        else setStage({ ...stageRef.current, base, notes: [], highlight: null, pointer: null, seq: stageRef.current.seq + 1 });
       } else if (staged.viewPatch) {
         const patched = applyViewPatch(boardContentRef.current, staged.viewPatch as ViewPatch);
         boardContentRef.current = patched;
         setBoardContent(patched);
+        if (!storyboarded) setStage({ ...stageRef.current, base: stageFromLegacy(patched), seq: stageRef.current.seq + 1 });
       }
     } catch (err) {
       console.error("[useLessonRuntime] Board staging failed for", beat.id, err);
@@ -619,8 +937,10 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
   const advanceIfScripted = (scripted: boolean, decision: PlannerDecision | null) => {
     const script = scriptRef.current;
     if (!scripted || !script) return null;
-    const result = advance(script, stateRef.current, decision);
+    const before = stateRef.current;
+    const result = advance(script, before, decision);
     stateRef.current = result.state;
+    noteAdvance(result, activeBeatRef.current, decision, before);
     return result;
   };
 
@@ -739,6 +1059,12 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
     }
 
     sessionStatsRef.current.asked += 1;
+    noteMastery(beat.conceptTag, decision.understood);
+    // Correct → the burst on the answered element and a celebration; wrong
+    // → the gentle wobble and an encouraging nod. Never both. The praise
+    // or miss clip follows as the FEEDBACK beat.
+    fireFeedback(decision.understood ? "correct" : "wrong", answerTargetRef.current);
+    setCharacterMood(decision.understood ? "celebrate" : "encourage");
     if (decision.understood) {
       sessionStatsRef.current.correct += 1;
       setCelebrateNonce((n) => n + 1);
@@ -756,19 +1082,24 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
       boardContentRef.current = patched;
       setBoardContent(patched);
     }
+    if (stageRef.current.base?.kind === "abacus" && said) dispatchStage({ primitive: "abacus", event: "child_answer_overlay", args: { text: said.slice(0, 24) } });
     await finishBeatLog(beat, decision);
 
     if (!scripted) {
       await runBeat(buildFeedbackBeat(beat, decision.understood, beat.expectedAnswer), false);
+      setCharacterMood("none");
       return;
     }
 
-    const result = advance(script, stateRef.current, decision);
+    const before = stateRef.current;
+    const result = advance(script, before, decision);
     stateRef.current = result.state;
     await runBeat(
       buildFeedbackBeat(beat, decision.understood, beat.expectedAnswer, { reteachFollows: result.needsReteach }),
       false,
     );
+    setCharacterMood("none");
+    noteAdvance(result, beat, decision, before);
     if (result.needsReteach) {
       const { beats: reteachBeats, angleUsed } = buildReteachBeats(script, beat, usedReteachAnglesRef.current);
       if (angleUsed) usedReteachAnglesRef.current.push(angleUsed);
@@ -782,6 +1113,7 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
     const player = playerRef.current;
     if (!stream || !player) return;
     setRuntimeStatus("chatting");
+    setStage({ ...stageRef.current, pointer: null, parked: false });
     logEvent("live chat opened");
     await chat.runChat({ stream, player });
     logEvent("live chat closed");
@@ -842,6 +1174,7 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
       closeRecordingContext();
       streamRef.current?.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
+      setSessionSummary(buildSummary());
       setRuntimeStatus("done");
     }
   };
@@ -957,6 +1290,15 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
     metricsRef.current = { cachedSeconds: 0, flashAudioSeconds: 0, clipsPlayed: 0, clipsRendered: 0 };
     sessionStatsRef.current = { concepts: new Set<string>(), correct: 0, asked: 0 };
     sessionIdRef.current = crypto.randomUUID();
+    sessionStartedAtRef.current = Date.now();
+    choreoLogRef.current = [];
+    masteryRef.current = new Map();
+    activeChoreoRef.current = null;
+    frozenRef.current = [];
+    setSessionSummary(null);
+    setCharacterMood("none");
+    setYourTurn(null);
+    setStage(initialStage());
 
     try {
       const scriptResponse = await fetch("/api/lesson-script", {
@@ -1039,6 +1381,8 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
       void playerRef.current?.suspend();
     } else {
       void playerRef.current?.resume();
+      const frozen = frozenRef.current.splice(0);
+      for (const entry of frozen) setTimeout(entry.run, Math.max(0, entry.startMs - positionMs()));
     }
   }, []);
 
@@ -1101,6 +1445,8 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
         clipsRendered: metricsRef.current.clipsRendered,
       },
       events: debugEventsRef.current.slice(-5),
+      stage: describeStage(stageRef.current),
+      choreo: activeChoreoRef.current ? `${activeChoreoRef.current.fired}/${activeChoreoRef.current.beat.sentences.length}` : "—",
     }),
     [chat],
   );
@@ -1118,6 +1464,11 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
     currentSessionIndex,
     sessionCount,
     celebrateNonce,
+    stage,
+    yourTurn,
+    characterMood,
+    conceptStops,
+    sessionSummary,
     muted,
     paused,
     chatting: chat.chatting,

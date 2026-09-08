@@ -2,7 +2,7 @@
 
 Generated 2026-09-07 00:40 with gemini-flash-latest. 121 beats across readWrite4Digit, placeValue4Digit.
 
-90 of the 121 beats carry `humanEdited: true` — a native-speaker review rewrote them (docs/review/session-1-edits.json, then docs/review/gemini-review-decisions.json). Each is marked **· human-edited** below.
+93 of the 121 beats carry `humanEdited: true` — a native-speaker review rewrote them (docs/review/session-1-edits.json, then docs/review/gemini-review-decisions.json). Each is marked **· human-edited** below.
 
 **Status: APPROVED.** These are the words a child hears. Editing the JSON invalidates the cached script automatically; set `"approved": false` to take it back off the air.
 
@@ -423,7 +423,7 @@ Board shows: "84 = 80 + 4"
 
 > දැන් අපි ලොකු සංඛ්‍යා ගැන බලමු.
 
-Board shows: "84 = 80 + 4" — inherited
+Board shows: title card "ස්ථානීය අගය"
 
 ## placeValue4Digit
 
@@ -444,7 +444,7 @@ Hook candidates (first is in use):
 
 > අලුත් ඉස්කෝලේ බෑග් එකක් ගන්න ගියාම ඒකේ මිල ලොකු ගාණක් නේද {address}?
 
-Board shows: title card "ස්ථානීය අගය"
+Board shows: _(nothing staged yet in this concept)_ — inherited
 
 ### `authored:placeValue4Digit:33`
 
@@ -452,15 +452,15 @@ Board shows: title card "ස්ථානීය අගය"
 
 > ඒ ගාණේ ඉලක්කම් හතරක් තියෙනවා. ඒ ඉලක්කම් තියෙන තැන දන්නවා නම් අපිට ඒක ලේසියෙන් කියවන්න පුළුවන්.
 
-Board shows: title card "ස්ථානීය අගය" — inherited
+Board shows: _(nothing staged yet in this concept)_ — inherited
 
 ### `authored:placeValue4Digit:34`
 
-**TRANSITION** · pause: — · guide: guide step 1 of 7: Set up an abacus visible to all students; a student comes forward and represents a number on the abacus. · max-sim J 0.10 / C 0.86
+**TRANSITION** · pause: — · guide: guide step 1 of 7: Set up an abacus visible to all students; a student comes forward and represents a number on the abacus. · max-sim J 0.10 / C 0.86 · **human-edited**
 
 > අද අපි ගණක රාමුවකින් අලුත් සංඛ්‍යාවක් හදන්නයි ලෑස්ති වෙන්නේ.
 
-Board shows: the abacus [0, 0, 0, 0], rods bare
+Board shows: the abacus [5, 4, 2, 1], rods bare
 
 ### `authored:placeValue4Digit:35`
 
@@ -468,15 +468,15 @@ Board shows: the abacus [0, 0, 0, 0], rods bare
 
 > ගණක රාමුවේ දකුණු කෙළවරේම තියෙන කූර එකස්ථානය කියලයි අපි කියන්නේ.
 
-Board shows: the abacus [0, 0, 0, 0], rods bare — inherited
+Board shows: the abacus [5, 4, 2, 1], rods bare — inherited
 
 ### `authored:placeValue4Digit:36`
 
-**EXPLAIN** · pause: — · guide: guide step 1 of 7: Set up an abacus visible to all students; a student comes forward and represents a number on the abacus. · max-sim J 0.11 / C 0.79
+**EXPLAIN** · pause: — · guide: guide step 1 of 7: Set up an abacus visible to all students; a student comes forward and represents a number on the abacus. · max-sim J 0.21 · **human-edited**
 
-> වමේ පැත්තට යද්දී දහයස්ථානය, සියයස්ථානය වගේම දහසස්ථානය පිහිටනවා.
+> වමේ පැත්තට යද්දී දහයස්ථානය, සියයස්ථානය පිහිටනවා. ඊට වම් පැත්තෙන්ම දහසස්ථානය තියෙනවා.
 
-Board shows: the abacus [0, 0, 0, 0], rods bare — inherited
+Board shows: the abacus [5, 4, 2, 1], rods bare — inherited
 
 ### `authored:placeValue4Digit:37`
 
@@ -484,7 +484,7 @@ Board shows: the abacus [0, 0, 0, 0], rods bare — inherited
 
 > එතකොට කූරු හතරේ පිළිවෙළ ඔයාට මතක හිටියා නේද {address}?
 
-Board shows: the abacus [0, 0, 0, 0], rods bare — inherited
+Board shows: the abacus [5, 4, 2, 1], rods bare — inherited
 
 ### `authored:placeValue4Digit:38`
 
@@ -494,7 +494,7 @@ Board shows: the abacus [0, 0, 0, 0], rods bare — inherited
 
 Source: `ඔන්න අපි {number:5421} කියන ලස්සන සංඛ්‍යාව මේ රාමුවට දාමු.`
 
-Board shows: the abacus [0, 0, 0, 0], rods bare — inherited
+Board shows: the abacus [5, 4, 2, 1], rods bare — inherited
 
 ### `authored:placeValue4Digit:39`
 
@@ -514,11 +514,11 @@ Board shows: 4 bead(s) onto rod 1
 
 ### `authored:placeValue4Digit:41`
 
-**SHOW_BOARD** · pause: — · guide: guide step 1 of 7: Set up an abacus visible to all students; a student comes forward and represents a number on the abacus. · max-sim J 0.14 / C 0.79
+**SHOW_BOARD** · pause: — · guide: guide step 1 of 7: Set up an abacus visible to all students; a student comes forward and represents a number on the abacus. · max-sim J 0.14 / C 0.79 · **human-edited**
 
 > දහයස්ථානයට පබළු දෙකකුත්, එකස්ථානයට එක පබළුවකුත් එකතු කරමු.
 
-Board shows: the abacus [5, 4, 2, 1]
+Board shows: 2 bead(s) onto rod 2
 
 ### `authored:placeValue4Digit:42`
 
@@ -526,7 +526,7 @@ Board shows: the abacus [5, 4, 2, 1]
 
 > බලන්නකෝ, හැම කූරකම තියෙන පබළු එකතු වෙලා අපේ මුළු සංඛ්‍යාව හැදුණා.
 
-Board shows: the abacus [5, 4, 2, 1] — inherited
+Board shows: 2 bead(s) onto rod 2 — inherited
 
 ### `authored:placeValue4Digit:43`
 
@@ -638,11 +638,11 @@ Board shows: the abacus [5, 4, 2, 1] — inherited
 
 ### `authored:placeValue4Digit:57`
 
-**EXPLAIN** · pause: — · guide: guide step 3 of 7: Have students say and write the number name of the number on the abacus. · max-sim J 0.10 · **human-edited**
+**EXPLAIN** · pause: — · guide: guide step 3 of 7: Have students say and write the number name of the number on the abacus. · max-sim J 0.00 · **human-edited**
 
-> ඊළඟට සියයස්ථානයෙන් හාරසියයකුත්, දහයස්ථානයෙන් විස්සකුත්, එකස්ථානයෙන් එකකුත් ලැබෙනවා.
+> ඊළඟට සියයස්ථානයෙන් හාරසියයකුත් ලැබෙනවා. දහයස්ථානයෙන් විස්සකුත්, එකස්ථානයෙන් එකකුත් ලැබෙනවා.
 
-Source: `ඊළඟට සියයස්ථානයෙන් {number:400}කුත්, දහයස්ථානයෙන් {number:20}කුත්, එකස්ථානයෙන් {number:1}කුත් ලැබෙනවා.`
+Source: `ඊළඟට සියයස්ථානයෙන් {number:400}කුත් ලැබෙනවා. දහයස්ථානයෙන් {number:20}කුත්, එකස්ථානයෙන් {number:1}කුත් ලැබෙනවා.`
 
 Board shows: the abacus [5, 4, 2, 1] — inherited
 
@@ -886,19 +886,17 @@ Board shows: "7062 = 7000 + 0 + 60 + 2" — inherited
 
 **TRANSITION** · pause: — · guide: Give groups a card with four digits; have them form several numbers using the digits and write each in expanded form. · max-sim J 0.12 · **human-edited**
 
-> ඔන්න {address}, මම ඔයාට ඉලක්කම් කාඩ්පත් හතරක් දෙනවා.
+> ඔන්න {address}, මම ඔයාට ඉලක්කම් කාඩ්පත් හතරක් දෙනවා — එක, තුන, අට, හය.
 
-Source: `ඔන්න {address}, මම ඔයාට ඉලක්කම් කාඩ්පත් {number:4}ක් දෙනවා.`
+Source: `ඔන්න {address}, මම ඔයාට ඉලක්කම් කාඩ්පත් හතරක් දෙනවා — {number:1}, {number:3}, {number:8}, {number:6}.`
 
 Board shows: "1, 3, 8, 6"
 
 ### `authored:placeValue4Digit:86`
 
-**EXPLAIN** · pause: RHETORICAL · guide: guide step 6 of 7: Give groups a card with four digits; have them form several numbers using the digits and write each in expanded form. · max-sim J 0.00 · **human-edited**
+**EXPLAIN** · pause: RHETORICAL · guide: guide step 6 of 7: Give groups a card with four digits; have them form several numbers using the digits and write each in expanded form. · max-sim J 0.14 · **human-edited**
 
-> මේ කාඩ්පත්වල තියෙන්නේ එක, තුන, අට, හය නේද?
-
-Source: `මේ කාඩ්පත්වල තියෙන්නේ {number:1}, {number:3}, {number:8}, {number:6} නේද?`
+> මේ කාඩ්පත් හතර පේනවා නේද?
 
 Board shows: "1, 3, 8, 6" — inherited
 

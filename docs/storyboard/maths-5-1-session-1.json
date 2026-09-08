@@ -1,0 +1,3508 @@
+{
+  "lesson": "maths-5-1",
+  "session": 1,
+  "vocabulary": "docs/design/board-vocabulary.md",
+  "beats": [
+    {
+      "id": "authored:opening:0",
+      "concept": "lessonOpening",
+      "type": "LESSON_GOALS",
+      "pause": "RHETORICAL",
+      "line": "ආයුබෝවන් පුතේ! අද අපි පහ ශ්‍රේණියේ ගණිත පාඩම් පටන් ගන්නවා නේද?",
+      "sentences": [
+        "ආයුබෝවන් පුතේ!",
+        "අද අපි පහ ශ්‍රේණියේ ගණිත පාඩම් පටන් ගන්නවා නේද?"
+      ],
+      "boardAtStart": "nothing",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "titleCard",
+          "event": "show",
+          "args": {
+            "title": "සංඛ්‍යා - 1"
+          }
+        }
+      ],
+      "child": null,
+      "sees": "Title card \"සංඛ්‍යා - 1\"; title \"සංඛ්‍යා - 1\"."
+    },
+    {
+      "id": "authored:opening:1",
+      "concept": "lessonOpening",
+      "type": "LESSON_GOALS",
+      "pause": null,
+      "line": "දැන් ඔයා පහ ශ්‍රේණියේ නේද? ඒක හරිම වැදගත්, ලස්සන පන්තියක්.",
+      "sentences": [
+        "දැන් ඔයා පහ ශ්‍රේණියේ නේද?",
+        "ඒක හරිම වැදගත්, ලස්සන පන්තියක්."
+      ],
+      "boardAtStart": "title card \"සංඛ්‍යා - 1\"",
+      "events": [
+        {
+          "sentenceIndex": 1,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "text": "සංඛ්‍යා - 1"
+            }
+          }
+        }
+      ],
+      "child": null,
+      "sees": "Title card \"සංඛ්‍යා - 1\"."
+    },
+    {
+      "id": "authored:opening:2",
+      "concept": "lessonOpening",
+      "type": "LESSON_GOALS",
+      "pause": null,
+      "line": "බය වෙන්න එපා පුතේ. ඔයාට පුළුවන්, මම ඔයා එක්කම ඉන්නවා.",
+      "sentences": [
+        "බය වෙන්න එපා පුතේ.",
+        "ඔයාට පුළුවන්, මම ඔයා එක්කම ඉන්නවා."
+      ],
+      "boardAtStart": "title card \"සංඛ්‍යා - 1\"",
+      "events": [],
+      "child": null,
+      "sees": "Title card \"සංඛ්‍යා - 1\"."
+    },
+    {
+      "id": "authored:opening:3",
+      "concept": "lessonOpening",
+      "type": "LESSON_GOALS",
+      "pause": null,
+      "line": "අපේ පළමු පාඩම තමයි සංඛ්‍යා. හරි සරලයි, ඒත් හරිම වැදගත්.",
+      "sentences": [
+        "අපේ පළමු පාඩම තමයි සංඛ්‍යා.",
+        "හරි සරලයි, ඒත් හරිම වැදගත්."
+      ],
+      "boardAtStart": "title card \"සංඛ්‍යා - 1\"",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "titleCard",
+          "event": "show",
+          "args": {
+            "title": "සංඛ්‍යා - 1"
+          }
+        }
+      ],
+      "child": null,
+      "sees": "Title card \"සංඛ්‍යා - 1\"; title \"සංඛ්‍යා - 1\"."
+    },
+    {
+      "id": "authored:opening:4",
+      "concept": "lessonOpening",
+      "type": "LESSON_GOALS",
+      "pause": null,
+      "line": "මේ පාඩමෙන් අපි සියක් දහස දක්වා ලොකු සංඛ්‍යා කියවන්න, ලියන්න ඉගෙන ගන්නවා.",
+      "sentences": [
+        "මේ පාඩමෙන් අපි සියක් දහස දක්වා ලොකු සංඛ්‍යා කියවන්න, ලියන්න ඉගෙන ගන්නවා."
+      ],
+      "boardAtStart": "title card \"සංඛ්‍යා - 1\"",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "textCard",
+          "event": "show",
+          "args": {
+            "text": "100 000"
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "number": 100000
+            }
+          }
+        }
+      ],
+      "child": null,
+      "sees": "Card \"100 000\"; card \"100 000\"."
+    },
+    {
+      "id": "authored:opening:5",
+      "concept": "lessonOpening",
+      "type": "LESSON_GOALS",
+      "pause": null,
+      "line": "සංඛ්‍යාවක ඉලක්කම් තියෙන තැන අනුව ඒවායේ අගය හඳුනාගන්නත් අපි ඉගෙන ගන්නවා.",
+      "sentences": [
+        "සංඛ්‍යාවක ඉලක්කම් තියෙන තැන අනුව ඒවායේ අගය හඳුනාගන්නත් අපි ඉගෙන ගන්නවා."
+      ],
+      "boardAtStart": "card \"100 000\"",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "textCard",
+          "event": "show",
+          "args": {
+            "text": "ලොකු සංඛ්‍යා"
+          }
+        }
+      ],
+      "child": null,
+      "sees": "Card \"ලොකු සංඛ්‍යා\"; card \"ලොකු සංඛ්‍යා\"."
+    },
+    {
+      "id": "authored:opening:6",
+      "concept": "lessonOpening",
+      "type": "LESSON_GOALS",
+      "pause": "SOFT_CHECK",
+      "line": "ඔයා ලෑස්තිද පුතේ? එහෙනම් අපි පටන් ගමු!",
+      "sentences": [
+        "ඔයා ලෑස්තිද පුතේ?",
+        "එහෙනම් අපි පටන් ගමු!"
+      ],
+      "boardAtStart": "card \"ලොකු සංඛ්‍යා\"",
+      "events": [],
+      "child": {
+        "kind": "soft check",
+        "via": "mic open 5s; any reply acknowledged after 1.2s of quiet; silence flows on"
+      },
+      "sees": "Card \"ලොකු සංඛ්‍යා\" — the mic opens briefly."
+    },
+    {
+      "id": "authored:readWrite4Digit:0",
+      "concept": "readWrite4Digit",
+      "type": "HOOK",
+      "pause": "SOFT_CHECK",
+      "line": "ක්‍රිකට් මැච් එකක් බලද්දී ලකුණු පුවරුවේ තියෙන ලකුණු ඔයා කියවලා තියෙනවා නේද පුතේ?",
+      "sentences": [
+        "ක්‍රිකට් මැච් එකක් බලද්දී ලකුණු පුවරුවේ තියෙන ලකුණු ඔයා කියවලා තියෙනවා නේද පුතේ?"
+      ],
+      "boardAtStart": "card \"ලොකු සංඛ්‍යා\"",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "titleCard",
+          "event": "show",
+          "args": {
+            "title": "සංඛ්‍යා කියවමු"
+          }
+        }
+      ],
+      "child": {
+        "kind": "soft check",
+        "via": "mic open 5s; any reply acknowledged after 1.2s of quiet; silence flows on"
+      },
+      "sees": "Title card \"සංඛ්‍යා කියවමු\"; title \"සංඛ්‍යා කියවමු\" — the mic opens briefly."
+    },
+    {
+      "id": "authored:readWrite4Digit:1",
+      "concept": "readWrite4Digit",
+      "type": "EXPLAIN",
+      "pause": "RHETORICAL",
+      "line": "කලින් පාඩම්වලදී අපි සංඛ්‍යා කියවන්න ඉගෙන ගත්ත දේවල් ඔයාට මතකයි නේද?",
+      "sentences": [
+        "කලින් පාඩම්වලදී අපි සංඛ්‍යා කියවන්න ඉගෙන ගත්ත දේවල් ඔයාට මතකයි නේද?"
+      ],
+      "boardAtStart": "title card \"සංඛ්‍යා කියවමු\"",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "numberCards",
+          "event": "show",
+          "args": {
+            "values": [
+              84,
+              101,
+              528,
+              997
+            ]
+          }
+        }
+      ],
+      "child": null,
+      "sees": "Number cards 84 · 101 · 528 · 997; cards 84 · 101 · 528 · 997 deal in."
+    },
+    {
+      "id": "authored:readWrite4Digit:2",
+      "concept": "readWrite4Digit",
+      "type": "ASK",
+      "pause": "ASK",
+      "line": "මෙන්න මේ පුවරුවේ තියෙන මුල්ම සංඛ්‍යාව මොකක්ද කියලා මට කියන්න බලන්න.",
+      "sentences": [
+        "මෙන්න මේ පුවරුවේ තියෙන මුල්ම සංඛ්‍යාව මොකක්ද කියලා මට කියන්න බලන්න."
+      ],
+      "boardAtStart": "number cards 84 · 101 · 528 · 997",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "numberCards",
+          "event": "highlight_ring",
+          "args": {
+            "value": 84
+          }
+        }
+      ],
+      "child": {
+        "kind": "answer",
+        "via": "voice",
+        "expects": "අසූ හතර"
+      },
+      "sees": "Number cards 84 · 101 · 528 · 997 (ring on 84); a ring around 84 — they answer via voice."
+    },
+    {
+      "id": "authored:readWrite4Digit:3",
+      "concept": "readWrite4Digit",
+      "type": "EXPLAIN",
+      "pause": null,
+      "line": "පළමු සංඛ්‍යාව අසූ හතරයි.",
+      "sentences": [
+        "පළමු සංඛ්‍යාව අසූ හතරයි."
+      ],
+      "boardAtStart": "number cards 84 · 101 · 528 · 997 (ring on 84)",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "numberCards",
+          "event": "highlight_ring",
+          "args": {
+            "value": 84
+          }
+        }
+      ],
+      "child": null,
+      "sees": "Number cards 84 · 101 · 528 · 997 (ring on 84); a ring around 84."
+    },
+    {
+      "id": "authored:readWrite4Digit:3a",
+      "concept": "readWrite4Digit",
+      "type": "ASK",
+      "pause": "ASK",
+      "line": "ඊළඟ සංඛ්‍යාවේ නම කියන්න බලන්න.",
+      "sentences": [
+        "ඊළඟ සංඛ්‍යාවේ නම කියන්න බලන්න."
+      ],
+      "boardAtStart": "number cards 84 · 101 · 528 · 997 (ring on 84)",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "numberCards",
+          "event": "highlight_ring",
+          "args": {
+            "value": 101
+          }
+        }
+      ],
+      "child": {
+        "kind": "answer",
+        "via": "voice",
+        "expects": "එකසිය එක"
+      },
+      "sees": "Number cards 84 · 101 · 528 · 997 (ring on 101); a ring around 101 — they answer via voice."
+    },
+    {
+      "id": "authored:readWrite4Digit:3b",
+      "concept": "readWrite4Digit",
+      "type": "EXPLAIN",
+      "pause": null,
+      "line": "සංඛ්‍යාවක් වචනයෙන් කියන එකට කියන්නේ සංඛ්‍යා නාමය කියලා.",
+      "sentences": [
+        "සංඛ්‍යාවක් වචනයෙන් කියන එකට කියන්නේ සංඛ්‍යා නාමය කියලා."
+      ],
+      "boardAtStart": "number cards 84 · 101 · 528 · 997 (ring on 101)",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "chalkText",
+          "event": "write",
+          "args": {
+            "text": "සංඛ්‍යා නාමය"
+          }
+        }
+      ],
+      "child": null,
+      "sees": "Number cards 84 · 101 · 528 · 997 (ring on 101); \"සංඛ්‍යා නාමය\" is written."
+    },
+    {
+      "id": "authored:readWrite4Digit:4",
+      "concept": "readWrite4Digit",
+      "type": "EXPLAIN",
+      "pause": null,
+      "line": "එහි දසස්ථානයේ බිංදුව තියෙන නිසා ඒ කොටස කියවෙන්නේ නැහැ.",
+      "sentences": [
+        "එහි දසස්ථානයේ බිංදුව තියෙන නිසා ඒ කොටස කියවෙන්නේ නැහැ."
+      ],
+      "boardAtStart": "number cards 84 · 101 · 528 · 997 (ring on 101)",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "card": 101,
+              "place": "ද"
+            }
+          }
+        }
+      ],
+      "child": null,
+      "sees": "Number cards 84 · 101 · 528 · 997 (ring on 101)."
+    },
+    {
+      "id": "authored:readWrite4Digit:5",
+      "concept": "readWrite4Digit",
+      "type": "SOFT_CHECK",
+      "pause": "SOFT_CHECK",
+      "line": "එහෙනම් පුතේ, පුවරුවේ තියෙන අන්තිම සංඛ්‍යාවත් මට කියවලා පෙන්නන්න පුළුවන්ද?",
+      "sentences": [
+        "එහෙනම් පුතේ, පුවරුවේ තියෙන අන්තිම සංඛ්‍යාවත් මට කියවලා පෙන්නන්න පුළුවන්ද?"
+      ],
+      "boardAtStart": "number cards 84 · 101 · 528 · 997 (ring on 101)",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "numberCards",
+          "event": "highlight_ring",
+          "args": {
+            "value": 997
+          }
+        }
+      ],
+      "child": {
+        "kind": "soft check",
+        "via": "mic open 5s; any reply acknowledged after 1.2s of quiet; silence flows on"
+      },
+      "sees": "Number cards 84 · 101 · 528 · 997 (ring on 997); a ring around 997 — the mic opens briefly."
+    },
+    {
+      "id": "authored:readWrite4Digit:5a",
+      "concept": "readWrite4Digit",
+      "type": "EXPLAIN",
+      "pause": null,
+      "line": "අන්තිම එක නවසිය අනූ හතයි.",
+      "sentences": [
+        "අන්තිම එක නවසිය අනූ හතයි."
+      ],
+      "boardAtStart": "number cards 84 · 101 · 528 · 997 (ring on 997)",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "numberCards",
+          "event": "highlight_ring",
+          "args": {
+            "value": 997
+          }
+        }
+      ],
+      "child": null,
+      "sees": "Number cards 84 · 101 · 528 · 997 (ring on 997); a ring around 997."
+    },
+    {
+      "id": "authored:readWrite4Digit:6",
+      "concept": "readWrite4Digit",
+      "type": "EXPLAIN",
+      "pause": "RHETORICAL",
+      "line": "ඔන්න පුතේ, නවයට එකක් එකතු කළාම දහය හැදෙනවා නේද?",
+      "sentences": [
+        "ඔන්න පුතේ, නවයට එකක් එකතු කළාම දහය හැදෙනවා නේද?"
+      ],
+      "boardAtStart": "number cards 84 · 101 · 528 · 997 (ring on 997)",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "chalkText",
+          "event": "write",
+          "args": {
+            "text": "9 + 1 = 10"
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "number": 9
+            }
+          }
+        }
+      ],
+      "child": null,
+      "sees": "Chalk \"9 + 1 = 10\"; \"9 + 1 = 10\" is written."
+    },
+    {
+      "id": "authored:readWrite4Digit:7",
+      "concept": "readWrite4Digit",
+      "type": "EXPLAIN",
+      "pause": null,
+      "line": "ඒ වගේම අනූ නවයට එකක් එකතු කළාම සියය හැදෙනවා.",
+      "sentences": [
+        "ඒ වගේම අනූ නවයට එකක් එකතු කළාම සියය හැදෙනවා."
+      ],
+      "boardAtStart": "chalk \"9 + 1 = 10\"",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "chalkText",
+          "event": "write",
+          "args": {
+            "text": "99 + 1 = 100"
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "number": 99
+            }
+          }
+        }
+      ],
+      "child": null,
+      "sees": "Chalk \"99 + 1 = 100\"; \"99 + 1 = 100\" is written."
+    },
+    {
+      "id": "authored:readWrite4Digit:8",
+      "concept": "readWrite4Digit",
+      "type": "ASK",
+      "pause": "ASK",
+      "line": "එහෙනම් නවසිය අනූ නවයට එකක් එකතු කළාම කීයද එන්නේ?",
+      "sentences": [
+        "එහෙනම් නවසිය අනූ නවයට එකක් එකතු කළාම කීයද එන්නේ?"
+      ],
+      "boardAtStart": "chalk \"99 + 1 = 100\"",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "chalkText",
+          "event": "write",
+          "args": {
+            "text": "999 + 1 = ?"
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "number": 999
+            }
+          }
+        }
+      ],
+      "child": {
+        "kind": "answer",
+        "via": "number pad or voice",
+        "expects": "1000"
+      },
+      "sees": "Chalk \"999 + 1 = ?\"; \"999 + 1 = ?\" is written — they answer via number pad or voice."
+    },
+    {
+      "id": "authored:readWrite4Digit:9",
+      "concept": "readWrite4Digit",
+      "type": "EXPLAIN",
+      "pause": null,
+      "line": "නවසිය අනූ නවයට එකක් එකතු වුණාම දහස හැදෙනවා.",
+      "sentences": [
+        "නවසිය අනූ නවයට එකක් එකතු වුණාම දහස හැදෙනවා."
+      ],
+      "boardAtStart": "chalk \"999 + 1 = ?\"",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "chalkText",
+          "event": "write",
+          "args": {
+            "text": "999 + 1 = 1000"
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "number": 999
+            }
+          }
+        }
+      ],
+      "child": null,
+      "sees": "Chalk \"999 + 1 = 1000\"; \"999 + 1 = 1000\" is written."
+    },
+    {
+      "id": "authored:readWrite4Digit:10",
+      "concept": "readWrite4Digit",
+      "type": "SOFT_CHECK",
+      "pause": "SOFT_CHECK",
+      "line": "මෙතන ඉලක්කම් හතරක් තියෙනවා පේනවා නේද, පුතේ?",
+      "sentences": [
+        "මෙතන ඉලක්කම් හතරක් තියෙනවා පේනවා නේද, පුතේ?"
+      ],
+      "boardAtStart": "chalk \"999 + 1 = 1000\"",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "textCard",
+          "event": "show",
+          "args": {
+            "text": "1000"
+          }
+        }
+      ],
+      "child": {
+        "kind": "soft check",
+        "via": "mic open 5s; any reply acknowledged after 1.2s of quiet; silence flows on"
+      },
+      "sees": "Card \"1000\"; card \"1000\" — the mic opens briefly."
+    },
+    {
+      "id": "authored:readWrite4Digit:11",
+      "concept": "readWrite4Digit",
+      "type": "TRANSITION",
+      "pause": null,
+      "line": "ඊළඟට අපි කාඩ්පත් පාවිච්චි කරලා අලුත් සංඛ්‍යා හදමු.",
+      "sentences": [
+        "ඊළඟට අපි කාඩ්පත් පාවිච්චි කරලා අලුත් සංඛ්‍යා හදමු."
+      ],
+      "boardAtStart": "card \"1000\"",
+      "events": [],
+      "child": null,
+      "sees": "Card \"1000\"."
+    },
+    {
+      "id": "authored:readWrite4Digit:12",
+      "concept": "readWrite4Digit",
+      "type": "TRANSITION",
+      "pause": null,
+      "line": "දැන් අපි කාඩ්පත් එක්ක සෙල්ලමක් කරමු පුතේ.",
+      "sentences": [
+        "දැන් අපි කාඩ්පත් එක්ක සෙල්ලමක් කරමු පුතේ."
+      ],
+      "boardAtStart": "card \"1000\"",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "numberCards",
+          "event": "show",
+          "args": {
+            "values": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9
+            ]
+          }
+        }
+      ],
+      "child": null,
+      "sees": "Number cards 0 · 1 · 2 · 3 · 4 · 5 · 6 · 7 · 8 · 9; cards 0 · 1 · 2 · 3 · 4 · 5 · 6 · 7 · 8 · 9 deal in."
+    },
+    {
+      "id": "authored:readWrite4Digit:13",
+      "concept": "readWrite4Digit",
+      "type": "EXPLAIN",
+      "pause": null,
+      "line": "මෙතනින් අපි වෙනස් කාඩ්පත් හතරක් ගමු.",
+      "sentences": [
+        "මෙතනින් අපි වෙනස් කාඩ්පත් හතරක් ගමු."
+      ],
+      "boardAtStart": "number cards 0 · 1 · 2 · 3 · 4 · 5 · 6 · 7 · 8 · 9",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "numberCards",
+          "event": "show",
+          "args": {
+            "values": [
+              3,
+              0,
+              5,
+              8
+            ]
+          }
+        }
+      ],
+      "child": null,
+      "sees": "Number cards 3 · 0 · 5 · 8; cards 3 · 0 · 5 · 8 deal in."
+    },
+    {
+      "id": "authored:readWrite4Digit:14",
+      "concept": "readWrite4Digit",
+      "type": "EXPLAIN",
+      "pause": null,
+      "line": "ඒ ඉලක්කම් එක ළඟින් තියලා අපි සංඛ්‍යාවක් හදමු.",
+      "sentences": [
+        "ඒ ඉලක්කම් එක ළඟින් තියලා අපි සංඛ්‍යාවක් හදමු."
+      ],
+      "boardAtStart": "number cards 3 · 0 · 5 · 8",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "textCard",
+          "event": "show",
+          "args": {
+            "text": "3058"
+          }
+        }
+      ],
+      "child": null,
+      "sees": "Card \"3058\"; card \"3058\"."
+    },
+    {
+      "id": "authored:readWrite4Digit:15",
+      "concept": "readWrite4Digit",
+      "type": "ASK",
+      "pause": "ASK",
+      "line": "ඔයාට පුළුවන්ද මේ හැදුණු සංඛ්‍යාව කියවලා මට කියන්න?",
+      "sentences": [
+        "ඔයාට පුළුවන්ද මේ හැදුණු සංඛ්‍යාව කියවලා මට කියන්න?"
+      ],
+      "boardAtStart": "card \"3058\"",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "text": "3058"
+            }
+          }
+        }
+      ],
+      "child": {
+        "kind": "answer",
+        "via": "voice",
+        "expects": "තුන්දහස් පනස් අට"
+      },
+      "sees": "Card \"3058\" — they answer via voice."
+    },
+    {
+      "id": "authored:readWrite4Digit:16",
+      "concept": "readWrite4Digit",
+      "type": "EXPLAIN",
+      "pause": null,
+      "line": "ඒ සංඛ්‍යාව තුන්දහස් පනස් අටයි.",
+      "sentences": [
+        "ඒ සංඛ්‍යාව තුන්දහස් පනස් අටයි."
+      ],
+      "boardAtStart": "card \"3058\"",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "chalkText",
+          "event": "write",
+          "args": {
+            "text": "3058 - තුන්දහස් පනස් අට",
+            "append": "- තුන්දහස් පනස් අට"
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "number": 3058
+            }
+          }
+        }
+      ],
+      "child": null,
+      "sees": "Chalk \"3058 - තුන්දහස් පනස් අට\"; \"- තුන්දහස් පනස් අට\" is written on, making \"3058 - තුන්දහස් පනස් අට\"."
+    },
+    {
+      "id": "authored:readWrite4Digit:17",
+      "concept": "readWrite4Digit",
+      "type": "EXPLAIN",
+      "pause": "RHETORICAL",
+      "line": "මෙතන සියයේ තැනට කිසිම අගයක් කියවෙන්නේ නැහැ, නේද?",
+      "sentences": [
+        "මෙතන සියයේ තැනට කිසිම අගයක් කියවෙන්නේ නැහැ, නේද?"
+      ],
+      "boardAtStart": "chalk \"3058 - තුන්දහස් පනස් අට\"",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "text": "3058 - තුන්දහස් පනස් අට",
+              "place": "සි"
+            }
+          }
+        }
+      ],
+      "child": null,
+      "sees": "Chalk \"3058 - තුන්දහස් පනස් අට\"."
+    },
+    {
+      "id": "authored:readWrite4Digit:18",
+      "concept": "readWrite4Digit",
+      "type": "SOFT_CHECK",
+      "pause": "SOFT_CHECK",
+      "line": "නම කියද්දී නොකියවුණත් ඒ තැනට බිංදුවක් ලියන්න ඕනේ, හරිද?",
+      "sentences": [
+        "නම කියද්දී නොකියවුණත් ඒ තැනට බිංදුවක් ලියන්න ඕනේ, හරිද?"
+      ],
+      "boardAtStart": "chalk \"3058 - තුන්දහස් පනස් අට\"",
+      "events": [],
+      "child": {
+        "kind": "soft check",
+        "via": "mic open 5s; any reply acknowledged after 1.2s of quiet; silence flows on"
+      },
+      "sees": "Chalk \"3058 - තුන්දහස් පනස් අට\" — the mic opens briefly."
+    },
+    {
+      "id": "authored:readWrite4Digit:18b",
+      "concept": "readWrite4Digit",
+      "type": "TRANSITION",
+      "pause": null,
+      "line": "දැන් අපි වෙනත් අභ්‍යාසයක් බලමු.",
+      "sentences": [
+        "දැන් අපි වෙනත් අභ්‍යාසයක් බලමු."
+      ],
+      "boardAtStart": "chalk \"3058 - තුන්දහස් පනස් අට\"",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "digitPicker",
+          "event": "show",
+          "args": {
+            "pool": [
+              1,
+              3,
+              6,
+              4
+            ]
+          }
+        }
+      ],
+      "child": null,
+      "sees": "The digit picker 1 · 3 · 6 · 4; digit tiles 1 · 3 · 6 · 4."
+    },
+    {
+      "id": "authored:readWrite4Digit:19",
+      "concept": "readWrite4Digit",
+      "type": "SHOW_BOARD",
+      "pause": "RHETORICAL",
+      "line": "පුතේ, මේ රවුම ඇතුළේ තියෙන ඉලක්කම් ටික පේනවා නේද?",
+      "sentences": [
+        "පුතේ, මේ රවුම ඇතුළේ තියෙන ඉලක්කම් ටික පේනවා නේද?"
+      ],
+      "boardAtStart": "the digit picker 1 · 3 · 6 · 4",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "text": "picker"
+            }
+          }
+        }
+      ],
+      "child": null,
+      "sees": "The digit picker 1 · 3 · 6 · 4."
+    },
+    {
+      "id": "authored:readWrite4Digit:20",
+      "concept": "readWrite4Digit",
+      "type": "SOFT_CHECK",
+      "pause": "SOFT_CHECK",
+      "line": "මෙතැන තියෙන්නේ එක, තුන, හය, හතර නේද?",
+      "sentences": [
+        "මෙතැන තියෙන්නේ එක, තුන, හය, හතර නේද?"
+      ],
+      "boardAtStart": "the digit picker 1 · 3 · 6 · 4",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "number": 1
+            }
+          }
+        }
+      ],
+      "child": {
+        "kind": "soft check",
+        "via": "mic open 5s; any reply acknowledged after 1.2s of quiet; silence flows on"
+      },
+      "sees": "The digit picker 1 · 3 · 6 · 4 — the mic opens briefly."
+    },
+    {
+      "id": "authored:readWrite4Digit:21",
+      "concept": "readWrite4Digit",
+      "type": "EXPLAIN",
+      "pause": null,
+      "line": "පිටින් කිසිම අලුත් ඉලක්කමක් නොගෙන, මේවා විතරක් පාවිච්චි කරමු.",
+      "sentences": [
+        "පිටින් කිසිම අලුත් ඉලක්කමක් නොගෙන, මේවා විතරක් පාවිච්චි කරමු."
+      ],
+      "boardAtStart": "the digit picker 1 · 3 · 6 · 4",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "text": "picker"
+            }
+          }
+        }
+      ],
+      "child": null,
+      "sees": "The digit picker 1 · 3 · 6 · 4."
+    },
+    {
+      "id": "authored:readWrite4Digit:22",
+      "concept": "readWrite4Digit",
+      "type": "ASK",
+      "pause": "ASK",
+      "line": "මේ ඉලක්කම් වලින් ඔයා කැමති සංඛ්‍යාවක් හදලා මට කියන්න.",
+      "sentences": [
+        "මේ ඉලක්කම් වලින් ඔයා කැමති සංඛ්‍යාවක් හදලා මට කියන්න."
+      ],
+      "boardAtStart": "the digit picker 1 · 3 · 6 · 4",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "text": "picker"
+            }
+          }
+        }
+      ],
+      "child": {
+        "kind": "answer",
+        "via": "tap digits on the picker, or say the number",
+        "expects": "any arrangement of 1,3,6,4"
+      },
+      "sees": "The digit picker 1 · 3 · 6 · 4 — they answer via tap digits on the picker, or say the number."
+    },
+    {
+      "id": "authored:readWrite4Digit:22a",
+      "concept": "readWrite4Digit",
+      "type": "EXPLAIN",
+      "pause": null,
+      "line": "ඒ සංඛ්‍යාවේ නම බෝඩ් එකේ බලන්න.",
+      "sentences": [
+        "ඒ සංඛ්‍යාවේ නම බෝඩ් එකේ බලන්න."
+      ],
+      "boardAtStart": "the digit picker 1 · 3 · 6 · 4",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "digitPicker",
+          "event": "built_number",
+          "args": {
+            "digits": "the child's number",
+            "name": "sinhalaNumberName(N)"
+          }
+        }
+      ],
+      "child": null,
+      "sees": "The digit picker 1 · 3 · 6 · 4; their number and its name appear under the tiles."
+    },
+    {
+      "id": "authored:readWrite4Digit:23",
+      "concept": "readWrite4Digit",
+      "type": "EXPLAIN",
+      "pause": null,
+      "line": "උදාහරණයක් විදිහට අපිට එක්දහස් තුන්සිය හැට හතර හදන්නත් පුළුවන්.",
+      "sentences": [
+        "උදාහරණයක් විදිහට අපිට එක්දහස් තුන්සිය හැට හතර හදන්නත් පුළුවන්."
+      ],
+      "boardAtStart": "the digit picker 1 · 3 · 6 · 4",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "digitPicker",
+          "event": "built_number",
+          "args": {
+            "digits": "1364",
+            "name": "එක්දහස් තුන්සිය හැට හතර",
+            "by": "tutor"
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "number": 1364
+            }
+          }
+        }
+      ],
+      "child": null,
+      "sees": "The digit picker 1 · 3 · 6 · 4 showing 1 364; Zara's example 1364 and its name appear under the tiles."
+    },
+    {
+      "id": "authored:readWrite4Digit:26",
+      "concept": "readWrite4Digit",
+      "type": "EXPLAIN",
+      "pause": "SOFT_CHECK",
+      "line": "පිටින් කිසිම අලුත් ඉලක්කමක් මෙතනට ගන්න බැහැ. අපි මේ හතර දෙනාගෙන් විතරක් අලුත් සංඛ්‍යාවක් හදමු.",
+      "sentences": [
+        "පිටින් කිසිම අලුත් ඉලක්කමක් මෙතනට ගන්න බැහැ.",
+        "අපි මේ හතර දෙනාගෙන් විතරක් අලුත් සංඛ්‍යාවක් හදමු."
+      ],
+      "boardAtStart": "the digit picker 1 · 3 · 6 · 4 showing 1 364",
+      "events": [
+        {
+          "sentenceIndex": 1,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "text": "the built number"
+            }
+          }
+        }
+      ],
+      "child": {
+        "kind": "soft check",
+        "via": "mic open 5s; any reply acknowledged after 1.2s of quiet; silence flows on"
+      },
+      "sees": "The digit picker 1 · 3 · 6 · 4 showing 1 364 — the mic opens briefly."
+    },
+    {
+      "id": "authored:readWrite4Digit:30",
+      "concept": "readWrite4Digit",
+      "type": "EXPLAIN",
+      "pause": null,
+      "line": "තවත් අලුත් සංඛ්‍යා පහක් හදන්න ලෑල්ලට යමු.",
+      "sentences": [
+        "තවත් අලුත් සංඛ්‍යා පහක් හදන්න ලෑල්ලට යමු."
+      ],
+      "boardAtStart": "the digit picker 1 · 3 · 6 · 4 showing 1 364",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "digitPicker",
+          "event": "show",
+          "args": {
+            "pool": "as printed",
+            "item": "7daf0141"
+          }
+        }
+      ],
+      "child": null,
+      "sees": "The textbook's digit-card puzzle (make five four-digit numbers from the printed digits); the textbook's digit tiles."
+    },
+    {
+      "id": "authored:readWrite4Digit:30a",
+      "concept": "readWrite4Digit",
+      "type": "ASK",
+      "pause": "ASK",
+      "line": "මේ ඉලක්කම් හතරෙන් සංඛ්‍යාවක් හදලා මට කියන්න.",
+      "sentences": [
+        "මේ ඉලක්කම් හතරෙන් සංඛ්‍යාවක් හදලා මට කියන්න."
+      ],
+      "boardAtStart": "the textbook's digit-card puzzle (make five four-digit numbers from the printed digits)",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "digitPicker",
+          "event": "show",
+          "args": {
+            "pool": [
+              1,
+              3,
+              6,
+              4
+            ]
+          }
+        }
+      ],
+      "child": {
+        "kind": "answer",
+        "via": "tap digits on the picker, or say the number",
+        "expects": "any arrangement of 1,3,6,4"
+      },
+      "sees": "The digit picker 1 · 3 · 6 · 4; digit tiles 1 · 3 · 6 · 4 — they answer via tap digits on the picker, or say the number."
+    },
+    {
+      "id": "authored:readWrite4Digit:30b",
+      "concept": "readWrite4Digit",
+      "type": "EXPLAIN",
+      "pause": null,
+      "line": "ඒ සංඛ්‍යාවේ නම බෝඩ් එකේ බලන්න.",
+      "sentences": [
+        "ඒ සංඛ්‍යාවේ නම බෝඩ් එකේ බලන්න."
+      ],
+      "boardAtStart": "the digit picker 1 · 3 · 6 · 4",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "digitPicker",
+          "event": "built_number",
+          "args": {
+            "digits": "the child's number",
+            "name": "sinhalaNumberName(N)"
+          }
+        }
+      ],
+      "child": null,
+      "sees": "The digit picker 1 · 3 · 6 · 4; their number and its name appear under the tiles."
+    },
+    {
+      "id": "authored:readWrite4Digit:30c",
+      "concept": "readWrite4Digit",
+      "type": "ASK",
+      "pause": "ASK",
+      "line": "දැන් ඒකට වඩා වෙනස් සංඛ්‍යාවක් හදන්න පුළුවන්ද?",
+      "sentences": [
+        "දැන් ඒකට වඩා වෙනස් සංඛ්‍යාවක් හදන්න පුළුවන්ද?"
+      ],
+      "boardAtStart": "the digit picker 1 · 3 · 6 · 4",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "digitPicker",
+          "event": "show",
+          "args": {
+            "pool": [
+              1,
+              3,
+              6,
+              4
+            ]
+          }
+        }
+      ],
+      "child": {
+        "kind": "answer",
+        "via": "tap digits on the picker, or say the number",
+        "expects": "any arrangement of 1,3,6,4"
+      },
+      "sees": "The digit picker 1 · 3 · 6 · 4; digit tiles 1 · 3 · 6 · 4 — they answer via tap digits on the picker, or say the number."
+    },
+    {
+      "id": "authored:readWrite4Digit:30d",
+      "concept": "readWrite4Digit",
+      "type": "EXPLAIN",
+      "pause": null,
+      "line": "ඒ සංඛ්‍යාවේ නම බෝඩ් එකේ බලන්න.",
+      "sentences": [
+        "ඒ සංඛ්‍යාවේ නම බෝඩ් එකේ බලන්න."
+      ],
+      "boardAtStart": "the digit picker 1 · 3 · 6 · 4",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "digitPicker",
+          "event": "built_number",
+          "args": {
+            "digits": "the child's number",
+            "name": "sinhalaNumberName(N)"
+          }
+        }
+      ],
+      "child": null,
+      "sees": "The digit picker 1 · 3 · 6 · 4; their number and its name appear under the tiles."
+    },
+    {
+      "id": "authored:readWrite4Digit:30e",
+      "concept": "readWrite4Digit",
+      "type": "ASK",
+      "pause": "ASK",
+      "line": "අන්තිම වතාවට තව අලුත් සංඛ්‍යාවක් හදමු.",
+      "sentences": [
+        "අන්තිම වතාවට තව අලුත් සංඛ්‍යාවක් හදමු."
+      ],
+      "boardAtStart": "the digit picker 1 · 3 · 6 · 4",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "digitPicker",
+          "event": "show",
+          "args": {
+            "pool": [
+              1,
+              3,
+              6,
+              4
+            ]
+          }
+        }
+      ],
+      "child": {
+        "kind": "answer",
+        "via": "tap digits on the picker, or say the number",
+        "expects": "any arrangement of 1,3,6,4"
+      },
+      "sees": "The digit picker 1 · 3 · 6 · 4; digit tiles 1 · 3 · 6 · 4 — they answer via tap digits on the picker, or say the number."
+    },
+    {
+      "id": "authored:readWrite4Digit:30f",
+      "concept": "readWrite4Digit",
+      "type": "EXPLAIN",
+      "pause": null,
+      "line": "ඒ සංඛ්‍යාවේ නම බෝඩ් එකේ බලන්න.",
+      "sentences": [
+        "ඒ සංඛ්‍යාවේ නම බෝඩ් එකේ බලන්න."
+      ],
+      "boardAtStart": "the digit picker 1 · 3 · 6 · 4",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "digitPicker",
+          "event": "built_number",
+          "args": {
+            "digits": "the child's number",
+            "name": "sinhalaNumberName(N)"
+          }
+        }
+      ],
+      "child": null,
+      "sees": "The digit picker 1 · 3 · 6 · 4; their number and its name appear under the tiles."
+    },
+    {
+      "id": "authored:readWrite4Digit:31",
+      "concept": "readWrite4Digit",
+      "type": "CHECK_MY_WORK",
+      "pause": "ASK",
+      "line": "ඔන්න පුතේ, මම අසූ හතර කියන සංඛ්‍යාව වෙන් කරලා ලිව්වා. ඒත් මගේ වැඩේ පොඩි වැරැද්දක් වුණා වගේ. මට උදව්වක් විදිහට ඒ වැරැද්ද හොයලා කියන්න පුළුවන්ද?",
+      "sentences": [
+        "ඔන්න පුතේ, මම අසූ හතර කියන සංඛ්‍යාව වෙන් කරලා ලිව්වා.",
+        "ඒත් මගේ වැඩේ පොඩි වැරැද්දක් වුණා වගේ.",
+        "මට උදව්වක් විදිහට ඒ වැරැද්ද හොයලා කියන්න පුළුවන්ද?"
+      ],
+      "boardAtStart": "the digit picker 1 · 3 · 6 · 4",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "chalkText",
+          "event": "write",
+          "args": {
+            "text": "84 = 8 + 4"
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "number": 84
+            }
+          }
+        }
+      ],
+      "child": {
+        "kind": "find the mistake",
+        "via": "voice",
+        "expects": "අටට බිංදුවක් දාලා නෑ"
+      },
+      "sees": "Chalk \"84 = 8 + 4\"; \"84 = 8 + 4\" is written — they answer via voice."
+    },
+    {
+      "id": "authored:readWrite4Digit:31a",
+      "concept": "readWrite4Digit",
+      "type": "RESOLVE",
+      "pause": null,
+      "line": "වැරැද්ද තමයි අටට බිංදුවක් නොදැමීම. ඒක අසූව විය යුතුයි — අසූ හතර කියන්නේ අසූවයි හතරයි.",
+      "sentences": [
+        "වැරැද්ද තමයි අටට බිංදුවක් නොදැමීම.",
+        "ඒක අසූව විය යුතුයි — අසූ හතර කියන්නේ අසූවයි හතරයි."
+      ],
+      "boardAtStart": "chalk \"84 = 8 + 4\"",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "chalkText",
+          "event": "write",
+          "args": {
+            "text": "84 = 80 + 4"
+          }
+        },
+        {
+          "sentenceIndex": 1,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "number": 80
+            }
+          }
+        }
+      ],
+      "child": null,
+      "sees": "Chalk \"84 = 80 + 4\"; \"84 = 80 + 4\" is written."
+    },
+    {
+      "id": "authored:readWrite4Digit:31b",
+      "concept": "readWrite4Digit",
+      "type": "TRANSITION",
+      "pause": null,
+      "line": "දැන් අපි ලොකු සංඛ්‍යා ගැන බලමු.",
+      "sentences": [
+        "දැන් අපි ලොකු සංඛ්‍යා ගැන බලමු."
+      ],
+      "boardAtStart": "chalk \"84 = 80 + 4\"",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "titleCard",
+          "event": "show",
+          "args": {
+            "title": "ස්ථානීය අගය"
+          }
+        }
+      ],
+      "child": null,
+      "sees": "Title card \"ස්ථානීය අගය\"; title \"ස්ථානීය අගය\"."
+    },
+    {
+      "id": "authored:placeValue4Digit:32",
+      "concept": "placeValue4Digit",
+      "type": "HOOK",
+      "pause": "RHETORICAL",
+      "line": "අලුත් ඉස්කෝලේ බෑග් එකක් ගන්න ගියාම ඒකේ මිල ලොකු ගාණක් නේද පුතේ?",
+      "sentences": [
+        "අලුත් ඉස්කෝලේ බෑග් එකක් ගන්න ගියාම ඒකේ මිල ලොකු ගාණක් නේද පුතේ?"
+      ],
+      "boardAtStart": "title card \"ස්ථානීය අගය\"",
+      "events": [],
+      "child": null,
+      "sees": "Title card \"ස්ථානීය අගය\"."
+    },
+    {
+      "id": "authored:placeValue4Digit:33",
+      "concept": "placeValue4Digit",
+      "type": "EXPLAIN",
+      "pause": null,
+      "line": "ඒ ගාණේ ඉලක්කම් හතරක් තියෙනවා. ඒ ඉලක්කම් තියෙන තැන දන්නවා නම් අපිට ඒක ලේසියෙන් කියවන්න පුළුවන්.",
+      "sentences": [
+        "ඒ ගාණේ ඉලක්කම් හතරක් තියෙනවා.",
+        "ඒ ඉලක්කම් තියෙන තැන දන්නවා නම් අපිට ඒක ලේසියෙන් කියවන්න පුළුවන්."
+      ],
+      "boardAtStart": "title card \"ස්ථානීය අගය\"",
+      "events": [
+        {
+          "sentenceIndex": 1,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "text": "ස්ථානීය අගය"
+            }
+          }
+        }
+      ],
+      "child": null,
+      "sees": "Title card \"ස්ථානීය අගය\"."
+    },
+    {
+      "id": "authored:placeValue4Digit:34",
+      "concept": "placeValue4Digit",
+      "type": "TRANSITION",
+      "pause": null,
+      "line": "අද අපි ගණක රාමුවකින් අලුත් සංඛ්‍යාවක් හදන්නයි ලෑස්ති වෙන්නේ.",
+      "sentences": [
+        "අද අපි ගණක රාමුවකින් අලුත් සංඛ්‍යාවක් හදන්නයි ලෑස්ති වෙන්නේ."
+      ],
+      "boardAtStart": "title card \"ස්ථානීය අගය\"",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "abacus",
+          "event": "show",
+          "args": {
+            "digits": [
+              5,
+              4,
+              2,
+              1
+            ],
+            "startEmpty": true,
+            "animate": false
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "chalkText",
+          "event": "write",
+          "args": {
+            "text": "ගණක රාමුව"
+          }
+        }
+      ],
+      "child": null,
+      "sees": "The abacus, rods bare; bare rods appear; \"ගණක රාමුව\" is written."
+    },
+    {
+      "id": "authored:placeValue4Digit:35",
+      "concept": "placeValue4Digit",
+      "type": "EXPLAIN",
+      "pause": null,
+      "line": "ගණක රාමුවේ දකුණු කෙළවරේම තියෙන කූර එකස්ථානය කියලයි අපි කියන්නේ.",
+      "sentences": [
+        "ගණක රාමුවේ දකුණු කෙළවරේම තියෙන කූර එකස්ථානය කියලයි අපි කියන්නේ."
+      ],
+      "boardAtStart": "the abacus, rods bare",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "abacus",
+          "event": "rod_glow",
+          "args": {
+            "rod": 3
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "text": "ගණක රාමුව"
+            }
+          }
+        }
+      ],
+      "child": null,
+      "sees": "The abacus, rods bare; the එ rod glows."
+    },
+    {
+      "id": "authored:placeValue4Digit:36",
+      "concept": "placeValue4Digit",
+      "type": "EXPLAIN",
+      "pause": null,
+      "line": "වමේ පැත්තට යද්දී දහයස්ථානය, සියයස්ථානය පිහිටනවා. ඊට වම් පැත්තෙන්ම දහසස්ථානය තියෙනවා.",
+      "sentences": [
+        "වමේ පැත්තට යද්දී දහයස්ථානය, සියයස්ථානය පිහිටනවා.",
+        "ඊට වම් පැත්තෙන්ම දහසස්ථානය තියෙනවා."
+      ],
+      "boardAtStart": "the abacus, rods bare",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "abacus",
+          "event": "rod_glow",
+          "args": {
+            "rod": 1
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "abacus",
+          "event": "rod_glow",
+          "args": {
+            "rod": 2
+          }
+        },
+        {
+          "sentenceIndex": 1,
+          "primitive": "abacus",
+          "event": "rod_glow",
+          "args": {
+            "rod": 0
+          }
+        }
+      ],
+      "child": null,
+      "sees": "The abacus, rods bare; the සි rod glows; the ද rod glows; the දා rod glows."
+    },
+    {
+      "id": "authored:placeValue4Digit:37",
+      "concept": "placeValue4Digit",
+      "type": "SOFT_CHECK",
+      "pause": "SOFT_CHECK",
+      "line": "එතකොට කූරු හතරේ පිළිවෙළ ඔයාට මතක හිටියා නේද පුතේ?",
+      "sentences": [
+        "එතකොට කූරු හතරේ පිළිවෙළ ඔයාට මතක හිටියා නේද පුතේ?"
+      ],
+      "boardAtStart": "the abacus, rods bare",
+      "events": [],
+      "child": {
+        "kind": "soft check",
+        "via": "mic open 5s; any reply acknowledged after 1.2s of quiet; silence flows on"
+      },
+      "sees": "The abacus, rods bare — the mic opens briefly."
+    },
+    {
+      "id": "authored:placeValue4Digit:38",
+      "concept": "placeValue4Digit",
+      "type": "EXPLAIN",
+      "pause": null,
+      "line": "ඔන්න අපි පන්දහස් හාරසිය විසි එක කියන ලස්සන සංඛ්‍යාව මේ රාමුවට දාමු.",
+      "sentences": [
+        "ඔන්න අපි පන්දහස් හාරසිය විසි එක කියන ලස්සන සංඛ්‍යාව මේ රාමුවට දාමු."
+      ],
+      "boardAtStart": "the abacus, rods bare",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "number": 5421
+            }
+          }
+        }
+      ],
+      "child": null,
+      "sees": "The abacus, rods bare."
+    },
+    {
+      "id": "authored:placeValue4Digit:39",
+      "concept": "placeValue4Digit",
+      "type": "SHOW_BOARD",
+      "pause": null,
+      "line": "දහසස්ථානයේ කූරට අපි පබළු එක, දෙක, තුන, හතර, පහක් දානවා.",
+      "sentences": [
+        "දහසස්ථානයේ කූරට අපි පබළු එක, දෙක, තුන, හතර, පහක් දානවා."
+      ],
+      "boardAtStart": "the abacus, rods bare",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "abacus",
+          "event": "bead_add",
+          "args": {
+            "rod": 0,
+            "count": 5
+          }
+        }
+      ],
+      "child": null,
+      "sees": "The abacus, දා 5; 5 bead(s) drop onto the දා rod."
+    },
+    {
+      "id": "authored:placeValue4Digit:40",
+      "concept": "placeValue4Digit",
+      "type": "SHOW_BOARD",
+      "pause": null,
+      "line": "ඊළඟ සියයස්ථානයට පබළු හතරක් දාමු.",
+      "sentences": [
+        "ඊළඟ සියයස්ථානයට පබළු හතරක් දාමු."
+      ],
+      "boardAtStart": "the abacus, දා 5",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "abacus",
+          "event": "bead_add",
+          "args": {
+            "rod": 1,
+            "count": 4
+          }
+        }
+      ],
+      "child": null,
+      "sees": "The abacus, දා 5, සි 4; 4 bead(s) drop onto the සි rod."
+    },
+    {
+      "id": "authored:placeValue4Digit:41",
+      "concept": "placeValue4Digit",
+      "type": "SHOW_BOARD",
+      "pause": null,
+      "line": "දහයස්ථානයට පබළු දෙකකුත්, එකස්ථානයට එක පබළුවකුත් එකතු කරමු.",
+      "sentences": [
+        "දහයස්ථානයට පබළු දෙකකුත්, එකස්ථානයට එක පබළුවකුත් එකතු කරමු."
+      ],
+      "boardAtStart": "the abacus, දා 5, සි 4",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "abacus",
+          "event": "bead_add",
+          "args": {
+            "rod": 2,
+            "count": 2
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "abacus",
+          "event": "bead_add",
+          "args": {
+            "rod": 3,
+            "count": 1
+          }
+        }
+      ],
+      "child": null,
+      "sees": "The abacus showing 5 421; 2 bead(s) drop onto the ද rod; 1 bead(s) drop onto the එ rod."
+    },
+    {
+      "id": "authored:placeValue4Digit:42",
+      "concept": "placeValue4Digit",
+      "type": "EXPLAIN",
+      "pause": null,
+      "line": "බලන්නකෝ, හැම කූරකම තියෙන පබළු එකතු වෙලා අපේ මුළු සංඛ්‍යාව හැදුණා.",
+      "sentences": [
+        "බලන්නකෝ, හැම කූරකම තියෙන පබළු එකතු වෙලා අපේ මුළු සංඛ්‍යාව හැදුණා."
+      ],
+      "boardAtStart": "the abacus showing 5 421",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "highlight",
+          "event": "circle",
+          "args": {
+            "target": {
+              "number": 5421
+            }
+          }
+        }
+      ],
+      "child": null,
+      "sees": "The abacus showing 5 421; a chalk ring around 5 421."
+    },
+    {
+      "id": "authored:placeValue4Digit:43",
+      "concept": "placeValue4Digit",
+      "type": "TRANSITION",
+      "pause": null,
+      "line": "දකුණු පැත්තේ මුල්ම කූර දිහා බලන්නකෝ පුතේ.",
+      "sentences": [
+        "දකුණු පැත්තේ මුල්ම කූර දිහා බලන්නකෝ පුතේ."
+      ],
+      "boardAtStart": "the abacus showing 5 421",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "abacus",
+          "event": "rod_glow",
+          "args": {
+            "rod": 3
+          }
+        }
+      ],
+      "child": null,
+      "sees": "The abacus showing 5 421; the එ rod glows."
+    },
+    {
+      "id": "authored:placeValue4Digit:44",
+      "concept": "placeValue4Digit",
+      "type": "ASK",
+      "pause": "ASK",
+      "line": "එකස්ථානයේ පබළු කීයක් තියෙනවද?",
+      "sentences": [
+        "එකස්ථානයේ පබළු කීයක් තියෙනවද?"
+      ],
+      "boardAtStart": "the abacus showing 5 421",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "abacus",
+          "event": "rod_glow",
+          "args": {
+            "rod": 3
+          }
+        }
+      ],
+      "child": {
+        "kind": "answer",
+        "via": "voice",
+        "expects": "එක"
+      },
+      "sees": "The abacus showing 5 421; the එ rod glows — they answer via voice."
+    },
+    {
+      "id": "authored:placeValue4Digit:45",
+      "concept": "placeValue4Digit",
+      "type": "EXPLAIN",
+      "pause": null,
+      "line": "එතන පබළු එකක් නිසා අගය එකයි.",
+      "sentences": [
+        "එතන පබළු එකක් නිසා අගය එකයි."
+      ],
+      "boardAtStart": "the abacus showing 5 421",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "abacus",
+          "event": "rod_glow",
+          "args": {
+            "rod": 3
+          }
+        }
+      ],
+      "child": null,
+      "sees": "The abacus showing 5 421; the එ rod glows."
+    },
+    {
+      "id": "authored:placeValue4Digit:46",
+      "concept": "placeValue4Digit",
+      "type": "EXPLAIN",
+      "pause": null,
+      "line": "දහයස්ථානයේ පබළු දෙකයි, ඒ නිසා අගය විස්සයි.",
+      "sentences": [
+        "දහයස්ථානයේ පබළු දෙකයි, ඒ නිසා අගය විස්සයි."
+      ],
+      "boardAtStart": "the abacus showing 5 421",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "abacus",
+          "event": "rod_glow",
+          "args": {
+            "rod": 2
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "rod": 2
+            }
+          }
+        }
+      ],
+      "child": null,
+      "sees": "The abacus showing 5 421; the ද rod glows."
+    },
+    {
+      "id": "authored:placeValue4Digit:48",
+      "concept": "placeValue4Digit",
+      "type": "ASK",
+      "pause": "ASK",
+      "line": "සියයස්ථානයේ තියෙන පබළු ගණන කියන්න පුළුවන්ද?",
+      "sentences": [
+        "සියයස්ථානයේ තියෙන පබළු ගණන කියන්න පුළුවන්ද?"
+      ],
+      "boardAtStart": "the abacus showing 5 421",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "abacus",
+          "event": "rod_glow",
+          "args": {
+            "rod": 1
+          }
+        }
+      ],
+      "child": {
+        "kind": "answer",
+        "via": "voice",
+        "expects": "හතර"
+      },
+      "sees": "The abacus showing 5 421; the සි rod glows — they answer via voice."
+    },
+    {
+      "id": "authored:placeValue4Digit:49",
+      "concept": "placeValue4Digit",
+      "type": "EXPLAIN",
+      "pause": null,
+      "line": "සියයස්ථානයේ පබළු හතරක් නිසා අගය හාරසියයයි.",
+      "sentences": [
+        "සියයස්ථානයේ පබළු හතරක් නිසා අගය හාරසියයයි."
+      ],
+      "boardAtStart": "the abacus showing 5 421",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "abacus",
+          "event": "rod_glow",
+          "args": {
+            "rod": 1
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "rod": 1
+            }
+          }
+        }
+      ],
+      "child": null,
+      "sees": "The abacus showing 5 421; the සි rod glows."
+    },
+    {
+      "id": "authored:placeValue4Digit:50",
+      "concept": "placeValue4Digit",
+      "type": "EXPLAIN",
+      "pause": null,
+      "line": "දහසස්ථානයේ පබළු පහයි, ඒ නිසා අගය පන්දහසයි.",
+      "sentences": [
+        "දහසස්ථානයේ පබළු පහයි, ඒ නිසා අගය පන්දහසයි."
+      ],
+      "boardAtStart": "the abacus showing 5 421",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "abacus",
+          "event": "rod_glow",
+          "args": {
+            "rod": 0
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "rod": 0
+            }
+          }
+        }
+      ],
+      "child": null,
+      "sees": "The abacus showing 5 421; the දා rod glows."
+    },
+    {
+      "id": "authored:placeValue4Digit:52",
+      "concept": "placeValue4Digit",
+      "type": "SHOW_BOARD",
+      "pause": null,
+      "line": "මේ විදිහට හැම ඉලක්කමකටම තමන්ගේම ස්ථානීය අගයක් තියෙනවා.",
+      "sentences": [
+        "මේ විදිහට හැම ඉලක්කමකටම තමන්ගේම ස්ථානීය අගයක් තියෙනවා."
+      ],
+      "boardAtStart": "the abacus showing 5 421",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "blankTable",
+          "event": "show",
+          "args": {
+            "item": "7b58e436"
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "chalkText",
+          "event": "write",
+          "args": {
+            "text": "ස්ථානීය අගය"
+          }
+        }
+      ],
+      "child": null,
+      "sees": "The place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003; the place-value table; \"ස්ථානීය අගය\" is written."
+    },
+    {
+      "id": "authored:placeValue4Digit:53",
+      "concept": "placeValue4Digit",
+      "type": "SOFT_CHECK",
+      "pause": "SOFT_CHECK",
+      "line": "ස්ථානය අනුව අගය වෙනස් වෙන හැටි පැහැදිලියි නේද පුතේ?",
+      "sentences": [
+        "ස්ථානය අනුව අගය වෙනස් වෙන හැටි පැහැදිලියි නේද පුතේ?"
+      ],
+      "boardAtStart": "the place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003",
+      "events": [],
+      "child": {
+        "kind": "soft check",
+        "via": "mic open 5s; any reply acknowledged after 1.2s of quiet; silence flows on"
+      },
+      "sees": "The place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003 — the mic opens briefly."
+    },
+    {
+      "id": "authored:placeValue4Digit:54",
+      "concept": "placeValue4Digit",
+      "type": "TRANSITION",
+      "pause": null,
+      "line": "දැන් අපි ගණක රාමුවේ තියෙන සංඛ්‍යාව වචනයෙන් කියවන්න පුරුදු වෙමු.",
+      "sentences": [
+        "දැන් අපි ගණක රාමුවේ තියෙන සංඛ්‍යාව වචනයෙන් කියවන්න පුරුදු වෙමු."
+      ],
+      "boardAtStart": "the place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "abacus",
+          "event": "show",
+          "args": {
+            "digits": [
+              5,
+              4,
+              2,
+              1
+            ],
+            "startEmpty": false,
+            "animate": false
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "text": "ගණක රාමුව"
+            }
+          }
+        }
+      ],
+      "child": null,
+      "sees": "The abacus showing 5 421; the abacus shows 5 421."
+    },
+    {
+      "id": "authored:placeValue4Digit:55",
+      "concept": "placeValue4Digit",
+      "type": "EXPLAIN",
+      "pause": "RHETORICAL",
+      "line": "දහසස්ථානය පෙන්වන කූරේ තියෙන්නේ පබළු පහයි නේද, පුතේ?",
+      "sentences": [
+        "දහසස්ථානය පෙන්වන කූරේ තියෙන්නේ පබළු පහයි නේද, පුතේ?"
+      ],
+      "boardAtStart": "the abacus showing 5 421",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "abacus",
+          "event": "rod_glow",
+          "args": {
+            "rod": 0
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "rod": 0
+            }
+          }
+        }
+      ],
+      "child": null,
+      "sees": "The abacus showing 5 421; the දා rod glows."
+    },
+    {
+      "id": "authored:placeValue4Digit:56",
+      "concept": "placeValue4Digit",
+      "type": "EXPLAIN",
+      "pause": null,
+      "line": "ඒ පබළු වලින් පෙන්වන්නේ පන්දහසක අගයක්.",
+      "sentences": [
+        "ඒ පබළු වලින් පෙන්වන්නේ පන්දහසක අගයක්."
+      ],
+      "boardAtStart": "the abacus showing 5 421",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "abacus",
+          "event": "rod_glow",
+          "args": {
+            "rod": 0
+          }
+        }
+      ],
+      "child": null,
+      "sees": "The abacus showing 5 421; the දා rod glows."
+    },
+    {
+      "id": "authored:placeValue4Digit:57",
+      "concept": "placeValue4Digit",
+      "type": "EXPLAIN",
+      "pause": null,
+      "line": "ඊළඟට සියයස්ථානයෙන් හාරසියයකුත් ලැබෙනවා. දහයස්ථානයෙන් විස්සකුත්, එකස්ථානයෙන් එකකුත් ලැබෙනවා.",
+      "sentences": [
+        "ඊළඟට සියයස්ථානයෙන් හාරසියයකුත් ලැබෙනවා.",
+        "දහයස්ථානයෙන් විස්සකුත්, එකස්ථානයෙන් එකකුත් ලැබෙනවා."
+      ],
+      "boardAtStart": "the abacus showing 5 421",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "abacus",
+          "event": "rod_glow",
+          "args": {
+            "rod": 1
+          }
+        },
+        {
+          "sentenceIndex": 1,
+          "primitive": "abacus",
+          "event": "rod_glow",
+          "args": {
+            "rod": 2
+          }
+        },
+        {
+          "sentenceIndex": 1,
+          "primitive": "abacus",
+          "event": "rod_glow",
+          "args": {
+            "rod": 3
+          }
+        }
+      ],
+      "child": null,
+      "sees": "The abacus showing 5 421; the සි rod glows; the ද rod glows; the එ rod glows."
+    },
+    {
+      "id": "authored:placeValue4Digit:58",
+      "concept": "placeValue4Digit",
+      "type": "ASK",
+      "pause": "ASK",
+      "line": "එහෙනම් පුතේ, මේ සංඛ්‍යාව කියවමු බලන්න.",
+      "sentences": [
+        "එහෙනම් පුතේ, මේ සංඛ්‍යාව කියවමු බලන්න."
+      ],
+      "boardAtStart": "the abacus showing 5 421",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "highlight",
+          "event": "circle",
+          "args": {
+            "target": {
+              "number": 5421
+            }
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "text": "abacus"
+            }
+          }
+        }
+      ],
+      "child": {
+        "kind": "answer",
+        "via": "voice",
+        "expects": "පන්දහස් හාරසිය විසි එක"
+      },
+      "sees": "The abacus showing 5 421; a chalk ring around 5 421 — they answer via voice."
+    },
+    {
+      "id": "authored:placeValue4Digit:59",
+      "concept": "placeValue4Digit",
+      "type": "EXPLAIN",
+      "pause": null,
+      "line": "ඒ සංඛ්‍යාව පන්දහස් හාරසිය විසි එකයි.",
+      "sentences": [
+        "ඒ සංඛ්‍යාව පන්දහස් හාරසිය විසි එකයි."
+      ],
+      "boardAtStart": "the abacus showing 5 421",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "chalkText",
+          "event": "write",
+          "args": {
+            "text": "5 421 - පන්දහස් හාරසිය විසි එක"
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "number": 5421
+            }
+          }
+        }
+      ],
+      "child": null,
+      "sees": "Chalk \"5 421 - පන්දහස් හාරසිය විසි එක\"; \"5 421 - පන්දහස් හාරසිය විසි එක\" is written."
+    },
+    {
+      "id": "authored:placeValue4Digit:60",
+      "concept": "placeValue4Digit",
+      "type": "SOFT_CHECK",
+      "pause": "SOFT_CHECK",
+      "line": "අපි මේ සංඛ්‍යාව අකුරෙන් ලියන්නේ පන්දහස් හාරසිය විසි එක කියලයි.",
+      "sentences": [
+        "අපි මේ සංඛ්‍යාව අකුරෙන් ලියන්නේ පන්දහස් හාරසිය විසි එක කියලයි."
+      ],
+      "boardAtStart": "chalk \"5 421 - පන්දහස් හාරසිය විසි එක\"",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "number": 5421
+            }
+          }
+        }
+      ],
+      "child": {
+        "kind": "soft check",
+        "via": "mic open 5s; any reply acknowledged after 1.2s of quiet; silence flows on"
+      },
+      "sees": "Chalk \"5 421 - පන්දහස් හාරසිය විසි එක\" — the mic opens briefly."
+    },
+    {
+      "id": "authored:placeValue4Digit:61",
+      "concept": "placeValue4Digit",
+      "type": "TRANSITION",
+      "pause": null,
+      "line": "දැන් අපි තවත් අලුත් සංඛ්‍යාවක් ගණක රාමුවේ බලමුකෝ.",
+      "sentences": [
+        "දැන් අපි තවත් අලුත් සංඛ්‍යාවක් ගණක රාමුවේ බලමුකෝ."
+      ],
+      "boardAtStart": "chalk \"5 421 - පන්දහස් හාරසිය විසි එක\"",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "abacus",
+          "event": "show",
+          "args": {
+            "digits": [
+              6,
+              8,
+              3,
+              1
+            ],
+            "startEmpty": false,
+            "animate": false
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "text": "ගණක රාමුව"
+            }
+          }
+        }
+      ],
+      "child": null,
+      "sees": "The abacus showing 6 831; the abacus shows 6 831."
+    },
+    {
+      "id": "authored:placeValue4Digit:62",
+      "concept": "placeValue4Digit",
+      "type": "ASK",
+      "pause": "ASK",
+      "line": "මෙතන තියෙන සංඛ්‍යාවත් වචනයෙන් කියන්න පුළුවන්ද පුතේ?",
+      "sentences": [
+        "මෙතන තියෙන සංඛ්‍යාවත් වචනයෙන් කියන්න පුළුවන්ද පුතේ?"
+      ],
+      "boardAtStart": "the abacus showing 6 831",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "text": "abacus"
+            }
+          }
+        }
+      ],
+      "child": {
+        "kind": "answer",
+        "via": "voice",
+        "expects": "හයදහස් අටසිය තිස් එක"
+      },
+      "sees": "The abacus showing 6 831 — they answer via voice."
+    },
+    {
+      "id": "authored:placeValue4Digit:63",
+      "concept": "placeValue4Digit",
+      "type": "EXPLAIN",
+      "pause": null,
+      "line": "ඒක හයදහස් අටසිය තිස් එක තමයි! දැන් ඔයා සංඛ්‍යා නාම කියවන්න හොඳටම දන්නවා.",
+      "sentences": [
+        "ඒක හයදහස් අටසිය තිස් එක තමයි!",
+        "දැන් ඔයා සංඛ්‍යා නාම කියවන්න හොඳටම දන්නවා."
+      ],
+      "boardAtStart": "the abacus showing 6 831",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "chalkText",
+          "event": "write",
+          "args": {
+            "text": "6 831 - හයදහස් අටසිය තිස් එක"
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "number": 6831
+            }
+          }
+        }
+      ],
+      "child": null,
+      "sees": "Chalk \"6 831 - හයදහස් අටසිය තිස් එක\"; \"6 831 - හයදහස් අටසිය තිස් එක\" is written."
+    },
+    {
+      "id": "authored:placeValue4Digit:64",
+      "concept": "placeValue4Digit",
+      "type": "TRANSITION",
+      "pause": null,
+      "line": "දැන් අපි කලින් ගත්තු පන්දහස් හාරසිය විසි එක විහිදුවා ලියමු, පුතේ.",
+      "sentences": [
+        "දැන් අපි කලින් ගත්තු පන්දහස් හාරසිය විසි එක විහිදුවා ලියමු, පුතේ."
+      ],
+      "boardAtStart": "chalk \"6 831 - හයදහස් අටසිය තිස් එක\"",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "abacus",
+          "event": "show",
+          "args": {
+            "digits": [
+              5,
+              4,
+              2,
+              1
+            ],
+            "startEmpty": false,
+            "animate": false
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "chalkText",
+          "event": "write",
+          "args": {
+            "text": "විහිදුවා"
+          }
+        }
+      ],
+      "child": null,
+      "sees": "The abacus showing 5 421; the abacus shows 5 421; \"විහිදුවා\" is written."
+    },
+    {
+      "id": "authored:placeValue4Digit:65",
+      "concept": "placeValue4Digit",
+      "type": "EXPLAIN",
+      "pause": "RHETORICAL",
+      "line": "බලන්න, දහසස්ථානයේ පබළු පහක් තියෙනවා නේද?",
+      "sentences": [
+        "බලන්න, දහසස්ථානයේ පබළු පහක් තියෙනවා නේද?"
+      ],
+      "boardAtStart": "the abacus showing 5 421",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "abacus",
+          "event": "rod_glow",
+          "args": {
+            "rod": 0
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "rod": 0
+            }
+          }
+        }
+      ],
+      "child": null,
+      "sees": "The abacus showing 5 421; the දා rod glows."
+    },
+    {
+      "id": "authored:placeValue4Digit:66",
+      "concept": "placeValue4Digit",
+      "type": "ASK",
+      "pause": "ASK",
+      "line": "එතකොට ඒ පහෙන් පෙන්වන අගය කීයද පුතේ?",
+      "sentences": [
+        "එතකොට ඒ පහෙන් පෙන්වන අගය කීයද පුතේ?"
+      ],
+      "boardAtStart": "the abacus showing 5 421",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "rod": 0
+            }
+          }
+        }
+      ],
+      "child": {
+        "kind": "answer",
+        "via": "voice",
+        "expects": "පන්දහස"
+      },
+      "sees": "The abacus showing 5 421 — they answer via voice."
+    },
+    {
+      "id": "authored:placeValue4Digit:67",
+      "concept": "placeValue4Digit",
+      "type": "EXPLAIN",
+      "pause": null,
+      "line": "ඒක පන්දහසයි.",
+      "sentences": [
+        "ඒක පන්දහසයි."
+      ],
+      "boardAtStart": "the abacus showing 5 421",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "chalkText",
+          "event": "write",
+          "args": {
+            "text": "5 421 = 5000 +"
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "number": 5000
+            }
+          }
+        }
+      ],
+      "child": null,
+      "sees": "Chalk \"5 421 = 5000 +\"; \"5 421 = 5000 +\" is written."
+    },
+    {
+      "id": "authored:placeValue4Digit:68",
+      "concept": "placeValue4Digit",
+      "type": "EXPLAIN",
+      "pause": null,
+      "line": "සියයස්ථානයේ තියෙන්නේ හතරක්, ඒ නිසා අගය හාරසියයයි.",
+      "sentences": [
+        "සියයස්ථානයේ තියෙන්නේ හතරක්, ඒ නිසා අගය හාරසියයයි."
+      ],
+      "boardAtStart": "chalk \"5 421 = 5000 +\"",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "text": "5 421 = 5000 +"
+            }
+          }
+        }
+      ],
+      "child": null,
+      "sees": "Chalk \"5 421 = 5000 +\"."
+    },
+    {
+      "id": "authored:placeValue4Digit:70",
+      "concept": "placeValue4Digit",
+      "type": "ASK",
+      "pause": "ASK",
+      "line": "ඊළඟට දහයස්ථානයේ තියෙන දෙකෙන් ලැබෙන අගය කීයද?",
+      "sentences": [
+        "ඊළඟට දහයස්ථානයේ තියෙන දෙකෙන් ලැබෙන අගය කීයද?"
+      ],
+      "boardAtStart": "chalk \"5 421 = 5000 +\"",
+      "events": [],
+      "child": {
+        "kind": "answer",
+        "via": "voice",
+        "expects": "විස්ස"
+      },
+      "sees": "Chalk \"5 421 = 5000 +\" — they answer via voice."
+    },
+    {
+      "id": "authored:placeValue4Digit:71",
+      "concept": "placeValue4Digit",
+      "type": "EXPLAIN",
+      "pause": null,
+      "line": "දහයස්ථානයේ දෙකේ අගය විස්සයි.",
+      "sentences": [
+        "දහයස්ථානයේ දෙකේ අගය විස්සයි."
+      ],
+      "boardAtStart": "chalk \"5 421 = 5000 +\"",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "chalkText",
+          "event": "write",
+          "args": {
+            "text": "5 421 = 5000 + 400 + 20 +",
+            "append": "400 + 20 +"
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "number": 20
+            }
+          }
+        }
+      ],
+      "child": null,
+      "sees": "Chalk \"5 421 = 5000 + 400 + 20 +\"; \"400 + 20 +\" is written on, making \"5 421 = 5000 + 400 + 20 +\"."
+    },
+    {
+      "id": "authored:placeValue4Digit:72",
+      "concept": "placeValue4Digit",
+      "type": "EXPLAIN",
+      "pause": null,
+      "line": "අන්තිමට එකස්ථානයේ තියෙන්නේ එකක්, ඒ නිසා ලැබෙන්නේ එකමයි.",
+      "sentences": [
+        "අන්තිමට එකස්ථානයේ තියෙන්නේ එකක්, ඒ නිසා ලැබෙන්නේ එකමයි."
+      ],
+      "boardAtStart": "chalk \"5 421 = 5000 + 400 + 20 +\"",
+      "events": [],
+      "child": null,
+      "sees": "Chalk \"5 421 = 5000 + 400 + 20 +\"."
+    },
+    {
+      "id": "authored:placeValue4Digit:74",
+      "concept": "placeValue4Digit",
+      "type": "SOFT_CHECK",
+      "pause": "SOFT_CHECK",
+      "line": "මේ විදියට එකතු කිරීමක් ලෙස ලිවීමට තමයි විහිදුවා ලියනවා කියන්නේ, පැහැදිලියි නේද පුතේ?",
+      "sentences": [
+        "මේ විදියට එකතු කිරීමක් ලෙස ලිවීමට තමයි විහිදුවා ලියනවා කියන්නේ, පැහැදිලියි නේද පුතේ?"
+      ],
+      "boardAtStart": "chalk \"5 421 = 5000 + 400 + 20 +\"",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "text": "විහිදුවා"
+            }
+          }
+        }
+      ],
+      "child": {
+        "kind": "soft check",
+        "via": "mic open 5s; any reply acknowledged after 1.2s of quiet; silence flows on"
+      },
+      "sees": "Chalk \"5 421 = 5000 + 400 + 20 +\" — the mic opens briefly."
+    },
+    {
+      "id": "authored:placeValue4Digit:75",
+      "concept": "placeValue4Digit",
+      "type": "TRANSITION",
+      "pause": null,
+      "line": "අපි දැන් තවත් සංඛ්‍යාවක් ගණක රාමුවෙන් පෙන්වලා බලමු පුතේ.",
+      "sentences": [
+        "අපි දැන් තවත් සංඛ්‍යාවක් ගණක රාමුවෙන් පෙන්වලා බලමු පුතේ."
+      ],
+      "boardAtStart": "chalk \"5 421 = 5000 + 400 + 20 +\"",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "abacus",
+          "event": "show",
+          "args": {
+            "digits": [
+              7,
+              0,
+              6,
+              2
+            ],
+            "startEmpty": false,
+            "animate": false
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "text": "ගණක රාමුව"
+            }
+          }
+        }
+      ],
+      "child": null,
+      "sees": "The abacus showing 7 062; the abacus shows 7 062."
+    },
+    {
+      "id": "authored:placeValue4Digit:76",
+      "concept": "placeValue4Digit",
+      "type": "EXPLAIN",
+      "pause": "SOFT_CHECK",
+      "line": "මුලින්ම දහසස්ථානය දිහා බලන්න, එතන පබළු හතක් තියෙනවා නේද?",
+      "sentences": [
+        "මුලින්ම දහසස්ථානය දිහා බලන්න, එතන පබළු හතක් තියෙනවා නේද?"
+      ],
+      "boardAtStart": "the abacus showing 7 062",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "abacus",
+          "event": "rod_glow",
+          "args": {
+            "rod": 0
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "rod": 0
+            }
+          }
+        }
+      ],
+      "child": {
+        "kind": "soft check",
+        "via": "mic open 5s; any reply acknowledged after 1.2s of quiet; silence flows on"
+      },
+      "sees": "The abacus showing 7 062; the දා rod glows — the mic opens briefly."
+    },
+    {
+      "id": "authored:placeValue4Digit:77",
+      "concept": "placeValue4Digit",
+      "type": "EXPLAIN",
+      "pause": null,
+      "line": "එක් පබළුවකින් දහසක් පෙන්වනවා නම්, පබළු හතක අගය හත්දහසයි.",
+      "sentences": [
+        "එක් පබළුවකින් දහසක් පෙන්වනවා නම්, පබළු හතක අගය හත්දහසයි."
+      ],
+      "boardAtStart": "the abacus showing 7 062",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "textCard",
+          "event": "show",
+          "args": {
+            "text": "7000"
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "number": 7000
+            }
+          }
+        }
+      ],
+      "child": null,
+      "sees": "Card \"7000\"; card \"7000\"."
+    },
+    {
+      "id": "authored:placeValue4Digit:78",
+      "concept": "placeValue4Digit",
+      "type": "EXPLAIN",
+      "pause": null,
+      "line": "ඊළඟට තියෙන සියයස්ථානයේ කූර දිහා හොඳින් බලන්නකෝ.",
+      "sentences": [
+        "ඊළඟට තියෙන සියයස්ථානයේ කූර දිහා හොඳින් බලන්නකෝ."
+      ],
+      "boardAtStart": "card \"7000\"",
+      "events": [],
+      "child": null,
+      "sees": "Card \"7000\"."
+    },
+    {
+      "id": "authored:placeValue4Digit:79",
+      "concept": "placeValue4Digit",
+      "type": "ASK",
+      "pause": "ASK",
+      "line": "එතන පබළු කීයක් දකින්න තියෙනවද?",
+      "sentences": [
+        "එතන පබළු කීයක් දකින්න තියෙනවද?"
+      ],
+      "boardAtStart": "card \"7000\"",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "text": "7000"
+            }
+          }
+        }
+      ],
+      "child": {
+        "kind": "answer",
+        "via": "voice",
+        "expects": "බිංදුව"
+      },
+      "sees": "Card \"7000\" — they answer via voice."
+    },
+    {
+      "id": "authored:placeValue4Digit:80",
+      "concept": "placeValue4Digit",
+      "type": "EXPLAIN",
+      "pause": null,
+      "line": "කූරේ කිසිම පබළුවක් නෑ. ඒ නිසා එතන අගය බිංදුවයි.",
+      "sentences": [
+        "කූරේ කිසිම පබළුවක් නෑ.",
+        "ඒ නිසා එතන අගය බිංදුවයි."
+      ],
+      "boardAtStart": "card \"7000\"",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "chalkText",
+          "event": "write",
+          "args": {
+            "text": "7000 + 0",
+            "append": "+ 0"
+          }
+        },
+        {
+          "sentenceIndex": 1,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "number": 0
+            }
+          }
+        }
+      ],
+      "child": null,
+      "sees": "Chalk \"7000 + 0\"; \"+ 0\" is written on, making \"7000 + 0\"."
+    },
+    {
+      "id": "authored:placeValue4Digit:81",
+      "concept": "placeValue4Digit",
+      "type": "EXPLAIN",
+      "pause": null,
+      "line": "දහයස්ථානයේ කූර දිහා බැලුවොත් අපට පබළු හයක් පේනවා. එකකින් දහයක් පෙන්වන නිසා එතනින් හැටක් හැදෙනවා.",
+      "sentences": [
+        "දහයස්ථානයේ කූර දිහා බැලුවොත් අපට පබළු හයක් පේනවා.",
+        "එකකින් දහයක් පෙන්වන නිසා එතනින් හැටක් හැදෙනවා."
+      ],
+      "boardAtStart": "chalk \"7000 + 0\"",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "chalkText",
+          "event": "write",
+          "args": {
+            "text": "7000 + 0 + 60",
+            "append": "+ 60"
+          }
+        },
+        {
+          "sentenceIndex": 1,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "number": 60
+            }
+          }
+        }
+      ],
+      "child": null,
+      "sees": "Chalk \"7000 + 0 + 60\"; \"+ 60\" is written on, making \"7000 + 0 + 60\"."
+    },
+    {
+      "id": "authored:placeValue4Digit:82",
+      "concept": "placeValue4Digit",
+      "type": "SOFT_CHECK",
+      "pause": "SOFT_CHECK",
+      "line": "අවසාන කූරේ, ඒ කියන්නේ එකස්ථානයේ තියෙන්නේ පබළු දෙකයි. එකස්ථානයේ ඒ පබළු දෙකෙන් හැදෙන අගය කීයද පුතේ?",
+      "sentences": [
+        "අවසාන කූරේ, ඒ කියන්නේ එකස්ථානයේ තියෙන්නේ පබළු දෙකයි.",
+        "එකස්ථානයේ ඒ පබළු දෙකෙන් හැදෙන අගය කීයද පුතේ?"
+      ],
+      "boardAtStart": "chalk \"7000 + 0 + 60\"",
+      "events": [],
+      "child": {
+        "kind": "soft check",
+        "via": "mic open 5s; any reply acknowledged after 1.2s of quiet; silence flows on"
+      },
+      "sees": "Chalk \"7000 + 0 + 60\" — the mic opens briefly."
+    },
+    {
+      "id": "authored:placeValue4Digit:83",
+      "concept": "placeValue4Digit",
+      "type": "EXPLAIN",
+      "pause": null,
+      "line": "ඒක දෙකයි.",
+      "sentences": [
+        "ඒක දෙකයි."
+      ],
+      "boardAtStart": "chalk \"7000 + 0 + 60\"",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "chalkText",
+          "event": "write",
+          "args": {
+            "text": "7062 = 7000 + 0 + 60 + 2"
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "number": 2
+            }
+          }
+        }
+      ],
+      "child": null,
+      "sees": "Chalk \"7062 = 7000 + 0 + 60 + 2\"; \"7062 = 7000 + 0 + 60 + 2\" is written."
+    },
+    {
+      "id": "authored:placeValue4Digit:84",
+      "concept": "placeValue4Digit",
+      "type": "EXPLAIN",
+      "pause": "SOFT_CHECK",
+      "line": "එහෙනම් මේ මුළු සංඛ්‍යාව හත්දහස් හැට දෙකයි, අපි එය දිගහැරලා ලිව්වා නේද?",
+      "sentences": [
+        "එහෙනම් මේ මුළු සංඛ්‍යාව හත්දහස් හැට දෙකයි, අපි එය දිගහැරලා ලිව්වා නේද?"
+      ],
+      "boardAtStart": "chalk \"7062 = 7000 + 0 + 60 + 2\"",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "number": 7062
+            }
+          }
+        }
+      ],
+      "child": {
+        "kind": "soft check",
+        "via": "mic open 5s; any reply acknowledged after 1.2s of quiet; silence flows on"
+      },
+      "sees": "Chalk \"7062 = 7000 + 0 + 60 + 2\" — the mic opens briefly."
+    },
+    {
+      "id": "authored:placeValue4Digit:85",
+      "concept": "placeValue4Digit",
+      "type": "TRANSITION",
+      "pause": null,
+      "line": "ඔන්න පුතේ, මම ඔයාට ඉලක්කම් කාඩ්පත් හතරක් දෙනවා — එක, තුන, අට, හය.",
+      "sentences": [
+        "ඔන්න පුතේ, මම ඔයාට ඉලක්කම් කාඩ්පත් හතරක් දෙනවා — එක, තුන, අට, හය."
+      ],
+      "boardAtStart": "chalk \"7062 = 7000 + 0 + 60 + 2\"",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "numberCards",
+          "event": "show",
+          "args": {
+            "values": [
+              1,
+              3,
+              8,
+              6
+            ]
+          }
+        }
+      ],
+      "child": null,
+      "sees": "Number cards 1 · 3 · 8 · 6; cards 1 · 3 · 8 · 6 deal in."
+    },
+    {
+      "id": "authored:placeValue4Digit:86",
+      "concept": "placeValue4Digit",
+      "type": "EXPLAIN",
+      "pause": "RHETORICAL",
+      "line": "මේ කාඩ්පත් හතර පේනවා නේද?",
+      "sentences": [
+        "මේ කාඩ්පත් හතර පේනවා නේද?"
+      ],
+      "boardAtStart": "number cards 1 · 3 · 8 · 6",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "card": 1
+            }
+          }
+        }
+      ],
+      "child": null,
+      "sees": "Number cards 1 · 3 · 8 · 6."
+    },
+    {
+      "id": "authored:placeValue4Digit:87",
+      "concept": "placeValue4Digit",
+      "type": "EXPLAIN",
+      "pause": null,
+      "line": "අපි මුලින්ම හයදහස් අටසිය තිස් එක කියන සංඛ්‍යාව ලියලා බලමු.",
+      "sentences": [
+        "අපි මුලින්ම හයදහස් අටසිය තිස් එක කියන සංඛ්‍යාව ලියලා බලමු."
+      ],
+      "boardAtStart": "number cards 1 · 3 · 8 · 6",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "textCard",
+          "event": "show",
+          "args": {
+            "text": "6 831"
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "number": 6831
+            }
+          }
+        }
+      ],
+      "child": null,
+      "sees": "Card \"6 831\"; card \"6 831\"."
+    },
+    {
+      "id": "authored:placeValue4Digit:88",
+      "concept": "placeValue4Digit",
+      "type": "ASK",
+      "pause": "ASK",
+      "line": "මේකේ දහසස්ථානයේ තියෙන හයෙන් පෙන්වන අගය කීයද?",
+      "sentences": [
+        "මේකේ දහසස්ථානයේ තියෙන හයෙන් පෙන්වන අගය කීයද?"
+      ],
+      "boardAtStart": "card \"6 831\"",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "text": "6 831",
+              "place": "දා"
+            }
+          }
+        }
+      ],
+      "child": {
+        "kind": "answer",
+        "via": "number pad or voice",
+        "expects": "6000"
+      },
+      "sees": "Card \"6 831\" — they answer via number pad or voice."
+    },
+    {
+      "id": "authored:placeValue4Digit:89",
+      "concept": "placeValue4Digit",
+      "type": "EXPLAIN",
+      "pause": null,
+      "line": "ඒක හයදහසයි.",
+      "sentences": [
+        "ඒක හයදහසයි."
+      ],
+      "boardAtStart": "card \"6 831\"",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "chalkText",
+          "event": "write",
+          "args": {
+            "text": "6 831 = 6000 + 800 + 30 + 1",
+            "append": "= 6000 + 800 + 30 + 1"
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "number": 6000
+            }
+          }
+        }
+      ],
+      "child": null,
+      "sees": "Chalk \"6 831 = 6000 + 800 + 30 + 1\"; \"= 6000 + 800 + 30 + 1\" is written on, making \"6 831 = 6000 + 800 + 30 + 1\"."
+    },
+    {
+      "id": "authored:placeValue4Digit:90",
+      "concept": "placeValue4Digit",
+      "type": "SOFT_CHECK",
+      "pause": "SOFT_CHECK",
+      "line": "එතකොට මේක දිගහැරලා ලිව්වාම එන්නේ මේ විදිහට නේද?",
+      "sentences": [
+        "එතකොට මේක දිගහැරලා ලිව්වාම එන්නේ මේ විදිහට නේද?"
+      ],
+      "boardAtStart": "chalk \"6 831 = 6000 + 800 + 30 + 1\"",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "text": "6 831 = 6000 + 800 + 30 + 1"
+            }
+          }
+        }
+      ],
+      "child": {
+        "kind": "soft check",
+        "via": "mic open 5s; any reply acknowledged after 1.2s of quiet; silence flows on"
+      },
+      "sees": "Chalk \"6 831 = 6000 + 800 + 30 + 1\" — the mic opens briefly."
+    },
+    {
+      "id": "authored:placeValue4Digit:91",
+      "concept": "placeValue4Digit",
+      "type": "EXPLAIN",
+      "pause": null,
+      "line": "තව ක්‍රමයකට හැදුවොත් අපිට අටදහස් හයසිය දහතුන ලැබෙනවා.",
+      "sentences": [
+        "තව ක්‍රමයකට හැදුවොත් අපිට අටදහස් හයසිය දහතුන ලැබෙනවා."
+      ],
+      "boardAtStart": "chalk \"6 831 = 6000 + 800 + 30 + 1\"",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "textCard",
+          "event": "show",
+          "args": {
+            "text": "8 613"
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "number": 8613
+            }
+          }
+        }
+      ],
+      "child": null,
+      "sees": "Card \"8 613\"; card \"8 613\"."
+    },
+    {
+      "id": "authored:placeValue4Digit:92",
+      "concept": "placeValue4Digit",
+      "type": "ASK",
+      "pause": "ASK",
+      "line": "එහෙනම් අටදහස් හයසිය දහතුන දිගහරිද්දී මුලින්ම ලියවෙන්නේ මොන අගයද?",
+      "sentences": [
+        "එහෙනම් අටදහස් හයසිය දහතුන දිගහරිද්දී මුලින්ම ලියවෙන්නේ මොන අගයද?"
+      ],
+      "boardAtStart": "card \"8 613\"",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "number": 8613
+            }
+          }
+        }
+      ],
+      "child": {
+        "kind": "answer",
+        "via": "number pad or voice",
+        "expects": "8000"
+      },
+      "sees": "Card \"8 613\" — they answer via number pad or voice."
+    },
+    {
+      "id": "authored:placeValue4Digit:93",
+      "concept": "placeValue4Digit",
+      "type": "EXPLAIN",
+      "pause": null,
+      "line": "මුලින්ම ලියවෙන්නේ අටදහසයි. ඊටපස්සේ හයසියයයි, දහයයි, තුනයි එකතු වෙනවා.",
+      "sentences": [
+        "මුලින්ම ලියවෙන්නේ අටදහසයි.",
+        "ඊටපස්සේ හයසියයයි, දහයයි, තුනයි එකතු වෙනවා."
+      ],
+      "boardAtStart": "card \"8 613\"",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "chalkText",
+          "event": "write",
+          "args": {
+            "text": "8 613 = 8000 + 600 + 10 + 3",
+            "append": "= 8000 + 600 + 10 + 3"
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "number": 8000
+            }
+          }
+        },
+        {
+          "sentenceIndex": 1,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "number": 600
+            }
+          }
+        }
+      ],
+      "child": null,
+      "sees": "Chalk \"8 613 = 8000 + 600 + 10 + 3\"; \"= 8000 + 600 + 10 + 3\" is written on, making \"8 613 = 8000 + 600 + 10 + 3\"."
+    },
+    {
+      "id": "authored:placeValue4Digit:94",
+      "concept": "placeValue4Digit",
+      "type": "SOFT_CHECK",
+      "pause": "SOFT_CHECK",
+      "line": "අපි කලින් ගත්තු හත්දහස් හැට දෙක දිහා ආයෙත් බලමු. බිංදුවක් ආවොත් එතැනින් කිසිම අගයක් එකතු වෙන්නේ නෑ නේද පුතේ?",
+      "sentences": [
+        "අපි කලින් ගත්තු හත්දහස් හැට දෙක දිහා ආයෙත් බලමු.",
+        "බිංදුවක් ආවොත් එතැනින් කිසිම අගයක් එකතු වෙන්නේ නෑ නේද පුතේ?"
+      ],
+      "boardAtStart": "chalk \"8 613 = 8000 + 600 + 10 + 3\"",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "abacus",
+          "event": "show",
+          "args": {
+            "digits": [
+              7,
+              0,
+              6,
+              2
+            ],
+            "startEmpty": false,
+            "animate": false
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "number": 7062
+            }
+          }
+        }
+      ],
+      "child": {
+        "kind": "soft check",
+        "via": "mic open 5s; any reply acknowledged after 1.2s of quiet; silence flows on"
+      },
+      "sees": "The abacus showing 7 062; the abacus shows 7 062 — the mic opens briefly."
+    },
+    {
+      "id": "authored:placeValue4Digit:95",
+      "concept": "placeValue4Digit",
+      "type": "TRANSITION",
+      "pause": null,
+      "line": "දැන් පුතේ තනියම පුහුණු වෙන්න වෙලාව හරි.",
+      "sentences": [
+        "දැන් පුතේ තනියම පුහුණු වෙන්න වෙලාව හරි."
+      ],
+      "boardAtStart": "the abacus showing 7 062",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "titleCard",
+          "event": "show",
+          "args": {
+            "title": "තනිව විසඳමු"
+          }
+        }
+      ],
+      "child": null,
+      "sees": "Title card \"තනිව විසඳමු\"; title \"තනිව විසඳමු\"."
+    },
+    {
+      "id": "authored:placeValue4Digit:96",
+      "concept": "placeValue4Digit",
+      "type": "SHOW_BOARD",
+      "pause": null,
+      "line": "මෙන්න ඔයාට විශේෂ අභ්‍යාස පත්‍රිකාවක් තිරයේ පෙනෙනවා.",
+      "sentences": [
+        "මෙන්න ඔයාට විශේෂ අභ්‍යාස පත්‍රිකාවක් තිරයේ පෙනෙනවා."
+      ],
+      "boardAtStart": "title card \"තනිව විසඳමු\"",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "expansion",
+          "event": "show",
+          "args": {
+            "number": 5421,
+            "parts": [
+              null,
+              null,
+              null,
+              null
+            ]
+          }
+        }
+      ],
+      "child": null,
+      "sees": "5 421 = ▢ + ▢ + ▢ + ▢; 5 421 = ▢ + ▢ + ▢ + ▢."
+    },
+    {
+      "id": "authored:placeValue4Digit:97",
+      "concept": "placeValue4Digit",
+      "type": "EXPLAIN",
+      "pause": null,
+      "line": "පළමුවැනි ගාණ විදිහට පන්දහස් හාරසිය විසි එක සංඛ්‍යාව දිගහැරලා ලියමු.",
+      "sentences": [
+        "පළමුවැනි ගාණ විදිහට පන්දහස් හාරසිය විසි එක සංඛ්‍යාව දිගහැරලා ලියමු."
+      ],
+      "boardAtStart": "5 421 = ▢ + ▢ + ▢ + ▢",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "number": 5421
+            }
+          }
+        }
+      ],
+      "child": null,
+      "sees": "5 421 = ▢ + ▢ + ▢ + ▢."
+    },
+    {
+      "id": "authored:placeValue4Digit:98",
+      "concept": "placeValue4Digit",
+      "type": "ASK",
+      "pause": "ASK",
+      "line": "මේකෙ දහසස්ථානයේ තියෙන ඉලක්කම මොකක්ද පුතේ?",
+      "sentences": [
+        "මේකෙ දහසස්ථානයේ තියෙන ඉලක්කම මොකක්ද පුතේ?"
+      ],
+      "boardAtStart": "5 421 = ▢ + ▢ + ▢ + ▢",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "part": 0
+            }
+          }
+        }
+      ],
+      "child": {
+        "kind": "answer",
+        "via": "number pad or voice",
+        "expects": "5"
+      },
+      "sees": "5 421 = ▢ + ▢ + ▢ + ▢ — they answer via number pad or voice."
+    },
+    {
+      "id": "authored:placeValue4Digit:99",
+      "concept": "placeValue4Digit",
+      "type": "EXPLAIN",
+      "pause": null,
+      "line": "දහසස්ථානයේ ඉන්නේ පහ නේද.",
+      "sentences": [
+        "දහසස්ථානයේ ඉන්නේ පහ නේද."
+      ],
+      "boardAtStart": "5 421 = ▢ + ▢ + ▢ + ▢",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "part": -1
+            }
+          }
+        }
+      ],
+      "child": null,
+      "sees": "5 421 = ▢ + ▢ + ▢ + ▢."
+    },
+    {
+      "id": "authored:placeValue4Digit:100",
+      "concept": "placeValue4Digit",
+      "type": "SOFT_CHECK",
+      "pause": "SOFT_CHECK",
+      "line": "එහෙනම් ඒ පහ නිසා ලැබෙන අගය කීයද?",
+      "sentences": [
+        "එහෙනම් ඒ පහ නිසා ලැබෙන අගය කීයද?"
+      ],
+      "boardAtStart": "5 421 = ▢ + ▢ + ▢ + ▢",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "part": -1
+            }
+          }
+        }
+      ],
+      "child": {
+        "kind": "soft check",
+        "via": "mic open 5s; any reply acknowledged after 1.2s of quiet; silence flows on"
+      },
+      "sees": "5 421 = ▢ + ▢ + ▢ + ▢ — the mic opens briefly."
+    },
+    {
+      "id": "authored:placeValue4Digit:101",
+      "concept": "placeValue4Digit",
+      "type": "EXPLAIN",
+      "pause": null,
+      "line": "ඒක පන්දහසයි.",
+      "sentences": [
+        "ඒක පන්දහසයි."
+      ],
+      "boardAtStart": "5 421 = ▢ + ▢ + ▢ + ▢",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "expansion",
+          "event": "part_reveal",
+          "args": {
+            "index": 0,
+            "value": "5000"
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "part": 0
+            }
+          }
+        }
+      ],
+      "child": null,
+      "sees": "5 421 = 5000 + ▢ + ▢ + ▢; 5000 is written into slot 0."
+    },
+    {
+      "id": "authored:placeValue4Digit:102",
+      "concept": "placeValue4Digit",
+      "type": "SHOW_BOARD",
+      "pause": null,
+      "line": "දැන් මේ වගුවේ තියෙන කොටස් අපි එකට පුරවමු.",
+      "sentences": [
+        "දැන් මේ වගුවේ තියෙන කොටස් අපි එකට පුරවමු."
+      ],
+      "boardAtStart": "5 421 = 5000 + ▢ + ▢ + ▢",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "blankTable",
+          "event": "show",
+          "args": {
+            "item": "7b58e436"
+          }
+        }
+      ],
+      "child": null,
+      "sees": "The place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003; the place-value table."
+    },
+    {
+      "id": "authored:placeValue4Digit:103",
+      "concept": "placeValue4Digit",
+      "type": "ASK",
+      "pause": "ASK",
+      "line": "හයදහස් පන්සිය හැත්තෑ දෙක කියන සංඛ්‍යාවේ හයෙන් පෙන්වන අගය කීයද?",
+      "sentences": [
+        "හයදහස් පන්සිය හැත්තෑ දෙක කියන සංඛ්‍යාවේ හයෙන් පෙන්වන අගය කීයද?"
+      ],
+      "boardAtStart": "the place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "blankTable",
+          "event": "row_activate",
+          "args": {
+            "row": 1,
+            "field": "valueRepresented"
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "number": 6572
+            }
+          }
+        }
+      ],
+      "child": {
+        "kind": "answer",
+        "via": "the number pad into the active cell, or say it",
+        "expects": "6000"
+      },
+      "sees": "The place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003; row 1's valueRepresented cell is outlined — they answer via the number pad into the active cell, or say it."
+    },
+    {
+      "id": "authored:placeValue4Digit:104",
+      "concept": "placeValue4Digit",
+      "type": "EXPLAIN",
+      "pause": null,
+      "line": "ඒක හයදහසයි. ඒ හය තියෙන්නේ දහසස්ථානයේ.",
+      "sentences": [
+        "ඒක හයදහසයි.",
+        "ඒ හය තියෙන්නේ දහසස්ථානයේ."
+      ],
+      "boardAtStart": "the place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "number": 6000
+            }
+          }
+        },
+        {
+          "sentenceIndex": 1,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "number": 6
+            }
+          }
+        }
+      ],
+      "child": null,
+      "sees": "The place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003."
+    },
+    {
+      "id": "authored:placeValue4Digit:105",
+      "concept": "placeValue4Digit",
+      "type": "ASK",
+      "pause": "ASK",
+      "line": "එහෙනම් පන්දහස් විසි හතර කියන සංඛ්‍යාවේ හතරෙන් පෙන්වන අගය කීයද?",
+      "sentences": [
+        "එහෙනම් පන්දහස් විසි හතර කියන සංඛ්‍යාවේ හතරෙන් පෙන්වන අගය කීයද?"
+      ],
+      "boardAtStart": "the place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "blankTable",
+          "event": "row_activate",
+          "args": {
+            "row": 2,
+            "field": "valueRepresented"
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "number": 5024
+            }
+          }
+        }
+      ],
+      "child": {
+        "kind": "answer",
+        "via": "the number pad into the active cell, or say it",
+        "expects": "4"
+      },
+      "sees": "The place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003; row 2's valueRepresented cell is outlined — they answer via the number pad into the active cell, or say it."
+    },
+    {
+      "id": "authored:placeValue4Digit:106",
+      "concept": "placeValue4Digit",
+      "type": "EXPLAIN",
+      "pause": null,
+      "line": "ඒක හතරයි. හතර තියෙන්නේ එකස්ථානයේ.",
+      "sentences": [
+        "ඒක හතරයි.",
+        "හතර තියෙන්නේ එකස්ථානයේ."
+      ],
+      "boardAtStart": "the place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "number": 4
+            }
+          }
+        },
+        {
+          "sentenceIndex": 1,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "number": 4
+            }
+          }
+        }
+      ],
+      "child": null,
+      "sees": "The place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003."
+    },
+    {
+      "id": "authored:placeValue4Digit:107",
+      "concept": "placeValue4Digit",
+      "type": "ASK",
+      "pause": "ASK",
+      "line": "අටදහස් හත්සියය කියන සංඛ්‍යාවේ හත්සියය අගය දෙන්නේ මොන ඉලක්කමද?",
+      "sentences": [
+        "අටදහස් හත්සියය කියන සංඛ්‍යාවේ හත්සියය අගය දෙන්නේ මොන ඉලක්කමද?"
+      ],
+      "boardAtStart": "the place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "blankTable",
+          "event": "row_activate",
+          "args": {
+            "row": 3,
+            "field": "digit"
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "number": 8700
+            }
+          }
+        }
+      ],
+      "child": {
+        "kind": "answer",
+        "via": "the number pad into the active cell, or say it",
+        "expects": "7"
+      },
+      "sees": "The place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003; row 3's digit cell is outlined — they answer via the number pad into the active cell, or say it."
+    },
+    {
+      "id": "authored:placeValue4Digit:108",
+      "concept": "placeValue4Digit",
+      "type": "EXPLAIN",
+      "pause": null,
+      "line": "ඒක හතයි. හත තියෙන්නේ සියයස්ථානයේ.",
+      "sentences": [
+        "ඒක හතයි.",
+        "හත තියෙන්නේ සියයස්ථානයේ."
+      ],
+      "boardAtStart": "the place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "number": 7
+            }
+          }
+        },
+        {
+          "sentenceIndex": 1,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "number": 7
+            }
+          }
+        }
+      ],
+      "child": null,
+      "sees": "The place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003."
+    },
+    {
+      "id": "authored:placeValue4Digit:109",
+      "concept": "placeValue4Digit",
+      "type": "EXPLAIN",
+      "pause": null,
+      "line": "අද ඔයා හොඳට වැඩ කළා. ස්ථානීය අගය මොකක්ද කියලා දැන් ඔයා දන්නවා.",
+      "sentences": [
+        "අද ඔයා හොඳට වැඩ කළා.",
+        "ස්ථානීය අගය මොකක්ද කියලා දැන් ඔයා දන්නවා."
+      ],
+      "boardAtStart": "the place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003",
+      "events": [
+        {
+          "sentenceIndex": 1,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "text": "ස්ථානීය අගය"
+            }
+          }
+        }
+      ],
+      "child": null,
+      "sees": "The place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003."
+    }
+  ]
+}

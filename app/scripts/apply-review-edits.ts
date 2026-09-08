@@ -115,6 +115,8 @@ interface CorrectionsFile {
   restoredPrompt: { insert: InsertedBeat[] };
   /** Round 7: board continuity, the read-back, the 1364 redundancy, the early answer. */
   visualContinuity: { rewrite: Record<string, BeatRewrite & { remove?: boolean }>; insert: InsertedBeat[] };
+  /** Storyboard round: the accepted script notes from docs/storyboard/script-notes.md. */
+  storyboard: { rewrite: Record<string, BeatRewrite> };
 }
 
 interface DecisionsFile {
@@ -342,6 +344,7 @@ async function main(): Promise<void> {
     ...Object.keys(corrections.conversationalRuns.rewrite).filter((id) => id.startsWith("authored:")),
     ...Object.keys(corrections.ending.rewrite).filter((id) => id.startsWith("authored:")),
     ...Object.keys(corrections.visualContinuity.rewrite).filter((id) => id.startsWith("authored:")),
+    ...Object.keys(corrections.storyboard.rewrite).filter((id) => id.startsWith("authored:")),
   ]);
 
   const apply = (id: string, sourceText: string, source: string): void => {
@@ -641,6 +644,12 @@ async function main(): Promise<void> {
     applyRewrite(id, rewrite, "visual continuity");
   }
   for (const addition of corrections.visualContinuity.insert) insertBeat(addition, "visual continuity");
+
+  // ---- STORYBOARD ROUND: the accepted script notes ------------------------
+  for (const [id, rewrite] of Object.entries(corrections.storyboard.rewrite)) {
+    if (!id.startsWith("authored:")) continue;
+    applyRewrite(id, rewrite, "storyboard note");
+  }
 
   heading("3. STRUCTURAL FLOW (round 4)");
   for (const change of structural) {

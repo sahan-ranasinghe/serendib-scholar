@@ -20,15 +20,13 @@
  *
  * Screenshots land in .portal-check/ for eyeballing.
  */
-import { spawn, type ChildProcess } from "node:child_process";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
-import WebSocket from "ws";
+import { connect, evaluate, launch, openPage, type Cdp } from "./lib/cdp";
 
 const BASE = process.argv[2] ?? "http://localhost:3000";
 const PASSWORD = process.argv[3] ?? process.env.PORTAL_PASSWORD ?? "";
 const OUT_DIR = path.join(process.cwd(), ".portal-check");
-const CHROME = ["/snap/bin/chromium", "/usr/bin/chromium-browser", "/usr/bin/chromium", "/usr/bin/google-chrome"];
 
 interface Measured {
   ratio: number;
@@ -41,102 +39,13 @@ interface Measured {
 /** `_listOpen` is bookkeeping; every other key is a measured element. */
 type ContrastProbe = { _listOpen?: boolean } & Record<string, Measured | boolean | undefined>;
 
-interface Cdp {
-  /** sessionId is a TOP-LEVEL field of a CDP message, never a member of params. */
-  send: (method: string, params?: Record<string, unknown>, sessionId?: string) => Promise<Record<string, unknown>>;
-  on: (method: string, handler: (params: Record<string, unknown>) => void) => void;
-  close: () => void;
-}
-
-async function launch(): Promise<{ browser: ChildProcess; wsUrl: string }> {
-  const binary = CHROME.find(Boolean)!;
-  const port = 9222 + Math.floor(Math.random() * 500);
-  const browser = spawn(binary, [
-    "--headless=new",
-    `--remote-debugging-port=${port}`,
-    "--no-sandbox",
-    "--disable-gpu",
-    "--hide-scrollbars",
-    "--use-fake-ui-for-media-stream",
-    "--use-fake-device-for-media-stream",
-    "about:blank",
-  ]);
-  browser.on("error", (error) => console.error(`[portal-check] chromium: ${error.message}`));
-
-  for (let attempt = 0; attempt < 60; attempt += 1) {
-    await new Promise((resolve) => setTimeout(resolve, 250));
-    try {
-      const response = await fetch(`http://127.0.0.1:${port}/json/version`);
-      const info = (await response.json()) as { webSocketDebuggerUrl: string };
-      if (info.webSocketDebuggerUrl) return { browser, wsUrl: info.webSocketDebuggerUrl };
-    } catch {
-      /* not up yet */
-    }
-  }
-  throw new Error("Chromium did not expose a debugging port.");
-}
-
-async function connect(wsUrl: string): Promise<Cdp> {
-  const socket = new WebSocket(wsUrl, { maxPayload: 256 * 1024 * 1024 });
-  await new Promise<void>((resolve, reject) => {
-    socket.once("open", () => resolve());
-    socket.once("error", reject);
-  });
-  let nextId = 1;
-  const pending = new Map<number, (value: Record<string, unknown>) => void>();
-  const handlers = new Map<string, Array<(params: Record<string, unknown>) => void>>();
-  socket.on("message", (data) => {
-    const message = JSON.parse(String(data)) as { id?: number; method?: string; result?: unknown; params?: unknown; error?: unknown };
-    if (message.id && pending.has(message.id)) {
-      if (message.error) {
-        console.error(`[portal-check] CDP error: ${JSON.stringify(message.error).slice(0, 160)}`);
-      }
-      pending.get(message.id)!((message.result ?? {}) as Record<string, unknown>);
-      pending.delete(message.id);
-    } else if (message.method) {
-      for (const handler of handlers.get(message.method) ?? []) handler((message.params ?? {}) as Record<string, unknown>);
-    }
-  });
-  return {
-    send: (method, params = {}, sessionId) =>
-      new Promise((resolve) => {
-        const id = nextId++;
-        pending.set(id, resolve);
-        socket.send(JSON.stringify(sessionId ? { id, method, params, sessionId } : { id, method, params }));
-      }),
-    on: (method, handler) => {
-      handlers.set(method, [...(handlers.get(method) ?? []), handler]);
-    },
-    close: () => socket.close(),
-  };
-}
-
-async function evaluate<T>(page: Cdp, expression: string): Promise<T> {
-  const result = (await page.send("Runtime.evaluate", {
-    expression,
-    awaitPromise: true,
-    returnByValue: true,
-  })) as { result?: { value?: T }; exceptionDetails?: { text?: string } };
-  if (result.exceptionDetails) throw new Error(`evaluate failed: ${result.exceptionDetails.text}`);
-  return result.result?.value as T;
-}
-
 async function main(): Promise<void> {
   await mkdir(OUT_DIR, { recursive: true });
-  const { browser, wsUrl } = await launch();
-  const root = await connect(wsUrl);
-
-  const target = (await root.send("Target.createTarget", { url: "about:blank" })) as { targetId: string };
-  const session = (await root.send("Target.attachToTarget", { targetId: target.targetId, flatten: true })) as {
-    sessionId: string;
-  };
-  // Flat sessions still multiplex over one socket; wrap so every call
-  // carries the sessionId.
-  const page: Cdp = {
-    send: (method, params = {}) => root.send(method, params, session.sessionId),
-    on: root.on,
-    close: root.close,
-  };
+  const { browser, wsUrl } = await launch("portal-check");
+  const root = await connect(wsUrl, "portal-check");
+  // Flat sessions still multiplex over one socket; openPage wraps so every
+  // call carries the sessionId.
+  const page: Cdp = await openPage(root);
 
   const consoleLines: string[] = [];
   page.on("Runtime.consoleAPICalled", (params) => {
