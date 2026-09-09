@@ -31,6 +31,8 @@ export interface ZaraCharacterProps {
   amplitude: number;
   /** Which side of the board the pointer is on — the pointing arm mirrors it. */
   side?: "left" | "right" | null;
+  /** The head only, cropped for a small round portrait. */
+  portrait?: boolean;
 }
 
 /** amplitude → one of three mouth shapes; the mouth moves whenever she is audible. */
@@ -49,7 +51,7 @@ const MOUTH: Record<"closed" | "mid" | "open", string> = {
 
 const TRANSITION = "transform 280ms cubic-bezier(0.3, 0.9, 0.3, 1.05)";
 
-export default function ZaraCharacter({ state, amplitude, side = null }: ZaraCharacterProps) {
+export default function ZaraCharacter({ state, amplitude, side = null, portrait = false }: ZaraCharacterProps) {
   const mouth = mouthShapeFor(state, amplitude);
   const pointing = state === "pointing";
   // The board is to her right (the viewer's right). Pointer on the board's
@@ -67,7 +69,7 @@ export default function ZaraCharacter({ state, amplitude, side = null }: ZaraCha
 
   return (
     <div className={`zara-root zara-${state}`} style={{ width: "100%", height: "100%" }} data-state={state} data-side={side ?? undefined}>
-      <svg viewBox="0 0 200 230" className="zara-svg" role="img" aria-label="Zara, your tutor">
+      <svg viewBox={portrait ? "40 24 120 120" : "0 0 200 230"} preserveAspectRatio={portrait ? "xMidYMid slice" : "xMidYMid meet"} className="zara-svg" role="img" aria-label="Zara, your tutor">
         <g className="zara-bounce-layer">
           <g className="zara-breathe">
             {/* ---- body & saree --------------------------------------- */}
@@ -178,7 +180,7 @@ export default function ZaraCharacter({ state, amplitude, side = null }: ZaraCha
         .zara-celebrate .zara-bounce-layer { animation: zara-bounce 0.6s cubic-bezier(0.28, 1.6, 0.5, 1) 2; }
         @keyframes zara-bounce { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-14px); } }
         @media (prefers-reduced-motion: reduce) {
-          .zara-breathe, .zara-talk, .zara-bounce-layer { animation: none !important; }
+          .zara-breathe, .zara-talk, .zara-bounce-layer, .zara-blink { animation: none !important; }
         }
       `}</style>
     </div>

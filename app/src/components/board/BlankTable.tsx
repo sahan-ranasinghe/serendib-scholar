@@ -44,9 +44,11 @@ export interface BlankTableProps {
   onAnswer?: (row: number, field: string, value: string) => void;
   /** Float the answer pad at the board's edge (the lesson's small board). */
   dockPad?: boolean;
+  /** A short surface (a phone held sideways): rows the child cannot tap shrink to 30 px, the header to one tight line. */
+  dense?: boolean;
 }
 
-export function BlankTable({ columns, rows, filled = [], activeBlank = null, interactive = false, onAnswer, dockPad = false }: BlankTableProps) {
+export function BlankTable({ columns, rows, filled = [], activeBlank = null, interactive = false, onAnswer, dockPad = false, dense = false }: BlankTableProps) {
   const ref = useTargetRef("component:blankTable");
   const [tapped, setTapped] = useState<{ row: number; field: string } | null>(null);
   const active = tapped ?? activeBlank;
@@ -70,8 +72,8 @@ export function BlankTable({ columns, rows, filled = [], activeBlank = null, int
                   key={column.key}
                   className="font-sinhala"
                   style={{
-                    padding: "6px 12px",
-                    fontSize: 15,
+                    padding: dense ? "1px 8px" : "3px 10px",
+                    fontSize: 16,
                     fontWeight: 700,
                     color: BOARD.ink,
                     borderBottom: `3px solid ${BOARD.markerBlue}`,
@@ -93,6 +95,10 @@ export function BlankTable({ columns, rows, filled = [], activeBlank = null, int
                 transition={{ duration: 0.2, delay: Math.min(rowIndex * 0.08, 0.32) }}
               >
                 {columns.map((column, columnIndex) => {
+                  // Only a row with a blank the child can tap needs the 48 px
+                  // touch height; the others stay compact so six rows fit a
+                  // phone held sideways.
+                  const rowTouchable = interactive && columns.some((c) => (row[c.key] === null || row[c.key] === undefined) && !filled.some((f) => f.row === rowIndex && f.field === c.key));
                   const fill = filled.find((f) => f.row === rowIndex && f.field === column.key);
                   const printed = row[column.key];
                   const isBlank = printed === null || printed === undefined;
@@ -108,6 +114,8 @@ export function BlankTable({ columns, rows, filled = [], activeBlank = null, int
                       last={columnIndex === columns.length - 1}
                       lastRow={rowIndex === rows.length - 1}
                       interactive={interactive && isBlank && !fill}
+                      compact={!rowTouchable}
+                      dense={dense && !rowTouchable}
                       onTap={() => setTapped((t) => (t?.row === rowIndex && t.field === column.key ? null : { row: rowIndex, field: column.key }))}
                     />
                   );
@@ -145,6 +153,8 @@ function Cell({
   last,
   lastRow,
   interactive,
+  compact,
+  dense,
   onTap,
 }: {
   row: number;
@@ -155,6 +165,8 @@ function Cell({
   last: boolean;
   lastRow: boolean;
   interactive: boolean;
+  compact: boolean;
+  dense: boolean;
   onTap: () => void;
 }) {
   const ref = useTargetRef<HTMLTableCellElement>(`cell:${row}/${field}`);
@@ -173,9 +185,9 @@ function Cell({
       transition={{ duration: 0.25 }}
       style={{
         minWidth: TOUCH_MIN + 16,
-        minHeight: TOUCH_MIN,
-        height: TOUCH_MIN,
-        padding: "4px 12px",
+        minHeight: dense ? 30 : compact ? 36 : TOUCH_MIN,
+        height: dense ? 30 : compact ? 36 : TOUCH_MIN,
+        padding: dense ? "1px 8px" : "2px 10px",
         textAlign: "center",
         borderRight: last ? undefined : `2.5px solid ${BOARD.markerBlue}`,
         borderBottom: lastRow ? undefined : `2px solid rgba(30,76,153,0.55)`,
@@ -186,18 +198,18 @@ function Cell({
       {value === null ? null : fill ? (
         <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
           {isHandWritable(value) ? (
-            <HandNumber key={value} text={formatNumber(value)} size={26} color={colour} budgetMs={300} />
+            <HandNumber key={value} text={formatNumber(value)} size={dense ? 20 : compact ? 22 : 26} color={colour} budgetMs={300} />
           ) : (
-            <WriteOn text={value} size={20} color={colour} durationMs={300} />
+            <WriteOn text={value} size={compact ? 17 : 19} color={colour} durationMs={300} />
           )}
           <span aria-hidden style={{ color: colour, fontSize: 15 }}>
             {fill.by === "child" ? "✓" : "✎"}
           </span>
         </span>
       ) : isHandWritable(value) ? (
-        <HandNumber text={formatNumber(value)} size={26} color={BOARD.ink} draw={false} strokeWidth={4.2} />
+        <HandNumber text={formatNumber(value)} size={dense ? 20 : compact ? 22 : 26} color={BOARD.ink} draw={false} strokeWidth={4.2} />
       ) : (
-        <WriteOn text={value} size={18} color={BOARD.ink} weight={600} write={false} />
+        <WriteOn text={value} size={compact ? 16 : 18} color={BOARD.ink} weight={600} write={false} />
       )}
     </motion.td>
   );

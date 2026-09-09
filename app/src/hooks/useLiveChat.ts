@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from "react";
 import { GeminiLiveClient, type FunctionCall } from "@/lib/geminiLiveClient";
 import { startPcmRecorder, type PcmPlayer, type PcmRecorderHandle } from "@/lib/pcmAudio";
+import type { ChatContext } from "@/lib/chatContext";
 
 /**
  * LIVE, ONLY WHEN THE CHILD ASKS FOR IT.
@@ -38,7 +39,15 @@ export interface LiveChatHandle {
    * Opens a chat and RESOLVES WHEN IT ENDS, so the lesson can simply
    * `await` it. `opener` is spoken by the model as its first turn.
    */
-  runChat: (options: { stream: MediaStream; player: PcmPlayer; opener?: string }) => Promise<void>;
+  runChat: (options: {
+    stream: MediaStream;
+    player: PcmPlayer;
+    opener?: string;
+    /** Where the child is — minted into the session's system prompt. */
+    context?: ChatContext;
+    /** The chat's read-only board tools (point_at, highlight_board). */
+    onBoardTool?: (name: string, args: Record<string, unknown>) => void;
+  }) => Promise<void>;
   /** Ends the chat now (the button, or the lesson stopping). */
   endChat: () => void;
 }
@@ -56,7 +65,19 @@ export function useLiveChat(): LiveChatHandle {
   }, []);
 
   const runChat = useCallback(
-    ({ stream, player, opener }: { stream: MediaStream; player: PcmPlayer; opener?: string }) =>
+    ({
+      stream,
+      player,
+      opener,
+      context,
+      onBoardTool,
+    }: {
+      stream: MediaStream;
+      player: PcmPlayer;
+      opener?: string;
+      context?: ChatContext;
+      onBoardTool?: (name: string, args: Record<string, unknown>) => void;
+    }) =>
       new Promise<void>((resolve) => {
         const connectedAt = Date.now();
         let finished = false;
@@ -84,7 +105,11 @@ export function useLiveChat(): LiveChatHandle {
 
         void (async () => {
           try {
-            const response = await fetch("/api/gemini-session", { method: "POST" });
+            const response = await fetch("/api/gemini-session", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ context: context ?? null }),
+            });
             if (!response.ok) throw new Error("could not start a chat session");
             const { token, model } = await response.json();
 
@@ -98,8 +123,10 @@ export function useLiveChat(): LiveChatHandle {
                 });
                 client.sendTextInput(
                   opener ??
-                    "The child has opened a free chat with you. Say one short, warm Sinhala sentence inviting " +
-                      "them to tell you anything, then listen.",
+                    (context
+                      ? "The child has raised their hand during the lesson. In ONE short Sinhala sentence, acknowledge where they are (name the thing on the board) and ask what their doubt is, then listen."
+                      : "The child has opened a free chat with you. Say one short, warm Sinhala sentence inviting " +
+                        "them to tell you anything, then listen."),
                 );
               },
               onAudioChunk: (chunk) => {
@@ -111,6 +138,12 @@ export function useLiveChat(): LiveChatHandle {
               onToolCall: async (calls: FunctionCall[]) => {
                 const responses = await Promise.all(
                   calls.map(async (call) => {
+                    // The board tools are answered on the client: they move
+                    // the pointer or draw a ring on the lesson's own board.
+                    if (call.name === "point_at" || call.name === "highlight_board") {
+                      onBoardTool?.(call.name, (call.args ?? {}) as Record<string, unknown>);
+                      return { id: call.id, name: call.name, response: { ok: true } };
+                    }
                     const endpoint = call.name ? TOOL_ENDPOINTS[call.name] : undefined;
                     if (!endpoint) return { id: call.id, name: call.name, response: { ok: false } };
                     try {

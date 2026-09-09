@@ -29,6 +29,11 @@ import {
   type StoryboardEvent,
 } from "@/lib/choreography";
 import { AUTHORED_LINES } from "@/lib/authoredLines";
+import { confirmValueFor, CONFIRM_LIMIT } from "@/lib/confirmPolicy";
+import { judgePhrase } from "@/lib/phraseJudge";
+import { renderNumberMarkers } from "@/lib/sinhalaNumber";
+import { parseTargetKey } from "@/lib/choreography";
+import { serializeStage, type ChatAnswer, type ChatContext } from "@/lib/chatContext";
 import type { Target } from "@/components/board/events";
 import type { YourTurn } from "@/components/board/BoardStage";
 import type { ConceptStop } from "@/components/ProgressStrip";
@@ -71,6 +76,7 @@ import {
   classifyConfirmation,
   fetchRecapBeats,
   fetchResumePoint,
+  judgeWithRubric,
   logBeat,
   looksLikeAnswerAttempt,
   recordAnswer as recordMastery,
@@ -209,6 +215,21 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
   /** Where the child's answer lives on the board, for the feedback burst. */
   const answerTargetRef = useRef<Target | null>(null);
   const sessionStartedAtRef = useRef(0);
+  /** The retry ladder: misses per question (never a fourth ask). */
+  const missesRef = useRef(new Map<string, number>());
+  /** Doubtful hearings confirmed per question (never a third "say it again"). */
+  const confirmsRef = useRef(new Map<string, number>());
+  /** The last lines she said and the child's last answers — the ✋ chat's context. */
+  const recentLinesRef = useRef<string[]>([]);
+  const recentAnswersRef = useRef<ChatAnswer[]>([]);
+  /** A caption forced up because the line had no clip. */
+  const [noClipCaption, setNoClipCaption] = useState<string | null>(null);
+  /** A brief on-screen hint (a tap while she talks, a rotation). */
+  const [hint, setHint] = useState<string | null>(null);
+  const hintTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Automatic holds (portrait, backgrounded) alongside the parent's ⏸. */
+  const holdsRef = useRef(new Set<string>());
+  const manualPauseRef = useRef(false);
 
   const chat = useLiveChat();
 
@@ -270,6 +291,13 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
     const active = activeChoreoRef.current;
     w.__choreo = active ? { beatId: active.beat.id, fired: active.fired, sentences: active.beat.sentences.length } : null;
     w.__choreoLog = choreoLogRef.current;
+  };
+
+  /** A short hint the screen shows for a moment — never a modal, never a block. */
+  const showHint = (text: string, ms = 1800) => {
+    setHint(text);
+    if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
+    hintTimerRef.current = setTimeout(() => setHint(null), ms);
   };
 
   const setStage = (next: StageState) => {
@@ -538,6 +566,9 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
         const durationMs = spans.list[spans.list.length - 1]?.endMs ?? 0;
         logEvent(`no clip for ${beat.id.slice(0, 40)} — choreography on estimated spans (${durationMs}ms)`);
         setCaption(text ?? "");
+        // Visible, not silent: the line she cannot say is read on the board.
+        setNoClipCaption(text ?? null);
+        if (text) recentLinesRef.current.push(text);
         clipStartRef.current = player.getPlaybackDebug().currentTime;
         fireSentence(silent, 0, spans, durationMs);
         for (let index = 1; index < spans.list.length; index += 1) {
@@ -545,10 +576,18 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
           setTimeout(() => fireSentence(silent, index, spans, durationMs), at);
         }
         await wait(durationMs + MIC_TAIL_MS);
+        setNoClipCaption(null);
+      } else {
+        // A beat written at runtime (RETEACH) with no line to show: the
+        // trace says so, and what follows (the demo, the re-ask) carries on.
+        logEvent(`no clip for ${beat.id.slice(0, 40)} (${beat.type}) — nothing to say or show, moving on`);
       }
       return;
     }
     setCaption(clip.text);
+    setNoClipCaption(null);
+    recentLinesRef.current.push(clip.text);
+    if (recentLinesRef.current.length > 6) recentLinesRef.current.shift();
     beatAudioMsRef.current += clip.meta.durationMs;
     metricsRef.current.cachedSeconds += clip.meta.durationMs / 1000;
     // The choreography: this beat's storyboard events, on the clip's own
@@ -586,9 +625,11 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
     beat: Beat,
     onsetTimeoutMs: number,
     options: { transcribe?: boolean; silenceMs?: number } = {},
-  ): Promise<{ transcript: string; number: string | null } | null> => {
+  ): Promise<{ transcript: string; number: string | null; confidence: number | null } | null> => {
     const stream = streamRef.current;
     if (!stream || stoppedRef.current) return null;
+    const missesSoFar = missesRef.current.get(beat.id) ?? 0;
+    const confirmsSoFar = confirmsRef.current.get(beat.id) ?? 0;
 
     setRuntimeStatus("listening");
     // Parent mute means "don't listen to this child right now": no
@@ -616,11 +657,17 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
     const expectedDigits = (beat.expectedAnswer ?? "").replace(/\D/g, "");
     const touchable = surface !== null && (surface.surface !== "abacus" || (expectedDigits !== "" && expectedDigits !== surface.shownNumber));
     answerTargetRef.current = surface?.target ?? null;
+    // A phrase question after one miss: three tappable findings (the
+    // correct one shuffled in), so a child who knows but cannot phrase it
+    // is never stuck.
+    const rubricChoices = beat.rubric?.choices && missesSoFar >= 1 ? shuffleBy(beat.rubric.choices, beat.id) : undefined;
     setYourTurn({
       kind: beat.type === "SOFT_CHECK" ? "soft" : "ask",
       surface: surface?.surface ?? null,
       touchable,
-      choices: beat.answerChoices && beat.answerChoices.length >= 2 ? beat.answerChoices : undefined,
+      choices: rubricChoices ?? (beat.answerChoices && beat.answerChoices.length >= 2 ? beat.answerChoices : undefined),
+      // Two doubtful hearings: the pad opens by itself, no third "say it again".
+      padFirst: confirmsSoFar >= CONFIRM_LIMIT,
       // A number, a digit set, or a number NAME ("අසූ හතර") — the pad answers all three (see answersMatch).
       numeric: Boolean(
         beat.expectedAnswer &&
@@ -651,13 +698,14 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
     padAnswerRef.current = null;
     if (tapped) {
       logEvent(`answer (tapped) "${tapped}"`);
-      return { transcript: tapped, number: /^\d+$/.test(tapped) ? tapped : null };
+      // A tap is certain: it never needs a CONFIRM.
+      return { transcript: tapped, number: /^\d+$/.test(tapped) ? tapped : null, confidence: 1 };
     }
     if (!recording.spoke || stoppedRef.current) return null;
     // The child made a sound but their words aren't needed (see
     // TRANSCRIBE_SOFT_CHECKS) — answer them now rather than in five
     // seconds' time.
-    if (options.transcribe === false) return { transcript: "", number: null };
+    if (options.transcribe === false) return { transcript: "", number: null, confidence: null };
 
     setRuntimeStatus("thinking");
     metricsRef.current.flashAudioSeconds += recording.durationMs / 1000;
@@ -670,9 +718,10 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
       const heard = await response.json();
       const transcript = typeof heard?.transcript === "string" ? heard.transcript.trim() : "";
       const number = typeof heard?.number === "string" && heard.number ? heard.number : null;
-      logEvent(`heard "${(number ?? transcript).slice(0, 30)}" (${Math.round(recording.durationMs / 100) / 10}s)`);
+      const confidence = typeof heard?.confidence === "number" ? heard.confidence : null;
+      logEvent(`heard "${(number ?? transcript).slice(0, 30)}" (${Math.round(recording.durationMs / 100) / 10}s${confidence !== null ? `, conf ${confidence.toFixed(2)}` : ""})`);
       if (!transcript && !number) return null;
-      return { transcript: transcript || (number ?? ""), number };
+      return { transcript: transcript || (number ?? ""), number, confidence };
     } catch (err) {
       console.error("[useLessonRuntime] /api/hear failed:", err);
       return null;
@@ -970,35 +1019,35 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
         await finishBeatLog(beat, { understood: false, next: "advance", reason: "Not attempted (silence ladder)." });
         if (beat.expectedAnswer) void recordMastery(beat, false);
         advanceIfScripted(scripted, null);
-        const giveUp = buildGiveUpBeat(beat);
-        const answer = (beat.expectedAnswer ?? "").replace(/[\s,]/g, "");
-        const answerValue = /^\d+$/.test(answer) ? Number(answer) : NaN;
         // The demonstration: the answer on the board whatever it is, and
         // in her voice when its number words are recorded.
-        if (Number.isInteger(answerValue) && giveUp.board.kind !== "reveal_part") showNumberOnBoard(answerValue);
-        if (Number.isInteger(answerValue)) {
-          await deliverBeat(giveUp, { composed: { value: answerValue, frame: NUMBER_FRAMES.answer } });
-          await finishBeatLog(giveUp, null);
-        } else {
-          await runBeat(giveUp, false);
-        }
+        await revealAnswer(beat);
       }
       if (stoppedRef.current) return;
     }
   };
 
-  /** The planner path — unchanged from the live runtime, minus the socket. */
+  /**
+   * The judge, and the ladder after it.
+   *
+   * Every ASK gets at most three tries: miss 1 → the miss line and a
+   * retry; miss 2 → a RETEACH from a different angle and one more try;
+   * miss 3 → she states the answer with a one-line explanation (REVEAL)
+   * and the lesson moves on, the item logged as not mastered. Never a
+   * fourth ask. A CONFIRM echoes only what was heard (src/lib/confirmPolicy),
+   * and after two doubtful hearings the pad takes over.
+   */
   const judgeAnswer = async (
     beat: Beat,
     scripted: boolean,
-    heard: { transcript: string; number: string | null },
+    heard: { transcript: string; number: string | null; confidence: number | null },
   ): Promise<void> => {
     const script = scriptRef.current;
     if (!script) return;
     const said = heard.number ?? heard.transcript;
     childTranscriptRef.current = heard.transcript;
 
-    if (!looksLikeAnswerAttempt(beat, said)) {
+    if (!beat.rubric && !looksLikeAnswerAttempt(beat, said)) {
       // A tangent is not a wrong answer: acknowledge it, ask again.
       await finishBeatLog(beat, null);
       await runBeat(
@@ -1019,52 +1068,59 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
       return;
     }
 
-    // An answer that exactly matches what the item expects needs no
-    // interpretation: judge it here and let the child hear "නියමයි!" now.
-    // The planner exists for the answers that are ambiguous, partial or
-    // wrong — it costs a model round trip (~5s measured), and a child who
-    // got it right should not be made to wait for one.
-    let decision: PlannerDecision | null =
-      beat.expectedAnswer && answersMatch(beat.expectedAnswer, said)
-        ? { understood: true, next: "advance", reason: "Exact match with the expected answer." }
-        : null;
-    if (!decision) decision = await runPlanner(beat, said);
+    let decision: PlannerDecision;
+    if (beat.rubric) {
+      // A PHRASE answer: the rubric's tokens first, one model call only when
+      // nothing matched. The stage that decided goes into the log.
+      const verdict = await judgePhrase(heard.transcript || said, beat.rubric, judgeWithRubric);
+      decision = { understood: verdict.accepted, next: "advance", reason: `stage ${verdict.stage}: ${verdict.why}` };
+      logEvent(`phrase judged by stage ${verdict.stage}: ${verdict.accepted ? "accepted" : "not accepted"} — ${verdict.why.slice(0, 40)}`);
+    } else {
+      // An answer that exactly matches what the item expects needs no
+      // interpretation; the planner is for the ambiguous and the wrong.
+      const exact = beat.expectedAnswer && answersMatch(beat.expectedAnswer, said);
+      decision = exact ? { understood: true, next: "advance", reason: "Exact match with the expected answer." } : await runPlanner(beat, said);
 
-    // A doubtful number is never judged unheard: she reads it back first —
-    // on the board always, and in her own voice when the number-word clips
-    // exist for the heard value.
-    if (decision.ambiguousNumber && beat.expectedAnswer !== undefined) {
-      const confirmBeat = buildConfirmBeat(beat, decision.ambiguousNumber);
-      const heardValue = /^\d+$/.test(decision.ambiguousNumber) ? Number(decision.ambiguousNumber) : NaN;
-      if (Number.isInteger(heardValue)) showNumberOnBoard(heardValue);
-      await deliverBeat(
-        confirmBeat,
-        Number.isInteger(heardValue) ? { composed: { value: heardValue, frame: NUMBER_FRAMES.heard } } : {},
-      );
-      const reply = await listenForAnswer(confirmBeat, ASK_SILENCE_TIMEOUT_MS);
-      const outcome = resolveConfirmation(
-        beat,
-        decision.ambiguousNumber,
-        reply ? classifyConfirmation(reply.transcript) : "other",
-        answersMatch,
-      );
-      if (outcome.kind === "judged") {
-        decision = outcome.decision;
-      } else if (outcome.kind === "reask") {
-        await runBeat(beat, scripted);
-        return;
-      } else if (reply) {
-        decision = await runPlanner(beat, reply.number ?? reply.transcript);
+      // A doubtful hearing is read back before it is judged — what was
+      // HEARD, never the answer key, and never a third time.
+      const echo = confirmValueFor({
+        hearing: heard,
+        expected: beat.expectedAnswer,
+        plannerGuess: decision.ambiguousNumber,
+        confirmsSoFar: confirmsRef.current.get(beat.id) ?? 0,
+      });
+      if (echo && beat.expectedAnswer !== undefined && !exact) {
+        confirmsRef.current.set(beat.id, (confirmsRef.current.get(beat.id) ?? 0) + 1);
+        const confirmBeat = buildConfirmBeat(beat, echo);
+        const heardValue = /^\d+$/.test(echo) ? Number(echo) : NaN;
+        if (Number.isInteger(heardValue)) showNumberOnBoard(heardValue);
+        await deliverBeat(confirmBeat, Number.isInteger(heardValue) ? { composed: { value: heardValue, frame: NUMBER_FRAMES.heard } } : {});
+        const reply = await listenForAnswer(confirmBeat, ASK_SILENCE_TIMEOUT_MS);
+        const outcome = resolveConfirmation(beat, echo, reply ? classifyConfirmation(reply.transcript) : "other", answersMatch);
+        if (outcome.kind === "judged") {
+          decision = outcome.decision;
+        } else if (outcome.kind === "reask") {
+          await runBeat(beat, scripted);
+          return;
+        } else if (reply) {
+          decision = await runPlanner(beat, reply.number ?? reply.transcript);
+        }
       }
     }
 
     sessionStatsRef.current.asked += 1;
     noteMastery(beat.conceptTag, decision.understood);
+    recentAnswersRef.current.push({ question: beat.spokenText ?? beat.goal, answer: said, correct: decision.understood });
+    if (recentAnswersRef.current.length > 4) recentAnswersRef.current.shift();
     // Correct → the burst on the answered element and a celebration; wrong
     // → the gentle wobble and an encouraging nod. Never both. The praise
     // or miss clip follows as the FEEDBACK beat.
     fireFeedback(decision.understood ? "correct" : "wrong", answerTargetRef.current);
     setCharacterMood(decision.understood ? "celebrate" : "encourage");
+    if (beat.conceptTag !== FRAMING_CONCEPT) sessionStatsRef.current.concepts.add(beat.conceptTag);
+    void recordMastery(beat, decision.understood);
+    if (stageRef.current.base?.kind === "abacus" && said && !beat.rubric) dispatchStage({ primitive: "abacus", event: "child_answer_overlay", args: { text: said.slice(0, 24) } });
+
     if (decision.understood) {
       sessionStatsRef.current.correct += 1;
       setCelebrateNonce((n) => n + 1);
@@ -1074,37 +1130,117 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
         const digits = said.replace(/\D/g, "");
         if (digits) lastBuiltNumberRef.current = Number(digits);
       }
-    }
-    if (beat.conceptTag !== FRAMING_CONCEPT) sessionStatsRef.current.concepts.add(beat.conceptTag);
-    void recordMastery(beat, decision.understood);
-    if (boardContentRef.current?.type === "abacus" && said) {
-      const patched = { ...boardContentRef.current, childAnswer: said.slice(0, 24) };
-      boardContentRef.current = patched;
-      setBoardContent(patched);
-    }
-    if (stageRef.current.base?.kind === "abacus" && said) dispatchStage({ primitive: "abacus", event: "child_answer_overlay", args: { text: said.slice(0, 24) } });
-    await finishBeatLog(beat, decision);
-
-    if (!scripted) {
-      await runBeat(buildFeedbackBeat(beat, decision.understood, beat.expectedAnswer), false);
+      await finishBeatLog(beat, decision);
+      if (!scripted) {
+        await runBeat(buildFeedbackBeat(beat, true, beat.expectedAnswer), false);
+        setCharacterMood("none");
+        return;
+      }
+      const before = stateRef.current;
+      const result = advance(script, before, decision);
+      stateRef.current = result.state;
+      await runBeat(buildFeedbackBeat(beat, true, beat.expectedAnswer), false);
       setCharacterMood("none");
+      noteAdvance(result, beat, decision, before);
       return;
     }
 
-    const before = stateRef.current;
-    const result = advance(script, before, decision);
-    stateRef.current = result.state;
-    await runBeat(
-      buildFeedbackBeat(beat, decision.understood, beat.expectedAnswer, { reteachFollows: result.needsReteach }),
-      false,
-    );
-    setCharacterMood("none");
-    noteAdvance(result, beat, decision, before);
-    if (result.needsReteach) {
+    // --- the ladder ------------------------------------------------------
+    const misses = (missesRef.current.get(beat.id) ?? 0) + 1;
+    missesRef.current.set(beat.id, misses);
+    logEvent(`miss ${misses} on ${beat.id.slice(0, 40)}`);
+    await finishBeatLog(beat, { ...decision, reason: `${decision.reason ?? ""} (miss ${misses} of 3)`.trim() });
+
+    if (misses === 1) {
+      await runBeat(buildFeedbackBeat(beat, false, beat.expectedAnswer), false);
+      setCharacterMood("none");
+      await runQuestion(beat, scripted);
+      return;
+    }
+    if (misses === 2) {
+      await runBeat(buildFeedbackBeat(beat, false, beat.expectedAnswer, { reteachFollows: true }), false);
+      setCharacterMood("none");
       const { beats: reteachBeats, angleUsed } = buildReteachBeats(script, beat, usedReteachAnglesRef.current);
       if (angleUsed) usedReteachAnglesRef.current.push(angleUsed);
-      pendingBeatsRef.current.push(...reteachBeats);
+      for (const reteach of reteachBeats) {
+        if (stoppedRef.current) return;
+        await runBeat(reteach, false);
+      }
+      await runQuestion(beat, scripted);
+      return;
     }
+
+    // Miss 3: she states the answer with a one-line explanation, and the
+    // lesson moves on — the item stays logged as not mastered.
+    setCharacterMood("none");
+    await revealAnswer(beat);
+    if (scripted) {
+      const before = stateRef.current;
+      const result = advance(script, before, { understood: false, next: "advance", reason: "Revealed after three misses." });
+      stateRef.current = result.state;
+      noteAdvance(result, beat, null, before);
+    }
+  };
+
+  /** The REVEAL: the answer on the board and in her voice, plus the rubric's one-line explanation when there is one. */
+  const revealAnswer = async (beat: Beat): Promise<void> => {
+    const answer = (beat.expectedAnswer ?? "").replace(/[\s,]/g, "");
+    const answerValue = /^\d+$/.test(answer) ? Number(answer) : NaN;
+    if (beat.rubric) {
+      const explanation = renderNumberMarkers(beat.rubric.explainSi ?? "").spoken;
+      const reveal: Beat = {
+        ...beat,
+        id: `${beat.id}:reveal`,
+        type: "REVEAL_PART",
+        goal: "State the finding (verbatim) and move on.",
+        spokenText: `කමක් නෑ {address}, බලන්න — ${explanation || beat.expectedAnswer || ""}`.trim(),
+        sayCandidates: undefined,
+        board: { kind: "none" },
+        expectedAnswer: undefined,
+        rubric: undefined,
+        endBy: "pausing",
+      };
+      await deliverBeat(reveal);
+      await finishBeatLog(reveal, null);
+      return;
+    }
+    const giveUp = buildGiveUpBeat(beat);
+    if (Number.isInteger(answerValue) && giveUp.board.kind !== "reveal_part") showNumberOnBoard(answerValue);
+    if (Number.isInteger(answerValue)) {
+      await deliverBeat(giveUp, { composed: { value: answerValue, frame: NUMBER_FRAMES.answer } });
+      await finishBeatLog(giveUp, null);
+    } else {
+      await runBeat(giveUp, false);
+    }
+  };
+
+  /** What the ✋ chat is told about where the child is (src/lib/chatContext.ts). */
+  const buildChatContext = (): ChatContext => {
+    const script = scriptRef.current;
+    const beat = activeBeatRef.current;
+    const tag = beat?.conceptTag && beat.conceptTag !== FRAMING_CONCEPT ? beat.conceptTag : (currentConceptTag ?? "");
+    const summary = script?.concepts.find((c) => c.conceptTag === tag);
+    const next = script?.beats[stateRef.current.beatIndex];
+    let weakest: string | null = null;
+    let weakestRatio = 1;
+    for (const [conceptTag, entry] of masteryRef.current) {
+      if (entry.asked === 0) continue;
+      const ratio = entry.correct / entry.asked;
+      if (ratio < weakestRatio) {
+        weakestRatio = ratio;
+        weakest = conceptTitle(conceptTag, script?.concepts.find((c) => c.conceptTag === conceptTag)?.description);
+      }
+    }
+    return {
+      subject,
+      lesson: `${lesson} · සංඛ්‍යා - 1`,
+      concept: { tag, title: conceptTitle(tag, summary?.description), objective: summary?.description ?? "" },
+      recentLines: recentLinesRef.current.slice(-3),
+      nextLine: next?.spokenText ?? null,
+      board: serializeStage(stageRef.current),
+      recentAnswers: recentAnswersRef.current.slice(-2),
+      weakestConcept: weakestRatio < 1 ? weakest : null,
+    };
   };
 
   /** Pauses the lesson for a live conversation, and resumes when it ends. */
@@ -1115,7 +1251,17 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
     setRuntimeStatus("chatting");
     setStage({ ...stageRef.current, pointer: null, parked: false });
     logEvent("live chat opened");
-    await chat.runChat({ stream, player });
+    await chat.runChat({
+      stream,
+      player,
+      context: buildChatContext(),
+      onBoardTool: (name, args) => {
+        const target = typeof args.target === "string" ? parseTargetKey(args.target) : null;
+        if (!target) return;
+        if (name === "point_at") dispatchStage({ primitive: "pointer", event: "move_to", args: { target } });
+        else dispatchStage({ primitive: "highlight", event: args.kind === "underline" ? "underline" : "circle", args: { target } });
+      },
+    });
     logEvent("live chat closed");
     setRuntimeStatus("teaching");
   };
@@ -1299,6 +1445,12 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
     setCharacterMood("none");
     setYourTurn(null);
     setStage(initialStage());
+    missesRef.current = new Map();
+    confirmsRef.current = new Map();
+    recentLinesRef.current = [];
+    recentAnswersRef.current = [];
+    manualPauseRef.current = false;
+    holdsRef.current = new Set();
 
     try {
       const scriptResponse = await fetch("/api/lesson-script", {
@@ -1373,10 +1525,13 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
   }, []);
 
 
-  const togglePause = useCallback(() => {
-    pausedRef.current = !pausedRef.current;
-    setPaused(pausedRef.current);
-    if (pausedRef.current) {
+  /** Paused when the parent pressed ⏸ OR any automatic hold is on. */
+  const applyPause = useCallback(() => {
+    const next = manualPauseRef.current || holdsRef.current.size > 0;
+    if (next === pausedRef.current) return;
+    pausedRef.current = next;
+    setPaused(next);
+    if (next) {
       recorderRef.current?.cancel();
       void playerRef.current?.suspend();
     } else {
@@ -1384,6 +1539,28 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
       const frozen = frozenRef.current.splice(0);
       for (const entry of frozen) setTimeout(entry.run, Math.max(0, entry.startMs - positionMs()));
     }
+  }, []);
+
+  const togglePause = useCallback(() => {
+    manualPauseRef.current = !manualPauseRef.current;
+    applyPause();
+  }, [applyPause]);
+
+  /**
+   * An automatic hold — the phone turned to portrait, the tab went to the
+   * background — freezes the lesson exactly like ⏸ and lets go when the
+   * reason does; the parent's own ⏸ is separate and stays.
+   */
+  const holdFor = useCallback((reason: "portrait" | "background", on: boolean) => {
+    if (on) holdsRef.current.add(reason);
+    else holdsRef.current.delete(reason);
+    if (on) showHint(reason === "portrait" ? "දුරකථනය හරවන්න — පාඩම නවත්තලා" : "ආයෙ ආවම අපි දිගටම යමු", 2500);
+    applyPause();
+  }, [applyPause]);
+
+  /** A tap on the board while she is talking: not an answer, and not ignored either. */
+  const noteIdleTouch = useCallback(() => {
+    if (statusRef.current === "teaching") showHint("Zara කතා කරනවා — ටිකක් ඉන්න, ඊළඟට ඔයාගේ වාරයයි");
   }, []);
 
   const toggleMute = useCallback(() => {
@@ -1469,6 +1646,10 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
     characterMood,
     conceptStops,
     sessionSummary,
+    noClipCaption,
+    hint,
+    holdFor,
+    noteIdleTouch,
     muted,
     paused,
     chatting: chat.chatting,
@@ -1485,6 +1666,18 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
     getDebugSnapshot,
     submitAccessCode,
   };
+}
+
+/** The choices in a fixed order per beat — the correct finding is not always first. */
+function shuffleBy(items: string[], seed: string): string[] {
+  const out = [...items];
+  let hash = [...seed].reduce((sum, char) => (sum * 31 + char.charCodeAt(0)) >>> 0, 7);
+  for (let i = out.length - 1; i > 0; i -= 1) {
+    hash = (hash * 1103515245 + 12345) >>> 0;
+    const j = hash % (i + 1);
+    [out[i], out[j]] = [out[j]!, out[i]!];
+  }
+  return out;
 }
 
 function wait(ms: number): Promise<void> {

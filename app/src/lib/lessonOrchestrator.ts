@@ -25,6 +25,7 @@ import type { LessonComponent } from "@/data/lessons/lesson1-numbers";
 import { AUTHORED_LINES } from "@/lib/authoredLines";
 
 export type { BeatType, DirectorContext };
+import type { PhraseRubric } from "@/lib/authoredScript";
 export { BEAT_REGISTRY, beatSpec, estimateBeatSeconds };
 
 /** Which of the three teaching modes a beat belongs to. Null for beats outside them. */
@@ -107,6 +108,8 @@ export interface Beat {
   answerChoices?: string[];
   /** The answer an ASK beat is looking for, for the planner's deterministic check. */
   expectedAnswer?: string;
+  /** A phrase question's rubric — judged by token match, then one model call (src/lib/phraseJudge.ts). */
+  rubric?: PhraseRubric;
   /** Whether the model ends by putting a question to the child or by pausing. */
   endBy: "asking" | "pausing";
 }

@@ -40,7 +40,10 @@
     "compare:authors": "node --env-file=.env.local ./node_modules/.bin/tsx scripts/compare-authors.ts",
     "board:check": "tsx scripts/board-check.ts",
     "board:coverage": "tsx scripts/board-coverage.ts",
-    "session:check": "node --env-file=.env.local ./node_modules/.bin/tsx scripts/session-check.ts"
+    "session:check": "node --env-file=.env.local ./node_modules/.bin/tsx scripts/session-check.ts",
+    "test:confirm": "tsx --test src/lib/confirmPolicy.test.ts",
+    "test:phrase": "tsx --test src/lib/phraseJudge.test.ts",
+    "chat:check": "node --env-file=.env.local ./node_modules/.bin/tsx scripts/chat-check.ts"
   },
   "dependencies": {
     "@google/genai": "^2.19.0",

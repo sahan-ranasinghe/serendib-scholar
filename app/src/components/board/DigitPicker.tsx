@@ -88,7 +88,8 @@ export function DigitPicker({ pool, built, length, builtName = null, builtBy = "
   });
 
   // Tiles sit on a ring inside the chalk circle.
-  const radius = compact ? (pool.length <= 4 ? 50 : 70) : pool.length <= 4 ? 62 : 84;
+  // Compact: the ring just clears the tiles, and a phone's 360 px still fits the slots, the ring and the number with its name.
+  const radius = compact ? (pool.length <= 4 ? 44 : 64) : pool.length <= 4 ? 62 : 84;
   const diameter = radius * 2 + TILE + (compact ? 4 : 16);
 
   return (
@@ -175,9 +176,10 @@ export function DigitPicker({ pool, built, length, builtName = null, builtBy = "
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, transition: { duration: 0.15 } }}
               transition={{ duration: 0.4 }}
-              style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}
+              // Compact: the number and its name share one line, so the readout never pushes the ring off a short surface.
+              style={{ display: "flex", flexDirection: compact ? "row" : "column", alignItems: compact ? "baseline" : "center", gap: compact ? 14 : 2, flexWrap: "wrap", justifyContent: "center" }}
             >
-              <HandNumber text={number} size={32} color={builtColour} budgetMs={400} />
+              <HandNumber text={number} size={compact ? 30 : 32} color={builtColour} budgetMs={400} />
               {builtName && <WriteOn text={builtName} size={18} color={builtColour} durationMs={400} />}
             </motion.div>
           )}

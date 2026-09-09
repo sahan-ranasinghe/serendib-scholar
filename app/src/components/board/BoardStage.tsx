@@ -14,7 +14,7 @@
  * child responding (`onTouch`).
  */
 import { AnimatePresence, motion } from "framer-motion";
-import { useState, type ReactNode } from "react";
+import { memo, useEffect, useRef, useState, type ReactNode } from "react";
 import type { BoardContent } from "@/lib/board";
 import type { StageState, AnswerSurface } from "@/lib/choreography";
 import { Whiteboard } from "./Whiteboard";
@@ -43,6 +43,8 @@ export interface YourTurn {
   choices?: string[];
   /** A numeric answer is expected — the pad fallback applies. */
   numeric: boolean;
+  /** Open the pad at once (after two doubtful hearings). */
+  padFirst?: boolean;
 }
 
 export interface BoardStageProps {
@@ -52,13 +54,20 @@ export interface BoardStageProps {
   onAnswer: (text: string) => void;
   /** Any touch on the board during a soft check. */
   onTouch: () => void;
+  /** A touch on the board when it is not the child's turn. */
+  onIdleTouch?: () => void;
   /** Which side of the board the pointer is on, for the character. */
   onPointerSide?: (side: "left" | "right" | null) => void;
   /** Boards the library does not draw yet. */
   renderLegacy?: (content: BoardContent) => ReactNode;
+  /** The frame's bottom-left corner (the tutor's portrait). */
+  cornerSlot?: ReactNode;
 }
 
-export function BoardStage({ stage, yourTurn, onAnswer, onTouch, onPointerSide, renderLegacy }: BoardStageProps) {
+/** Content areas shorter than this get the compact abacus. */
+export const COMPACT_BELOW_PX = 340;
+
+export const BoardStage = memo(function BoardStage({ stage, yourTurn, onAnswer, onTouch, onIdleTouch, onPointerSide, renderLegacy, cornerSlot }: BoardStageProps) {
   const base = stage.base;
   const active = yourTurn !== null;
   const soft = yourTurn?.kind === "soft";
@@ -67,8 +76,25 @@ export function BoardStage({ stage, yourTurn, onAnswer, onTouch, onPointerSide, 
   // Drafts the child is making on the surface, belonging to THIS turn: a
   // new turn (or none) starts them fresh without an effect having to clear them.
   const [drafts, setDrafts] = useState<{ turn: YourTurn | null; beads: number[] | null; tiles: number[]; padOpen: boolean }>({ turn: null, beads: null, tiles: [], padOpen: false });
-  const draft = drafts.turn === yourTurn ? drafts : { turn: yourTurn, beads: null, tiles: [], padOpen: false };
+  const draft = drafts.turn === yourTurn ? drafts : { turn: yourTurn, beads: null, tiles: [], padOpen: Boolean(yourTurn?.padFirst) };
   const { beads, tiles, padOpen } = draft;
+
+  // How tall the surface is: a phone held sideways gives the content area
+  // under 340 px, and the abacus (rods, readout, the child's answer, a note
+  // beneath) only fits it in its compact form. Measured, not assumed — the
+  // same stage serves the desktop.
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
+  const [surfaceHeight, setSurfaceHeight] = useState<number | null>(null);
+  useEffect(() => {
+    const area = wrapperRef.current?.parentElement;
+    if (!area || typeof ResizeObserver === "undefined") return;
+    const measure = () => setSurfaceHeight(area.clientHeight);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(area);
+    return () => observer.disconnect();
+  }, []);
+  const shortSurface = surfaceHeight !== null && surfaceHeight < COMPACT_BELOW_PX;
   const setBeads = (next: number[]) => setDrafts({ ...draft, turn: yourTurn, beads: next });
   const setTiles = (next: number[]) => setDrafts({ ...draft, turn: yourTurn, tiles: next });
   const setPadOpen = (next: boolean) => setDrafts({ ...draft, turn: yourTurn, padOpen: next });
@@ -106,7 +132,7 @@ export function BoardStage({ stage, yourTurn, onAnswer, onTouch, onPointerSide, 
               readout={editing ? "live" : "asFilled"}
               interactive={editing}
               onChange={setBeads}
-              compact={base.expansion !== null}
+              compact={base.expansion !== null || shortSurface}
             />
             {base.expansion && (
               <Expansion
@@ -187,6 +213,7 @@ export function BoardStage({ stage, yourTurn, onAnswer, onTouch, onPointerSide, 
             interactive={active && touchable && yourTurn?.surface === "blankTable"}
             onAnswer={(_, __, value) => submit(value)}
             dockPad
+            dense={shortSurface}
           />
         );
         break;
@@ -211,12 +238,13 @@ export function BoardStage({ stage, yourTurn, onAnswer, onTouch, onPointerSide, 
         : null;
 
   return (
-    <Whiteboard viewport="stretch" wipeKey={stage.wipe} testId="lesson-board">
+    <Whiteboard viewport="stretch" wipeKey={stage.wipe} testId="lesson-board" cornerSlot={cornerSlot}>
       <div
+        ref={wrapperRef}
         className={active && touchable && !soft ? "wb-your-turn" : active ? "wb-your-turn-soft" : undefined}
         data-soft-tap={soft ? "true" : undefined}
         data-surface={yourTurn?.surface ?? undefined}
-        onPointerDown={soft ? onTouch : undefined}
+        onPointerDown={soft ? onTouch : active ? undefined : onIdleTouch}
         style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, padding: 10, borderRadius: 18, maxWidth: "100%" }}
       >
         {content}
@@ -283,4 +311,4 @@ export function BoardStage({ stage, yourTurn, onAnswer, onTouch, onPointerSide, 
       <FeedbackFX kind={stage.feedback.kind} at={stage.feedback.at} nonce={stage.feedback.nonce} />
     </Whiteboard>
   );
-}
+});

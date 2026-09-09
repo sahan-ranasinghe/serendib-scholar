@@ -10,7 +10,7 @@
  * else — the builder ignores an unapproved file, so nothing a child hears
  * changes until a human has read docs/review/session-1-original.md.
  */
-import type { Beat, BeatBoardAction } from "@/lib/lessonOrchestrator";
+import type { TeachingMode, Beat, BeatBoardAction } from "@/lib/lessonOrchestrator";
 import type { LessonComponent } from "@/data/lessons/lesson1-numbers";
 import type { DesignConceptTag } from "@/lib/lessonDesign";
 
@@ -103,6 +103,20 @@ export const AUTHORED_OPENING_CONCEPT = "lessonOpening";
 
 export type AuthoredConceptTag = DesignConceptTag | typeof AUTHORED_OPENING_CONCEPT;
 
+/**
+ * How a phrase answer is judged: a deterministic token match first (after
+ * number-name normalisation), one model call with the rubric only when
+ * nothing matches. `choices` are offered as taps after one miss; the first
+ * is the correct finding. `explainSi` is the one-line reveal after the
+ * third miss.
+ */
+export interface PhraseRubric {
+  acceptIfAnyOf: string[];
+  conceptDescription: string;
+  explainSi?: string;
+  choices?: string[];
+}
+
 export interface AuthoredBeat {
   id: string;
   conceptTag: AuthoredConceptTag;
@@ -131,6 +145,8 @@ export interface AuthoredBeat {
   textbookPage?: number;
   /** CHECK_MY_WORK: the deliberate error the child must find. */
   errorPlanted?: string;
+  /** A phrase question's rubric (see docs/review/session-1-corrections.json → phraseRubrics). */
+  rubric?: PhraseRubric;
   /** Distance-guard evidence, recorded per beat. */
   maxSimilarity: { jaccard: number; cosine: number | null; closest: string };
 }
@@ -183,7 +199,8 @@ export function parseAuthoredScript(json: string | null): AuthoredScriptFile | n
 function boardFor(intent: AuthoredBoardIntent, lessonTitle: string): BeatBoardAction {
   switch (intent.kind) {
     case "title":
-      return { kind: "title_card", title: intent.title || lessonTitle, emoji: intent.emoji };
+      // The board is Sinhala: the syllabus title's English gloss ("… (Numbers - 1)") stays off it.
+      return { kind: "title_card", title: intent.title || lessonTitle.replace(/\s*\([A-Za-z0-9 .:-]+\)\s*$/u, ""), emoji: intent.emoji };
     case "text":
       return { kind: "text_card", text: intent.text, highlight: intent.highlight };
     case "abacus":
@@ -269,6 +286,7 @@ function describeBoard(intent: AuthoredBoardIntent): string {
  * same feedback. sessionIndex is stamped by the session packer afterwards.
  */
 export function toRuntimeBeats(file: AuthoredScriptFile, lessonTitle: string): Beat[] {
+  const modes = assignModes(file.beats);
   return file.beats.map((authored, index) => {
     const asking = authored.type === "ASK" || authored.type === "CHECK_MY_WORK" || authored.type === "HOOK" || authored.type === "SOFT_CHECK";
     return {
@@ -276,7 +294,7 @@ export function toRuntimeBeats(file: AuthoredScriptFile, lessonTitle: string): B
       type: authored.type,
       conceptTag: authored.conceptTag,
       sessionIndex: 0,
-      mode: null,
+      mode: modes.get(authored.id) ?? null,
       itemId:
       authored.boardIntent.kind === "exercise" || authored.boardIntent.kind === "blank"
         ? authored.boardIntent.itemId
@@ -292,7 +310,48 @@ export function toRuntimeBeats(file: AuthoredScriptFile, lessonTitle: string): B
       spokenText: authored.spokenText,
       expectedAnswer: authored.expectedAnswer,
       answerChoices: authored.answerChoices,
+      rubric: authored.rubric,
       endBy: asking && authored.pauseType !== "RHETORICAL" ? "asking" : "pausing",
     } as Beat;
   });
+}
+
+/**
+ * The teaching mode of every authored beat, from its role in the concept.
+ * The orchestrator counts only MODE 3 answers as unaided, so this is what
+ * decides mastery (and the star on the strip):
+ *
+ *   1  a demonstration — every beat that does not ask
+ *   2  an ASK inside a guided run (the abacus build, the card reading,
+ *      the 999 + 1 build-up): the child answers with the work on the board
+ *   3  a standalone ASK in the concept's closing guide steps (the last two
+ *      of the concept — the closing exercise), and CHECK_MY_WORK
+ *
+ * Guide steps are read off each beat's `guideStep` in first-seen order per
+ * concept, so a step's position is its position in the guide.
+ */
+export function assignModes(beats: AuthoredBeat[]): Map<string, TeachingMode> {
+  const stepsByConcept = new Map<string, string[]>();
+  for (const beat of beats) {
+    const step = beat.guideStep ?? "";
+    const steps = stepsByConcept.get(beat.conceptTag) ?? [];
+    if (!steps.includes(step)) steps.push(step);
+    stepsByConcept.set(beat.conceptTag, steps);
+  }
+  const modes = new Map<string, TeachingMode>();
+  for (const beat of beats) {
+    if (beat.type === "CHECK_MY_WORK") {
+      modes.set(beat.id, 3);
+      continue;
+    }
+    if (beat.type !== "ASK") {
+      modes.set(beat.id, 1);
+      continue;
+    }
+    const steps = stepsByConcept.get(beat.conceptTag) ?? [];
+    const closingFrom = Math.max(0, steps.length - 2);
+    const position = steps.indexOf(beat.guideStep ?? "");
+    modes.set(beat.id, position >= closingFrom ? 3 : 2);
+  }
+  return modes;
 }

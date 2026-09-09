@@ -763,6 +763,168 @@
       "sees": "Chalk \"3058 - තුන්දහස් පනස් අට\" — the mic opens briefly."
     },
     {
+      "id": "authored:readWrite4Digit:18c",
+      "concept": "readWrite4Digit",
+      "type": "SHOW_BOARD",
+      "pause": null,
+      "line": "පොතේ මේ වගුවේ එක පැත්තක සංඛ්‍යාව, අනිත් පැත්තේ ඒකේ නම තියෙනවා.",
+      "sentences": [
+        "පොතේ මේ වගුවේ එක පැත්තක සංඛ්‍යාව, අනිත් පැත්තේ ඒකේ නම තියෙනවා."
+      ],
+      "boardAtStart": "chalk \"3058 - තුන්දහස් පනස් අට\"",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "blankTable",
+          "event": "show",
+          "args": {
+            "item": "4c2aa078"
+          }
+        }
+      ],
+      "child": null,
+      "sees": "The numeral ↔ number-name table: 6 528 · දෙදහස් හාරසිය තිහ · තුන්දහස් එකසියය · 5 060 · එක්දහස් අට · 9 015; the place-value table."
+    },
+    {
+      "id": "authored:readWrite4Digit:18d",
+      "concept": "readWrite4Digit",
+      "type": "ASK",
+      "pause": "ASK",
+      "line": "මුල්ම පේළියේ තියෙන සංඛ්‍යාව බලලා ඒකේ නම කියන්න බලන්න.",
+      "sentences": [
+        "මුල්ම පේළියේ තියෙන සංඛ්‍යාව බලලා ඒකේ නම කියන්න බලන්න."
+      ],
+      "boardAtStart": "the numeral ↔ number-name table: 6 528 · දෙදහස් හාරසිය තිහ · තුන්දහස් එකසියය · 5 060 · එක්දහස් අට · 9 015",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "blankTable",
+          "event": "row_activate",
+          "args": {
+            "row": 0,
+            "field": "numberName"
+          }
+        }
+      ],
+      "child": {
+        "kind": "answer",
+        "via": "the number pad into the active cell, or say it",
+        "expects": "හයදහස් පන්සිය විසි අට"
+      },
+      "sees": "The numeral ↔ number-name table: 6 528 · දෙදහස් හාරසිය තිහ · තුන්දහස් එකසියය · 5 060 · එක්දහස් අට · 9 015; row 0's numberName cell is outlined — they answer via the number pad into the active cell, or say it."
+    },
+    {
+      "id": "authored:readWrite4Digit:18e",
+      "concept": "readWrite4Digit",
+      "type": "EXPLAIN",
+      "pause": null,
+      "line": "හයදහස් පන්සිය විසි අට — ඒ නම අපි වගුවේ ලියමු.",
+      "sentences": [
+        "හයදහස් පන්සිය විසි අට — ඒ නම අපි වගුවේ ලියමු."
+      ],
+      "boardAtStart": "the numeral ↔ number-name table: 6 528 · දෙදහස් හාරසිය තිහ · තුන්දහස් එකසියය · 5 060 · එක්දහස් අට · 9 015",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "blankTable",
+          "event": "cell_fill",
+          "args": {
+            "row": 0,
+            "field": "numberName",
+            "value": "හයදහස් පන්සිය විසි අට",
+            "by": "tutor"
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "number": 6528
+            }
+          }
+        }
+      ],
+      "child": null,
+      "sees": "The numeral ↔ number-name table: 6 528 · දෙදහස් හාරසිය තිහ · තුන්දහස් එකසියය · 5 060 · එක්දහස් අට · 9 015; හයදහස් පන්සිය විසි අට written into row 0."
+    },
+    {
+      "id": "authored:readWrite4Digit:18f",
+      "concept": "readWrite4Digit",
+      "type": "ASK",
+      "pause": "ASK",
+      "line": "දෙවෙනි පේළියේ නම දෙදහස් හාරසිය තිහ. ඒ සංඛ්‍යාව ඉලක්කම් වලින් කීයද?",
+      "sentences": [
+        "දෙවෙනි පේළියේ නම දෙදහස් හාරසිය තිහ.",
+        "ඒ සංඛ්‍යාව ඉලක්කම් වලින් කීයද?"
+      ],
+      "boardAtStart": "the numeral ↔ number-name table: 6 528 · දෙදහස් හාරසිය තිහ · තුන්දහස් එකසියය · 5 060 · එක්දහස් අට · 9 015",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "blankTable",
+          "event": "row_activate",
+          "args": {
+            "row": 1,
+            "field": "number"
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "number": 2430
+            }
+          }
+        }
+      ],
+      "child": {
+        "kind": "answer",
+        "via": "the number pad into the active cell, or say it",
+        "expects": "2430"
+      },
+      "sees": "The numeral ↔ number-name table: 6 528 · දෙදහස් හාරසිය තිහ · තුන්දහස් එකසියය · 5 060 · එක්දහස් අට · 9 015; row 1's number cell is outlined — they answer via the number pad into the active cell, or say it."
+    },
+    {
+      "id": "authored:readWrite4Digit:18g",
+      "concept": "readWrite4Digit",
+      "type": "EXPLAIN",
+      "pause": null,
+      "line": "දෙදහස් හාරසිය තිහ — ඉලක්කම් වලින් ලියන්නේ මෙහෙමයි.",
+      "sentences": [
+        "දෙදහස් හාරසිය තිහ — ඉලක්කම් වලින් ලියන්නේ මෙහෙමයි."
+      ],
+      "boardAtStart": "the numeral ↔ number-name table: 6 528 · දෙදහස් හාරසිය තිහ · තුන්දහස් එකසියය · 5 060 · එක්දහස් අට · 9 015",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "blankTable",
+          "event": "cell_fill",
+          "args": {
+            "row": 1,
+            "field": "number",
+            "value": "2430",
+            "by": "tutor"
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "number": 2430
+            }
+          }
+        }
+      ],
+      "child": null,
+      "sees": "The numeral ↔ number-name table: 6 528 · දෙදහස් හාරසිය තිහ · තුන්දහස් එකසියය · 5 060 · එක්දහස් අට · 9 015; 2430 written into row 1."
+    },
+    {
       "id": "authored:readWrite4Digit:18b",
       "concept": "readWrite4Digit",
       "type": "TRANSITION",
@@ -771,7 +933,7 @@
       "sentences": [
         "දැන් අපි වෙනත් අභ්‍යාසයක් බලමු."
       ],
-      "boardAtStart": "chalk \"3058 - තුන්දහස් පනස් අට\"",
+      "boardAtStart": "the numeral ↔ number-name table: 6 528 · දෙදහස් හාරසිය තිහ · තුන්දහස් එකසියය · 5 060 · එක්දහස් අට · 9 015",
       "events": [
         {
           "sentenceIndex": 0,
@@ -1485,10 +1647,18 @@
             "rod": 0,
             "count": 5
           }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "abacus",
+          "event": "rod_glow",
+          "args": {
+            "rod": 0
+          }
         }
       ],
       "child": null,
-      "sees": "The abacus, දා 5; 5 bead(s) drop onto the දා rod."
+      "sees": "The abacus, දා 5; 5 bead(s) drop onto the දා rod; the දා rod glows."
     },
     {
       "id": "authored:placeValue4Digit:40",
@@ -1509,10 +1679,18 @@
             "rod": 1,
             "count": 4
           }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "abacus",
+          "event": "rod_glow",
+          "args": {
+            "rod": 1
+          }
         }
       ],
       "child": null,
-      "sees": "The abacus, දා 5, සි 4; 4 bead(s) drop onto the සි rod."
+      "sees": "The abacus, දා 5, සි 4; 4 bead(s) drop onto the සි rod; the සි rod glows."
     },
     {
       "id": "authored:placeValue4Digit:41",
@@ -1542,10 +1720,26 @@
             "rod": 3,
             "count": 1
           }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "abacus",
+          "event": "rod_glow",
+          "args": {
+            "rod": 2
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "abacus",
+          "event": "rod_glow",
+          "args": {
+            "rod": 3
+          }
         }
       ],
       "child": null,
-      "sees": "The abacus showing 5 421; 2 bead(s) drop onto the ද rod; 1 bead(s) drop onto the එ rod."
+      "sees": "The abacus showing 5 421; 2 bead(s) drop onto the ද rod; 1 bead(s) drop onto the එ rod; the ද rod glows; the එ rod glows."
     },
     {
       "id": "authored:placeValue4Digit:42",

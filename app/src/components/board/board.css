@@ -36,6 +36,19 @@
   width: 100%;
   height: 100%;
 }
+/* the corner slot: the tutor's portrait, in the frame's bottom-left, never over content */
+.wb-corner {
+  position: absolute;
+  left: 6px;
+  bottom: 4px;
+  z-index: 9;
+}
+.wb-frame[data-corner] .wb-content {
+  padding-left: 92px;
+}
+.wb-frame[data-corner] .wb-tray {
+  left: 96px;
+}
 
 /* the child's turn: the answer surface breathes */
 .wb-your-turn {

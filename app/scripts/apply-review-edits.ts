@@ -24,6 +24,7 @@
  * recovered here from each beat's `numbers` array, and every line is
  * regenerated through renderNumberMarkers from then on.
  */
+import type { PhraseRubric } from "../src/lib/authoredScript";
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import assert from "node:assert/strict";
@@ -94,6 +95,8 @@ interface InsertedBeat {
     spokenText: string;
     board: AuthoredBoardIntent;
     expectedAnswer?: string;
+    /** The guide step the beat serves; the anchor's when absent. */
+    guideStep?: string;
     why?: string;
   };
 }
@@ -117,6 +120,10 @@ interface CorrectionsFile {
   visualContinuity: { rewrite: Record<string, BeatRewrite & { remove?: boolean }>; insert: InsertedBeat[] };
   /** Storyboard round: the accepted script notes from docs/storyboard/script-notes.md. */
   storyboard: { rewrite: Record<string, BeatRewrite> };
+  /** Round 10: the textbook exercise the session skipped. */
+  textbookTable: { insert: InsertedBeat[] };
+  /** Round 10: how a phrase answer is judged, per beat. */
+  phraseRubrics: Record<string, (PhraseRubric & { why?: string }) | string>;
 }
 
 interface DecisionsFile {
@@ -560,7 +567,7 @@ async function main(): Promise<void> {
       pauseType: addition.beat.pause === "—" ? null : (addition.beat.pause as AuthoredBeat["pauseType"]),
       boardIntent: addition.beat.board,
       expectedAnswer: addition.beat.expectedAnswer,
-      guideStep: template.guideStep,
+      guideStep: addition.beat.guideStep ?? template.guideStep,
       maxSimilarity: { jaccard: 0, cosine: null, closest: "" },
     };
     file.beats.splice(addition.after ? anchorIndex + 1 : anchorIndex, 0, created);
@@ -649,6 +656,18 @@ async function main(): Promise<void> {
   for (const [id, rewrite] of Object.entries(corrections.storyboard.rewrite)) {
     if (!id.startsWith("authored:")) continue;
     applyRewrite(id, rewrite, "storyboard note");
+  }
+
+  // ---- ROUND 10: the textbook table the session skipped, and phrase rubrics
+  for (const addition of corrections.textbookTable?.insert ?? []) insertBeat(addition, "textbook table");
+  for (const [id, rubric] of Object.entries(corrections.phraseRubrics ?? {})) {
+    if (!id.startsWith("authored:") || typeof rubric === "string") continue;
+    const beat = byId.get(id);
+    assert.ok(beat, `phrase rubric for a beat that does not exist: ${id}`);
+    const { why, ...fields } = rubric;
+    const before = JSON.stringify(beat.rubric ?? null);
+    beat.rubric = fields;
+    if (before !== JSON.stringify(fields)) structural.push({ id, what: "RUBRIC", why: why ?? "phrase rubric" });
   }
 
   heading("3. STRUCTURAL FLOW (round 4)");

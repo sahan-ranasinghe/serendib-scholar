@@ -80,8 +80,30 @@ function buildPrompt(goal: string, expected: string | null, transcript: string):
   ].join("\n");
 }
 
+const RUBRIC_SCHEMA = {
+  type: "object",
+  properties: {
+    accepted: { type: "boolean", description: "True only if the child's words express one of the acceptable findings." },
+    why: { type: "string", description: "One short sentence: which finding they expressed, or what was missing." },
+  },
+  required: ["accepted", "why"],
+};
+
+/** Stage 2 for a phrase answer: the rubric and the child's words, nothing else. */
+function buildRubricPrompt(rubric: { acceptIfAnyOf: string[]; conceptDescription: string }, said: string): string {
+  return [
+    "A Grade-5 child in Sri Lanka answered a maths tutor's question in Sinhala (a spoken transcript, possibly imperfect).",
+    "Decide only whether their words express the correct finding. You are not speaking to the child.",
+    `The concept: ${rubric.conceptDescription}`,
+    `Accept if the answer expresses ANY of these findings (in any wording, Sinhala or digits): ${rubric.acceptIfAnyOf.map((t) => `"${t}"`).join(", ")}`,
+    "Do not accept an answer that only repeats the question, says the work was fine, or names an unrelated thing.",
+    `The child said: "${said}"`,
+    "Return JSON: { accepted, why }.",
+  ].join("\n");
+}
+
 export async function POST(request: NextRequest) {
-  const { beat_goal, expected, transcript } = await request.json();
+  const { beat_goal, expected, transcript , rubric } = await request.json();
 
   if (typeof beat_goal !== "string" || !beat_goal.trim()) {
     return NextResponse.json({ ok: false, error: "beat_goal (non-empty string) is required" }, { status: 400 });
@@ -91,6 +113,34 @@ export async function POST(request: NextRequest) {
   }
   const expectedValue = typeof expected === "string" || typeof expected === "number" ? String(expected) : null;
   const said = transcript.slice(0, MAX_TRANSCRIPT_CHARS);
+
+  // A PHRASE question with a rubric: the runtime already ran the
+  // deterministic stage; this is stage 2 — one model call with the rubric.
+  if (rubric && typeof rubric === "object" && Array.isArray((rubric as { acceptIfAnyOf?: unknown }).acceptIfAnyOf)) {
+    const rubricValue = rubric as { acceptIfAnyOf: string[]; conceptDescription: string };
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      const decision: PlannerDecision = { understood: false, next: "advance", reason: "No model available for the rubric; not accepted." };
+      return NextResponse.json({ ok: true, decision, checked_by: "rubric-unavailable" });
+    }
+    try {
+      const ai = new GoogleGenAI({ apiKey });
+      const response = await ai.models.generateContent({
+        model: PLANNER_MODEL,
+        contents: [{ role: "user", parts: [{ text: buildRubricPrompt(rubricValue, said) }] }],
+        config: { responseMimeType: "application/json", responseJsonSchema: RUBRIC_SCHEMA, maxOutputTokens: MAX_OUTPUT_TOKENS },
+      });
+      const raw = (response.text ?? "").trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
+      const parsed = JSON.parse(raw) as { accepted?: boolean; why?: string };
+      if (typeof parsed?.accepted !== "boolean") throw new Error(`Rubric judge returned an unusable verdict: ${raw.slice(0, 200)}`);
+      const decision: PlannerDecision = { understood: parsed.accepted, next: "advance", reason: parsed.why ?? "" };
+      return NextResponse.json({ ok: true, decision, checked_by: "rubric-model" });
+    } catch (error) {
+      console.error("[planner] rubric judge failed:", error);
+      const decision: PlannerDecision = { understood: false, next: "advance", reason: "Rubric judge failed; not accepted." };
+      return NextResponse.json({ ok: true, decision, checked_by: "rubric-failed" });
+    }
+  }
 
   // Stage 1 — the confident case.
   if (expectedValue !== null && said.trim() !== "" && answersMatch(expectedValue, said)) {

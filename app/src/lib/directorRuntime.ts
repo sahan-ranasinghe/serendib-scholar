@@ -13,6 +13,7 @@
 import { parseAnswerPredicate } from "@/lib/answerCheck";
 import type { Beat, BeatBoardAction, PlannerDecision } from "@/lib/lessonOrchestrator";
 import type { BoardContent } from "@/lib/board";
+import type { PhraseRubric } from "@/lib/authoredScript";
 
 /** What a beat's board action did, so the caller can apply it to board state. */
 export interface StagedBoard {
@@ -134,6 +135,18 @@ export async function runPlanner(beat: Beat, transcript: string): Promise<Planne
   }
   // Never advance on a failure — an unjudged answer is not a correct one.
   return { understood: false, next: "another_example", reason: "Planner unreachable." };
+}
+
+/** Stage 2 of a phrase answer: the planner route's rubric judge (one model call). */
+export async function judgeWithRubric(transcript: string, rubric: PhraseRubric): Promise<{ accepted: boolean; why: string }> {
+  try {
+    const response = await post("/api/planner", { beat_goal: rubric.conceptDescription, expected: null, transcript, rubric });
+    const decision = response.decision as PlannerDecision | undefined;
+    if (decision && typeof decision.understood === "boolean") return { accepted: decision.understood, why: decision.reason ?? String(response.checked_by ?? "") };
+  } catch (error) {
+    console.error("[directorRuntime] Rubric judge request failed:", error);
+  }
+  return { accepted: false, why: "rubric judge unreachable" };
 }
 
 export interface SessionLogPayload {

@@ -43,6 +43,7 @@ import { renderNumberMarkers, sinhalaNumberName } from "../src/lib/sinhalaNumber
 import { sentencesOf } from "../src/lib/scriptDistance";
 import { parseAnswerPredicate } from "../src/lib/answerCheck";
 import { resolveAddress } from "../src/lib/addressToken";
+import { PLACE_PATTERNS } from "../src/lib/choreography";
 
 const ROOT = process.cwd();
 const SCRIPT_PATH = path.join(ROOT, "src/data/lessons/authored/maths-5-1.json");
@@ -55,7 +56,7 @@ const SUGGESTIONS_PATH = path.join(OUT_DIR, "script-note-suggestions.json");
 // The script stages these by id; their contents live in the database. They
 // are pinned here so the storyboard can be produced offline and so a
 // reviewer can see what is on the board without a query.
-const KNOWN_ITEMS: Record<string, { primitive: "digitPicker" | "blankTable"; summary: string; pool?: number[] }> = {
+const KNOWN_ITEMS: Record<string, { primitive: "digitPicker" | "blankTable"; summary: string; pool?: number[]; numbers?: number[] }> = {
   "7daf0141": {
     primitive: "digitPicker",
     summary: "the textbook's digit-card puzzle (make five four-digit numbers from the printed digits)",
@@ -63,6 +64,12 @@ const KNOWN_ITEMS: Record<string, { primitive: "digitPicker" | "blankTable"; sum
   "7b58e436": {
     primitive: "blankTable",
     summary: "the place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003",
+    numbers: [2348, 2, 1000, 2000, 6572, 6, 5024, 4, 8700, 700, 9605, 7003],
+  },
+  "4c2aa078": {
+    primitive: "blankTable",
+    summary: "the numeral ↔ number-name table: 6 528 · දෙදහස් හාරසිය තිහ · තුන්දහස් එකසියය · 5 060 · එක්දහස් අට · 9 015",
+    numbers: [6528, 2430, 3100, 5060, 1008, 9015],
   },
 };
 
@@ -80,13 +87,8 @@ interface Event {
 
 /** Rod index by place name — the runtime's abacus_add numbering (0 = දා … 3 = එ). */
 const ROD_LABELS = ["දා", "සි", "ද", "එ"] as const;
-const PLACE_TO_ROD: Array<[RegExp, number]> = [
-  [/දස දහසස්ථාන/u, -1],
-  [/දහසස්ථාන/u, 0],
-  [/සියයස්ථාන|සියයේ තැන|සියයේ කූර/u, 1],
-  [/දහයස්ථාන|දසස්ථාන|දහයේ තැන|දහයේ කූර/u, 2],
-  [/එකස්ථාන|එකේ තැන|එකේ කූර|දකුණු පැත්තේ මුල්ම කූර|අවසාන කූර|අන්තිම කූර/u, 3],
-];
+/** The place names per rod — shared with the runtime's checks (src/lib/choreography.ts). */
+const PLACE_TO_ROD = PLACE_PATTERNS;
 
 /** Guide vocabulary that gets WRITTEN on the board the first time it is said in a concept. */
 const TERMS = ["සංඛ්‍යා නාමය", "ස්ථානීය අගය", "ගණක රාමුව", "විහිදුවා"];
@@ -265,12 +267,12 @@ function applyIntent(state: BoardState, intent: AuthoredBoardIntent): Event[] {
     case "exercise": {
       const known = KNOWN_ITEMS[intent.itemId.slice(0, 8)];
       Object.assign(state, emptyState(), { terms: state.terms });
+      // The numbers printed on the item are on the board from here on.
+      for (const n of known?.numbers ?? []) state.visible.add(String(n));
       state.primitive = known?.primitive ?? "blankTable";
       state.interactive = true;
       state.description = known?.summary ?? `exercise ${intent.itemId.slice(0, 8)}`;
-      // Every number printed in the table's six rows, including the worked
-      // row's key and row 4's given value (700).
-      if (state.primitive === "blankTable") state.visible = new Set(["2348", "2", "1000", "2000", "6572", "6", "5024", "4", "8700", "700", "9605", "7003"]);
+      // (the numbers printed on the item were added above, from KNOWN_ITEMS)
       state.focus = state.primitive;
       return [at0(state.primitive, "show", state.primitive === "digitPicker" ? { pool: "as printed", item: intent.itemId.slice(0, 8) } : { item: intent.itemId.slice(0, 8) })];
     }
@@ -405,8 +407,12 @@ function planBeat(beat: AuthoredBeat, state: BoardState, upcoming: AuthoredBoard
   const spokenLine = facts.map((f) => f.spoken).join(" ");
 
   /** "This" / "these" — the ringed card or the first card of a row, else the chalk in focus. */
-  const focusTarget = (): Record<string, unknown> =>
-    state.primitive === "numberCards" && state.cards ? { card: state.ringed ?? state.cards[0] } : { text: state.focus ?? state.description };
+  const focusTarget = (): Record<string, unknown> => {
+    if (state.primitive === "numberCards" && state.cards) return { card: state.ringed ?? state.cards[0] };
+    const cell = state.primitive === "blankTable" ? state.focus?.match(/^row (\d+) (\w+)$/u) : null;
+    if (cell) return { cell: { row: Number(cell[1]), field: cell[2] } };
+    return { text: state.focus ?? state.description };
+  };
 
   facts.forEach((f) => {
     const mine: Event[] = f.index === 0 ? [...intentEvents] : [];
@@ -448,7 +454,9 @@ function planBeat(beat: AuthoredBeat, state: BoardState, upcoming: AuthoredBoard
       });
     }
 
-    // Places she names.
+    // Places she names. A rod whose beads land in this sentence glows too —
+    // the glow is the eye, the beads are the hands; without it the hundreds
+    // rod stayed dark while she said its name and filled it (:40).
     for (const rod of f.rods) {
       if (state.primitive === "abacus") mine.push({ sentenceIndex: f.index, primitive: "abacus", event: "rod_glow", args: { rod } });
       else if (state.primitive === "expansion") point({ part: rod });
@@ -502,13 +510,16 @@ function planBeat(beat: AuthoredBeat, state: BoardState, upcoming: AuthoredBoard
       seen.add(key);
       return true;
     });
+    // A glow on a rod whose beads land in the same sentence is the same
+    // thing as the beads — it is kept, and it does not count against the cap.
     const beadRods = new Set(unique.filter((e) => e.event === "bead_add").map((e) => e.args?.rod));
-    const animations = unique.filter((e) => e.primitive !== "pointer" && !(e.event === "rod_glow" && beadRods.has(e.args?.rod)));
+    const animations = unique.filter((e) => e.primitive !== "pointer");
+    const counted = animations.filter((e) => !(e.event === "rod_glow" && beadRods.has(e.args?.rod)));
     const pointers = unique.filter((e) => e.primitive === "pointer");
-    if (animations.length > 2) {
-      notes.push({ beatId: beat.id, kind: "too-much-to-show", sentenceIndex: f.index, line: f.spoken, problem: `${animations.length} things to show in one sentence (${animations.map((e) => `${e.primitive}.${e.event}${e.args && "rod" in e.args ? ` ${ROD_LABELS[e.args.rod as number]}` : ""}`).join(", ")}) — only two fit` });
+    if (counted.length > 2) {
+      notes.push({ beatId: beat.id, kind: "too-much-to-show", sentenceIndex: f.index, line: f.spoken, problem: `${counted.length} things to show in one sentence (${counted.map((e) => `${e.primitive}.${e.event}${e.args && "rod" in e.args ? ` ${ROD_LABELS[e.args.rod as number]}` : ""}`).join(", ")}) — only two fit` });
     }
-    const kept = [...animations, ...pointers].slice(0, 2);
+    const kept = [...animations, ...pointers].slice(0, 2 + (animations.length - counted.length));
     events.push(...kept);
 
     const coveredByBoardNote = notes.some((n) => n.beatId === beat.id && n.sentenceIndex === f.index && n.kind.startsWith("board-"));

@@ -650,6 +650,124 @@
       "humanEdited": true
     },
     {
+      "id": "authored:readWrite4Digit:18c",
+      "conceptTag": "readWrite4Digit",
+      "type": "SHOW_BOARD",
+      "sourceText": "පොතේ මේ වගුවේ එක පැත්තක සංඛ්‍යාව, අනිත් පැත්තේ ඒකේ නම තියෙනවා.",
+      "spokenText": "පොතේ මේ වගුවේ එක පැත්තක සංඛ්‍යාව, අනිත් පැත්තේ ඒකේ නම තියෙනවා.",
+      "numbers": [],
+      "humanEdited": true,
+      "pauseType": null,
+      "boardIntent": {
+        "kind": "exercise",
+        "itemId": "4c2aa078-355a-4ba6-a32f-a2ed2d261a99"
+      },
+      "guideStep": "textbook step 2: numeral ↔ number-name table (guide activity 1 step 2)",
+      "maxSimilarity": {
+        "jaccard": 0.2982456140350877,
+        "cosine": null,
+        "closest": "එක පැත්තක සංඛ්‍යාව තියෙනවා, අනිත් පැත්තේ තියෙනවා සංඛ්‍යා නාමය."
+      }
+    },
+    {
+      "id": "authored:readWrite4Digit:18d",
+      "conceptTag": "readWrite4Digit",
+      "type": "ASK",
+      "sourceText": "මුල්ම පේළියේ තියෙන සංඛ්‍යාව බලලා ඒකේ නම කියන්න බලන්න.",
+      "spokenText": "මුල්ම පේළියේ තියෙන සංඛ්‍යාව බලලා ඒකේ නම කියන්න බලන්න.",
+      "numbers": [],
+      "humanEdited": true,
+      "pauseType": "ASK",
+      "boardIntent": {
+        "kind": "blank",
+        "itemId": "4c2aa078-355a-4ba6-a32f-a2ed2d261a99",
+        "rowIndex": 0,
+        "field": "numberName"
+      },
+      "expectedAnswer": "හයදහස් පන්සිය විසි අට",
+      "guideStep": "textbook step 2: numeral ↔ number-name table (guide activity 1 step 2)",
+      "maxSimilarity": {
+        "jaccard": 0.12195121951219512,
+        "cosine": null,
+        "closest": "දීලා තියෙන සංඛ්‍යාව බලන්න හොඳට."
+      }
+    },
+    {
+      "id": "authored:readWrite4Digit:18e",
+      "conceptTag": "readWrite4Digit",
+      "type": "EXPLAIN",
+      "sourceText": "{number:6528} — ඒ නම අපි වගුවේ ලියමු.",
+      "spokenText": "හයදහස් පන්සිය විසි අට — ඒ නම අපි වගුවේ ලියමු.",
+      "numbers": [
+        6528
+      ],
+      "humanEdited": true,
+      "pauseType": null,
+      "boardIntent": {
+        "kind": "reveal",
+        "itemId": "4c2aa078-355a-4ba6-a32f-a2ed2d261a99",
+        "rowIndex": 0,
+        "field": "numberName",
+        "value": "හයදහස් පන්සිය විසි අට"
+      },
+      "guideStep": "textbook step 2: numeral ↔ number-name table (guide activity 1 step 2)",
+      "maxSimilarity": {
+        "jaccard": 0.12903225806451613,
+        "cosine": null,
+        "closest": "එහෙමනම් අපි ලියමු..."
+      }
+    },
+    {
+      "id": "authored:readWrite4Digit:18f",
+      "conceptTag": "readWrite4Digit",
+      "type": "ASK",
+      "sourceText": "දෙවෙනි පේළියේ නම {number:2430}. ඒ සංඛ්‍යාව ඉලක්කම් වලින් කීයද?",
+      "spokenText": "දෙවෙනි පේළියේ නම දෙදහස් හාරසිය තිහ. ඒ සංඛ්‍යාව ඉලක්කම් වලින් කීයද?",
+      "numbers": [
+        2430
+      ],
+      "humanEdited": true,
+      "pauseType": "ASK",
+      "boardIntent": {
+        "kind": "blank",
+        "itemId": "4c2aa078-355a-4ba6-a32f-a2ed2d261a99",
+        "rowIndex": 1,
+        "field": "number"
+      },
+      "expectedAnswer": "2430",
+      "guideStep": "textbook step 2: numeral ↔ number-name table (guide activity 1 step 2)",
+      "maxSimilarity": {
+        "jaccard": 0,
+        "cosine": null,
+        "closest": ""
+      }
+    },
+    {
+      "id": "authored:readWrite4Digit:18g",
+      "conceptTag": "readWrite4Digit",
+      "type": "EXPLAIN",
+      "sourceText": "{number:2430} — ඉලක්කම් වලින් ලියන්නේ මෙහෙමයි.",
+      "spokenText": "දෙදහස් හාරසිය තිහ — ඉලක්කම් වලින් ලියන්නේ මෙහෙමයි.",
+      "numbers": [
+        2430
+      ],
+      "humanEdited": true,
+      "pauseType": null,
+      "boardIntent": {
+        "kind": "reveal",
+        "itemId": "4c2aa078-355a-4ba6-a32f-a2ed2d261a99",
+        "rowIndex": 1,
+        "field": "number",
+        "value": "2430"
+      },
+      "guideStep": "textbook step 2: numeral ↔ number-name table (guide activity 1 step 2)",
+      "maxSimilarity": {
+        "jaccard": 0.14814814814814814,
+        "cosine": null,
+        "closest": "තව ඉලක්කම්..."
+      }
+    },
+    {
       "id": "authored:readWrite4Digit:18b",
       "conceptTag": "readWrite4Digit",
       "type": "TRANSITION",
@@ -996,7 +1114,25 @@
         "closest": "6000 කියලා ලිව්වා."
       },
       "id": "authored:readWrite4Digit:31",
-      "sourceText": "ඔන්න {address}, මම {number:84} කියන සංඛ්‍යාව වෙන් කරලා ලිව්වා. ඒත් මගේ වැඩේ පොඩි වැරැද්දක් වුණා වගේ. මට උදව්වක් විදිහට ඒ වැරැද්ද හොයලා කියන්න පුළුවන්ද?"
+      "sourceText": "ඔන්න {address}, මම {number:84} කියන සංඛ්‍යාව වෙන් කරලා ලිව්වා. ඒත් මගේ වැඩේ පොඩි වැරැද්දක් වුණා වගේ. මට උදව්වක් විදිහට ඒ වැරැද්ද හොයලා කියන්න පුළුවන්ද?",
+      "rubric": {
+        "acceptIfAnyOf": [
+          "අසූව",
+          "80",
+          "බිංදුව",
+          "දහයස්ථානය",
+          "8 නෙවෙයි",
+          "අටේ අගය",
+          "අසූවක්"
+        ],
+        "conceptDescription": "In 84 the digit 8 is in the tens place and represents 80, not 8; Zara wrote 84 = 8 + 4 and the 8 needs its zero (80).",
+        "explainSi": "අට තියෙන්නේ දහයස්ථානයේ, ඒ නිසා ඒකේ අගය අසූවයි — {number:84} = {number:80} + {number:4}.",
+        "choices": [
+          "අටේ අගය අසූවයි, අට නෙවෙයි",
+          "හතරේ අගය හතළිහයි",
+          "අසූ හතර හරියටම හරි"
+        ]
+      }
     },
     {
       "id": "authored:readWrite4Digit:31a",

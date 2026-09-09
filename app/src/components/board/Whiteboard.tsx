@@ -32,11 +32,13 @@ export interface WhiteboardProps {
   showTray?: boolean;
   className?: string;
   testId?: string;
+  /** Something anchored in the frame's bottom-left corner, outside the content (the tutor's portrait). */
+  cornerSlot?: ReactNode;
 }
 
 const WIPE_MS = 200;
 
-export function Whiteboard({ viewport = "fill", children, wipeKey, showTray = true, className, testId }: WhiteboardProps) {
+export function Whiteboard({ viewport = "fill", children, wipeKey, showTray = true, className, testId, cornerSlot }: WhiteboardProps) {
   const [surface, setSurface] = useState<HTMLElement | null>(null);
   const [overlay, setOverlay] = useState<HTMLElement | null>(null);
   const registry = useBoardRegistry(surface, overlay);
@@ -65,7 +67,7 @@ export function Whiteboard({ viewport = "fill", children, wipeKey, showTray = tr
   return (
     <MotionConfig reducedMotion="user" transition={SPRING}>
       <BoardContext.Provider value={registry}>
-        <div className={`wb-frame ${className ?? ""}`} data-viewport={viewport} data-testid={testId} data-board>
+        <div className={`wb-frame ${className ?? ""}`} data-viewport={viewport} data-testid={testId} data-board data-corner={cornerSlot ? "true" : undefined}>
           <div className="wb-surface" ref={attachSurface}>
             <MarkerWobbleDefs />
             <div className="wb-content" style={{ opacity: wiping ? 0 : 1, transition: `opacity ${WIPE_MS * 0.6}ms ease-out` }}>
@@ -85,6 +87,11 @@ export function Whiteboard({ viewport = "fill", children, wipeKey, showTray = tr
             </AnimatePresence>
           </div>
           {showTray && <Tray />}
+          {cornerSlot && (
+            <div className="wb-corner" data-testid="board-corner">
+              {cornerSlot}
+            </div>
+          )}
         </div>
       </BoardContext.Provider>
     </MotionConfig>

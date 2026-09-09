@@ -51,12 +51,16 @@ async function writeLine(goal: string, maxSentences: number, apiKey: string): Pr
         ],
       },
     ],
-    config: { responseMimeType: "application/json", responseJsonSchema: SCHEMA, maxOutputTokens: 512 },
+    // The same budget the planner gives this model: a thinking model spends
+    // output tokens before it answers, and 512 left the RETEACH line empty
+    // ("Unexpected end of JSON input") in a real run.
+    config: { responseMimeType: "application/json", responseJsonSchema: SCHEMA, maxOutputTokens: 2048 },
   });
   const raw = (response.text ?? "")
     .trim()
     .replace(/^```(?:json)?\s*/i, "")
     .replace(/\s*```$/, "");
+  if (!raw) throw new Error(`the writer returned no text (finishReason ${response.candidates?.[0]?.finishReason ?? "unknown"})`);
   const parsed = JSON.parse(raw) as { line?: unknown };
   const line = typeof parsed.line === "string" ? parsed.line.trim() : "";
   if (!line) throw new Error("the writer returned nothing");

@@ -42,7 +42,7 @@ import {
 import { answersMatch, exampleAnswerFor } from "../src/lib/answerCheck";
 import { listAuthoredLines } from "../src/lib/authoredLines";
 import { parseAuthoredScript, type AuthoredScriptFile } from "../src/lib/authoredScript";
-import { describeStage, eventKey, initialStage, isKnownEvent, reduceStage, type Storyboard } from "../src/lib/choreography";
+import { describeStage, eventKey, initialStage, isKnownEvent, reduceStage, rodsNamedIn, type Storyboard } from "../src/lib/choreography";
 import { sentencesOf } from "../src/lib/scriptDistance";
 import { checkSpeechRules, formatSpeechFindings } from "../src/lib/speechRules";
 import { formatCoverage, voiceCoverage } from "../src/lib/voiceCoverage";
@@ -484,6 +484,39 @@ async function runAssertions(
   }
   console.log(`  PASS  all ${script.concepts.length} design concepts have real spoken runs`);
 
+  // 6a. TEXTBOOK EXERCISE AUDIT — every textbook exercise/table the design
+  //     assigns to a session-1 concept, and whether a beat stages it.
+  const design = JSON.parse(await readFile(path.join(process.cwd(), "../docs/design/maths-5-1.json"), "utf8")) as {
+    concepts: Array<{ conceptTag: string; textbookContent: Array<{ step: number; contentBankIds: string[]; summary: string }> }>;
+  };
+  console.log(`\n${"=".repeat(78)}\nTEXTBOOK EXERCISE AUDIT (design → beats)\n${"=".repeat(78)}`);
+  const unstaged: string[] = [];
+  for (const concept of design.concepts.filter((c) => c.conceptTag === "readWrite4Digit" || c.conceptTag === "placeValue4Digit")) {
+    for (const content of concept.textbookContent) {
+      for (const itemId of content.contentBankIds) {
+        const stagedBy = script.beats.filter((beat) => beat.itemId === itemId).map((beat) => beat.id.replace("authored:", ""));
+        const row = rows.find((r) => r.id === itemId);
+        const kind = row?.component_type ?? "?";
+        const status = stagedBy.length ? `staged by ${stagedBy.slice(0, 3).join(", ")}${stagedBy.length > 3 ? ` +${stagedBy.length - 3}` : ""}` : "NOT STAGED";
+        if (!stagedBy.length) unstaged.push(`${concept.conceptTag} step ${content.step} (${kind} ${itemId.slice(0, 8)})`);
+        console.log(`  ${concept.conceptTag.padEnd(18)} textbook step ${content.step}  ${String(kind).padEnd(18)} ${itemId.slice(0, 8)}  ${status}\n${"".padEnd(22)}${content.summary.slice(0, 110)}`);
+      }
+    }
+  }
+  // The abacus worked example (step 4) is a figure, not an exercise — the
+  // design itself says its practice is omitted — so only exercises gate.
+  const unstagedExercises = unstaged.filter((line) => !line.includes("AbacusDiagram"));
+  assert.deepStrictEqual(unstagedExercises, [], `textbook exercises with no beat: ${unstagedExercises.join("; ")}`);
+  console.log(`  PASS  every textbook exercise of the session-1 concepts is staged by a beat${unstaged.length ? ` (${unstaged.length} figure not staged: ${unstaged.join("; ")})` : ""}`);
+
+  // 6c. Every ASK carries a teaching mode — without one the orchestrator
+  //     never counts an unaided answer and no concept is ever mastered.
+  const asksWithoutMode = script.beats.filter((beat) => (beat.type === "ASK" || beat.type === "CHECK_MY_WORK") && beat.id.startsWith("authored:") && beat.mode === null);
+  assert.deepStrictEqual(asksWithoutMode.map((b) => b.id), [], "authored ASKs without a mode");
+  const modeCounts = new Map<number, number>();
+  for (const beat of script.beats) if (beat.id.startsWith("authored:") && (beat.type === "ASK" || beat.type === "CHECK_MY_WORK")) modeCounts.set(beat.mode ?? 0, (modeCounts.get(beat.mode ?? 0) ?? 0) + 1);
+  console.log(`  PASS  every authored ASK has a mode (${[...modeCounts.entries()].map(([m, n]) => `mode ${m}: ${n}`).join(", ")})`);
+
   // 6b. The storyboard fits the script it will choreograph: every session-1
   //     authored beat has a storyboard beat and vice versa, each beat's
   //     sentences match what the clip will split into, and every event
@@ -520,6 +553,26 @@ async function runAssertions(
     }
   }
   assert.deepStrictEqual(unknown, [], `storyboard events with no matching primitive: ${unknown.join(", ")}`);
+  // 6d. Every sentence that names a place while the abacus is up glows
+  //     the rod it names (a bead_add on that rod counts — the runtime glows
+  //     the rod it fills).
+  const darkRods: string[] = [];
+  let glowStage = initialStage();
+  for (const sb of storyboard.beats) {
+    sb.sentences.forEach((sentence, index) => {
+      const events = sb.events.filter((e) => e.sentenceIndex === index);
+      const abacusUp = glowStage.base?.kind === "abacus" || events.some((e) => e.primitive === "abacus" && e.event === "show");
+      if (abacusUp) {
+        for (const rod of rodsNamedIn(sentence)) {
+          const lit = events.some((e) => e.primitive === "abacus" && (e.event === "rod_glow" || e.event === "bead_add") && Number(e.args?.rod) === rod);
+          if (!lit) darkRods.push(`${sb.id.replace("authored:", "")} s${index} rod ${rod}`);
+        }
+      }
+      for (const event of events) if (isKnownEvent(event)) glowStage = reduceStage(glowStage, event, { lastBuilt: 1364 });
+    });
+  }
+  assert.deepStrictEqual(darkRods, [], `place named while the abacus is up but its rod does not glow: ${darkRods.join("; ")}`);
+  console.log(`  PASS  every place named while the abacus is up glows its rod`);
   console.log(
     `  PASS  storyboard ↔ script: ${storyboard.beats.length} beats matched, ${reduced} events reduce onto the board (ends on ${describeStage(stage).slice(0, 60)})`,
   );

@@ -372,7 +372,7 @@ function Rod({
       <div
         style={{
           marginTop: 4,
-          fontSize: beadH < 20 ? 14 : 17,
+          fontSize: beadH < 20 ? 16 : 17, // never under 16 px, compact or not
           fontWeight: 700,
           color: glow ? BOARD.ink : "rgba(42,36,24,0.8)",
           lineHeight: 1.2,

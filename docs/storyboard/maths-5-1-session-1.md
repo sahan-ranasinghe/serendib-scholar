@@ -1,6 +1,6 @@
 # Storyboard — Maths 5, Lesson 1, Session 1
 
-121 beats. Vocabulary: `docs/design/board-vocabulary.md`. Events are written `primitive.event {args}`; an event with no sentence index prefix lands on the sentence shown above it.
+126 beats. Vocabulary: `docs/design/board-vocabulary.md`. Events are written `primitive.event {args}`; an event with no sentence index prefix lands on the sentence shown above it.
 
 Rods: 0 = දා (දහසස්ථානය), 1 = සි, 2 = ද, 3 = එ.
 
@@ -303,9 +303,63 @@ Child: **soft check** — mic open 5s; any reply acknowledged after 1.2s of quie
 
 _Sees:_ Chalk "3058 - තුන්දහස් පනස් අට" — the mic opens briefly.
 
-### `readWrite4Digit:18b` · TRANSITION
+### `readWrite4Digit:18c` · SHOW_BOARD
 
 Board at line start: chalk "3058 - තුන්දහස් පනස් අට"
+
+1. > පොතේ මේ වගුවේ එක පැත්තක සංඛ්‍යාව, අනිත් පැත්තේ ඒකේ නම තියෙනවා.
+   - `blankTable.show` `{"item":"4c2aa078"}`
+
+_Sees:_ The numeral ↔ number-name table: 6 528 · දෙදහස් හාරසිය තිහ · තුන්දහස් එකසියය · 5 060 · එක්දහස් අට · 9 015; the place-value table.
+
+### `readWrite4Digit:18d` · ASK · pause ASK
+
+Board at line start: the numeral ↔ number-name table: 6 528 · දෙදහස් හාරසිය තිහ · තුන්දහස් එකසියය · 5 060 · එක්දහස් අට · 9 015
+
+1. > මුල්ම පේළියේ තියෙන සංඛ්‍යාව බලලා ඒකේ නම කියන්න බලන්න.
+   - `blankTable.row_activate` `{"row":0,"field":"numberName"}`
+
+Child: **answer** — the number pad into the active cell, or say it · expects **හයදහස් පන්සිය විසි අට**
+
+_Sees:_ The numeral ↔ number-name table: 6 528 · දෙදහස් හාරසිය තිහ · තුන්දහස් එකසියය · 5 060 · එක්දහස් අට · 9 015; row 0's numberName cell is outlined — they answer via the number pad into the active cell, or say it.
+
+### `readWrite4Digit:18e` · EXPLAIN
+
+Board at line start: the numeral ↔ number-name table: 6 528 · දෙදහස් හාරසිය තිහ · තුන්දහස් එකසියය · 5 060 · එක්දහස් අට · 9 015
+
+1. > හයදහස් පන්සිය විසි අට — ඒ නම අපි වගුවේ ලියමු.
+   - `blankTable.cell_fill` `{"row":0,"field":"numberName","value":"හයදහස් පන්සිය විසි අට","by":"tutor"}`
+   - `pointer.move_to` `{"target":{"number":6528}}`
+
+_Sees:_ The numeral ↔ number-name table: 6 528 · දෙදහස් හාරසිය තිහ · තුන්දහස් එකසියය · 5 060 · එක්දහස් අට · 9 015; හයදහස් පන්සිය විසි අට written into row 0.
+
+### `readWrite4Digit:18f` · ASK · pause ASK
+
+Board at line start: the numeral ↔ number-name table: 6 528 · දෙදහස් හාරසිය තිහ · තුන්දහස් එකසියය · 5 060 · එක්දහස් අට · 9 015
+
+1. > දෙවෙනි පේළියේ නම දෙදහස් හාරසිය තිහ.
+   - `blankTable.row_activate` `{"row":1,"field":"number"}`
+   - `pointer.move_to` `{"target":{"number":2430}}`
+2. > ඒ සංඛ්‍යාව ඉලක්කම් වලින් කීයද?
+   - _(no event)_
+
+Child: **answer** — the number pad into the active cell, or say it · expects **2430**
+
+_Sees:_ The numeral ↔ number-name table: 6 528 · දෙදහස් හාරසිය තිහ · තුන්දහස් එකසියය · 5 060 · එක්දහස් අට · 9 015; row 1's number cell is outlined — they answer via the number pad into the active cell, or say it.
+
+### `readWrite4Digit:18g` · EXPLAIN
+
+Board at line start: the numeral ↔ number-name table: 6 528 · දෙදහස් හාරසිය තිහ · තුන්දහස් එකසියය · 5 060 · එක්දහස් අට · 9 015
+
+1. > දෙදහස් හාරසිය තිහ — ඉලක්කම් වලින් ලියන්නේ මෙහෙමයි.
+   - `blankTable.cell_fill` `{"row":1,"field":"number","value":"2430","by":"tutor"}`
+   - `pointer.move_to` `{"target":{"number":2430}}`
+
+_Sees:_ The numeral ↔ number-name table: 6 528 · දෙදහස් හාරසිය තිහ · තුන්දහස් එකසියය · 5 060 · එක්දහස් අට · 9 015; 2430 written into row 1.
+
+### `readWrite4Digit:18b` · TRANSITION
+
+Board at line start: the numeral ↔ number-name table: 6 528 · දෙදහස් හාරසිය තිහ · තුන්දහස් එකසියය · 5 060 · එක්දහස් අට · 9 015
 
 1. > දැන් අපි වෙනත් අභ්‍යාසයක් බලමු.
    - `digitPicker.show` `{"pool":[1,3,6,4]}`
@@ -569,8 +623,9 @@ Board at line start: the abacus, rods bare
 
 1. > දහසස්ථානයේ කූරට අපි පබළු එක, දෙක, තුන, හතර, පහක් දානවා.
    - `abacus.bead_add` `{"rod":0,"count":5}`
+   - `abacus.rod_glow` `{"rod":0}`
 
-_Sees:_ The abacus, දා 5; 5 bead(s) drop onto the දා rod.
+_Sees:_ The abacus, දා 5; 5 bead(s) drop onto the දා rod; the දා rod glows.
 
 ### `placeValue4Digit:40` · SHOW_BOARD
 
@@ -578,8 +633,9 @@ Board at line start: the abacus, දා 5
 
 1. > ඊළඟ සියයස්ථානයට පබළු හතරක් දාමු.
    - `abacus.bead_add` `{"rod":1,"count":4}`
+   - `abacus.rod_glow` `{"rod":1}`
 
-_Sees:_ The abacus, දා 5, සි 4; 4 bead(s) drop onto the සි rod.
+_Sees:_ The abacus, දා 5, සි 4; 4 bead(s) drop onto the සි rod; the සි rod glows.
 
 ### `placeValue4Digit:41` · SHOW_BOARD
 
@@ -588,8 +644,10 @@ Board at line start: the abacus, දා 5, සි 4
 1. > දහයස්ථානයට පබළු දෙකකුත්, එකස්ථානයට එක පබළුවකුත් එකතු කරමු.
    - `abacus.bead_add` `{"rod":2,"count":2}`
    - `abacus.bead_add` `{"rod":3,"count":1}`
+   - `abacus.rod_glow` `{"rod":2}`
+   - `abacus.rod_glow` `{"rod":3}`
 
-_Sees:_ The abacus showing 5 421; 2 bead(s) drop onto the ද rod; 1 bead(s) drop onto the එ rod.
+_Sees:_ The abacus showing 5 421; 2 bead(s) drop onto the ද rod; 1 bead(s) drop onto the එ rod; the ද rod glows; the එ rod glows.
 
 ### `placeValue4Digit:42` · EXPLAIN
 

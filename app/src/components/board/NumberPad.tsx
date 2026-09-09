@@ -64,7 +64,7 @@ export function NumberPad({ mode, onCommit, onCancel, maxLength = 6, label, dock
       }}
     >
       {label && (
-        <div style={{ gridColumn: "1 / -1", fontSize: 13, color: BOARD.inkSoft, textAlign: "center", minHeight: 16 }}>{label}</div>
+        <div style={{ gridColumn: "1 / -1", fontSize: 16, color: BOARD.inkSoft, textAlign: "center", minHeight: 18 }}>{label}</div>
       )}
       {mode === "number" && (
         <div

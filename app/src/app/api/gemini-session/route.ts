@@ -4,7 +4,8 @@ import { requireSession } from "@/lib/sessionAuth";
 import { limitedResponseBody, takeBudget } from "@/lib/rateLimit";
 import { GoogleGenAI, Modality } from "@google/genai";
 import { buildSystemPrompt } from "@/lib/prompt";
-import { GEMINI_LIVE_TOOLS } from "@/lib/geminiLiveTools";
+import { CHAT_BOARD_TOOLS, GEMINI_LIVE_TOOLS } from "@/lib/geminiLiveTools";
+import { chatContextPrompt, sanitizeChatContext, type ChatContext } from "@/lib/chatContext";
 import { getAvailableSubjects, type AvailableSubject } from "@/lib/availableSubjects";
 
 export const GEMINI_LIVE_MODEL =
@@ -74,7 +75,16 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("[gemini-session] Failed to look up available subjects:", error);
   }
-  const systemPrompt = buildSystemPrompt(availableSubjects);
+  // Where the child is: the lesson's own context, trimmed server-side, so
+  // the chat opens on the board they are looking at.
+  let context: ChatContext | null = null;
+  try {
+    const body = (await request.json().catch(() => null)) as { context?: unknown } | null;
+    context = sanitizeChatContext(body?.context);
+  } catch {
+    context = null;
+  }
+  const systemPrompt = buildSystemPrompt(availableSubjects) + (context ? chatContextPrompt(context) : "");
 
   const tokenConfig = {
     uses: 1,
@@ -85,7 +95,7 @@ export async function POST(request: NextRequest) {
       config: {
         responseModalities: [Modality.AUDIO],
         systemInstruction: { parts: [{ text: systemPrompt }] },
-        tools: [{ functionDeclarations: GEMINI_LIVE_TOOLS }],
+        tools: [{ functionDeclarations: [...GEMINI_LIVE_TOOLS, ...CHAT_BOARD_TOOLS] }],
         outputAudioTranscription: {},
         inputAudioTranscription: {},
         // One voice, forever: pinned here and locked by the token (the

@@ -697,5 +697,122 @@
         "why": "Note 1 (board alternative, accepted over the wording change). 'දැන් අපි ලොකු සංඛ්‍යා ගැන බලමු' now has something to look at: the concept-2 title card appears on this line instead of one beat later."
       }
     }
+  },
+  "textbookTable": {
+    "$comment": "Round 10 (first real phone run). Textbook exercise 2 — the numeral ↔ number-name table (6528 · 2430 · 3100 · 5060 · 1008 · 9015, content_bank 4c2aa078) — had no beat, so the session never showed it. Guide activity 1 step 2 asks for exactly this practice, both directions. Inserted after :18 (the 3058 name run), before the digit-picker exercise: a SHOW_BOARD staging the table, an ASK number → name (row 1, the name is never spoken before the child tries), a neutral confirmation that writes the name in, an ASK name → number (row 2), and a neutral confirmation that writes the number in.",
+    "insert": [
+      {
+        "after": "authored:readWrite4Digit:18",
+        "beat": {
+          "id": "authored:readWrite4Digit:18c",
+          "type": "SHOW_BOARD",
+          "pause": "—",
+          "spokenText": "පොතේ මේ වගුවේ එක පැත්තක සංඛ්‍යාව, අනිත් පැත්තේ ඒකේ නම තියෙනවා.",
+          "board": {
+            "kind": "exercise",
+            "itemId": "4c2aa078-355a-4ba6-a32f-a2ed2d261a99"
+          },
+          "guideStep": "textbook step 2: numeral ↔ number-name table (guide activity 1 step 2)",
+          "why": "Stages the textbook's numeral ↔ name table; the child sees both columns before either is asked about."
+        }
+      },
+      {
+        "after": "authored:readWrite4Digit:18c",
+        "beat": {
+          "id": "authored:readWrite4Digit:18d",
+          "type": "ASK",
+          "pause": "ASK",
+          "spokenText": "මුල්ම පේළියේ තියෙන සංඛ්‍යාව බලලා ඒකේ නම කියන්න බලන්න.",
+          "board": {
+            "kind": "blank",
+            "itemId": "4c2aa078-355a-4ba6-a32f-a2ed2d261a99",
+            "rowIndex": 0,
+            "field": "numberName"
+          },
+          "expectedAnswer": "හයදහස් පන්සිය විසි අට",
+          "guideStep": "textbook step 2: numeral ↔ number-name table (guide activity 1 step 2)",
+          "why": "Number → name. The line points at the row without saying the number, so the name is the child's to give."
+        }
+      },
+      {
+        "after": "authored:readWrite4Digit:18d",
+        "beat": {
+          "id": "authored:readWrite4Digit:18e",
+          "type": "EXPLAIN",
+          "pause": "—",
+          "spokenText": "{number:6528} — ඒ නම අපි වගුවේ ලියමු.",
+          "board": {
+            "kind": "reveal",
+            "itemId": "4c2aa078-355a-4ba6-a32f-a2ed2d261a99",
+            "rowIndex": 0,
+            "field": "numberName",
+            "value": "හයදහස් පන්සිය විසි අට"
+          },
+          "guideStep": "textbook step 2: numeral ↔ number-name table (guide activity 1 step 2)",
+          "why": "Neutral confirmation after the question: the name is stated and written into the cell, with no verdict — the FEEDBACK beat before it carries the verdict."
+        }
+      },
+      {
+        "after": "authored:readWrite4Digit:18e",
+        "beat": {
+          "id": "authored:readWrite4Digit:18f",
+          "type": "ASK",
+          "pause": "ASK",
+          "spokenText": "දෙවෙනි පේළියේ නම {number:2430}. ඒ සංඛ්‍යාව ඉලක්කම් වලින් කීයද?",
+          "board": {
+            "kind": "blank",
+            "itemId": "4c2aa078-355a-4ba6-a32f-a2ed2d261a99",
+            "rowIndex": 1,
+            "field": "number"
+          },
+          "expectedAnswer": "2430",
+          "guideStep": "textbook step 2: numeral ↔ number-name table (guide activity 1 step 2)",
+          "why": "Name → number. She reads the name; the child gives the digits (voice, the cell, or the pad)."
+        }
+      },
+      {
+        "after": "authored:readWrite4Digit:18f",
+        "beat": {
+          "id": "authored:readWrite4Digit:18g",
+          "type": "EXPLAIN",
+          "pause": "—",
+          "spokenText": "{number:2430} — ඉලක්කම් වලින් ලියන්නේ මෙහෙමයි.",
+          "board": {
+            "kind": "reveal",
+            "itemId": "4c2aa078-355a-4ba6-a32f-a2ed2d261a99",
+            "rowIndex": 1,
+            "field": "number",
+            "value": "2430"
+          },
+          "guideStep": "textbook step 2: numeral ↔ number-name table (guide activity 1 step 2)",
+          "why": "Neutral confirmation: the number is written into the cell, no verdict."
+        }
+      }
+    ]
+  },
+  "phraseRubrics": {
+    "$comment": "Round 10. Phrase answers (CHECK_MY_WORK, verbal why-questions) were string-matched against one phrase, so a child saying the finding in other words was marked wrong. A rubric per beat: judged first by a deterministic token match after number-name normalisation, then — only if nothing matches — by one Flash call with the rubric. After one miss the three `choices` are offered as taps (the correct finding first; the runtime shuffles).",
+    "authored:readWrite4Digit:31": {
+      "acceptIfAnyOf": [
+        "අසූව",
+        "80",
+        "බිංදුව",
+        "දහයස්ථානය",
+        "8 නෙවෙයි",
+        "අටේ අගය",
+        "අසූවක්"
+      ],
+      "conceptDescription": "In 84 the digit 8 is in the tens place and represents 80, not 8; Zara wrote 84 = 8 + 4 and the 8 needs its zero (80).",
+      "explainSi": "අට තියෙන්නේ දහයස්ථානයේ, ඒ නිසා ඒකේ අගය අසූවයි — {number:84} = {number:80} + {number:4}.",
+      "choices": [
+        "අටේ අගය අසූවයි, අට නෙවෙයි",
+        "හතරේ අගය හතළිහයි",
+        "අසූ හතර හරියටම හරි"
+      ],
+      "why": "The planted error is the missing zero on the 8; any of these findings shows the child saw it."
+    }
+  },
+  "modes": {
+    "$comment": "Round 10. Mastery stars never landed because authored beats carried no teaching mode, and the orchestrator counts only mode-3 answers as unaided. Modes are now assigned at build time (authoredScript.toRuntimeBeats) from the beat's role: demonstrations and every non-asking beat → 1; an ASK inside a guided run (the abacus build, the card reading, the 999 + 1 build-up) → 2; a standalone ASK in the concept's closing guide steps (the last two of the concept), the closing exercise, and CHECK_MY_WORK → 3. Recorded here because it changes how the lesson judges mastery, not the words."
   }
 }

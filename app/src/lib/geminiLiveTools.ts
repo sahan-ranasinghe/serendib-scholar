@@ -31,6 +31,39 @@ export interface GeminiFunctionDeclaration {
   };
 }
 
+/**
+ * The ✋ chat's own tools — read-only: they move the pointer or draw a
+ * chalk ring on the lesson's board and change nothing. `target` is a
+ * board target key: rod:0-3 (abacus rods, 0 = දහසස්ථානය, 1 = සියයස්ථානය,
+ * 2 = දහයස්ථානය, 3 = එකස්ථානය), number:<n> (a number on the board),
+ * card:<n>, part:<i> (an expansion slot), cell:<row>/<field>,
+ * text:<exact text on the board>.
+ */
+export const CHAT_BOARD_TOOLS: GeminiFunctionDeclaration[] = [
+  {
+    name: "point_at",
+    description:
+      "Move Zara's pointer to something on the lesson board while you talk about it — read-only. target examples: rod:1 (the hundreds rod of the abacus), number:5421, card:101, part:2, text:ස්ථානීය අගය.",
+    parametersJsonSchema: {
+      type: "object",
+      properties: { target: { type: "string", description: "A board target key, e.g. rod:0, number:5421, card:84, part:1, text:…" } },
+      required: ["target"],
+    },
+  },
+  {
+    name: "highlight_board",
+    description: "Draw a chalk ring (or an underline) around something on the lesson board — read-only, nothing changes.",
+    parametersJsonSchema: {
+      type: "object",
+      properties: {
+        target: { type: "string", description: "A board target key, as for point_at." },
+        kind: { type: "string", enum: ["circle", "underline"], description: "circle (default) or underline." },
+      },
+      required: ["target"],
+    },
+  },
+];
+
 export const GEMINI_LIVE_TOOLS: GeminiFunctionDeclaration[] = [
   {
     name: "search_syllabus",

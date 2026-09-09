@@ -65,6 +65,58 @@ export function isKnownEvent(event: Pick<StoryboardEvent, "primitive" | "event">
   return Boolean(events && events.includes(event.event));
 }
 
+// --- places ----------------------------------------------------------------
+
+/** The place names, rod by rod (0 = දහසස්ථානය … 3 = එකස්ථානය); the generator and the checks share these. */
+export const PLACE_PATTERNS: Array<[RegExp, number]> = [
+  [/දස දහසස්ථාන/u, -1],
+  [/දහසස්ථාන/u, 0],
+  [/සියයස්ථාන|සියයේ තැන|සියයේ කූර/u, 1],
+  [/දහයස්ථාන|දසස්ථාන|දහයේ තැන|දහයේ කූර/u, 2],
+  [/එකස්ථාන|එකේ තැන|එකේ කූර|දකුණු පැත්තේ මුල්ම කූර|අවසාන කූර|අන්තිම කූර/u, 3],
+];
+
+/** Every rod a sentence names, in order of mention. */
+export function rodsNamedIn(sentence: string): number[] {
+  const rods: number[] = [];
+  for (const [pattern, rod] of PLACE_PATTERNS) if (pattern.test(sentence) && rod >= 0 && !rods.includes(rod)) rods.push(rod);
+  return rods;
+}
+
+/** "rod:1" / "number:5421" / "text:…/place:ද" back into a Target — the chat's tools speak in these. */
+export function parseTargetKey(key: string): Target | null {
+  const trimmed = key.trim();
+  const place = trimmed.match(/\/place:(.+)$/u);
+  const bare = place ? trimmed.slice(0, trimmed.length - place[0].length) : trimmed;
+  const colon = bare.indexOf(":");
+  if (colon < 0) return null;
+  const kind = bare.slice(0, colon);
+  const value = bare.slice(colon + 1);
+  const placeValue = place?.[1] as Target extends { place?: infer P } ? P : never;
+  switch (kind) {
+    case "rod":
+      return { rod: Number(value) };
+    case "column":
+      return { column: Number(value) };
+    case "number":
+      return { number: Number(value.replace(/\s/gu, "")) };
+    case "card":
+      return place ? { card: Number(value), place: placeValue } : { card: Number(value) };
+    case "part":
+      return { part: Number(value) };
+    case "digit":
+      return { digit: Number(value) };
+    case "cell": {
+      const [row, field] = value.split("/");
+      return { cell: { row: Number(row), field: field ?? "" } };
+    }
+    case "text":
+      return place ? { text: value, place: placeValue } : { text: value };
+    default:
+      return null;
+  }
+}
+
 // --- the stage -------------------------------------------------------------
 
 export interface ChalkLine {
@@ -208,7 +260,9 @@ export function reduceStage(state: StageState, event: Pick<StoryboardEvent, "pri
       const rod = Number(args.rod);
       const count = Number(args.count);
       const shown = state.base.shown.map((n, i) => (i === rod ? Math.min(state.base!.kind === "abacus" ? state.base.digits[i]! : 9, n + count) : n));
-      return { ...state, base: { ...state.base, shown }, pointer: { rod }, seq };
+      // Beads landing on a rod ARE the attention: the rod she is filling
+      // glows, so the hundreds rod lights when she names it and fills it.
+      return { ...state, base: { ...state.base, shown, glowRod: rod }, pointer: { rod }, seq };
     }
     case "abacus.rod_glow": {
       if (state.base?.kind !== "abacus") return state;

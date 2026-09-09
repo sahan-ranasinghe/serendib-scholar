@@ -1,8 +1,8 @@
 # Session 1 — Zara's original script (for review)
 
-Generated 2026-09-07 00:40 with gemini-flash-latest. 121 beats across readWrite4Digit, placeValue4Digit.
+Generated 2026-09-07 00:40 with gemini-flash-latest. 126 beats across readWrite4Digit, placeValue4Digit.
 
-93 of the 121 beats carry `humanEdited: true` — a native-speaker review rewrote them (docs/review/session-1-edits.json, then docs/review/gemini-review-decisions.json). Each is marked **· human-edited** below.
+98 of the 126 beats carry `humanEdited: true` — a native-speaker review rewrote them (docs/review/session-1-edits.json, then docs/review/gemini-review-decisions.json). Each is marked **· human-edited** below.
 
 **Status: APPROVED.** These are the words a child hears. Editing the JSON invalidates the cached script automatically; set `"approved": false` to take it back off the air.
 
@@ -270,6 +270,52 @@ Board shows: "3058 - තුන්දහස් පනස් අට" — inherited
 > නම කියද්දී නොකියවුණත් ඒ තැනට බිංදුවක් ලියන්න ඕනේ, හරිද?
 
 Board shows: "3058 - තුන්දහස් පනස් අට" — inherited
+
+### `authored:readWrite4Digit:18c`
+
+**SHOW_BOARD** · pause: — · guide: textbook step 2: numeral ↔ number-name table (guide activity 1 step 2) · max-sim J 0.30 · **human-edited**
+
+> පොතේ මේ වගුවේ එක පැත්තක සංඛ්‍යාව, අනිත් පැත්තේ ඒකේ නම තියෙනවා.
+
+Board shows: the exercise 4c2aa078 as its content_bank row defines it
+
+### `authored:readWrite4Digit:18d`
+
+**ASK** · pause: ASK · guide: textbook step 2: numeral ↔ number-name table (guide activity 1 step 2) · expects **හයදහස් පන්සිය විසි අට** · max-sim J 0.12 · **human-edited**
+
+> මුල්ම පේළියේ තියෙන සංඛ්‍යාව බලලා ඒකේ නම කියන්න බලන්න.
+
+Board shows: the staged exercise, row 0's numberName blank and active
+
+### `authored:readWrite4Digit:18e`
+
+**EXPLAIN** · pause: — · guide: textbook step 2: numeral ↔ number-name table (guide activity 1 step 2) · max-sim J 0.13 · **human-edited**
+
+> හයදහස් පන්සිය විසි අට — ඒ නම අපි වගුවේ ලියමු.
+
+Source: `{number:6528} — ඒ නම අපි වගුවේ ලියමු.`
+
+Board shows: the staged exercise, row 0's numberName blank and active, plus "හයදහස් පන්සිය විසි අට" written into row 0's numberName
+
+### `authored:readWrite4Digit:18f`
+
+**ASK** · pause: ASK · guide: textbook step 2: numeral ↔ number-name table (guide activity 1 step 2) · expects **2430** · max-sim J 0.00 · **human-edited**
+
+> දෙවෙනි පේළියේ නම දෙදහස් හාරසිය තිහ. ඒ සංඛ්‍යාව ඉලක්කම් වලින් කීයද?
+
+Source: `දෙවෙනි පේළියේ නම {number:2430}. ඒ සංඛ්‍යාව ඉලක්කම් වලින් කීයද?`
+
+Board shows: the staged exercise, row 1's number blank and active
+
+### `authored:readWrite4Digit:18g`
+
+**EXPLAIN** · pause: — · guide: textbook step 2: numeral ↔ number-name table (guide activity 1 step 2) · max-sim J 0.15 · **human-edited**
+
+> දෙදහස් හාරසිය තිහ — ඉලක්කම් වලින් ලියන්නේ මෙහෙමයි.
+
+Source: `{number:2430} — ඉලක්කම් වලින් ලියන්නේ මෙහෙමයි.`
+
+Board shows: the staged exercise, row 1's number blank and active, plus "2430" written into row 1's number
 
 ### `authored:readWrite4Digit:18b`
 
