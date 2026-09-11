@@ -2,7 +2,7 @@
 
 Generated 2026-09-07 00:40 with gemini-flash-latest. 126 beats across readWrite4Digit, placeValue4Digit.
 
-98 of the 126 beats carry `humanEdited: true` — a native-speaker review rewrote them (docs/review/session-1-edits.json, then docs/review/gemini-review-decisions.json). Each is marked **· human-edited** below.
+99 of the 126 beats carry `humanEdited: true` — a native-speaker review rewrote them (docs/review/session-1-edits.json, then docs/review/gemini-review-decisions.json). Each is marked **· human-edited** below.
 
 **Status: APPROVED.** These are the words a child hears. Editing the JSON invalidates the cached script automatically; set `"approved": false` to take it back off the air.
 
@@ -443,13 +443,13 @@ Board shows: the digit picker: 1, 3, 6, 4, plus the number the child just built,
 
 ### `authored:readWrite4Digit:31`
 
-**CHECK_MY_WORK** · pause: ASK · guide: peer-check (guide) → find Zara's mistake · expects **අටට බිංදුවක් දාලා නෑ** · max-sim J 0.19 / C 0.80
+**CHECK_MY_WORK** · pause: ASK · guide: peer-check (guide) → find Zara's mistake · expects **අටට බිංදුවක් දාලා නෑ** · max-sim J 0.19 · **human-edited**
 
 Planted error: අට ළඟට බිංදුවක් දාලා නෑ.
 
-> ඔන්න {address}, මම අසූ හතර කියන සංඛ්‍යාව වෙන් කරලා ලිව්වා. ඒත් මගේ වැඩේ පොඩි වැරැද්දක් වුණා වගේ. මට උදව්වක් විදිහට ඒ වැරැද්ද හොයලා කියන්න පුළුවන්ද?
+> ඔන්න {address}, මම අසූ හතර කියන සංඛ්‍යාව වෙන් කරලා ලිව්වා. ඒත් මගේ වැඩේ පොඩි වැරැද්දක් වුණා වගේ. මට උදව්වක් විදිහට ඒ වැරැද්ද හොයලා කියන්න හෝ තෝරන්න පුළුවන්ද?
 
-Source: `ඔන්න {address}, මම {number:84} කියන සංඛ්‍යාව වෙන් කරලා ලිව්වා. ඒත් මගේ වැඩේ පොඩි වැරැද්දක් වුණා වගේ. මට උදව්වක් විදිහට ඒ වැරැද්ද හොයලා කියන්න පුළුවන්ද?`
+Source: `ඔන්න {address}, මම {number:84} කියන සංඛ්‍යාව වෙන් කරලා ලිව්වා. ඒත් මගේ වැඩේ පොඩි වැරැද්දක් වුණා වගේ. මට උදව්වක් විදිහට ඒ වැරැද්ද හොයලා කියන්න හෝ තෝරන්න පුළුවන්ද?`
 
 Board shows: "84 = 8 + 4"
 
@@ -612,9 +612,9 @@ Board shows: the abacus [5, 4, 2, 1] — inherited
 
 ### `authored:placeValue4Digit:48`
 
-**ASK** · pause: ASK · guide: Ask the class about the digit shown by the beads at each place, the place value at each place, and the value represented by the digit at each place. · expects **හතර** · max-sim J 0.00 · **human-edited**
+**ASK** · pause: ASK · guide: Ask the class about the digit shown by the beads at each place, the place value at each place, and the value represented by the digit at each place. · expects **හතර** · max-sim J 0.14 · **human-edited**
 
-> සියයස්ථානයේ තියෙන පබළු ගණන කියන්න පුළුවන්ද?
+> සියයස්ථානයේ තියෙන පබළු ගණන කියන්න හෝ තෝරන්න පුළුවන්ද?
 
 Board shows: the abacus [5, 4, 2, 1] — inherited
 

@@ -1,0 +1,73 @@
+/* Serendib Scholar — design tokens v1 (brief §3). Import once; everything else reads var(). */
+:root{
+  /* ---- colour: brief palette ---- */
+  --color-board:#F7F3EA;      /* whiteboard surface, session background */
+  --color-ink:#1B1B1B;        /* primary text */
+  --color-teal:#0F4C5C;       /* app primary */
+  --color-saffron:#E9B44C;    /* accent: highlights, stars, your-turn glow, chalk ring */
+  --color-coral:#D9643A;      /* secondary accent: streak, warmth */
+  --color-marker:#2F5FA6;     /* Zara's writing */
+  --color-success:#3C8C5A;    /* child's correct answers (never the only signal) */
+  --color-wood:#8B5E3C;       /* board frame, abacus base */
+  --color-card:#EEF4F5;       /* cards on light screens */
+  --bead-1000:#E05263; --bead-100:#F2A541; --bead-10:#3F8F5F; --bead-1:#4A7BD0;
+  /* ---- colour: derived (same hues, tinted) ---- */
+  --color-paper:#FFFDF8;               /* paper primitives on the board */
+  --color-teal-dark:#0A3641;           /* button shadow edge */
+  --color-wood-dark:#6B4528;           /* frame inner edge, marker tray */
+  --color-saffron-soft:#FBEFD3;        /* glow fill, selected chip */
+  --color-saffron-glow:rgba(233,180,76,.55);
+  --color-success-soft:#DFF0E4;
+  --color-success-text:#2F7048;   /* green for TEXT — 5.5:1 on paper */
+  --color-coral-text:#B34A22;     /* coral for TEXT — 4.6:1 on coral-soft */
+  --color-saffron-text:#7A5A12;   /* saffron for TEXT — 6:1 on saffron-soft */
+  --color-coral-soft:#F8E3D8;
+  --color-ink-70:rgba(27,27,27,.70);   /* labels */
+  --color-ink-40:rgba(27,27,27,.40);   /* empty slot dashes */
+  --color-ink-18:rgba(27,27,27,.18);   /* chalk-grey strokes, paper borders */
+  --color-ink-10:rgba(27,27,27,.10);
+  --color-grid:rgba(15,76,92,.07);     /* faint board grid */
+  --color-dim:rgba(247,243,234,.62);   /* veil over non-focus primitives */
+  --color-white:#FFFFFF;
+  /* ---- characters: Zara skin (lit from upper-left) ---- */
+  --skin-base:#D29A6A;       /* light caramel, golden undertone */
+  --skin-shade:#B27A4E;      /* warm brown shade — never grey */
+  --skin-highlight:#EDC094;  /* forehead, nose bridge, cheekbone */
+  --skin-blush:#E0805A;      /* cheeks at 32 % */
+  --zara-lip:#A64F3C; --zara-hair:#2E1B14; --zara-saree:#5A3E8C; --zara-gold:#D4A64A; --zara-jacket:#E9B44C;
+  --lena-coat:#8C7455; --lena-belly:#EADFC8; --lena-tail:#7A6247; --lena-dark:#3A2A22;
+  /* ---- type (Mooniak, Google Fonts) ---- */
+  --font-display:'Gemunu Libre',sans-serif;   /* headings, board words */
+  --font-body:'Abhaya Libre',serif;           /* body */
+  --font-label:'Yaldevi',sans-serif;          /* tight labels, table columns */
+  --font-latin:Inter,system-ui,sans-serif;    /* parent zone English only */
+  --text-body:16px; --text-label:20px; --text-ui:22px; --text-board:28px;
+  --text-board-lg:40px; --text-display:32px; --text-hero:44px; --text-caption:20px;
+  --lh-sinhala:1.5; --lh-lesson:1.6; --lh-numeral:1.1;
+  --weight-display:700; --weight-body:400; --weight-body-strong:500;
+  /* ---- spacing (4-base) ---- */
+  --s-1:4px; --s-2:8px; --s-3:12px; --s-4:16px; --s-5:24px; --s-6:32px; --s-7:48px; --s-8:64px;
+  /* ---- radius ---- */
+  --r-sm:6px; --r-md:12px; --r-lg:20px; --r-pill:999px;
+  /* ---- strokes ---- */
+  --stroke-chalk:3px; --stroke-thin:2px; --stroke-numeral:3.2px;
+  /* ---- shadows ---- */
+  --shadow-paper:0 2px 0 #D8D1C2, 0 6px 14px rgba(27,27,27,.08);   /* paper resting on the board */
+  --shadow-lift:0 14px 20px rgba(27,27,27,.22);                     /* picked-up */
+  --shadow-glow:0 0 0 4px var(--color-saffron), 0 0 24px 6px var(--color-saffron-glow); /* your turn */
+  --shadow-card:0 1px 2px rgba(15,76,92,.08), 0 8px 20px rgba(15,76,92,.08);
+  --shadow-button:0 3px 0 var(--color-teal-dark);
+  --shadow-frame:inset 0 2px 6px rgba(0,0,0,.18);
+  /* ---- sizes ---- */
+  --touch-min:48px; --portrait-zara:64px; --portrait-lena:48px; --portrait-zara-chat:160px;
+  --strip-h:28px; --frame-w:10px; --tray-h:22px;
+  --bead-w:36px; --bead-h:14px; --tile:56px; --slot-w:64px; --slot-h:48px; --key-w:56px; --key-h:48px;
+  --session-w:844px; --session-h:390px; --portrait-w:390px; --portrait-h:844px;
+  /* ---- motion: springs (Rive/CSS) ---- */
+  --dur-ui:300ms; --dur-board:600ms; --dur-glow:2400ms; --dur-blink:120ms;
+  --ease-spring:cubic-bezier(.34,1.3,.64,1);   /* one overshoot, settles */
+  --ease-settle:cubic-bezier(.22,.9,.32,1);
+  --spring-stiffness:180; --spring-damping:20; --spring-mass:1; /* numeric, for the animator */
+}
+@media (prefers-reduced-motion:reduce){:root{--dur-ui:0ms;--dur-board:0ms;--dur-glow:0ms}}
+body{font-family:var(--font-body);line-height:var(--lh-sinhala);color:var(--color-ink);}

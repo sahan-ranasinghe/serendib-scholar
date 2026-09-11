@@ -814,5 +814,13 @@
   },
   "modes": {
     "$comment": "Round 10. Mastery stars never landed because authored beats carried no teaching mode, and the orchestrator counts only mode-3 answers as unaided. Modes are now assigned at build time (authoredScript.toRuntimeBeats) from the beat's role: demonstrations and every non-asking beat → 1; an ASK inside a guided run (the abacus build, the card reading, the 999 + 1 build-up) → 2; a standalone ASK in the concept's closing guide steps (the last two of the concept), the closing exercise, and CHECK_MY_WORK → 3. Recorded here because it changes how the lesson judges mastery, not the words."
+  },
+  "chipWording": {
+    "$comment": "ANSWER-MODE ROUND. Every question now has a touch surface; speech is offered on all and required on none. Where a chip-primary question (answerMode valueOrPlace or why) told the child to SAY the answer, it now offers both — the chips are on the board as she asks. readAloud lines keep කියන්න: there speech leads and the three name-chips sit beneath the 🎤 cue. build/cell lines are untouched (their touch surface is the picker, the pad, the cell). Both rewrites stay under 14 words a sentence.",
+    "authored:readWrite4Digit:31": "ඔන්න {address}, මම {number:84} කියන සංඛ්‍යාව වෙන් කරලා ලිව්වා. ඒත් මගේ වැඩේ පොඩි වැරැද්දක් වුණා වගේ. මට උදව්වක් විදිහට ඒ වැරැද්ද හොයලා කියන්න හෝ තෝරන්න පුළුවන්ද?",
+    "authored:placeValue4Digit:48": "සියයස්ථානයේ තියෙන පබළු ගණන කියන්න හෝ තෝරන්න පුළුවන්ද?"
+  },
+  "touchOnly": {
+    "$comment": "TOUCH-ONLY ROUND. No authored beat changed its words. The change is how the child answers: every ASK/SOFT_CHECK/CHECK_MY_WORK is answered by touch and judged on the device; the microphone opens only in the ✋ chat. Script-adjacent: (1) readAloud beats (readWrite4Digit:2, :3a, :15; placeValue4Digit:58, :62) now run as reading practice before their chips — a 3 s 'කියන්න බලන්න' pause with a faint 🎤 cue (nothing recorded), then Zara reads the number herself with the new recorded frame 'මම කියන්නම් —' + the composed number; (2) every SOFT_CHECK is a 2 s pause where a tap counts as engagement — the 'හරි!' acknowledgement clip is no longer played; (3) three lines join src/lib/authoredLines.ts for the actor to record: readBack 'මම කියන්නම් —', touchNudge 'ඕනෑම එකක් තෝරලා බලන්න.' (the one nudge at 12 s of no tap; at 25 s she demonstrates), micPermission 'ඔයාගේ කටහඬ අහන්න මට අවසර ඕනේ. හරි කියලා දෙන්නකෝ.' (said before the browser asks, on the first ✋). Until recorded, these three are read on the board rather than rendered. The voice silence ladder (wait / offerHelp / giveUpReveal) and confirmHeard stay only for the opt-in reading assessment (VOICE_ASSESSMENT=on)."
   }
 }

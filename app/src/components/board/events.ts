@@ -1,3 +1,4 @@
+import type { AnswerMode } from "@/lib/answerMode";
 /**
  * The board vocabulary as data — every primitive, every event, every
  * argument shape, exactly as docs/design/board-vocabulary.md specifies
@@ -24,7 +25,7 @@ export type Filler = "child" | "tutor";
 export type BoardEvent =
   | { primitive: "abacus"; event: "show"; args: { digits: number[]; startEmpty?: boolean; animate?: boolean } }
   | { primitive: "abacus"; event: "bead_add"; args: { rod: number; count: number } }
-  | { primitive: "abacus"; event: "rod_glow"; args: { rod: number } }
+  | { primitive: "abacus"; event: "rod_glow"; args: { rod: number; rods?: number[] } }
   | { primitive: "abacus"; event: "child_answer_overlay"; args: { text: string } }
   | { primitive: "abacus"; event: "clear_overlay"; args?: undefined }
   | { primitive: "placeValueStrip"; event: "show"; args: { digits?: Array<number | null> } }
@@ -54,7 +55,17 @@ export type BoardEvent =
   | { primitive: "textCard"; event: "show"; args: { text: string } }
   | { primitive: "blankTable"; event: "show"; args: { rows: unknown[] } }
   | { primitive: "blankTable"; event: "row_activate"; args: { row: number; field: string } }
-  | { primitive: "blankTable"; event: "cell_fill"; args: { row: number; field: string; value: string | number; by: Filler } };
+  | { primitive: "blankTable"; event: "cell_fill"; args: { row: number; field: string; value: string | number; by: Filler } }
+  | { primitive: "choiceChips"; event: "show"; args: { options: string[]; correctIndex: number } }
+  | { primitive: "choiceChips"; event: "clear"; args?: undefined }
+  | { primitive: "turn"; event: "your_turn"; args: { answerMode: AnswerMode; surface: TurnSurface } }
+  | { primitive: "turn"; event: "over"; args?: undefined }
+  | { primitive: "turn"; event: "pause"; args: { ms: number; cue?: "mic" } }
+  | { primitive: "turn"; event: "read_back"; args: { number: number } }
+  | { primitive: "turn"; event: "retry"; args?: undefined };
+
+/** Where the child's turn lands on the board — the glow goes there. Every surface is a touch; the microphone is not one. */
+export type TurnSurface = "picker" | "beads" | "pad" | "cell" | "rod" | "column" | "chips";
 
 export type Primitive = BoardEvent["primitive"];
 export type EventName = `${Primitive}.${string}`;
@@ -73,6 +84,8 @@ export const VOCABULARY: Record<Primitive, readonly string[]> = {
   titleCard: ["show"],
   textCard: ["show"],
   blankTable: ["show", "row_activate", "cell_fill"],
+  choiceChips: ["show", "clear"],
+  turn: ["your_turn", "over", "pause", "read_back", "retry"],
 };
 
 /** The doc's duration ceiling per event, in ms — the gallery asserts against these. */
@@ -110,6 +123,13 @@ export const DURATION_MS: Record<EventName, number> = {
   "blankTable.show": 400,
   "blankTable.row_activate": 250,
   "blankTable.cell_fill": 300,
+  "choiceChips.show": 300,
+  "choiceChips.clear": 150,
+  "turn.your_turn": 300,
+  "turn.over": 150,
+  "turn.pause": 3000,
+  "turn.read_back": 400,
+  "turn.retry": 300,
 };
 
 export type Support = "implemented" | "partial";

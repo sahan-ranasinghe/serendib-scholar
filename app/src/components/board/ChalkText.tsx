@@ -20,7 +20,7 @@ import { HandNumber } from "./HandNumber";
 import { WriteOn } from "./WriteOn";
 import { isGlyph } from "./HandGlyphs";
 import { useTargetRef } from "./targets";
-import { BOARD, MAX_MS } from "./theme";
+import { BOARD, FONT_SINHALA, MAX_MS } from "./tokens";
 
 export interface ChalkTextProps {
   text: string;
@@ -29,6 +29,12 @@ export interface ChalkTextProps {
   size?: number;
   color?: string;
   align?: "left" | "center";
+  /** An older line of the chalk stack: 60 % (rule a). */
+  dimmed?: boolean;
+  /** Mid-write: the marker cursor waits at the end of the line. */
+  cursor?: boolean;
+  /** The child answers this line on the pad: a trailing "?" becomes the glowing answer slot showing their digits so far (G2). */
+  answerSlot?: { draft: string; glow: boolean } | null;
 }
 
 interface Token {
@@ -92,52 +98,46 @@ function plan(head: string, tail: string, fullText: string): Planned[] {
   return planned;
 }
 
-export function ChalkText({ text, append, size = 34, color = BOARD.markerBlue, align = "center" }: ChalkTextProps) {
+export function ChalkText({ text: fullText, append: fullAppend, size = 34, color = BOARD.markerBlue, align = "center", dimmed = false, cursor = false, answerSlot = null }: ChalkTextProps) {
+  // With an answer slot, the line's trailing "?" is the slot itself (G2); after a trailing "+" the next value's slot waits (G10).
+  const slotted = answerSlot !== null && /\?\s*$/u.test(fullText);
+  const nextSlot = answerSlot !== null && !slotted && /\+\s*$/u.test(fullText);
+  const text = slotted ? fullText.replace(/\s*\?\s*$/u, "").trimEnd() : fullText;
+  const append = slotted && fullAppend ? fullAppend.replace(/\s*\?\s*$/u, "").trimEnd() : fullAppend;
   const hasTail = Boolean(append && text.endsWith(append));
   const head = hasTail ? text.slice(0, text.length - append!.length) : "";
   const tail = hasTail ? append! : text;
   const planned = useMemo(() => plan(head, tail, text), [head, tail, text]);
-  const ref = useTargetRef(`text:${text}`);
-
+  const ref = useTargetRef(`text:${fullText}`);
+  // Sinhala words on the board are Gemunu Libre, never under 28 px (rule 4).
+  const wordSize = Math.max(28, Math.round(size * 0.85));
   return (
     <div
       ref={ref}
+      className="chalk-text"
       data-testid="chalk-text"
-      style={{
-        display: "flex",
-        flexWrap: "wrap",
-        alignItems: "center",
-        justifyContent: align === "center" ? "center" : "flex-start",
-        rowGap: 6,
-        maxWidth: "100%",
-        lineHeight: 1.3,
-      }}
+      data-dimmed={dimmed || undefined}
+      style={{ display: "flex", alignItems: "center", flexWrap: "wrap", justifyContent: align === "center" ? "center" : "flex-start", gap: "0.3em", opacity: dimmed ? 0.6 : 1, transition: "opacity var(--dur-ui)", maxWidth: "100%" }}
     >
       {planned.map((token) =>
         token.kind === "hand" ? (
-          <HandNumber
-            key={token.key}
-            text={token.text}
-            size={size}
-            color={color}
-            draw={token.write}
-            delayMs={token.delayMs}
-            budgetMs={token.budgetMs}
-            targetBase={token.targetBase}
-            style={{ margin: "0 0.12em" }}
-          />
+          <HandNumber key={token.key} text={token.text} size={size} color={color} draw={token.write} delayMs={token.delayMs} budgetMs={token.budgetMs} targetBase={token.targetBase} />
         ) : (
-          <WriteOn
-            key={token.key}
-            text={token.text}
-            size={size * 0.8}
-            color={color}
-            write={token.write}
-            delayMs={token.delayMs}
-            durationMs={Math.max(150, token.budgetMs)}
-          />
+          <WriteOn key={token.key} text={token.text} size={wordSize} color={color} weight={700} write={token.write} delayMs={token.delayMs} durationMs={token.budgetMs} style={{ fontFamily: FONT_SINHALA, lineHeight: 1.6 }} />
         ),
       )}
+      {slotted && answerSlot && (
+        <span data-testid="chalk-answer-slot" className={answerSlot.glow ? "wb-glow" : undefined} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 4, width: 120, height: 52, border: `3px dashed ${BOARD.chalkYellow}`, borderRadius: 10, background: BOARD.saffronSoft }}>
+          {answerSlot.draft && <HandNumber text={answerSlot.draft} size={34} color={BOARD.successText} draw={false} registerNumbers={false} />}
+          <span aria-hidden style={{ width: 2, height: 30, background: BOARD.successText }} />
+        </span>
+      )}
+      {nextSlot && answerSlot && (
+        <span data-testid="chalk-next-slot" className={answerSlot.glow ? "wb-glow" : undefined} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 64, height: 46, border: `3px dashed ${BOARD.chalkYellow}`, borderRadius: 10, background: BOARD.saffronSoft }}>
+          {answerSlot.draft && <HandNumber text={answerSlot.draft} size={30} color={BOARD.successText} draw={false} registerNumbers={false} />}
+        </span>
+      )}
+      {cursor && !slotted && !nextSlot && <span data-testid="chalk-cursor" aria-hidden style={{ width: 14, height: size, borderRight: `3px solid ${color}`, opacity: 0.5 }} />}
     </div>
   );
 }

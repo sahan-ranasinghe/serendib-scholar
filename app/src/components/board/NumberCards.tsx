@@ -1,24 +1,20 @@
 "use client";
 
 /**
- * A row of numbers on chalk cards — "84 · 101 · 528 · 997". Cards deal in
- * left to right; a chalk-yellow ring goes round one of them.
- *
- * Vocabulary:
- *   show { values }            → values
- *   highlight_ring { value }   → ringed
- *   ring_off                   → ringed = null
- *
- * TOUCH: tap a card to select it (it lifts); drag a card onto another to
- * put it there.
+ * Number cards, from the design: paper cards (min 96×80, padding 0 14,
+ * radius 12, 2 px ink-18 border, paper shadow) with StrokeNum 44 in ink,
+ * dealt in left to right; a chalk-saffron ring around one; a lifted card
+ * rises 10 px, tilts −3° and takes the lift shadow. Ten cards use 56×60
+ * in one row (rule d) and veil to 50 % once four are drawn — those four
+ * lift out at 72×76.
  */
 import { AnimatePresence, motion } from "framer-motion";
-import { useCallback, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { HandNumber } from "./HandNumber";
 import { useTargetRef } from "./targets";
-import { BOARD, formatNumber, SPRING, TOUCH_MIN } from "./theme";
-import { ringPath } from "./strokes";
+import { BOARD, SPRING, TOUCH_MIN } from "./tokens";
+import { RING_D } from "./strokes";
 import { playSound } from "./sound";
 import { hitTest, useDrag, type DragPoint } from "./useDrag";
 
@@ -29,13 +25,17 @@ export interface NumberCardsProps {
   interactive?: boolean;
   onSelect?: (value: number | null) => void;
   onReorder?: (values: number[]) => void;
+  /** Numeral height: 44 on the board, 34 in the gallery's small cards. */
   size?: number;
+  /** The four cards drawn from a ten-card row: they lift out at 72×76, the row veils. */
+  drawn?: number[];
+  /** The number the drawn cards make, on a card beside them after an arrow (G3). */
+  made?: string;
 }
 
-const TILTS = [-2.5, 1.5, -1, 2, -1.5, 1];
-
-export function NumberCards({ values, ringed = null, selected = null, interactive = false, onSelect, onReorder, size = 34 }: NumberCardsProps) {
+export function NumberCards({ values, ringed = null, selected = null, interactive = false, onSelect, onReorder, size = 44, drawn, made }: NumberCardsProps) {
   const rootRef = useTargetRef("component:numberCards");
+  const tenRow = values.length >= 8;
   const [ghost, setGhost] = useState<{ point: DragPoint; value: number } | null>(null);
   const drag = useDrag<number>({
     onStart: (position, point) => setGhost({ point, value: values[position]! }),
@@ -59,27 +59,48 @@ export function NumberCards({ values, ringed = null, selected = null, interactiv
       onReorder?.(next);
     },
   });
-
+  const small = size <= 34 && !tenRow;
   return (
-    <div ref={rootRef} data-testid="number-cards" style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "clamp(8px, 2vw, 18px)" }}>
-      <AnimatePresence initial={true}>
-        {values.map((value, index) => (
-          <Card
-            key={value}
-            value={value}
-            index={index}
-            size={size}
-            ringed={ringed === value}
-            selected={selected === value}
-            interactive={interactive}
-            handlers={interactive ? drag(index) : {}}
-          />
-        ))}
-      </AnimatePresence>
+    <div ref={rootRef} data-testid="number-cards" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+      <div style={{ display: "flex", flexWrap: tenRow ? "nowrap" : "wrap", justifyContent: "center", alignItems: "center", gap: tenRow ? 8 : small ? 12 : 22, opacity: tenRow && drawn?.length ? 0.5 : 1, transition: "opacity var(--dur-ui)" }}>
+        <AnimatePresence initial={true}>
+          {values.map((value, index) => (
+            <Card
+              key={value}
+              value={value}
+              index={index}
+              size={tenRow ? 34 : size}
+              box={tenRow ? { minWidth: 56, height: 60, padding: "0", radius: 10 } : small ? { minWidth: 72, height: 64, padding: "0 10px", radius: 10 } : { minWidth: 96, height: 80, padding: "0 14px", radius: 12 }}
+              ringed={ringed === value}
+              selected={selected === value}
+              interactive={interactive}
+              handlers={interactive ? drag(index) : {}}
+              ringInset={small ? 12 : 14}
+            />
+          ))}
+        </AnimatePresence>
+      </div>
+      {tenRow && drawn && drawn.length > 0 && (
+        <div data-testid="drawn-cards" style={{ display: "flex", gap: 16, alignItems: "center", marginTop: 8 }}>
+          {drawn.map((d) => (
+            <div key={d} style={{ width: 72, height: 76, background: BOARD.paper, border: `2px solid ${BOARD.ink18}`, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "var(--shadow-lift)", transform: "translateY(-6px)" }}>
+              <HandNumber text={d} size={44} color={BOARD.ink} draw={false} registerNumbers={false} />
+            </div>
+          ))}
+          {made && (
+            <>
+              <span aria-hidden style={{ font: `700 40px/1 var(--font-display)`, color: BOARD.ink40, margin: "0 6px" }}>→</span>
+              <div data-testid="made-card" style={{ padding: "0 20px", height: 76, background: BOARD.paper, border: `2px solid ${BOARD.ink18}`, borderRadius: 12, display: "flex", alignItems: "center", boxShadow: "var(--shadow-paper)" }}>
+                <HandNumber text={made} size={44} color={BOARD.ink} draw={false} targetKeys={[`text:${made}`]} />
+              </div>
+            </>
+          )}
+        </div>
+      )}
       {ghost &&
         createPortal(
-          <div style={{ position: "fixed", left: ghost.point.x - 40, top: ghost.point.y - 60, pointerEvents: "none", zIndex: 1000, transform: "scale(1.08)" }}>
-            <CardFace value={ghost.value} size={size} lifted />
+          <div style={{ position: "fixed", left: ghost.point.x - 48, top: ghost.point.y - 60, pointerEvents: "none", zIndex: 1000 }}>
+            <CardFace value={ghost.value} size={size} box={{ minWidth: 96, height: 80, padding: "0 14px", radius: 12 }} lifted />
           </div>,
           document.body,
         )}
@@ -87,39 +108,43 @@ export function NumberCards({ values, ringed = null, selected = null, interactiv
   );
 }
 
+interface Box {
+  minWidth: number;
+  height: number;
+  padding: string;
+  radius: number;
+}
+
 function Card({
   value,
   index,
   size,
+  box,
   ringed,
   selected,
   interactive,
   handlers,
+  ringInset,
 }: {
   value: number;
   index: number;
   size: number;
+  box: Box;
   ringed: boolean;
   selected: boolean;
   interactive: boolean;
   handlers: Record<string, unknown>;
+  ringInset: number;
 }) {
   const ref = useTargetRef<HTMLDivElement>([`card:${value}`, `number:${value}`]);
-  const box = useRef<HTMLDivElement | null>(null);
+  const el = useRef<HTMLDivElement | null>(null);
   const mergedRef = useCallback(
     (element: HTMLDivElement | null) => {
       ref(element);
-      box.current = element;
+      el.current = element;
     },
     [ref],
   );
-  const [ringBox, setRingBox] = useState<{ w: number; h: number } | null>(null);
-  useLayoutEffect(() => {
-    if (!ringed || !box.current) return;
-    const { offsetWidth, offsetHeight } = box.current;
-    const frame = requestAnimationFrame(() => setRingBox({ w: offsetWidth, h: offsetHeight }));
-    return () => cancelAnimationFrame(frame);
-  }, [ringed]);
   return (
     <motion.div
       ref={mergedRef}
@@ -132,56 +157,40 @@ function Card({
       aria-label={`${value}${selected ? " (selected)" : ""}`}
       aria-pressed={interactive ? selected : undefined}
       {...handlers}
-      initial={{ x: -48, y: -14, rotate: -9, opacity: 0 }}
-      animate={{ x: 0, y: selected ? -8 : 0, rotate: TILTS[index % TILTS.length], opacity: 1 }}
+      initial={{ x: 40, rotate: 6, opacity: 0.6 }}
+      animate={{ x: 0, y: selected ? -10 : 0, rotate: selected ? -3 : 0, opacity: 1 }}
       exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.15 } }}
       transition={{ ...SPRING, delay: index * 0.07 }}
-      style={{ position: "relative", minWidth: TOUCH_MIN, minHeight: TOUCH_MIN }}
+      style={{ position: "relative", minWidth: Math.max(box.minWidth, interactive ? TOUCH_MIN : 0), minHeight: interactive ? TOUCH_MIN : undefined }}
     >
-      <CardFace value={value} size={size} lifted={selected} targetBase={`card:${value}`} />
-      <AnimatePresence>
-        {ringed && ringBox && (
-          <motion.svg
-            key="ring"
-            className="chalk-stroke"
-            width={ringBox.w + 20}
-            height={ringBox.h + 20}
-            style={{ position: "absolute", left: -10, top: -10, pointerEvents: "none", overflow: "visible" }}
-            initial={{ opacity: 1 }}
-            exit={{ opacity: 0, transition: { duration: 0.15 } }}
-            aria-hidden
-          >
-            <motion.path
-              d={ringPath(ringBox.w + 20, ringBox.h + 20)}
-              fill="none"
-              stroke={BOARD.chalkYellow}
-              strokeWidth="5"
-              strokeLinecap="round"
-              initial={{ pathLength: 0 }}
-              animate={{ pathLength: 1 }}
-              transition={{ duration: 0.25, ease: "easeOut" }}
-            />
-          </motion.svg>
-        )}
-      </AnimatePresence>
+      <CardFace value={value} size={size} box={box} lifted={selected} />
+      {ringed && (
+        <svg viewBox="0 0 100 80" className="chalk-stroke" style={{ position: "absolute", inset: -ringInset, width: `calc(100% + ${ringInset * 2}px)`, height: `calc(100% + ${ringInset * 2}px)`, overflow: "visible", pointerEvents: "none" }} preserveAspectRatio="none" aria-hidden>
+          <motion.path d={RING_D} fill="none" stroke="var(--color-saffron)" strokeWidth="3.5" strokeLinecap="round" vectorEffect="non-scaling-stroke" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.25, ease: "easeOut" }} />
+        </svg>
+      )}
     </motion.div>
   );
 }
 
-function CardFace({ value, size, lifted, targetBase }: { value: number; size: number; lifted?: boolean; targetBase?: string }) {
+function CardFace({ value, size, box, lifted = false }: { value: number; size: number; box: Box; lifted?: boolean }) {
   return (
     <div
       style={{
-        padding: "10px 16px",
-        borderRadius: 8,
-        background: "#fffdf7",
-        boxShadow: lifted
-          ? `0 14px 22px rgba(40,25,10,0.3), inset 0 0 0 2.5px ${BOARD.markerBlue}`
-          : `0 3px 6px rgba(40,25,10,0.2), inset 0 0 0 2.5px ${BOARD.markerBlue}`,
-        transition: "box-shadow 150ms",
+        minWidth: box.minWidth,
+        height: box.height,
+        padding: box.padding,
+        background: BOARD.paper,
+        border: `2px solid ${BOARD.ink18}`,
+        borderRadius: box.radius,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        boxShadow: lifted ? "var(--shadow-lift)" : "var(--shadow-paper)",
+
       }}
     >
-      <HandNumber text={formatNumber(value)} size={size} draw={false} targetBase={targetBase} />
+      <HandNumber text={value} size={size} color={BOARD.ink} draw={false} registerNumbers={false} />
     </div>
   );
 }

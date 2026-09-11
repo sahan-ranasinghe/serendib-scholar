@@ -9,6 +9,8 @@
 import { blanksForItem, solutionForItem, describeItem, type ItemBlank } from "@/lib/lessonBlanks";
 import { AUTHORED_LINES } from "@/lib/authoredLines";
 import type { Beat } from "@/lib/lessonOrchestrator";
+import type { AnswerMode } from "@/lib/answerMode";
+import { choicesForQuestion, validateChoices, type ChoiceSet } from "@/lib/distractors";
 
 export interface RecapItem {
   id: string;
@@ -22,6 +24,19 @@ export interface RecapAskable {
   item: RecapItem;
   blank: ItemBlank | undefined;
   solution: string | null;
+  /** Practice is MCQ only: which surface leads, and the three options — an item with no honest set is not askable. */
+  answerMode: AnswerMode;
+  choices: ChoiceSet;
+}
+
+/** The blank's field decides the mode: a number or its name is read, a digit / place / value is a part of one. */
+function modeForField(field: string | undefined): AnswerMode {
+  return field === "number" || field === "numberName" || field === undefined ? "readAloud" : "valueOrPlace";
+}
+
+function numbersInItem(props: unknown): number[] {
+  const rows = ((props ?? {}) as { rows?: Array<Record<string, unknown>> }).rows ?? [];
+  return rows.map((row) => Number(row.number)).filter((n) => Number.isFinite(n));
 }
 
 /** Whether (and how) this item can be asked as a one-question review. */
@@ -29,7 +44,17 @@ export function recapAskable(item: RecapItem): RecapAskable | null {
   const blank = blanksForItem(item.component_type, item.component_props, item.answer).find((b) => b.value !== null);
   const solution = solutionForItem(item.answer);
   if (!blank && !solution) return null;
-  return { item, blank, solution };
+  const expected = blank ? (blank.value as string) : (solution as string);
+  const answerMode = modeForField(blank?.field);
+  const choices = choicesForQuestion({
+    id: `recap:${item.concept_tag}:${item.id.slice(0, 8)}`,
+    answerMode,
+    expectedAnswer: expected,
+    numbers: numbersInItem(item.component_props),
+    field: blank?.field ?? null,
+  });
+  if (!choices || validateChoices(choices, expected).length > 0) return null;
+  return { item, blank, solution, answerMode, choices };
 }
 
 export function buildRecapAskBeat(askable: RecapAskable): Beat {
@@ -55,6 +80,8 @@ export function buildRecapAskBeat(askable: RecapAskable): Beat {
     // The answer this exact item is looking for — a recap ASK is judged
     // against ITS item, never a leftover from whatever beat came before.
     expectedAnswer: blank ? (blank.value as string) : (solution as string),
+    answerMode: askable.answerMode,
+    choices: askable.choices,
     endBy: "asking",
   };
 }

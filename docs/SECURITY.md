@@ -1,10 +1,10 @@
 # Security posture — Serendib Scholar
 
 _One page, in plain English, for people who don't read code.
-Last reviewed: 2026-09-06._
+Last reviewed: 2026-09-10._
 
-**What this is:** a voice tutor for one child at a time, teaching from
-pre-recorded lesson audio, deployed as a web app. The things worth
+**What this is:** a tutor for one child at a time, teaching from
+pre-recorded lesson audio and answered by touch, deployed as a web app. The things worth
 protecting are (1) the child's data, (2) the paid AI accounts behind it,
 and (3) the deployment itself being abused by strangers.
 
@@ -36,16 +36,23 @@ nothing. The tutor's audio recordings (her voice, not the child's) sit in
 a **private** bucket; the browser is given ten-minute signed links, one
 clip at a time, only with a valid session.
 
-## The child's voice is not kept
+## The child's voice is not on the lesson path at all
 
-Answer recordings are transcribed in memory and discarded — no audio of
-the child is ever written anywhere. What remains is text: what they said
-when answering, and how they did. Details in [PRIVACY.md](PRIVACY.md).
+Lessons are answered by touch and judged on the device; the microphone
+never opens during a lesson. It opens in exactly one place — the ✋ chat —
+and only after the child taps ✋ and the tutor has explained, in Sinhala,
+why she is asking. That audio streams to the chat model for the length of
+the conversation and is never written anywhere. An opt-in reading
+assessment (`VOICE_ASSESSMENT=on`, off by default) can record the
+three-second reading pause and transcribe it in memory; with it off the
+harness asserts a full session makes zero transcription calls. Details in
+[PRIVACY.md](PRIVACY.md).
 
 ## Spending has ceilings
 
 Every money-spending route is budgeted on the server, per session and per
-child: at most 40 answer-transcriptions per 10 minutes, 20 on-demand
+child: at most 40 reading-assessment transcriptions per 10 minutes (a
+route the shipped lesson path never calls), 20 on-demand
 voice renders per session, 15 minutes of live chat per day, and 60
 requests per minute from any one internet address. Past a ceiling the app
 says, kindly, to take a break. (The counters live in a database table —

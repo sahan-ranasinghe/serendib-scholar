@@ -124,6 +124,8 @@ interface CorrectionsFile {
   textbookTable: { insert: InsertedBeat[] };
   /** Round 10: how a phrase answer is judged, per beat. */
   phraseRubrics: Record<string, (PhraseRubric & { why?: string }) | string>;
+  /** Chip-primary questions no longer ask the child to SAY it — "කියන්න හෝ තෝරන්න" / "හරි එක තෝරන්න". */
+  chipWording?: Record<string, string>;
 }
 
 interface DecisionsFile {
@@ -660,6 +662,10 @@ async function main(): Promise<void> {
 
   // ---- ROUND 10: the textbook table the session skipped, and phrase rubrics
   for (const addition of corrections.textbookTable?.insert ?? []) insertBeat(addition, "textbook table");
+  for (const [id, text] of Object.entries(corrections.chipWording ?? {})) {
+    if (id === "$comment") continue;
+    applyRewrite(id, { text }, "chip wording: the answer is tapped or said, never only said");
+  }
   for (const [id, rubric] of Object.entries(corrections.phraseRubrics ?? {})) {
     if (!id.startsWith("authored:") || typeof rubric === "string") continue;
     const beat = byId.get(id);

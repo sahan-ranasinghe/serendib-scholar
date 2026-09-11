@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><meta name="design_doc_mode" content="canvas"><link rel="stylesheet" href="./tokens.css"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gemunu+Libre:wght@400;700&family=Abhaya+Libre:wght@400;500&family=Yaldevi:wght@400;600&family=Inter:wght@400;500;600&display=swap"><style>body{margin:0;background:#EDE8DD}a{color:#0F4C5C}a:hover{color:#D9643A}</style></helmet>
+<div style="padding:32px 40px;font-family:var(--font-latin);color:var(--color-ink);display:grid;gap:36px;width:2300px">
+  <div style="display:grid;gap:6px"><div style="font:600 12px/1.4 var(--font-latin);color:var(--color-teal);letter-spacing:.04em">SERENDIB SCHOLAR · 390×844</div><h1 style="margin:0;font:700 28px/1.2 var(--font-latin)">Parent onboarding · Parent zone · Edge states</h1><p style="margin:0;max-width:900px;font:15px/1.5 var(--font-latin);color:var(--color-ink-70)">Parent screens are calmer (more white, teal text, Abhaya body) with the සිං | EN toggle in the header — the only place English exists. Child screens stay board-white with Gemunu display type and Zara present.</p></div>
+
+  <!-- ROW 1: ONBOARDING -->
+  <div style="display:grid;gap:10px"><div style="font:700 16px/1.2 var(--font-latin)">Parent onboarding (once)</div>
+  <div style="display:flex;gap:28px;align-items:flex-start">
+    <sc-for list="{{ onboarding }}" as="o" hint-placeholder-count="4">
+    <div style="display:grid;gap:8px"><span style="font:600 12px/1 var(--font-latin);color:var(--color-ink-70)">{{ o.label }}</span>
+    <div data-screen-label="{{ o.label }}" style="width:390px;height:844px;background:#FFFDF8;border-radius:32px;position:relative;overflow:hidden;box-shadow:var(--shadow-card);display:flex;flex-direction:column;box-sizing:border-box;padding:0 24px">
+      <div style="padding-top:52px;display:flex;align-items:center;justify-content:space-between"><span style="font:600 16px/1.5 var(--font-label);color:var(--color-ink-70);white-space:nowrap">පියවර {{ o.step }} / 4</span><div style="display:flex;border:2px solid var(--color-ink-18);border-radius:999px;overflow:hidden;height:32px"><span style="padding:0 10px;background:var(--color-teal);color:#fff;font:600 14px/28px var(--font-label)">සිං</span><span style="padding:0 10px;font:500 13px/28px var(--font-latin);color:var(--color-ink-70)">EN</span></div></div>
+      <div style="display:flex;gap:6px;margin-top:12px"><sc-for list="{{ o.dots }}" as="d" hint-placeholder-count="4"><span style="flex:1;height:6px;border-radius:3px;background:{{ d }}"></span></sc-for></div>
+      <div style="display:flex;align-items:flex-end;gap:12px;margin-top:24px"><dc-import name="Zara" state="{{ o.zara }}" face="A" size="64" portrait="{{ true }}" hint-size="64px,64px"></dc-import><div style="flex:1;background:var(--color-card);border-radius:16px 16px 16px 4px;padding:10px 14px;font:400 18px/1.5 var(--font-body);color:var(--color-ink)">{{ o.bubble }}</div></div>
+      <div style="font:700 30px/1.4 var(--font-display);color:var(--color-ink);margin-top:22px">{{ o.title }}</div>
+      <!-- step 1 phone/OTP -->
+      <sc-if value="{{ o.isPhone }}" hint-placeholder-val="{{ false }}">
+        <div style="display:grid;gap:14px;margin-top:16px">
+          <div style="display:grid;gap:6px"><span style="font:600 16px/1.5 var(--font-label);color:var(--color-ink-70)">දුරකථන අංකය</span><div style="height:56px;border:2px solid var(--color-teal);border-radius:12px;display:flex;align-items:center;padding:0 14px;gap:10px;font:500 22px/1 var(--font-latin);color:var(--color-ink);white-space:nowrap"><span style="color:var(--color-ink-70)">+94</span><span>77 123 4567</span><span style="width:2px;height:26px;background:var(--color-teal)"></span></div></div>
+          <div style="display:grid;gap:6px"><span style="font:600 16px/1.5 var(--font-label);color:var(--color-ink-70)">SMS මගින් ලැබුණු කේතය</span><div style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px"><sc-for list="{{ otp }}" as="d" hint-placeholder-count="6"><div style="height:56px;border:2px solid {{ d.b }};border-radius:12px;background:{{ d.bg }};display:flex;align-items:center;justify-content:center;font:600 24px/1 var(--font-latin);color:var(--color-ink)">{{ d.v }}</div></sc-for></div></div>
+          <span style="font:400 16px/1.5 var(--font-body);color:var(--color-teal)">කේතය ලැබුණේ නැද්ද? ආයෙත් එවන්න (0:42)</span>
+        </div>
+      </sc-if>
+      <!-- step 2 child profile -->
+      <sc-if value="{{ o.isProfile }}" hint-placeholder-val="{{ false }}">
+        <div style="display:grid;gap:14px;margin-top:16px">
+          <div style="display:grid;gap:6px"><span style="font:600 16px/1.5 var(--font-label);color:var(--color-ink-70)">දරුවාගේ නම</span><div style="height:56px;border:2px solid var(--color-ink-18);border-radius:12px;display:flex;align-items:center;padding:0 14px;font:700 24px/1 var(--font-display);color:var(--color-ink)">නිමාලි</div></div>
+          <div style="display:grid;gap:6px"><span style="font:600 16px/1.5 var(--font-label);color:var(--color-ink-70)">අවතාරය</span><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px"><sc-for list="{{ avatars }}" as="a" hint-placeholder-count="8"><div style="aspect-ratio:1;border-radius:50%;background:{{ a.bg }};border:3px solid {{ a.b }};display:flex;align-items:center;justify-content:center;box-sizing:border-box"><div style="width:60%;height:60%;border-radius:50%;background:repeating-linear-gradient(135deg,rgba(15,76,92,.14) 0 3px,transparent 3px 7px);display:flex;align-items:center;justify-content:center;font:9px/1 ui-monospace,monospace;color:var(--color-ink-70);text-align:center">{{ a.t }}</div></div></sc-for></div></div>
+          <div style="display:grid;gap:6px"><span style="font:600 16px/1.5 var(--font-label);color:var(--color-ink-70)">ශ්‍රේණිය</span><div style="display:flex;gap:10px"><div style="flex:1;height:52px;border:2px solid var(--color-ink-18);border-radius:12px;display:flex;align-items:center;justify-content:center;font:700 24px/1 var(--font-display)">4</div><div style="flex:1;height:52px;border:2px solid var(--color-saffron);background:var(--color-saffron-soft);border-radius:12px;display:flex;align-items:center;justify-content:center;font:700 24px/1 var(--font-display)">5</div></div></div>
+          <div style="display:grid;gap:6px"><span style="font:600 16px/1.5 var(--font-label);color:var(--color-ink-70)">පාසල (අත්‍යවශ්‍ය නොවේ)</span><div style="height:52px;border:2px solid var(--color-ink-18);border-radius:12px;display:flex;align-items:center;padding:0 14px;font:400 18px/1 var(--font-body);color:var(--color-ink-40)">පාසලේ නම</div></div>
+        </div>
+      </sc-if>
+      <!-- step 3 consent -->
+      <sc-if value="{{ o.isConsent }}" hint-placeholder-val="{{ false }}">
+        <div style="display:grid;gap:12px;margin-top:16px">
+          <sc-for list="{{ consent }}" as="c" hint-placeholder-count="3"><div style="display:flex;gap:12px;align-items:flex-start;background:var(--color-card);border-radius:14px;padding:12px 14px"><span style="width:32px;height:32px;border-radius:50%;background:{{ c.bg }};color:#fff;display:flex;align-items:center;justify-content:center;font:700 16px/1 var(--font-latin);flex:none">{{ c.i }}</span><div style="display:grid;gap:2px"><span style="font:700 20px/1.4 var(--font-display);color:var(--color-ink)">{{ c.t }}</span><span style="font:400 17px/1.5 var(--font-body);color:var(--color-ink-70)">{{ c.d }}</span></div></div></sc-for>
+          <span style="font:400 16px/1.5 var(--font-body);color:var(--color-teal);text-decoration:underline">සම්පූර්ණ රහස්‍යතා ප්‍රතිපත්තිය</span>
+        </div>
+      </sc-if>
+      <!-- step 4 subscription -->
+      <sc-if value="{{ o.isPay }}" hint-placeholder-val="{{ false }}">
+        <div style="display:grid;gap:12px;margin-top:16px">
+          <div style="border:2px solid var(--color-teal);border-radius:16px;padding:14px 16px;display:grid;gap:4px;background:var(--color-card);position:relative"><span style="position:absolute;top:-12px;left:14px;background:var(--color-saffron);border-radius:999px;padding:2px 10px;font:600 14px/1.4 var(--font-label);color:var(--color-ink)">පළමු සතිය නොමිලේ</span><div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font:700 22px/1.4 var(--font-display)">දරුවෙක්</span><span style="font:700 26px/1 var(--font-display);color:var(--color-teal);white-space:nowrap">රු. 1,000<span style="font:400 15px/1 var(--font-body);color:var(--color-ink-70)"> / මාසයකට</span></span></div><span style="font:400 16px/1.5 var(--font-body);color:var(--color-ink-70)">සියලු පාඩම් · සතිපතා වාර්තාව · ඕනෑම වෙලාවක නවත්වන්න</span></div>
+          <div style="border:2px solid var(--color-ink-18);border-radius:16px;padding:14px 16px;display:flex;justify-content:space-between;align-items:baseline"><span style="font:700 22px/1.4 var(--font-display);white-space:nowrap">දරුවන් 2ක්</span><span style="font:700 26px/1 var(--font-display);color:var(--color-ink);white-space:nowrap">රු. 1,600<span style="font:400 15px/1 var(--font-body);color:var(--color-ink-70)"> / මාසයකට</span></span></div>
+          <div style="display:grid;gap:6px;margin-top:4px"><span style="font:600 16px/1.5 var(--font-label);color:var(--color-ink-70)">ගෙවීම — PayHere</span><div style="display:flex;gap:8px"><div style="flex:1;height:52px;border:2px solid var(--color-teal);border-radius:12px;display:flex;align-items:center;justify-content:center;font:600 18px/1 var(--font-label)">කාඩ්පත</div><div style="flex:1;height:52px;border:2px solid var(--color-ink-18);border-radius:12px;display:flex;align-items:center;justify-content:center;font:600 18px/1 var(--font-label);color:var(--color-ink-70)">බැංකුව</div></div></div>
+          <span style="font:400 16px/1.5 var(--font-body);color:var(--color-ink-70)">නොමිලේ සතිය අවසන් වීමට දින 2කට පෙර අපි ඔබට SMS එකක් එවනවා. අද ගෙවීමක් නෑ.</span>
+        </div>
+      </sc-if>
+      <div style="margin-top:auto;padding-bottom:28px;display:grid;gap:8px"><button style="height:56px;border:0;border-radius:12px;background:var(--color-teal);color:#fff;font:700 24px/1.5 var(--font-display);box-shadow:var(--shadow-button)">{{ o.cta }}</button><sc-if value="{{ o.hasSkip }}" hint-placeholder-val="{{ false }}"><span style="text-align:center;font:400 16px/1.5 var(--font-body);color:var(--color-ink-70);height:48px;display:flex;align-items:center;justify-content:center">{{ o.skip }}</span></sc-if></div>
+    </div></div>
+    </sc-for>
+  </div></div>
+
+  <!-- ROW 3: PARENT ZONE + EDGE STATES -->
+  <div style="display:grid;gap:10px"><div style="font:700 16px/1.2 var(--font-latin)">Parent zone (PIN-gated, calmer) · Edge states</div>
+  <div style="display:flex;gap:28px;align-items:flex-start;flex-wrap:wrap">
+    <!-- PARENT: OVERVIEW / SETTINGS -->
+    <div style="display:grid;gap:8px"><span style="font:600 12px/1 var(--font-latin);color:var(--color-ink-70)">Parent zone — home &amp; settings</span>
+    <div data-screen-label="Parent zone" style="width:390px;height:844px;background:#FFFDF8;border-radius:32px;position:relative;overflow:hidden;box-shadow:var(--shadow-card);display:flex;flex-direction:column;box-sizing:border-box;padding:0 20px">
+      <div style="padding-top:52px;display:flex;align-items:center;justify-content:space-between"><div style="display:grid"><span style="font:700 26px/1.4 var(--font-display);color:var(--color-teal)">දෙමාපිය කලාපය</span><span style="font:400 16px/1.5 var(--font-body);color:var(--color-ink-70)">නිමාලි · 5 ශ්‍රේණිය</span></div><div style="display:flex;border:2px solid var(--color-ink-18);border-radius:999px;overflow:hidden;height:32px"><span style="padding:0 10px;background:var(--color-teal);color:#fff;font:600 14px/28px var(--font-label)">සිං</span><span style="padding:0 10px;font:500 13px/28px var(--font-latin);color:var(--color-ink-70)">EN</span></div></div>
+      <div style="margin-top:16px;background:var(--color-card);border-radius:16px;padding:14px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center"><div style="display:grid"><span style="font:700 26px/1.2 var(--font-display);color:var(--color-teal)">64</span><span style="font:600 16px/1.5 var(--font-label);color:var(--color-ink-70)">මිනිත්තු / සතියේ</span></div><div style="display:grid"><span style="font:700 26px/1.2 var(--font-display);color:var(--color-teal)">5</span><span style="font:600 16px/1.5 var(--font-label);color:var(--color-ink-70)">සැසි</span></div><div style="display:grid"><span style="font:700 26px/1.2 var(--font-display);color:var(--color-teal)">4 / 6</span><span style="font:600 16px/1.5 var(--font-label);color:var(--color-ink-70)">සංකල්ප විශ්වාසයි</span></div></div>
+      <div style="margin-top:14px;display:grid;gap:2px">
+        <sc-for list="{{ settings }}" as="s" hint-placeholder-count="8"><div style="min-height:56px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--color-ink-10);padding:6px 2px"><div style="flex:1;display:grid"><span style="font:500 18px/1.5 var(--font-body);color:{{ s.c }}">{{ s.t }}</span><sc-if value="{{ s.hasSub }}" hint-placeholder-val="{{ false }}"><span style="font:400 16px/1.5 var(--font-body);color:var(--color-ink-70)">{{ s.sub }}</span></sc-if></div><span style="font:600 16px/1.5 var(--font-label);color:var(--color-teal)">{{ s.v }}</span><span style="font:20px/1 var(--font-latin);color:var(--color-ink-40)">›</span></div></sc-for>
+      </div>
+      <div style="margin-top:auto;padding-bottom:28px"><button style="width:100%;height:52px;border:2px solid var(--color-success);border-radius:12px;background:var(--color-success-soft);color:var(--color-ink);font:600 18px/1.5 var(--font-body)">WhatsApp උදව් — 077 000 0000</button></div>
+    </div></div>
+    <!-- PARENT: WEEKLY REPORT -->
+    <div style="display:grid;gap:8px"><span style="font:600 12px/1 var(--font-latin);color:var(--color-ink-70)">Parent zone — weekly report</span>
+    <div data-screen-label="Weekly report" style="width:390px;height:844px;background:#FFFDF8;border-radius:32px;position:relative;overflow:hidden;box-shadow:var(--shadow-card);display:flex;flex-direction:column;box-sizing:border-box;padding:0 20px">
+      <div style="padding-top:52px;display:flex;align-items:center;justify-content:space-between"><div style="display:flex;align-items:center;gap:10px"><span style="width:44px;height:44px;border-radius:50%;border:2px solid var(--color-ink-18);display:flex;align-items:center;justify-content:center;font:20px/1 var(--font-latin)">‹</span><div style="display:grid"><span style="font:700 24px/1.4 var(--font-display);color:var(--color-teal)">සතිපතා වාර්තාව</span><span style="font:400 16px/1.5 var(--font-body);color:var(--color-ink-70)">සැප්. 2 – 8 · නිමාලි</span></div></div><div style="display:flex;border:2px solid var(--color-ink-18);border-radius:999px;overflow:hidden;height:32px"><span style="padding:0 10px;background:var(--color-teal);color:#fff;font:600 14px/28px var(--font-label)">සිං</span><span style="padding:0 10px;font:500 13px/28px var(--font-latin);color:var(--color-ink-70)">EN</span></div></div>
+      <div style="margin-top:16px;display:flex;gap:12px;align-items:flex-start;background:var(--color-card);border-radius:16px 16px 16px 4px;padding:12px 14px"><dc-import name="Zara" state="encourage" face="A" size="48" portrait="{{ true }}" hint-size="48px,48px"></dc-import><span style="font:400 17px/1.5 var(--font-body);color:var(--color-ink)">නිමාලි දහසස්ථානය හොඳට තේරුම් ගත්තා; විහිදුවා ලිවීම තව පුරුදු වෙන්න ඕනේ.</span></div>
+      <div style="margin-top:14px;display:grid;gap:8px"><span style="font:600 16px/1.5 var(--font-label);color:var(--color-ink-70)">දිනපතා මිනිත්තු</span><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;align-items:end;height:80px"><sc-for list="{{ bars }}" as="b" hint-placeholder-count="7"><div style="display:grid;gap:4px;justify-items:center;align-content:end;height:100%"><div style="width:100%;height:{{ b.h }};background:{{ b.c }};border-radius:6px 6px 2px 2px"></div><span style="font:600 16px/1 var(--font-label);color:var(--color-ink-70)">{{ b.d }}</span></div></sc-for></div></div>
+      <div style="margin-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div style="background:var(--color-success-soft);border-radius:14px;padding:12px;display:grid;gap:6px"><span style="font:600 16px/1.5 var(--font-label);color:var(--color-success-text)">විශ්වාසයි</span><span style="font:500 16px/1.5 var(--font-body)">සංඛ්‍යා කියවීම</span><span style="font:500 16px/1.5 var(--font-body)">දහසස්ථානය</span><span style="font:500 16px/1.5 var(--font-body)">ගණක රාමුව</span></div>
+        <div style="background:var(--color-saffron-soft);border-radius:14px;padding:12px;display:grid;gap:6px"><span style="font:600 16px/1.5 var(--font-label);color:var(--color-saffron-text)">තව පුරුදු වෙන්න</span><span style="font:500 16px/1.5 var(--font-body)">විහිදුවා ලිවීම</span><span style="font:500 16px/1.5 var(--font-body)">බිංදුව ඇති ස්ථාන</span></div>
+      </div>
+      <div style="margin-top:14px;display:grid;gap:8px"><span style="font:600 16px/1.5 var(--font-label);color:var(--color-ink-70)">වැරදුණු ප්‍රශ්න</span>
+        <sc-for list="{{ missed }}" as="m" hint-placeholder-count="2"><div style="border:1px solid var(--color-ink-18);border-radius:12px;padding:10px 12px;display:grid;gap:4px"><span style="font:500 16px/1.5 var(--font-body)">{{ m.q }}</span><div style="display:flex;gap:14px;font:400 16px/1.5 var(--font-body);white-space:nowrap"><span style="color:var(--color-coral-text)">දුන්නේ: {{ m.a }}</span><span style="color:var(--color-success-text)">නිවැරදි: {{ m.c }}</span></div></div></sc-for>
+      </div>
+      <div style="margin-top:auto;padding-bottom:28px"><button style="width:100%;height:52px;border:2px solid var(--color-ink-18);border-radius:12px;background:#fff;color:var(--color-teal);font:600 18px/1.5 var(--font-body)">PDF ලෙස බෙදාගන්න</button></div>
+    </div></div>
+    <!-- PARENT: SUBSCRIPTION & DATA -->
+    <div style="display:grid;gap:8px"><span style="font:600 12px/1 var(--font-latin);color:var(--color-ink-70)">Parent zone — subscription, profiles, data</span>
+    <div data-screen-label="Subscription" style="width:390px;height:844px;background:#FFFDF8;border-radius:32px;position:relative;overflow:hidden;box-shadow:var(--shadow-card);display:flex;flex-direction:column;box-sizing:border-box;padding:0 20px">
+      <div style="padding-top:52px;display:flex;align-items:center;gap:10px"><span style="width:44px;height:44px;border-radius:50%;border:2px solid var(--color-ink-18);display:flex;align-items:center;justify-content:center;font:20px/1 var(--font-latin)">‹</span><span style="font:700 24px/1.4 var(--font-display);color:var(--color-teal)">දායකත්වය සහ බිල්පත්</span></div>
+      <div style="margin-top:16px;border:2px solid var(--color-teal);border-radius:16px;padding:14px 16px;display:grid;gap:6px;background:var(--color-card)"><div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font:700 20px/1.4 var(--font-display);white-space:nowrap">දරුවෙක් · මාසිකව</span><span style="font:700 24px/1 var(--font-display);color:var(--color-teal);white-space:nowrap">රු. 1,000</span></div><span style="font:400 16px/1.5 var(--font-body);color:var(--color-ink-70)">ඊළඟ ගෙවීම 2026 ඔක්. 3 · Visa •••• 4821</span><span style="display:inline-flex;width:max-content;font:600 16px/1.4 var(--font-label);background:var(--color-success-soft);color:var(--color-success-text);border-radius:999px;padding:2px 10px">සක්‍රීයයි</span></div>
+      <div style="margin-top:12px;display:grid;gap:2px">
+        <div style="min-height:56px;display:flex;align-items:center;border-bottom:1px solid var(--color-ink-10);font:500 18px/1.5 var(--font-body)"><span style="flex:1">දරුවන් 2කට මාරු වෙන්න</span><span style="font:600 16px/1.5 var(--font-label);color:var(--color-teal)">රු. 1,600</span></div>
+        <div style="min-height:56px;display:flex;align-items:center;border-bottom:1px solid var(--color-ink-10);font:500 18px/1.5 var(--font-body)"><span style="flex:1">ගෙවීම් ක්‍රමය වෙනස් කරන්න</span><span style="font:20px/1 var(--font-latin);color:var(--color-ink-40)">›</span></div>
+        <div style="min-height:56px;display:flex;align-items:center;border-bottom:1px solid var(--color-ink-10);font:500 18px/1.5 var(--font-body)"><span style="flex:1">බිල්පත් ඉතිහාසය</span><span style="font:20px/1 var(--font-latin);color:var(--color-ink-40)">›</span></div>
+      </div>
+      <div style="margin-top:18px;font:600 16px/1.5 var(--font-label);color:var(--color-ink-70)">දරුවන්ගේ පැතිකඩ</div>
+      <div style="margin-top:8px;display:grid;gap:8px"><div style="display:flex;align-items:center;gap:12px;border:1px solid var(--color-ink-18);border-radius:14px;padding:10px 12px"><div style="width:44px;height:44px;border-radius:50%;background:var(--color-saffron-soft);border:2px solid var(--color-saffron)"></div><div style="flex:1;display:grid"><span style="font:600 18px/1.4 var(--font-body)">නිමාලි</span><span style="font:400 16px/1.5 var(--font-body);color:var(--color-ink-70)">5 ශ්‍රේණිය · PIN සකසා ඇත</span></div><span style="font:20px/1 var(--font-latin);color:var(--color-ink-40)">›</span></div><div style="height:52px;border:2px dashed var(--color-ink-18);border-radius:14px;display:flex;align-items:center;justify-content:center;font:500 16px/1.5 var(--font-body);color:var(--color-teal)">+ දෙවැනි දරුවා එක් කරන්න</div></div>
+      <div style="margin-top:auto;padding-bottom:28px;display:grid;gap:8px"><button style="height:52px;border:2px solid var(--color-ink-18);border-radius:12px;background:#fff;color:var(--color-ink);font:600 18px/1.5 var(--font-body)">දායකත්වය නවත්වන්න</button><button style="height:48px;border:0;border-radius:12px;background:transparent;color:var(--color-coral);font:600 16px/1.5 var(--font-body)">ගිණුම සහ දත්ත මකන්න</button></div>
+    </div></div>
+    <!-- EDGE STATES (half-height cards) -->
+    <div style="display:grid;gap:8px"><span style="font:600 12px/1 var(--font-latin);color:var(--color-ink-70)">Edge states</span>
+    <div style="display:grid;grid-template-columns:repeat(2,390px);gap:20px">
+      <sc-for list="{{ edges }}" as="e" hint-placeholder-count="6">
+        <div data-screen-label="{{ e.label }}" style="width:390px;height:412px;background:{{ e.bg }};border-radius:32px;position:relative;overflow:hidden;box-shadow:var(--shadow-card);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:24px;box-sizing:border-box;text-align:center">
+          <sc-if value="{{ e.rotate }}" hint-placeholder-val="{{ false }}"><div style="width:52px;height:96px;border:4px solid var(--color-teal);border-radius:10px;transform:rotate(-70deg);position:relative;margin:20px 0"><span style="position:absolute;left:50%;bottom:6px;width:16px;height:4px;border-radius:2px;background:var(--color-teal);transform:translateX(-50%)"></span></div><span style="font:22px/1 var(--font-latin);color:var(--color-teal)">↻</span></sc-if>
+          <sc-if value="{{ e.spinner }}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 64 64" width="56" height="56"><path d="M32 8a24 24 0 1 1-20 11" fill="none" stroke="#E9B44C" stroke-width="5" stroke-linecap="round"></path></svg></sc-if>
+          <sc-if value="{{ e.zara }}" hint-placeholder-val="{{ false }}"><dc-import name="Zara" state="{{ e.zaraState }}" face="A" size="96" portrait="{{ true }}" hint-size="96px,96px"></dc-import></sc-if>
+          <div style="font:700 26px/1.5 var(--font-display);color:{{ e.fg }};text-wrap:balance">{{ e.title }}</div>
+          <div style="font:400 20px/1.5 var(--font-body);color:{{ e.fg2 }};text-wrap:pretty;max-width:300px">{{ e.body }}</div>
+          <sc-if value="{{ e.hasCta }}" hint-placeholder-val="{{ false }}"><div style="display:flex;gap:10px;margin-top:6px"><button style="height:52px;padding:0 24px;border:0;border-radius:12px;background:var(--color-teal);color:#fff;font:700 22px/1.5 var(--font-display);box-shadow:var(--shadow-button);white-space:nowrap">{{ e.cta }}</button><sc-if value="{{ e.hasAlt }}" hint-placeholder-val="{{ false }}"><button style="height:52px;padding:0 20px;border:2px solid var(--color-ink-18);border-radius:12px;background:var(--color-paper);color:var(--color-teal);font:700 22px/1.5 var(--font-display);white-space:nowrap">{{ e.alt }}</button></sc-if></div></sc-if>
+          <span style="position:absolute;top:14px;left:18px;font:600 11px/1 var(--font-latin);color:var(--color-ink-40)">{{ e.label }}</span>
+        </div>
+      </sc-for>
+    </div></div>
+  </div></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const navFor = (active) => ['නිවස', 'පාඩම්', 'පුහුණුව', 'තෑගි'].map((t, i) => ({ t, bg: i === active ? '#EEF4F5' : 'transparent', fg: i === active ? '#0F4C5C' : 'rgba(27,27,27,.7)', dot: i === active ? '#0F4C5C' : 'rgba(27,27,27,.18)' }));
+    const dotsFor = n => [1, 2, 3, 4].map(i => i <= n ? '#0F4C5C' : 'rgba(27,27,27,.12)');
+    const onboarding = [
+      { label: 'Onboarding 1 · phone + OTP', step: 1, dots: dotsFor(1), zara: 'talking', bubble: 'ආයුබෝවන්! මම සාරා. දරුවාගේ ගිණුම හදන්න මිනිත්තු දෙකක් විතර යනවා.', title: 'දුරකථන අංකය තහවුරු කරමු', isPhone: true, isProfile: false, isConsent: false, isPay: false, cta: 'ඉදිරියට', hasSkip: false },
+      { label: 'Onboarding 2 · child profile', step: 2, dots: dotsFor(2), zara: 'encourage', bubble: 'දරුවාට මම කතා කරන්නේ මේ නමින්.', title: 'දරුවා ගැන කියන්න', isPhone: false, isProfile: true, isConsent: false, isPay: false, cta: 'ඉදිරියට', hasSkip: false },
+      { label: 'Onboarding 3 · consent', step: 3, dots: dotsFor(3), zara: 'idle', bubble: 'ඔබ දැනගත යුතු දේවල් තුනක් — සරලව.', title: 'අපි කරන දේ, නොකරන දේ', isPhone: false, isProfile: false, isConsent: true, isPay: false, cta: 'එකඟයි', hasSkip: false },
+      { label: 'Onboarding 4 · subscription', step: 4, dots: dotsFor(4), zara: 'celebrate', bubble: 'පළමු සතිය නොමිලේ. කැමති නැත්නම් නවත්වන්න පුළුවන්.', title: 'සැලැස්ම තෝරන්න', isPhone: false, isProfile: false, isConsent: false, isPay: true, cta: 'නොමිලේ සතිය පටන් ගන්න', hasSkip: true, skip: 'පසුව තීරණය කරන්නම්' },
+    ];
+    const otp = ['4', '8', '2', '', '', ''].map((v, i) => ({ v, b: i === 3 ? '#0F4C5C' : v ? 'rgba(27,27,27,.18)' : 'rgba(27,27,27,.18)', bg: v ? '#EEF4F5' : '#fff' }));
+    const avatars = ['අලියා', 'මොනරා', 'ලේනා', 'කැස්බෑවා', 'ගිරවා', 'කොටියා', 'මුවා', 'මාළුවා'].map((t, i) => ({ t, bg: i === 2 ? '#FBEFD3' : '#EEF4F5', b: i === 2 ? '#E9B44C' : 'transparent' }));
+    const consent = [
+      { i: '1', bg: '#0F4C5C', t: 'දරුවා කියන දේ අකුරු වලට හැරෙනවා', d: 'පිළිතුරු ලියවෙනවා. හඬ පටිගත කර තබා නොගනියි — කවදාවත්.' },
+      { i: '2', bg: '#3C8C5A', t: 'ඔබට පෙනෙන්නේ', d: 'මිනිත්තු, සැසි, ඉගෙන ගත් සංකල්ප සහ වැරදුණු ප්‍රශ්න — සතිපතා වාර්තාවේ.' },
+      { i: '3', bg: '#D9643A', t: 'මකන්න ඕනෑම වෙලාවක', d: 'දෙමාපිය කලාපයෙන් එක තැනකින් ගිණුම සහ සියලු දත්ත මකා දමන්න පුළුවන්.' },
+    ];
+    const practice = [['ස්ථානීය අගය', 'මිනිත්තු 3 · ප්‍රශ්න 6', '#3C8C5A', 30], ['විහිදුවා ලිවීම', 'මිනිත්තු 3 · ප්‍රශ්න 6', '#E9B44C', 90], ['සංඛ්‍යා නාම', 'මිනිත්තු 3 · ප්‍රශ්න 5', '#E9B44C', 110], ['ගණක රාමුව කියවීම', 'මිනිත්තු 3 · ප්‍රශ්න 6', '#3C8C5A', 20]].map(([t, s, c, o]) => ({ t, s, c, o }));
+    const qdots = [0, 1, 2, 3, 4].map(i => ({ bg: i < 2 ? '#3C8C5A' : i === 2 ? '#E9B44C' : 'transparent', b: i < 2 ? '#3C8C5A' : i === 2 ? '#E9B44C' : 'rgba(27,27,27,.3)' }));
+    const qchips = [['600', false], ['6000', true], ['60', false]].map(([t, sel]) => ({ t, b: sel ? '#E9B44C' : 'rgba(27,27,27,.18)', bg: sel ? '#FBEFD3' : '#FFFDF8' }));
+    const stickers = [['අලියා', true], ['මොනරා', true], ['නෙළුම', true], ['කොත්තු', false], ['ත්රීවීලර්', false], ['කිරිබත්', false], ['වෙසක් කූඩුව', false], ['ක්‍රිකට්', false]].map(([name, e]) => ({ name, slot: e ? 'art' : '', bg: e ? '#FFFDF8' : 'transparent', bd: e ? '3px solid #E9B44C' : '3px dashed rgba(27,27,27,.3)', op: e ? 1 : .7, tc: e ? '#1B1B1B' : 'rgba(27,27,27,.5)' }));
+    const outfits = [['පාසල් තොප්පිය', true, '#0F4C5C'], ['ක්‍රිකට් හෙල්මට්', false, '#4A7BD0'], ['වෙසක් කූඩුව', false, '#D9643A']].map(([t, own, hat]) => ({ t, hat, b: own ? '#E9B44C' : 'rgba(27,27,27,.12)', bg: own ? '#FBEFD3' : 'transparent', fg: own ? '#1B1B1B' : 'rgba(27,27,27,.5)' }));
+    const mastery = [['සංඛ්‍යා කියවීම', 100, 'හොඳටම'], ['දහසස්ථානය', 100, 'හොඳටම'], ['ගණක රාමුව', 85, 'හොඳයි'], ['ස්ථානීය අගය', 70, 'හොඳයි'], ['විහිදුවා ලිවීම', 40, 'පුරුදු වෙමු'], ['බිංදුව ඇති ස්ථාන', 25, 'පුරුදු වෙමු'], ['දස දහස', 0, 'තාම නෑ']].map(([t, p, s]) => ({ t, s, o: 119 - 119 * p / 100, c: p >= 85 ? '#3C8C5A' : p > 0 ? '#E9B44C' : 'rgba(27,27,27,.3)' }));
+    const settings = [
+      { t: 'සතිපතා වාර්තාව', v: 'සැප්. 2–8', c: '#1B1B1B', hasSub: false }, { t: 'දායකත්වය සහ බිල්පත්', v: 'රු. 1,000', c: '#1B1B1B', hasSub: false },
+      { t: 'දිනපතා කාල සීමාව', v: 'මිනිත්තු 15', c: '#1B1B1B', hasSub: true, sub: '15 · 20 · 30' }, { t: 'ශබ්දය සහ උපසිරැසි', v: 'ශබ්දය ✓', c: '#1B1B1B', hasSub: false },
+      { t: 'දරුවන්ගේ පැතිකඩ', v: '1', c: '#1B1B1B', hasSub: true, sub: 'දෙවැනි දරුවා එක් කරන්න' }, { t: 'PIN වෙනස් කරන්න', v: '', c: '#1B1B1B', hasSub: false },
+      { t: 'උදව්', v: '', c: '#1B1B1B', hasSub: false }, { t: 'ගිණුම සහ දත්ත මකන්න', v: '', c: '#D9643A', hasSub: false },
+    ];
+    const bars = [['ස', 12], ['අ', 15], ['බ', 0], ['බ්‍ර', 14], ['සි', 9], ['සෙ', 14], ['ඉ', 0]].map(([d, m]) => ({ d, h: Math.max(4, m / 15 * 60) + 'px', c: m ? '#0F4C5C' : 'rgba(27,27,27,.12)' }));
+    const missed = [{ q: '6 572 — හයෙන් පෙන්වන අගය කීයද?', a: '600', c: '6000' }, { q: '7 062 = 7000 + ▢ + 60 + 2', a: '6', c: '0' }];
+    const edges = [
+      { label: 'Loading', bg: '#F7F3EA', spinner: true, zara: true, zaraState: 'idle', title: 'පාඩම ලෑස්ති වෙනවා…', body: 'සාරා ගුරුතුමිය පුවරුව හදාගන්නවා.', hasCta: false, rotate: false },
+      { label: 'Offline', bg: '#F7F3EA', zara: true, zaraState: 'encourage', title: 'අන්තර්ජාලය නෑ වගේ', body: 'Wi-Fi එක හරි දත්ත හරි බලලා ආයෙත් උත්සාහ කරමු. ඔයාගේ ප්‍රගතිය සුරක්ෂිතයි.', hasCta: true, cta: 'ආයෙත් උත්සාහ කරන්න', hasAlt: false, rotate: false },
+      { label: 'Paused', bg: 'rgba(27,27,27,.55)', zara: true, zaraState: 'idle', title: 'පාඩම නවත්වලා', body: 'ලෑස්ති වුණාම දිගටම යමු.', hasCta: true, cta: '▶ දිගටම', hasAlt: true, alt: 'නවත්වන්න', rotate: false },
+      { label: 'Rotate phone', bg: '#F7F3EA', rotate: true, zara: false, title: 'ෆෝන් එක හරහට කරන්න', body: 'පුවරුව හොඳට පේන්න පාඩම හරහට තියෙන්නේ.', hasCta: false },
+      { label: 'Mic permission', bg: '#F7F3EA', zara: true, zaraState: 'talking', title: 'මයික් එකට අවසර දෙන්න', body: 'ඔයා කියන පිළිතුරු මට අහන්න ඕනේ. හඬ තබා ගන්නේ නෑ — වචන විතරයි.', hasCta: true, cta: 'අවසර දෙන්න', hasAlt: true, alt: 'ටයිප් කරන්නම්', rotate: false },
+      { label: 'Error', bg: '#F7F3EA', zara: true, zaraState: 'encourage', title: 'අපොයි, මගේ අතින් වැරැද්දක්', body: 'මට පොඩි ප්‍රශ්නයක් ආවා. ආයෙත් උත්සාහ කරමුද?', hasCta: true, cta: 'ආයෙත් උත්සාහ කරන්න', hasAlt: true, alt: 'නිවසට', rotate: false },
+    ].map(e => ({ spinner: false, hasAlt: false, fg: e.label === 'Paused' ? '#fff' : '#1B1B1B', fg2: e.label === 'Paused' ? 'rgba(255,255,255,.85)' : 'rgba(27,27,27,.7)', ...e }));
+    return { onboarding, otp, avatars, consent, practice, qdots, qchips, stickers, outfits, mastery, settings, bars, missed, edges, nav0: navFor(0), nav3: navFor(2), nav4: navFor(3) };
+  }
+}
+</script>
+</body>
+</html>

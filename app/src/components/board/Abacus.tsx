@@ -1,32 +1,29 @@
 "use client";
 
 /**
- * The four-rod bead abacus — rods දා සි ද එ on a wooden base.
+ * The bead abacus, ported from Abacus.dc.html: one SVG (viewBox 320×170),
+ * rods 70 units apart on a wood base, beads as 38×14 ellipses stacked 13
+ * apart, a saffron-soft glow rect on the named rod with the others veiled
+ * to 38 %, the place values beneath in Yaldevi, and the number forming
+ * under the rods in StrokeNum — Zara's in marker blue, the child's in green.
  *
  * Vocabulary:
  *   show { digits, startEmpty?, animate? }  → props digits/shown/animate
  *   bead_add { rod, count }                 → shown[rod] += count (parent)
- *   rod_glow { rod }                        → glowRod
+ *   rod_glow { rod, rods? }                 → glowRods (a group named together glows together)
  *   child_answer_overlay { text }           → childAnswer
  *   clear_overlay                           → childAnswer = null
  *
- * Beads slide down onto a rod one at a time with a click; `animate`
- * lands the beads from `shown` up to `digits` on its own, 120 ms a
- * bead, skipping rods that already carry theirs. The digits form beneath
- * the rods as each rod completes, left to right ("asFilled"), or track
- * every bead ("live") — which is what touch mode needs.
- *
- * TOUCH: drag a bead from the tray onto a rod (it takes the rod's
- * colour); tap the beads on a rod to take the top one off. Every hit area
- * is a whole rod column, never a single 22-px bead.
+ * TOUCH: drag a bead from the tray (a 72 px paper panel beside the rods)
+ * onto a rod; tap the beads on a rod to take the top one off; on a
+ * rod-tap question every rod is an invisible 48 px hit column (rule c).
  */
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { HandNumber } from "./HandNumber";
-import { WriteOn } from "./WriteOn";
 import { useTargetRef } from "./targets";
-import { BOARD, ROD_LABELS, SPRING, SPRING_BOUNCY, TOUCH_MIN } from "./theme";
+import { BOARD, ROD_LABELS, ROD_VALUE_LABELS, SPRING_BOUNCY, FONT_LABEL } from "./tokens";
 import { playSound } from "./sound";
 import { hitTest, useDrag, type DragPoint } from "./useDrag";
 
@@ -37,8 +34,8 @@ export interface AbacusProps {
   shown: number[];
   /** Land the remaining beads on their own, rod by rod. */
   animate?: boolean;
-  glowRod?: number | null;
-  /** The child's number, in the second colour, beneath the rods. */
+  glowRods?: number[];
+  /** The child's number, in green, beneath the rods. */
   childAnswer?: string | null;
   readout?: "asFilled" | "live" | "none";
   interactive?: boolean;
@@ -46,33 +43,50 @@ export interface AbacusProps {
   onChange?: (shown: number[]) => void;
   /** Fires per bead as `animate` lands them. */
   onBeadLanded?: (rod: number, count: number) => void;
-  /** Rendered smaller — for the expansion runs where it shares the board. */
+  /** 240 px wide instead of 280 (an expansion shares the board). */
   compact?: boolean;
+  /** The child answers by tapping a rod (valueOrPlace): every rod is a hit column. */
+  pickRods?: boolean;
+  onPickRod?: (rod: number) => void;
+  /** The whole abacus is the answer surface (a build): it breathes. */
+  glow?: boolean;
+  /** 200 px wide (the pad docked beneath, a 360 px phone). */
+  dense?: boolean;
+  /** Width in px, when the caller decides (the gallery). */
+  width?: number;
 }
 
 const BEAD_STEP_MS = 120;
 const MAX_BEADS = 9;
+const VB_W = 320;
+const VB_H = 170;
 
 export function Abacus({
   digits,
   shown,
   animate = false,
-  glowRod = null,
+  glowRods = [],
   childAnswer = null,
   readout = "asFilled",
   interactive = false,
   onChange,
   onBeadLanded,
   compact = false,
+  pickRods = false,
+  onPickRod,
+  glow: glowAll = false,
+  dense = false,
+  width,
 }: AbacusProps) {
   const reduced = useReducedMotion();
   const rods = digits.length;
   const labels = ROD_LABELS.slice(ROD_LABELS.length - rods);
+  const valueLabels = ROD_VALUE_LABELS.slice(ROD_VALUE_LABELS.length - rods);
   const colours = rods > 4 ? [BOARD.beadExtra, ...BOARD.beads] : BOARD.beads.slice(BOARD.beads.length - rods);
+  const w = width ?? (dense ? 200 : compact ? 240 : 280);
+  const scale = w / VB_W;
 
-  // `animate`: walk bead by bead from `shown` up to `digits`. Rods that
-  // already carry their beads are left alone — a re-stage of a half-built
-  // abacus must never re-land what the child just watched land.
+  // `animate`: walk bead by bead from `shown` up to `digits`.
   const [selfShown, setSelfShown] = useState<number[]>(() => digits.map((d, i) => Math.min(d, shown[i] ?? 0)));
   const animKey = digits.join(",");
   const animKeyRef = useRef(animKey);
@@ -114,13 +128,13 @@ export function Abacus({
       return leftDone && count >= digit ? digit : null;
     });
   }, [digits, effective, readout]);
-  const complete = readoutDigits?.every((d) => d !== null) ?? false;
-  const number = complete ? readoutDigits!.join("") : effective.join("");
+  const complete = digits.every((d, rod) => (effective[rod] ?? 0) >= d);
+  const number = complete ? digits.join("") : effective.join("");
+  // The whole abacus answers to its number: a ring on {number:5421} rings the frame (rule g).
+  const rootRef = useTargetRef(["component:abacus", "text:abacus", ...(complete ? [`number:${Number(number)}`] : [])]);
+  const childDigits = childAnswer && childAnswer.length === rods && /^\d+$/u.test(childAnswer) ? childAnswer.split("") : null;
 
-  const rootRef = useTargetRef(["component:abacus", "text:abacus"]);
-  const readoutRef = useTargetRef(readoutDigits ? [`number:${Number(number)}`] : null);
-
-  // --- touch: a bead from the tray, or the top bead off a rod ---------
+  // --- touch: drag from the tray, tap to remove ---------------------------
   const [ghost, setGhost] = useState<DragPoint | null>(null);
   const [overRod, setOverRod] = useState<number | null>(null);
   const drag = useDrag<"tray">({
@@ -149,114 +163,117 @@ export function Abacus({
     onChange?.(shown.map((n, i) => (i === rod ? n - 1 : n)));
   };
 
-  const rodHeight = compact ? 110 : 150;
-  const beadW = compact ? 34 : 44;
-  const beadH = compact ? 18 : 22;
+  const anyGlow = glowRods.length > 0;
+  const rodX = (i: number) => (rods === 4 ? 55 + i * 70 : (VB_W / rods) * (i + 0.5));
 
   return (
-    <div
-      ref={rootRef}
-      data-testid="abacus"
-      data-number={number}
-      style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "100%", maxWidth: compact ? 380 : 520 }}
-    >
-      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "center", gap: "3%", width: "100%", padding: "0 3%" }}>
-        {digits.map((digit, rod) => (
-          <Rod
-            key={rod}
-            rod={rod}
-            label={labels[rod] ?? ""}
-            colour={colours[rod] ?? BOARD.beadExtra}
-            count={effective[rod] ?? 0}
-            glow={glowRod === rod}
-            dim={glowRod !== null && glowRod !== rod}
-            hover={overRod === rod}
-            height={rodHeight}
-            beadW={beadW}
-            beadH={beadH}
-            interactive={interactive}
-            onTap={() => removeTop(rod)}
-            reduced={!!reduced}
-            digit={digit}
-          />
-        ))}
-      </div>
-      {/* the base: one wooden bar with the labels printed on it */}
+    <div style={{ display: "flex", alignItems: "flex-start", gap: 16, flex: "none" }}>
       <div
-        style={{
-          width: "100%",
-          height: compact ? 12 : 16,
-          borderRadius: 6,
-          marginTop: -2,
-          background: `linear-gradient(180deg, ${BOARD.woodLight}, ${BOARD.wood} 55%, ${BOARD.woodDark})`,
-          boxShadow: "0 4px 8px rgba(40,25,10,0.3), inset 0 1px 0 rgba(255,255,255,0.25)",
-        }}
-        aria-hidden
-      />
-      {readoutDigits && (
-        <div
-          ref={readoutRef}
-          data-testid="abacus-readout"
-          style={{ display: "flex", justifyContent: "center", gap: "3%", width: "100%", padding: "6px 3% 0", minHeight: compact ? 30 : 38 }}
-        >
-          {readoutDigits.map((d, rod) => (
-            <div key={rod} style={{ flex: 1, display: "flex", justifyContent: "center" }}>
-              {d !== null && <HandNumber key={`${rod}:${d}`} text={d} size={compact ? 26 : 34} budgetMs={260} />}
+        ref={rootRef}
+        className={glowAll ? "wb-glow" : undefined}
+        data-testid="abacus"
+        data-number={number}
+        style={{ width: w, flex: "none", borderRadius: 14 }}
+      >
+        <svg viewBox={`0 0 ${VB_W} ${VB_H}`} width={w} style={{ display: "block", overflow: "visible" }}>
+          {digits.map((digit, rod) => {
+            const x = rodX(rod);
+            const count = effective[rod] ?? 0;
+            const isGlow = glowRods.includes(rod);
+            const tappable = interactive || pickRods;
+            return (
+              <Rod
+                key={rod}
+                rod={rod}
+                x={x}
+                colour={colours[rod] ?? BOARD.beadExtra}
+                count={count}
+                digit={digit}
+                label={labels[rod] ?? ""}
+                glow={isGlow}
+                veiled={anyGlow && !isGlow}
+                hover={overRod === rod}
+                tappable={tappable}
+                onTap={() => (pickRods ? onPickRod?.(rod) : removeTop(rod))}
+                reduced={!!reduced}
+              />
+            );
+          })}
+          {/* the wood base and its underside */}
+          <rect x="8" y="146" width="304" height="20" rx="6" fill={BOARD.wood} />
+          <rect x="8" y="160" width="304" height="6" rx="3" fill={BOARD.woodDark} />
+        </svg>
+        {/* the place values, beneath the rods, never inside */}
+        <div style={{ display: "grid", gridTemplateColumns: `repeat(${rods}, 1fr)`, textAlign: "center", font: `600 20px/1.5 ${FONT_LABEL}`, color: BOARD.inkSoft }}>
+          {valueLabels.map((label, rod) => (
+            <div key={rod} style={{ opacity: anyGlow && !glowRods.includes(rod) ? 0.38 : 1 }}>
+              {label}
             </div>
           ))}
         </div>
-      )}
-      <AnimatePresence>
-        {childAnswer && (
-          <motion.div
-            key={childAnswer}
-            data-testid="abacus-child-answer"
-            initial={{ opacity: 0, y: 8, scale: 0.94 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, transition: { duration: 0.15 } }}
-            transition={{ ...SPRING, duration: 0.25 }}
-            style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 4 }}
-          >
-            <WriteOn text="ඔයාගේ උත්තරය:" size={compact ? 16 : 20} color={BOARD.markerGreen} write={false} />
-            <HandNumber text={childAnswer} size={compact ? 28 : 36} color={BOARD.markerGreen} budgetMs={250} />
-          </motion.div>
-        )}
-      </AnimatePresence>
-      {interactive && (
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8 }} data-testid="abacus-tray">
-          <WriteOn text="පබළු:" size={16} color={BOARD.inkSoft} write={false} />
-          <div
-            className="wb-touch"
-            role="button"
-            aria-label="drag a bead onto a rod"
-            data-testid="abacus-tray-bead"
-            {...drag("tray")}
-            style={{
-              minWidth: TOUCH_MIN,
-              minHeight: TOUCH_MIN,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              borderRadius: 24,
-              background: "rgba(0,0,0,0.05)",
-            }}
-          >
-            <Bead colour="#9A8A7A" w={beadW} h={beadH} still />
+        {/* the number forming beneath: Zara's in blue, the child's in green */}
+        {(readoutDigits || childDigits) && (
+          <div data-testid="abacus-readout" style={{ display: "grid", gridTemplateColumns: `repeat(${rods}, 1fr)`, justifyItems: "center", marginTop: 4 }}>
+            {digits.map((_, rod) => {
+              const child = childDigits?.[rod];
+              const d = child ?? readoutDigits?.[rod] ?? null;
+              return (
+                <div key={rod} style={{ height: 40 * scale + 0, display: "flex", alignItems: "center" }}>
+                  {/* a forming number prints its landed digits only — an empty rod stays blank ("5___") */}
+                  {d !== null && d !== undefined && !(child === undefined && readout === "asFilled" && d === 0 && (effective[rod] ?? 0) === 0) && <HandNumber key={`${rod}:${d}:${child ? "c" : "z"}`} text={d} size={40 * scale} color={child ? BOARD.markerGreen : BOARD.markerBlue} budgetMs={260} registerNumbers={false} />}
+                </div>
+              );
+            })}
           </div>
+        )}
+        {/* a short answer (a count, a value) the child gave, in green */}
+        <AnimatePresence>
+          {childAnswer && !childDigits && (
+            <motion.div
+              key={childAnswer}
+              data-testid="abacus-child-answer"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, transition: { duration: 0.15 } }}
+              transition={{ ...SPRING_BOUNCY }}
+              style={{ display: "flex", justifyContent: "center", marginTop: 4 }}
+            >
+              <HandNumber text={childAnswer} size={34 * scale + 6} color={BOARD.markerGreen} budgetMs={250} />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+      {/* the bead tray: paper, beside the rods — the child's drag source, and where her beads come from while they land (M6) */}
+      {(interactive || animate || effective.some((n, i) => n < (digits[i] ?? 0))) && (
+        <div
+          className="wb-touch"
+          role="button"
+          aria-label="drag a bead onto a rod"
+          data-testid="abacus-tray-bead"
+          {...drag("tray")}
+          style={{
+            width: 72,
+            padding: "10px 8px",
+            background: BOARD.paper,
+            border: `2px solid ${BOARD.ink18}`,
+            borderRadius: 12,
+            boxShadow: "var(--shadow-paper)",
+            display: "grid",
+            gap: 8,
+            justifyItems: "center",
+            flex: "none",
+
+            minHeight: 56,
+          }}
+        >
+          {[colours[0], colours[0], colours[1], colours[2], colours[3]].map((c, i) => (
+            <div key={i} style={{ width: 38, height: 14, borderRadius: "50%", background: c, border: "1.5px solid rgba(27,27,27,.18)" }} />
+          ))}
+          <div style={{ font: `600 20px/1.5 ${FONT_LABEL}`, color: BOARD.inkSoft }}>පබළු</div>
           {ghost &&
             createPortal(
-              <div
-                style={{
-                  position: "fixed",
-                  left: ghost.x - beadW / 2,
-                  top: ghost.y - beadH / 2 - 12,
-                  pointerEvents: "none",
-                  zIndex: 1000,
-                  filter: "drop-shadow(0 10px 10px rgba(0,0,0,0.35))",
-                  transform: "scale(1.15)",
-                }}
-              >
-                <Bead colour={overRod !== null ? (colours[overRod] ?? BOARD.beadExtra) : "#9A8A7A"} w={beadW} h={beadH} still />
+              <div style={{ position: "fixed", left: ghost.x - 21, top: ghost.y - 8 - 14, pointerEvents: "none", zIndex: 1000, filter: "drop-shadow(0 14px 10px rgba(27,27,27,.3))" }}>
+                <div style={{ width: 42, height: 16, borderRadius: "50%", background: overRod !== null ? (colours[overRod] ?? BOARD.beadExtra) : BOARD.beads[3], border: "1.5px solid rgba(27,27,27,.18)" }} />
               </div>,
               document.body,
             )}
@@ -268,136 +285,68 @@ export function Abacus({
 
 function Rod({
   rod,
-  label,
+  x,
   colour,
   count,
   digit,
+  label,
   glow,
-  dim,
+  veiled,
   hover,
-  height,
-  beadW,
-  beadH,
-  interactive,
+  tappable,
   onTap,
   reduced,
 }: {
   rod: number;
-  label: string;
+  x: number;
   colour: string;
   count: number;
   digit: number;
+  label: string;
   glow: boolean;
-  dim: boolean;
+  veiled: boolean;
   hover: boolean;
-  height: number;
-  beadW: number;
-  beadH: number;
-  interactive: boolean;
+  tappable: boolean;
   onTap: () => void;
   reduced: boolean;
 }) {
-  const ref = useTargetRef<HTMLDivElement>(`rod:${rod}`);
+  const ref = useTargetRef<SVGGElement>(`rod:${rod}`);
   return (
-    <motion.div
+    <motion.g
       ref={ref}
       data-rod={rod}
       data-testid={`abacus-rod-${rod}`}
       data-glow={glow || undefined}
-      animate={{ opacity: dim ? 0.55 : 1 }}
+      animate={{ opacity: veiled ? 0.38 : 1 }}
       transition={{ duration: 0.3 }}
-      style={{ flex: 1, minWidth: TOUCH_MIN, display: "flex", flexDirection: "column", alignItems: "center", position: "relative" }}
+      role={tappable ? "button" : undefined}
+      aria-label={tappable ? `${label}: ${count} beads — tap` : `${label}: ${count} of ${digit}`}
+      onClick={tappable ? onTap : undefined}
+      style={{ cursor: tappable ? "pointer" : undefined }}
     >
-      {/* the glow: a chalk-yellow halo behind the named rod */}
-      <motion.div
-        aria-hidden
-        initial={false}
-        animate={{ opacity: glow ? 1 : hover ? 0.5 : 0, scale: glow ? 1 : 0.92 }}
-        transition={{ duration: 0.3 }}
-        style={{
-          position: "absolute",
-          inset: "-6px -4px 8px",
-          borderRadius: 18,
-          background: `radial-gradient(ellipse at 50% 70%, ${BOARD.chalkYellowSoft}, rgba(243,198,75,0.08) 70%, transparent)`,
-          boxShadow: `0 0 26px ${BOARD.chalkYellowSoft}`,
-        }}
-      />
-      <div
-        className={interactive ? "wb-tap" : undefined}
-        onClick={interactive ? onTap : undefined}
-        role={interactive ? "button" : undefined}
-        aria-label={interactive ? `${label}: ${count} beads — tap to remove one` : `${label}: ${count} of ${digit}`}
-        style={{
-          position: "relative",
-          height,
-          width: "100%",
-          display: "flex",
-          alignItems: "flex-end",
-          justifyContent: "center",
-        }}
-      >
-        {/* the pole */}
-        <div
-          aria-hidden
-          style={{
-            position: "absolute",
-            bottom: 0,
-            width: 7,
-            height: "100%",
-            borderRadius: "4px 4px 0 0",
-            background: `linear-gradient(90deg, ${BOARD.woodDark}, ${BOARD.woodLight} 45%, ${BOARD.woodDark})`,
-            boxShadow: "0 0 3px rgba(0,0,0,0.3)",
-          }}
-        />
-        <div style={{ position: "relative", display: "flex", flexDirection: "column-reverse", alignItems: "center" }}>
-          <AnimatePresence initial={false}>
-            {Array.from({ length: count }).map((_, i) => (
-              <motion.div
-                key={i}
-                layout
-                initial={reduced ? { opacity: 0 } : { y: -(height - i * (beadH - 2) - beadH), opacity: 0.6, scaleY: 0.92 }}
-                animate={{ y: 0, opacity: 1, scaleY: 1 }}
-                exit={{ y: -40, opacity: 0, transition: { duration: 0.15 } }}
-                transition={SPRING_BOUNCY}
-                onAnimationStart={() => playSound("beadClick")}
-                style={{ marginBottom: -2 }}
-              >
-                <Bead colour={colour} w={beadW} h={beadH} />
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </div>
-      </div>
-      {/* the rod's name, printed on the base */}
-      <div
-        style={{
-          marginTop: 4,
-          fontSize: beadH < 20 ? 16 : 17, // never under 16 px, compact or not
-          fontWeight: 700,
-          color: glow ? BOARD.ink : "rgba(42,36,24,0.8)",
-          lineHeight: 1.2,
-          textShadow: glow ? `0 0 8px ${BOARD.chalkYellow}` : undefined,
-        }}
-        className="font-sinhala"
-      >
-        {label}
-      </div>
-    </motion.div>
-  );
-}
-
-function Bead({ colour, w, h, still = false }: { colour: string; w: number; h: number; still?: boolean }) {
-  return (
-    <div
-      aria-hidden
-      style={{
-        width: w,
-        height: h,
-        borderRadius: "50%",
-        background: `radial-gradient(ellipse at 35% 30%, #ffffffaa, ${colour} 40%, ${colour})`,
-        boxShadow: still ? "0 1px 2px rgba(0,0,0,0.3)" : "0 2px 3px rgba(0,0,0,0.35), inset 0 -2px 3px rgba(0,0,0,0.25)",
-        border: "1px solid rgba(0,0,0,0.18)",
-      }}
-    />
+      {/* the glow: saffron-soft, on the named rod */}
+      <rect x={x - 29} y="6" width="58" height="150" rx="14" fill={glow ? BOARD.saffronSoft : hover ? "rgba(233,180,76,.18)" : "none"} stroke={glow ? BOARD.chalkYellow : "none"} strokeWidth="3" />
+      {/* the 48 px hit column, invisible */}
+      <rect x={x - 31} y="0" width="62" height="158" fill="transparent" />
+      <line x1={x} y1="18" x2={x} y2="146" stroke={BOARD.woodDark} strokeWidth="4" strokeLinecap="round" />
+      <AnimatePresence initial={false}>
+        {Array.from({ length: count }).map((_, k) => (
+          <motion.ellipse
+            key={k}
+            cx={x}
+            rx="19"
+            ry="7"
+            fill={colour}
+            stroke="rgba(27,27,27,.18)"
+            strokeWidth="1.5"
+            initial={reduced ? { cy: 138 - k * 13, opacity: 0 } : { cy: 26, opacity: 0.85 }}
+            animate={{ cy: 138 - k * 13, opacity: 1 }}
+            exit={{ cy: 26, opacity: 0, transition: { duration: 0.15 } }}
+            transition={SPRING_BOUNCY}
+            onAnimationStart={() => playSound("beadClick")}
+          />
+        ))}
+      </AnimatePresence>
+    </motion.g>
   );
 }

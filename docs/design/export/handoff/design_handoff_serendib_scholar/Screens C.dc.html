@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><meta name="design_doc_mode" content="canvas"><link rel="stylesheet" href="./tokens.css"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gemunu+Libre:wght@400;700&family=Abhaya+Libre:wght@400;500&family=Yaldevi:wght@400;600&family=Inter:wght@400;500;600&display=swap"><style>body{margin:0;background:#EDE8DD}a{color:#0F4C5C}a:hover{color:#D9643A}</style></helmet>
+<div style="padding:32px 40px;font-family:var(--font-latin);color:var(--color-ink);display:grid;gap:36px;width:2140px">
+  <div style="display:grid;gap:6px"><div style="font:600 12px/1.4 var(--font-latin);color:var(--color-teal);letter-spacing:.04em">SERENDIB SCHOLAR · 390×844</div><h1 style="margin:0;font:700 28px/1.2 var(--font-latin)">Practice · Quiz · Rewards · Certificate · Progress (child)</h1><p style="margin:0;max-width:900px;font:15px/1.5 var(--font-latin);color:var(--color-ink-70)">Parent screens are calmer (more white, teal text, Abhaya body) with the සිං | EN toggle in the header — the only place English exists. Child screens stay board-white with Gemunu display type and Zara present.</p></div>
+
+  <!-- ROW 2: PRACTICE, QUIZ, REWARDS, CERTIFICATE, PROGRESS -->
+  <div style="display:grid;gap:10px"><div style="font:700 16px/1.2 var(--font-latin)">Practice · Quiz · Rewards · Certificate · Progress (child)</div>
+  <div style="display:flex;gap:28px;align-items:flex-start">
+    <!-- PRACTICE HUB -->
+    <div style="display:grid;gap:8px"><span style="font:600 12px/1 var(--font-latin);color:var(--color-ink-70)">Practice hub</span>
+    <div data-screen-label="Practice hub" style="width:390px;height:844px;background:var(--color-board);border-radius:32px;position:relative;overflow:hidden;box-shadow:var(--shadow-card);display:flex;flex-direction:column;box-sizing:border-box">
+      <div style="padding:52px 20px 0;display:flex;align-items:center;gap:12px"><div style="display:grid;flex:1"><span style="font:700 28px/1.5 var(--font-display)">පුහුණුව</span><span style="font:600 20px/1.5 var(--font-label);color:var(--color-ink-70)">මිනිත්තු 3ක් — එක් සංකල්පයක්</span></div><dc-import name="Zara" state="idle" face="A" size="64" portrait="{{ true }}" hint-size="64px,64px"></dc-import></div>
+      <div style="padding:16px 20px 0;display:grid;gap:10px">
+        <sc-for list="{{ practice }}" as="p" hint-placeholder-count="4"><div style="background:var(--color-paper);border:2px solid var(--color-ink-10);border-radius:16px;padding:12px 14px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 0 #D8D1C2"><svg viewBox="0 0 56 56" width="56" height="56"><circle cx="28" cy="28" r="22" fill="none" stroke="rgba(27,27,27,.12)" stroke-width="6"></circle><circle cx="28" cy="28" r="22" fill="none" stroke="{{ p.c }}" stroke-width="6" stroke-linecap="round" stroke-dasharray="138" stroke-dashoffset="{{ p.o }}" transform="rotate(-90 28 28)"></circle></svg><div style="flex:1;display:grid"><span style="font:700 22px/1.4 var(--font-display)">{{ p.t }}</span><span style="font:600 20px/1.5 var(--font-label);color:var(--color-ink-70)">{{ p.s }}</span></div><span style="width:48px;height:48px;border-radius:50%;background:var(--color-teal);color:#fff;display:flex;align-items:center;justify-content:center;font:16px/1 var(--font-latin)">▶</span></div></sc-for>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px">
+          <div style="border:2px dashed var(--color-ink-18);border-radius:16px;padding:14px;display:grid;gap:4px;min-height:96px"><span style="font:700 20px/1.4 var(--font-display);color:var(--color-ink-40)">🔒 පසුගිය ප්‍රශ්න</span><span style="font:600 20px/1.5 var(--font-label);color:var(--color-ink-40)">ළඟදීම</span></div>
+          <div style="background:var(--color-coral-soft);border-radius:16px;padding:14px;display:grid;gap:4px;min-height:96px"><span style="font:700 20px/1.4 var(--font-display);color:var(--color-ink)">⏱ අභියෝගය</span><span style="font:600 20px/1.5 var(--font-label);color:var(--color-coral-text)">මිනිත්තු 5 · ප්‍රශ්න 10</span></div>
+        </div>
+      </div>
+      <div style="margin-top:auto;flex:none;height:84px;background:var(--color-paper);border-top:2px solid var(--color-ink-10);display:grid;grid-template-columns:repeat(4,1fr);padding:8px 8px 20px;box-sizing:border-box"><sc-for list="{{ nav3 }}" as="n" hint-placeholder-count="4"><div style="display:grid;justify-items:center;gap:0;align-content:center;border-radius:12px;background:{{ n.bg }}"><span style="width:8px;height:8px;border-radius:50%;background:{{ n.dot }}"></span><span style="font:700 20px/1.4 var(--font-display);color:{{ n.fg }}">{{ n.t }}</span></div></sc-for></div>
+    </div></div>
+    <!-- QUIZ -->
+    <div style="display:grid;gap:8px"><span style="font:600 12px/1 var(--font-latin);color:var(--color-ink-70)">Quiz — one question, board primitives, 5 dots, no timer by default</span>
+    <div data-screen-label="Quiz" style="width:390px;height:844px;background:var(--color-board);background-image:linear-gradient(var(--color-grid) 1px,transparent 1px),linear-gradient(90deg,var(--color-grid) 1px,transparent 1px);background-size:32px 32px;border-radius:32px;position:relative;overflow:hidden;box-shadow:var(--shadow-card);display:flex;flex-direction:column;box-sizing:border-box">
+      <div style="padding:52px 20px 0;display:flex;align-items:center;gap:12px"><span style="width:56px;height:56px;border-radius:50%;background:var(--color-paper);border:2px solid var(--color-ink-18);display:flex;align-items:center;justify-content:center;font:22px/1 var(--font-latin)">✕</span><div style="flex:1;display:flex;gap:8px;justify-content:center"><sc-for list="{{ qdots }}" as="d" hint-placeholder-count="5"><span style="width:14px;height:14px;border-radius:50%;background:{{ d.bg }};border:2px solid {{ d.b }};box-sizing:border-box"></span></sc-for></div><span style="width:48px"></span></div>
+      <div style="padding:20px 20px 0;display:grid;gap:16px;justify-items:center">
+        <div style="font:700 26px/1.6 var(--font-display);color:var(--color-ink);text-align:center;text-wrap:balance">6 572 කියන සංඛ්‍යාවේ හයෙන් පෙන්වන අගය කීයද?</div>
+        <div style="display:flex;justify-content:center;padding:8px 0"><dc-import name="StrokeNum" value="6 572" size="56" color="#1B1B1B" hint-size="160px,56px"></dc-import></div>
+        <div style="display:grid;gap:10px;width:100%">
+          <sc-for list="{{ qchips }}" as="c" hint-placeholder-count="3"><div style="height:56px;border:2px solid {{ c.b }};border-radius:999px;background:{{ c.bg }};display:flex;align-items:center;justify-content:center;font:700 24px/1.5 var(--font-display);color:var(--color-ink);box-shadow:0 2px 0 #D8D1C2">{{ c.t }}</div></sc-for>
+        </div>
+      </div>
+      <div style="margin-top:auto;padding:0 20px 28px;display:flex;align-items:flex-end;justify-content:space-between"><dc-import name="Zara" state="listening" face="A" size="64" portrait="{{ true }}" hint-size="64px,64px"></dc-import><button style="height:56px;padding:0 32px;border:0;border-radius:12px;background:var(--color-teal);color:#fff;font:700 24px/1.5 var(--font-display);box-shadow:var(--shadow-button)">පරීක්ෂා කරන්න</button><dc-import name="Lena" state="alert" size="48" hint-size="48px,48px"></dc-import></div>
+    </div></div>
+    <!-- REWARDS -->
+    <div style="display:grid;gap:8px"><span style="font:600 12px/1 var(--font-latin);color:var(--color-ink-70)">Rewards — sticker book, Lena outfits, certificates</span>
+    <div data-screen-label="Rewards" style="width:390px;height:844px;background:var(--color-board);border-radius:32px;position:relative;overflow:hidden;box-shadow:var(--shadow-card);display:flex;flex-direction:column;box-sizing:border-box">
+      <div style="padding:52px 20px 0;display:flex;align-items:center;gap:12px"><div style="display:grid;flex:1"><span style="font:700 28px/1.5 var(--font-display)">තෑගි</span><span style="font:600 20px/1.5 var(--font-label);color:var(--color-ink-70)">ලාංඡන 3 / 12 · සහතික 1</span></div><dc-import name="Lena" state="hop" size="56" hint-size="56px,56px"></dc-import></div>
+      <div style="padding:14px 20px 0;display:grid;gap:14px">
+        <div style="background:var(--color-paper);border:2px solid var(--color-ink-10);border-radius:20px;padding:14px;display:grid;gap:10px;box-shadow:var(--shadow-paper)">
+          <span style="font:600 20px/1.5 var(--font-label);color:var(--color-ink-70)">ස්ටිකර් පොත</span>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px"><sc-for list="{{ stickers }}" as="b" hint-placeholder-count="8"><div style="display:grid;gap:4px;justify-items:center"><div style="width:68px;height:68px;border-radius:50%;background:{{ b.bg }};border:{{ b.bd }};display:flex;align-items:center;justify-content:center;opacity:{{ b.op }}"><div style="width:40px;height:40px;border-radius:50%;background:repeating-linear-gradient(135deg,rgba(15,76,92,.12) 0 3px,transparent 3px 7px);display:flex;align-items:center;justify-content:center;font:8px/1.2 ui-monospace,monospace;color:var(--color-ink-70);text-align:center">{{ b.slot }}</div></div><span style="font:700 20px/1.4 var(--font-display);color:{{ b.tc }}">{{ b.name }}</span></div></sc-for></div>
+        </div>
+        <div style="background:var(--color-paper);border:2px solid var(--color-ink-10);border-radius:20px;padding:14px;display:grid;gap:10px;box-shadow:var(--shadow-paper)">
+          <span style="font:600 20px/1.5 var(--font-label);color:var(--color-ink-70)">ලේනාගේ ඇඳුම්</span>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px"><sc-for list="{{ outfits }}" as="o" hint-placeholder-count="3"><div style="display:grid;gap:4px;justify-items:center;border:2px solid {{ o.b }};border-radius:14px;padding:8px 4px;background:{{ o.bg }};min-height:96px"><div style="position:relative"><dc-import name="Lena" state="idle" size="56" hint-size="56px,56px"></dc-import><div style="position:absolute;left:8px;top:-4px;width:28px;height:16px;border-radius:8px 8px 3px 3px;background:{{ o.hat }};border:2px solid rgba(27,27,27,.25)"></div></div><span style="font:700 20px/1.4 var(--font-display);color:{{ o.fg }}">{{ o.t }}</span></div></sc-for></div>
+        </div>
+        <div style="background:var(--color-saffron-soft);border:2px solid var(--color-saffron);border-radius:20px;padding:14px;display:flex;align-items:center;gap:12px"><span style="width:48px;height:48px;border-radius:12px;background:var(--color-paper);border:2px solid var(--color-wood);display:flex;align-items:center;justify-content:center;font:22px/1 var(--font-latin)">🎓</span><div style="flex:1;display:grid"><span style="font:700 20px/1.4 var(--font-display)">සහතිකය ලෑස්ති!</span><span style="font:600 20px/1.5 var(--font-label);color:var(--color-ink-70)">ස්ථානීය අගය — අම්මාට පෙන්වන්න</span></div><span style="font:20px/1 var(--font-latin);color:var(--color-ink-40)">›</span></div>
+      </div>
+      <div style="margin-top:auto;flex:none;height:84px;background:var(--color-paper);border-top:2px solid var(--color-ink-10);display:grid;grid-template-columns:repeat(4,1fr);padding:8px 8px 20px;box-sizing:border-box"><sc-for list="{{ nav4 }}" as="n" hint-placeholder-count="4"><div style="display:grid;justify-items:center;gap:0;align-content:center;border-radius:12px;background:{{ n.bg }}"><span style="width:8px;height:8px;border-radius:50%;background:{{ n.dot }}"></span><span style="font:700 20px/1.4 var(--font-display);color:{{ n.fg }}">{{ n.t }}</span></div></sc-for></div>
+    </div></div>
+    <!-- CERTIFICATE -->
+    <div style="display:grid;gap:8px"><span style="font:600 12px/1 var(--font-latin);color:var(--color-ink-70)">Certificate — printable A4 preview</span>
+    <div data-screen-label="Certificate" style="width:390px;height:844px;background:var(--color-board);border-radius:32px;position:relative;overflow:hidden;box-shadow:var(--shadow-card);display:flex;flex-direction:column;box-sizing:border-box;align-items:center">
+      <div style="padding:52px 20px 0;display:flex;align-items:center;gap:12px;width:100%;box-sizing:border-box"><span style="width:56px;height:56px;border-radius:50%;background:var(--color-paper);border:2px solid var(--color-ink-18);display:flex;align-items:center;justify-content:center;font:22px/1 var(--font-latin)">‹</span><span style="font:700 28px/1.5 var(--font-display)">සහතිකය</span></div>
+      <div style="margin-top:18px;width:330px;height:466px;background:#FFFDF8;border:10px solid var(--color-wood);box-shadow:var(--shadow-lift);position:relative;display:flex;flex-direction:column;align-items:center;padding:26px 22px;box-sizing:border-box;text-align:center">
+        <svg viewBox="0 0 300 420" style="position:absolute;inset:6px;width:calc(100% - 12px);height:calc(100% - 12px)" preserveAspectRatio="none"><path d="M6 8C90 4 210 6 294 8c3 100 3 300 0 404-84 4-204 2-288 0C3 308 3 108 6 8z" fill="none" stroke="#E9B44C" stroke-width="2.5" stroke-linecap="round" vector-effect="non-scaling-stroke"></path></svg>
+        <div style="font:600 20px/1.5 var(--font-label);color:var(--color-teal);white-space:nowrap">සෙරෙන්ඩිබ් ශිෂ්‍ය</div>
+        <div style="font:700 26px/1.4 var(--font-display);color:var(--color-ink);margin-top:4px;white-space:nowrap">දක්ෂතා සහතිකය</div>
+        <div style="margin:14px 0 8px"><dc-import name="Zara" state="celebrate" face="A" size="64" portrait="{{ true }}" hint-size="64px,64px"></dc-import></div>
+        <div style="font:400 20px/1.5 var(--font-body);color:var(--color-ink-70)">මෙයින් සහතික කරනුයේ</div>
+        <div style="font:700 34px/1.4 var(--font-display);color:var(--color-teal)">නිමාලි පෙරේරා</div>
+        <div style="font:400 20px/1.5 var(--font-body);color:var(--color-ink);text-wrap:balance;margin-top:4px">5 ශ්‍රේණියේ ගණිතය — <b style="font-family:var(--font-display)">ස්ථානීය අගය</b> සංකල්පය මනාව ප්‍රගුණ කළ බවයි.</div>
+        <div style="font-size:26px;line-height:1;color:var(--color-saffron);letter-spacing:-1px;margin-top:10px">★★★</div>
+        <div style="margin-top:auto;display:flex;justify-content:space-between;width:100%;align-items:flex-end"><div style="display:grid;gap:2px;text-align:left"><span style="font:400 20px/1.4 var(--font-body);color:var(--color-ink-70)">2026 සැප්තැම්බර් 9</span></div><div style="display:grid;gap:2px;text-align:right"><svg viewBox="0 0 120 30" width="100" height="25"><path d="M4 22c10-14 18-14 22-4s10 6 18-6 12 0 16 6 12-2 18-10 10 4 16 6 12-4 20-8" fill="none" stroke="#0F4C5C" stroke-width="2" stroke-linecap="round"></path></svg><span style="font:400 20px/1.4 var(--font-body);color:var(--color-ink-70)">සාරා ගුරුතුමිය</span></div></div>
+      </div>
+      <div style="margin-top:auto;width:100%;padding:0 20px 28px;display:grid;grid-template-columns:1fr 1fr;gap:10px;box-sizing:border-box"><button style="height:56px;border:2px solid var(--color-ink-18);border-radius:12px;background:var(--color-paper);color:var(--color-teal);font:700 22px/1.5 var(--font-display)">බෙදාගන්න</button><button style="height:56px;border:0;border-radius:12px;background:var(--color-teal);color:#fff;font:700 22px/1.5 var(--font-display);box-shadow:var(--shadow-button)">මුද්‍රණය (A4)</button></div>
+    </div></div>
+    <!-- PROGRESS -->
+    <div style="display:grid;gap:8px"><span style="font:600 12px/1 var(--font-latin);color:var(--color-ink-70)">Progress (child) — mastery map</span>
+    <div data-screen-label="Progress" style="width:390px;height:844px;background:var(--color-board);border-radius:32px;position:relative;overflow:hidden;box-shadow:var(--shadow-card);display:flex;flex-direction:column;box-sizing:border-box">
+      <div style="padding:52px 20px 0;display:flex;align-items:center;gap:12px"><div style="display:grid;flex:1"><span style="font:700 28px/1.5 var(--font-display)">මගේ ප්‍රගතිය</span><span style="font:600 20px/1.5 var(--font-label);color:var(--color-ink-70)">ගණිතය · සංකල්ප 6 / 18</span></div><dc-import name="Zara" state="encourage" face="A" size="64" portrait="{{ true }}" hint-size="64px,64px"></dc-import></div>
+      <div style="padding:16px 20px 0;display:grid;gap:8px">
+        <sc-for list="{{ mastery }}" as="m" hint-placeholder-count="7"><div style="display:flex;align-items:center;gap:12px;background:var(--color-paper);border:2px solid var(--color-ink-10);border-radius:14px;padding:8px 12px"><svg viewBox="0 0 48 48" width="48" height="48"><circle cx="24" cy="24" r="19" fill="none" stroke="rgba(27,27,27,.12)" stroke-width="6"></circle><circle cx="24" cy="24" r="19" fill="none" stroke="{{ m.c }}" stroke-width="6" stroke-linecap="round" stroke-dasharray="119" stroke-dashoffset="{{ m.o }}" transform="rotate(-90 24 24)"></circle></svg><span style="flex:1;font:700 20px/1.5 var(--font-display)">{{ m.t }}</span><span style="display:flex;align-items:center;gap:6px;font:600 20px/1.5 var(--font-label);color:var(--color-ink-70)"><span style="width:10px;height:10px;border-radius:50%;background:{{ m.c }}"></span>{{ m.s }}</span></div></sc-for>
+        <div style="display:flex;gap:12px;align-items:flex-start;margin-top:8px;background:var(--color-card);border-radius:16px 16px 16px 4px;padding:12px 14px"><span style="font:400 20px/1.5 var(--font-body);color:var(--color-ink)">නිමාලි, දහසස්ථානය හොඳට තේරුම් ගත්තා. විහිදුවා ලිවීම තව පොඩ්ඩක් පුරුදු වෙමු!</span></div>
+      </div>
+      <div style="margin-top:auto;flex:none;height:84px;background:var(--color-paper);border-top:2px solid var(--color-ink-10);display:grid;grid-template-columns:repeat(4,1fr);padding:8px 8px 20px;box-sizing:border-box"><sc-for list="{{ nav0 }}" as="n" hint-placeholder-count="4"><div style="display:grid;justify-items:center;gap:0;align-content:center;border-radius:12px;background:{{ n.bg }}"><span style="width:8px;height:8px;border-radius:50%;background:{{ n.dot }}"></span><span style="font:700 20px/1.4 var(--font-display);color:{{ n.fg }}">{{ n.t }}</span></div></sc-for></div>
+    </div></div>
+  </div></div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const navFor = (active) => ['නිවස', 'පාඩම්', 'පුහුණුව', 'තෑගි'].map((t, i) => ({ t, bg: i === active ? '#EEF4F5' : 'transparent', fg: i === active ? '#0F4C5C' : 'rgba(27,27,27,.7)', dot: i === active ? '#0F4C5C' : 'rgba(27,27,27,.18)' }));
+    const dotsFor = n => [1, 2, 3, 4].map(i => i <= n ? '#0F4C5C' : 'rgba(27,27,27,.12)');
+    const onboarding = [
+      { label: 'Onboarding 1 · phone + OTP', step: 1, dots: dotsFor(1), zara: 'talking', bubble: 'ආයුබෝවන්! මම සාරා. දරුවාගේ ගිණුම හදන්න මිනිත්තු දෙකක් විතර යනවා.', title: 'දුරකථන අංකය තහවුරු කරමු', isPhone: true, isProfile: false, isConsent: false, isPay: false, cta: 'ඉදිරියට', hasSkip: false },
+      { label: 'Onboarding 2 · child profile', step: 2, dots: dotsFor(2), zara: 'encourage', bubble: 'දරුවාට මම කතා කරන්නේ මේ නමින්.', title: 'දරුවා ගැන කියන්න', isPhone: false, isProfile: true, isConsent: false, isPay: false, cta: 'ඉදිරියට', hasSkip: false },
+      { label: 'Onboarding 3 · consent', step: 3, dots: dotsFor(3), zara: 'idle', bubble: 'ඔබ දැනගත යුතු දේවල් තුනක් — සරලව.', title: 'අපි කරන දේ, නොකරන දේ', isPhone: false, isProfile: false, isConsent: true, isPay: false, cta: 'එකඟයි', hasSkip: false },
+      { label: 'Onboarding 4 · subscription', step: 4, dots: dotsFor(4), zara: 'celebrate', bubble: 'පළමු සතිය නොමිලේ. කැමති නැත්නම් නවත්වන්න පුළුවන්.', title: 'සැලැස්ම තෝරන්න', isPhone: false, isProfile: false, isConsent: false, isPay: true, cta: 'නොමිලේ සතිය පටන් ගන්න', hasSkip: true, skip: 'පසුව තීරණය කරන්නම්' },
+    ];
+    const otp = ['4', '8', '2', '', '', ''].map((v, i) => ({ v, b: i === 3 ? '#0F4C5C' : v ? 'rgba(27,27,27,.18)' : 'rgba(27,27,27,.18)', bg: v ? '#EEF4F5' : '#fff' }));
+    const avatars = ['අලියා', 'මොනරා', 'ලේනා', 'කැස්බෑවා', 'ගිරවා', 'කොටියා', 'මුවා', 'මාළුවා'].map((t, i) => ({ t, bg: i === 2 ? '#FBEFD3' : '#EEF4F5', b: i === 2 ? '#E9B44C' : 'transparent' }));
+    const consent = [
+      { i: '1', bg: '#0F4C5C', t: 'දරුවා කියන දේ අකුරු වලට හැරෙනවා', d: 'පිළිතුරු ලියවෙනවා. හඬ පටිගත කර තබා නොගනියි — කවදාවත්.' },
+      { i: '2', bg: '#3C8C5A', t: 'ඔබට පෙනෙන්නේ', d: 'මිනිත්තු, සැසි, ඉගෙන ගත් සංකල්ප සහ වැරදුණු ප්‍රශ්න — සතිපතා වාර්තාවේ.' },
+      { i: '3', bg: '#D9643A', t: 'මකන්න ඕනෑම වෙලාවක', d: 'දෙමාපිය කලාපයෙන් එක තැනකින් ගිණුම සහ සියලු දත්ත මකා දමන්න පුළුවන්.' },
+    ];
+    const practice = [['ස්ථානීය අගය', 'මිනිත්තු 3 · ප්‍රශ්න 6', '#3C8C5A', 30], ['විහිදුවා ලිවීම', 'මිනිත්තු 3 · ප්‍රශ්න 6', '#E9B44C', 90], ['සංඛ්‍යා නාම', 'මිනිත්තු 3 · ප්‍රශ්න 5', '#E9B44C', 110], ['ගණක රාමුව කියවීම', 'මිනිත්තු 3 · ප්‍රශ්න 6', '#3C8C5A', 20]].map(([t, s, c, o]) => ({ t, s, c, o }));
+    const qdots = [0, 1, 2, 3, 4].map(i => ({ bg: i < 2 ? '#3C8C5A' : i === 2 ? '#E9B44C' : 'transparent', b: i < 2 ? '#3C8C5A' : i === 2 ? '#E9B44C' : 'rgba(27,27,27,.3)' }));
+    const qchips = [['600', false], ['6000', true], ['60', false]].map(([t, sel]) => ({ t, b: sel ? '#E9B44C' : 'rgba(27,27,27,.18)', bg: sel ? '#FBEFD3' : '#FFFDF8' }));
+    const stickers = [['අලියා', true], ['මොනරා', true], ['නෙළුම', true], ['කොත්තු', false], ['ත්රීවීලර්', false], ['කිරිබත්', false], ['වෙසක් කූඩුව', false], ['ක්‍රිකට්', false]].map(([name, e]) => ({ name, slot: e ? 'art' : '', bg: e ? '#FFFDF8' : 'transparent', bd: e ? '3px solid #E9B44C' : '3px dashed rgba(27,27,27,.3)', op: e ? 1 : .7, tc: e ? '#1B1B1B' : 'rgba(27,27,27,.5)' }));
+    const outfits = [['තොප්පිය', true, '#0F4C5C'], ['හෙල්මට්', false, '#4A7BD0'], ['කූඩුව', false, '#D9643A']].map(([t, own, hat]) => ({ t, hat, b: own ? '#E9B44C' : 'rgba(27,27,27,.12)', bg: own ? '#FBEFD3' : 'transparent', fg: own ? '#1B1B1B' : 'rgba(27,27,27,.5)' }));
+    const mastery = [['සංඛ්‍යා කියවීම', 100, 'හොඳටම'], ['දහසස්ථානය', 100, 'හොඳටම'], ['ගණක රාමුව', 85, 'හොඳයි'], ['ස්ථානීය අගය', 70, 'හොඳයි'], ['විහිදුවා ලිවීම', 40, 'පුරුදු වෙමු'], ['බිංදුව ඇති ස්ථාන', 25, 'පුරුදු වෙමු'], ['දස දහස', 0, 'තාම නෑ']].map(([t, p, s]) => ({ t, s, o: 119 - 119 * p / 100, c: p >= 85 ? '#3C8C5A' : p > 0 ? '#E9B44C' : 'rgba(27,27,27,.3)' }));
+    const settings = [
+      { t: 'සතිපතා වාර්තාව', v: 'සැප්. 2–8', c: '#1B1B1B', hasSub: false }, { t: 'දායකත්වය සහ බිල්පත්', v: 'රු. 1,000 / මාසිකව', c: '#1B1B1B', hasSub: false },
+      { t: 'දිනපතා කාල සීමාව', v: 'මිනිත්තු 15', c: '#1B1B1B', hasSub: true, sub: '15 · 20 · 30' }, { t: 'ශබ්දය සහ උපසිරැසි', v: 'ශබ්දය ✓', c: '#1B1B1B', hasSub: false },
+      { t: 'දරුවන්ගේ පැතිකඩ', v: '1', c: '#1B1B1B', hasSub: true, sub: 'දෙවැනි දරුවා එක් කරන්න' }, { t: 'PIN වෙනස් කරන්න', v: '', c: '#1B1B1B', hasSub: false },
+      { t: 'උදව්', v: '', c: '#1B1B1B', hasSub: false }, { t: 'ගිණුම සහ දත්ත මකන්න', v: '', c: '#D9643A', hasSub: false },
+    ];
+    const bars = [['ස', 12], ['අ', 15], ['බ', 0], ['බ්‍ර', 14], ['සි', 9], ['සෙ', 14], ['ඉ', 0]].map(([d, m]) => ({ d, h: Math.max(4, m / 15 * 60) + 'px', c: m ? '#0F4C5C' : 'rgba(27,27,27,.12)' }));
+    const missed = [{ q: '6 572 — හයෙන් පෙන්වන අගය කීයද?', a: '600', c: '6000' }, { q: '7 062 = 7000 + ▢ + 60 + 2', a: '6', c: '0' }];
+    const edges = [
+      { label: 'Loading', bg: '#F7F3EA', spinner: true, zara: true, zaraState: 'idle', title: 'පාඩම ලෑස්ති වෙනවා…', body: 'සාරා ගුරුතුමිය පුවරුව හදාගන්නවා.', hasCta: false, rotate: false },
+      { label: 'Offline', bg: '#F7F3EA', zara: true, zaraState: 'encourage', title: 'අන්තර්ජාලය නෑ වගේ', body: 'Wi-Fi එක හරි දත්ත හරි බලලා ආයෙත් උත්සාහ කරමු. ඔයාගේ ප්‍රගතිය සුරක්ෂිතයි.', hasCta: true, cta: 'ආයෙත් උත්සාහ කරන්න', hasAlt: false, rotate: false },
+      { label: 'Paused', bg: 'rgba(27,27,27,.55)', zara: true, zaraState: 'idle', title: 'පාඩම නවත්වලා', body: 'ලෑස්ති වුණාම දිගටම යමු.', hasCta: true, cta: '▶ දිගටම', hasAlt: true, alt: 'නවත්වන්න', rotate: false },
+      { label: 'Rotate phone', bg: '#F7F3EA', rotate: true, zara: false, title: 'ෆෝන් එක හරහට කරන්න', body: 'පුවරුව හොඳට පේන්න පාඩම හරහට තියෙන්නේ.', hasCta: false },
+      { label: 'Mic permission', bg: '#F7F3EA', zara: true, zaraState: 'talking', title: 'මයික් එකට අවසර දෙන්න', body: 'ඔයා කියන පිළිතුරු මට අහන්න ඕනේ. හඬ තබා ගන්නේ නෑ — වචන විතරයි.', hasCta: true, cta: 'අවසර දෙන්න', hasAlt: true, alt: 'ටයිප් කරන්නම්', rotate: false },
+      { label: 'Error', bg: '#F7F3EA', zara: true, zaraState: 'encourage', title: 'අපොයි, මගේ අතින් වැරැද්දක්', body: 'මට පොඩි ප්‍රශ්නයක් ආවා. ආයෙත් උත්සාහ කරමුද?', hasCta: true, cta: 'ආයෙත් උත්සාහ කරන්න', hasAlt: true, alt: 'නිවසට', rotate: false },
+    ].map(e => ({ spinner: false, hasAlt: false, ...e }));
+    return { onboarding, otp, avatars, consent, practice, qdots, qchips, stickers, outfits, mastery, settings, bars, missed, edges, nav0: navFor(0), nav3: navFor(2), nav4: navFor(3) };
+  }
+}
+</script>
+</body>
+</html>

@@ -58,6 +58,8 @@ interface AuthoredBeat {
   type: string;
   expectedAnswer?: string;
   answerChoices?: string[];
+  answerMode?: string;
+  choices?: { options: string[]; correctIndex: number };
 }
 
 interface ChoreoLogEntry {
@@ -78,6 +80,8 @@ interface Snapshot {
   beatType: string;
   status: string;
   yourTurn: string | null;
+  /** "mic" during reading practice, "soft" during a soft check's pause. */
+  pause: string | null;
   character: string | null;
   stage: string | null;
   choreo: { beatId: string; fired: number; sentences: number } | null;
@@ -105,6 +109,15 @@ async function main(): Promise<void> {
   });
   await page.send("Runtime.enable");
   await page.send("Page.enable");
+  await page.send("Network.enable");
+  const apiCalls = new Map<string, number>();
+  page.on("Network.requestWillBeSent", (params) => {
+    const url = String((params.request as { url?: string })?.url ?? "");
+    const m = url.match(/\/api\/([a-z-]+)/u);
+    if (m) apiCalls.set(m[1]!, (apiCalls.get(m[1]!) ?? 0) + 1);
+  });
+  // The microphone: counted from the page's first script, so a session-start request could not hide.
+  await page.send("Page.addScriptToEvaluateOnNewDocument", { source: `(() => { window.__gumCalls = 0; const md = navigator.mediaDevices; if (!md) return; const original = md.getUserMedia.bind(md); md.getUserMedia = (c) => { window.__gumCalls += 1; return original(c); }; })();` });
   await page.send("Emulation.setUserAgentOverride", { userAgent: MOBILE_UA, platform: "Android" });
   await page.send("Emulation.setDeviceMetricsOverride", { width: VIEW_W, height: VIEW_H, deviceScaleFactor: 2, mobile: true });
   await page.send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 5 });
@@ -137,14 +150,23 @@ async function main(): Promise<void> {
   const snapshot = (): Promise<Snapshot> =>
     evaluate(
       page,
-      `(() => { const el = document.querySelector('.lesson-screen'); const d = el ? el.dataset : {}; return { beatId: d.beatId ?? '—', beatType: d.beatType ?? '—', status: d.status ?? '—', yourTurn: d.yourTurn ?? null, character: d.character ?? null, stage: window.__stage ?? null, choreo: window.__choreo ?? null }; })()`,
+      `(() => { const el = document.querySelector('.lesson-screen'); const d = el ? el.dataset : {}; return { beatId: d.beatId ?? '—', beatType: d.beatType ?? '—', status: d.status ?? '—', yourTurn: d.yourTurn ?? null, pause: d.pause ?? null, character: d.character ?? null, stage: window.__stage ?? null, choreo: window.__choreo ?? null }; })()`,
     );
 
   // A real child's first tap — the gesture-resume path.
   await tap(446, 206);
-  await wait(1500);
+  // The page may still be arriving (a server just started): wait up to 12 s for the gate or the lesson.
+  let gated = false;
+  for (let i = 0; i < 48; i += 1) {
+    await wait(250);
+    const seen = await evaluate<string>(page, `document.querySelector('input[type="password"]') ? 'gate' : document.querySelector('.lesson-screen') ? 'lesson' : ''`).catch(() => "");
+    if (seen === "gate") {
+      gated = true;
+      break;
+    }
+    if (seen === "lesson" && i >= 6) break;
+  }
   // The device gate, the way a parent would enter it.
-  const gated = await evaluate<boolean>(page, `!!document.querySelector('input[type="password"]')`);
   if (gated) {
     if (!ACCESS_CODE) throw new Error("the device gate is up and ACCESS_CODE is not set");
     await evaluate(
@@ -177,15 +199,19 @@ async function main(): Promise<void> {
     for (let i = 0; i < rects.length; i++) for (let j = i + 1; j < rects.length; j++) if (intersects(rects[i], rects[j])) overlap++;
     const portraitOverlap = cr ? rects.filter((r) => intersects(r, cr)).length : 0;
     const cutOff = [...content.querySelectorAll('*')].filter(visible).filter((el) => { const r = el.getBoundingClientRect(); return r.left < surface.left - 2 || r.right > surface.right + 2 || r.top < surface.top - 2 || r.bottom > surface.bottom + 2; }).length;
-    const small = [...board.querySelectorAll('[role="button"], button')].filter(visible).filter((el) => { const r = el.getBoundingClientRect(); return r.width < 47.5 || r.height < 47.5; }).map((el) => (el.getAttribute('aria-label') || el.textContent || '').trim().slice(0, 24) + ' ' + Math.round(el.getBoundingClientRect().width) + 'x' + Math.round(el.getBoundingClientRect().height));
+    // the hit area may reach beyond the drawn box (a table cell's 30 px row, the tray's ♪ chip): measure what a finger meets
+    const reach = (el, r) => { const cx = r.left + r.width / 2, cy = r.top + r.height / 2; const hits = (x, y) => { const h = document.elementFromPoint(x, y); return !!h && (h === el || el.contains(h)); }; let top = r.top, bottom = r.bottom, left = r.left, right = r.right; for (let y = r.top - 2; y > r.top - 30 && hits(cx, y); y -= 2) top = y; for (let y = r.bottom + 2; y < r.bottom + 30 && hits(cx, y); y += 2) bottom = y; for (let x = r.left - 2; x > r.left - 30 && hits(x, cy); x -= 2) left = x; for (let x = r.right + 2; x < r.right + 30 && hits(x, cy); x += 2) right = x; return { w: right - left, h: bottom - top }; };
+    const small = [...board.querySelectorAll('[role="button"], button')].filter(visible).filter((el) => { const r = el.getBoundingClientRect(); if (r.width >= 47.5 && r.height >= 47.5) return false; const e = reach(el, r); return e.w < 47.5 || e.h < 47.5; }).map((el) => (el.getAttribute('aria-label') || el.textContent || '').trim().slice(0, 24) + ' ' + Math.round(el.getBoundingClientRect().width) + 'x' + Math.round(el.getBoundingClientRect().height));
     const tinyText = [];
     const walker = document.createTreeWalker(content, NodeFilter.SHOW_TEXT);
     while (walker.nextNode()) { const node = walker.currentNode; if (!node.textContent.trim()) continue; const el = node.parentElement; if (!el || !visible(el) || el.closest('[aria-hidden="true"]')) continue; const size = parseFloat(getComputedStyle(el).fontSize); if (size < 16) tinyText.push(node.textContent.trim().slice(0, 16) + ' ' + Math.round(size) + 'px'); }
+    // The strip controls' hit areas: probed, since the reach is a pseudo-element — how far below the strip's top a touch still lands on the button.
+    const strip = [...document.querySelectorAll('header button[aria-label]')].map((el) => { const r = el.getBoundingClientRect(); const x = r.left + r.width / 2; let reach = 0; for (let y = r.top + 2; y < r.top + 80; y += 2) { const hit = document.elementFromPoint(x, y); if (hit && (hit === el || el.contains(hit))) reach = Math.round(y - r.top); else if (y > r.bottom) break; } return { label: el.getAttribute('aria-label'), h: reach, w: Math.round(r.width + 8) }; });
     const runningList = document.getAnimations().filter((a) => a.playState === 'running' && board.contains(a.effect && a.effect.target));
     const runningNames = [...new Set(runningList.map((a) => { const t = a.effect && a.effect.target; const name = a.animationName || (a.effect && a.effect.getKeyframes ? 'motion:' + Object.keys((a.effect.getKeyframes()[0] || {})).filter((k) => !['offset','computedOffset','easing','composite'].includes(k)).join('/') : 'js'); return name + ' on ' + (t ? (t.tagName.toLowerCase() + (t.className && typeof t.className === 'string' ? '.' + t.className.split(' ')[0] : '') + (t.dataset && t.dataset.testid ? '#' + t.dataset.testid : '')) : '?'); }))].slice(0, 8);
-    return { overlap, portraitOverlap, cutOff, small: [...new Set(small)], tinyText: [...new Set(tinyText)].slice(0, 6), running: runningList.length, runningNames };
+    return { overlap, portraitOverlap, cutOff, small: [...new Set(small)], tinyText: [...new Set(tinyText)].slice(0, 6), running: runningList.length, runningNames, strip };
   })()`;
-  type Audit = { overlap: number; portraitOverlap: number; cutOff: number; small: string[]; tinyText: string[]; running: number; runningNames: string[] } | null;
+  type Audit = { overlap: number; portraitOverlap: number; cutOff: number; small: string[]; tinyText: string[]; running: number; runningNames: string[]; strip: Array<{ label: string | null; h: number; w: number }> } | null;
   const audits: Array<{ beatId: string; audit: Audit }> = [];
   const fpsSamples: Array<{ beatId: string; fps: number }> = [];
   const sampleFps = async (): Promise<number> =>
@@ -223,6 +249,11 @@ async function main(): Promise<void> {
   let lastBeat = "";
   let lastTurnBeat = "";
   let turnClosed = true;
+  const practiceSeen = new Set<string>();
+  let retryTaps = 0;
+  const practiceLog: string[] = [];
+  /** Tap-to-feedback latencies, from the page's own clock (submitTypedAnswer → fireFeedback). */
+  const latencies: number[] = [];
   const asksOf = new Map<string, number>();
   const ladderSeen: string[] = [];
   /** The strip's stops, the first beat each one lit up or took a star. */
@@ -315,6 +346,59 @@ async function main(): Promise<void> {
       await shoot(snap.beatId, "-drill-background-back");
       drillNote("backgrounded tab", hiddenSeen === "hidden" && paused && firedWhileHeld === 0 && resumed, `visibility "${hiddenSeen}" · held ${paused ? "yes" : "NO"} · hint "${hint}" · events while held ${firedWhileHeld} · resumed ${resumed ? "yes" : "NO"}`);
     }
+    // 5. The ✋: the microphone is asked for here, after her explanation, and nowhere before. The
+    //    token mint is blocked so no Live session (and no paid call) opens; the runtime carries on.
+    if (short === "readWrite4Digit:12" && !drillDone.has("chat")) {
+      drillDone.add("chat");
+      const before = await evaluate<number>(page, `window.__gumCalls ?? 0`);
+      // The token mint is held (never answered), so the sheet stays up with no Live session and no paid call.
+      // Every request pauses at the door; all but the token mint go straight through.
+      await page.send("Fetch.enable", { patterns: [{ urlPattern: "*", requestStage: "Request" }] });
+      const held: string[] = [];
+      page.on("Fetch.requestPaused", (params) => {
+        const id = String(params.requestId);
+        const url = String((params.request as { url?: string })?.url ?? "");
+        if (url.includes("/api/gemini-session")) held.push(id);
+        else void page.send("Fetch.continueRequest", { requestId: id }).catch(() => undefined);
+      });
+      await tapSelector('[aria-label="Zara එක්ක කතා කරන්න"]');
+      // First the P1 sheet: the board dims, Zara (160 px) explains; the browser's prompt waits for "හරි, අවසර දෙන්න".
+      let explained = "";
+      let asked = false;
+      for (let i = 0; i < 80 && !asked; i += 1) {
+        await wait(150);
+        asked = await evaluate<boolean>(page, `!!document.querySelector('[data-testid="mic-ask"] [data-testid="mic-ask-allow"]')`);
+      }
+      const micAsk = await evaluate<{ up: boolean; portrait: number; dimmed: boolean; title: string; buttons: number }>(page, `(() => { const s = document.querySelector('[data-testid="mic-ask"]'); const p = s && s.querySelector('.zara-portrait'); return { up: !!s, portrait: p ? Math.round(p.getBoundingClientRect().width) : 0, dimmed: !!(s && s.querySelector('[data-testid="board-dim"]')), title: s ? (s.textContent ?? '').slice(0, 40) : '', buttons: s ? s.querySelectorAll('button').length : 0 }; })()`);
+      await shoot(snap.beatId, "-drill-mic-ask");
+      const gumBeforeAllow = await evaluate<number>(page, `window.__gumCalls ?? 0`);
+      let after = gumBeforeAllow;
+      if (asked) {
+        // Her explanation plays under the sheet; the decision is taken once it has been asked.
+        for (let i = 0; i < 80; i += 1) {
+          await wait(150);
+          const caption = await evaluate<string>(page, `(document.querySelector('[data-testid="caption"]')?.textContent ?? '').trim()`);
+          if (caption) explained = caption;
+          if (!(await evaluate<boolean>(page, `!!document.querySelector('[data-testid="mic-ask"]')`))) break;
+          if (i === 6) await tapSelector('[data-testid="mic-ask-allow"]');
+          after = await evaluate<number>(page, `window.__gumCalls ?? 0`);
+          if (after > before) break;
+        }
+      }
+      for (let i = 0; i < 40 && after === before; i += 1) {
+        await wait(150);
+        after = await evaluate<number>(page, `window.__gumCalls ?? 0`);
+      }
+      await wait(800);
+      const sheet = await evaluate<{ up: boolean; portrait: number; lines: number; dimmed: boolean }>(page, `(() => { const s = document.querySelector('[data-testid="chat-sheet"]'); const p = s && s.querySelector('.zara-portrait'); return { up: !!s, portrait: p ? Math.round(p.getBoundingClientRect().width) : 0, lines: s ? s.querySelectorAll('[data-testid^="chat-line-"]').length : 0, dimmed: !!(s && s.querySelector('[data-testid="board-dim"]')) }; })()`);
+      await shoot(snap.beatId, "-drill-first-hand");
+      const returned = await tapSelector('[data-testid="chat-return"]');
+      await wait(1200);
+      for (const id of held) await page.send("Fetch.failRequest", { requestId: id, errorReason: "Aborted" }).catch(() => undefined);
+      await page.send("Fetch.disable");
+      const status = (await snapshot()).status;
+      drillNote("first ✋ asks for the microphone", before === 0 && micAsk.up && micAsk.portrait >= 150 && micAsk.dimmed && micAsk.buttons === 2 && gumBeforeAllow === 0 && after === 1 && sheet.up && sheet.portrait >= 150 && sheet.lines === 2 && sheet.dimmed && returned && status !== "chatting", `getUserMedia calls before ✋: ${before} · P1 sheet ${micAsk.up ? "up" : "MISSING"} (Zara ${micAsk.portrait} px, dimmed ${micAsk.dimmed ? "yes" : "NO"}, ${micAsk.buttons} buttons, "${micAsk.title.trim().slice(0, 30)}") · calls before හරි: ${gumBeforeAllow} · after: ${after}${explained ? ` · her explanation: "${explained.slice(0, 40)}"` : ""} · chat sheet over the dimmed board ${sheet.up ? "up" : "MISSING"} (Zara ${sheet.portrait} px, ${sheet.lines} transcript lines) · පාඩමට ආයෙත් ${returned ? "tapped" : "MISSING"} → ${status}`);
+    }
     // 4. A clip that cannot be fetched: :6's line is read on the board and its events still run. The
     //    runtime preloads the next three clips, so the door is shut at :3b — :6 is the first beat whose
     //    clip is fetched behind it (:4, :5, :5a were already in hand).
@@ -356,6 +440,27 @@ async function main(): Promise<void> {
       return;
     }
     const expected = beat?.expectedAnswer ?? "";
+    const [, , , mode] = (snap.yourTurn ?? "").split(":");
+    const turn = snap.yourTurn ?? "";
+    // A chip on the foot of the board: the correct one, or a wrong one on purpose.
+    const chipsUp = turn.includes(":chips") && beat?.choices;
+    const wrongHere = WRONG_BEAT !== null && questionId === WRONG_BEAT;
+    // valueOrPlace with the abacus up: tap the rod that shows the answer (the wrong rod, when wrong on purpose).
+    if (turn.includes(":rod-") && !wrongHere) {
+      const rodKind = turn.includes(":rod-count") ? "count" : "value";
+      const rod = await evaluate<number | null>(page, `(() => { const ab = document.querySelector('[data-testid="abacus"]'); if (!ab) return null; const rods = [...ab.querySelectorAll('[data-rod]')]; const digits = (ab.getAttribute('data-number') || '').split('').map(Number); const want = ${JSON.stringify(expected)}; const value = (i) => ${rodKind === "count" ? "String(digits[i])" : "String(digits[i] * Math.pow(10, digits.length - 1 - i))"}; const names = ${JSON.stringify(Object.fromEntries([...NAME_TO_NUMBER.entries()].filter(([, n]) => n <= 10000).map(([k, n]) => [k, String(n)])))}; const wantDigits = /\d/.test(want) ? want.replace(/\D/g, '') : (names[want.replace(/\s/g, '')] ?? want); const i = rods.findIndex((_, i) => value(i) === wantDigits); return i >= 0 ? i : null; })()`);
+      if (rod !== null && (await tapSelector(`[data-testid="abacus-rod-${rod}"]`))) {
+        note({ beatId: snap.beatId, via: `rod tap (${rodKind}, ${mode})`, answer: expected });
+        return;
+      }
+    }
+    if (chipsUp) {
+      const index = wrongHere ? (beat!.choices!.correctIndex + 1) % beat!.choices!.options.length : beat!.choices!.correctIndex;
+      if (await tapSelector(`[data-testid="turn-choice"][data-chip="${index}"]`)) {
+        note({ beatId: snap.beatId, via: `chip tap (${mode})${wrongHere ? " WRONG on purpose" : ""}`, answer: beat!.choices!.options[index]! });
+        return;
+      }
+    }
     if (beat?.answerChoices && beat.answerChoices.length >= 2) {
       const ok = await evaluate<boolean>(page, `(() => { const b = [...document.querySelectorAll('[data-testid="turn-choice"]')].find((el) => el.textContent.trim() === ${JSON.stringify(expected)}); if (!b) return false; b.click(); return true; })()`);
       note({ beatId: snap.beatId, via: ok ? "choice button" : "no choice button", answer: expected });
@@ -410,7 +515,7 @@ async function main(): Promise<void> {
         let taken = false;
         for (let i = 0; i < 12 && !taken; i += 1) {
           await wait(250);
-          taken = (await snapshot()).status !== "listening";
+          taken = (await snapshot()).status !== "turn";
         }
         if (!taken) await evaluate(page, `document.querySelector('[data-testid="turn-commit"]')?.click(); true`);
         note({ beatId: snap.beatId, via: `${placed} tiles placed + ✓ ${taken ? "(touch)" : "(touch ignored — clicked)"}`, answer: digits });
@@ -422,6 +527,20 @@ async function main(): Promise<void> {
       const cell = await tapSelector('[data-testid^="cell-"][data-active]');
       if (cell) {
         await wait(400);
+        // A number's NAME: the word bank — its words tapped in order, then ✓.
+        const bankUp = await evaluate<boolean>(page, `!!document.querySelector('[data-testid="word-bank"]')`);
+        if (bankUp) {
+          const words = expected.split(/\s+/u).filter(Boolean);
+          let placed = 0;
+          for (const word of words) {
+            const ok = await tapSelector(`[data-testid="word-tile"][data-word="${word}"]:not([data-used])`);
+            if (ok) placed += 1;
+            await wait(120);
+          }
+          await tapSelector('[data-testid="word-bank-done"]');
+          note({ beatId: snap.beatId, via: `word bank (${placed}/${words.length} tiles)`, answer: expected });
+          return;
+        }
         for (const digit of digits) {
           await evaluate(page, `(() => { const k = [...document.querySelectorAll('[data-testid="number-pad"] button')].find((el) => el.getAttribute('aria-label') === ${JSON.stringify(digit)}); k && k.click(); return true; })()`);
           await wait(80);
@@ -478,13 +597,51 @@ async function main(): Promise<void> {
       console.log(`  ${String(seq).padStart(3, "0")} ${short.padEnd(34)} ${snap.beatType.padEnd(12)} ${(snap.stage ?? "").slice(0, 48).padEnd(48)} ${flags}`);
       if (DRILLS) await drills(snap);
     }
-    if (snap.status !== "listening") turnClosed = true;
-    if (snap.status === "listening" && snap.yourTurn && (snap.beatId !== lastTurnBeat || turnClosed)) {
+    if (snap.status !== "turn" && snap.status !== "pausing") turnClosed = true;
+    if (snap.status === "turn" && !snap.yourTurn) {
+      const retry = await tapSelector('[data-testid="turn-retry"]');
+      if (retry) {
+        retryTaps += 1;
+        console.log(`      ↻ tapped ආයෙත් උත්සාහ කරන්න on ${snap.beatId.replace(/^authored:/u, "")}`);
+        await wait(400);
+      }
+    }
+    // A soft check's pause: one tap counts as engagement. Reading practice: watch, never tap.
+    if (snap.status === "pausing" && snap.yourTurn?.startsWith("soft") && snap.beatId !== lastTurnBeat) {
+      lastTurnBeat = snap.beatId;
+      await tapSelector('[data-soft-tap]');
+      note({ beatId: snap.beatId, via: "tap on the board (soft pause)", answer: "(tapped)" });
+    }
+    if (snap.status === "pausing" && snap.pause === "mic" && !practiceSeen.has(snap.beatId)) {
+      practiceSeen.add(snap.beatId);
+      const cue = await evaluate<boolean>(page, `!!document.querySelector('[data-testid="pause-cue"]')`);
+      const t0 = Date.now();
+      // Wait the pause out, then catch the read-back (a composed clip, or the line on the board) before the chips.
+      let readBack = "";
+      for (let i = 0; i < 40 && !readBack; i += 1) {
+        await wait(150);
+        readBack = await evaluate<string>(page, `(document.querySelector('[data-testid="caption"]')?.textContent ?? '').trim()`);
+      }
+      const pauseMs = Date.now() - t0;
+      await shoot(snap.beatId, "-reading-practice");
+      practiceLog.push(`${snap.beatId.replace(/^authored:/u, "")}: 🎤 cue ${cue ? "shown" : "MISSING"} · read-back ${readBack ? `"${readBack.slice(0, 40)}"` : "not seen"} after ~${(pauseMs / 1000).toFixed(1)} s`);
+      console.log(`      📖 reading practice ${practiceLog[practiceLog.length - 1]}`);
+    }
+    if (snap.status === "turn" && snap.yourTurn && (snap.beatId !== lastTurnBeat || turnClosed)) {
       lastTurnBeat = snap.beatId;
       turnClosed = false;
       await wait(700);
       await shoot(snap.beatId, "-your-turn");
       await answer(snap);
+      for (let i = 0; i < 20; i += 1) {
+        const ms = await evaluate<number | null>(page, `(() => { const t = window.__lastTapAt, f = window.__lastFeedbackAt; return t && f && f >= t ? Math.round(f - t) : null; })()`);
+        if (ms !== null) {
+          latencies.push(ms);
+          await evaluate(page, `window.__lastTapAt = undefined; true`);
+          break;
+        }
+        await wait(50);
+      }
     }
     if (WRONG_BEAT && /:(reteach|reteach-demo|reveal|giveup)$/u.test(snap.beatId) && !ladderSeen.includes(snap.beatId)) ladderSeen.push(snap.beatId);
     await watchStrip(snap.beatId);
@@ -520,7 +677,7 @@ async function main(): Promise<void> {
   if (DRILLS) {
     console.log(`\nfailure-mode drills (${drillResults.filter((r) => r.startsWith("PASS")).length}/${drillResults.length} handled visibly):`);
     for (const line of drillResults) console.log(`  ${line}`);
-    for (const name of ["touch during playback", "rotation mid-beat", "backgrounded tab", "missing clip"]) if (!drillResults.some((r) => r.includes(name))) console.log(`  SKIP  ${name}: its beat was not reached`);
+    for (const name of ["touch during playback", "rotation mid-beat", "backgrounded tab", "missing clip", "first ✋ asks for the microphone"]) if (!drillResults.some((r) => r.includes(name))) console.log(`  SKIP  ${name}: its beat was not reached`);
   }
   if (fpsSamples.length) console.log(`fps while animating${CPU_THROTTLE > 1 ? ` at cpu×${CPU_THROTTLE}` : ""}: ${fpsSamples.map((s) => `${s.beatId.replace(/^authored:/u, "")} ${s.fps}`).join(", ")}`);
   const flagged = audits.filter((a) => a.audit && (a.audit.overlap || a.audit.portraitOverlap || a.audit.cutOff || a.audit.small.length || a.audit.tinyText.length));
@@ -528,6 +685,11 @@ async function main(): Promise<void> {
   for (const a of flagged.slice(0, 20)) {
     const d = a.audit!;
     console.log(`  ${a.beatId.replace(/^authored:/u, "").padEnd(34)} ${[d.overlap ? `overlap ${d.overlap}` : "", d.portraitOverlap ? "portrait overlap" : "", d.cutOff ? `cut-off ${d.cutOff}` : "", ...d.small.map((s) => `small: ${s}`), ...d.tinyText.map((t) => `tiny: ${t}`)].filter(Boolean).join(" · ")}`);
+  }
+  {
+    const strip = audits.find((a) => a.audit?.strip?.length)?.audit?.strip ?? [];
+    const controls = strip.filter((b) => ["විරාමය", "නැවත කියන්න", "අවසන් කරන්න"].includes(b.label ?? ""));
+    console.log(`strip controls ⏸ ↺ ⏹ hit areas: ${controls.map((b) => `${b.label} ${b.w}×${b.h}`).join(" · ") || "not seen"} — ${controls.length === 3 && controls.every((b) => b.h >= 56) ? "all reach 56 px" : "UNDER 56 px"}`);
   }
   if (REDUCED_MOTION) {
     console.log(`reduced motion: ${audits.filter((a) => a.audit && a.audit.running > 0).length} beat(s) had a running animation on the board (expected 0)`);
@@ -547,6 +709,29 @@ async function main(): Promise<void> {
     console.log(`  asked ${asks} time(s) (never a fourth) · reteach after miss 2: ${reteach ? "yes" : "NO"} · reveal after miss 3: ${reveal ? "yes" : "NO"} · then moved on to ${after ? after.beatId.replace(/^authored:/u, "") : "?"}`);
     console.log(`  ladder beats seen: ${ladderSeen.map((id) => id.replace(/^authored:/u, "")).join(", ") || "none"}`);
   }
+  {
+    const hear = apiCalls.get("hear") ?? 0;
+    const planner = apiCalls.get("planner") ?? 0;
+    const gum = (await evaluate<number>(page, `window.__gumCalls ?? 0`).catch(() => -1)) ?? -1;
+    const sorted = [...latencies].sort((a, b) => a - b);
+    const median = sorted.length ? sorted[Math.floor(sorted.length / 2)]! : null;
+    console.log(`\nvoice on the lesson path: /api/hear calls ${hear} · /api/planner calls ${planner} · getUserMedia calls ${gum} (${DRILLS ? "1 expected, from the ✋ drill" : "0 expected"})`);
+    console.log(`tap → feedback latency: median ${median === null ? "n/a" : `${median} ms`} over ${latencies.length} judged answers${sorted.length ? ` (min ${sorted[0]}, max ${sorted[sorted.length - 1]})` : ""}`);
+    console.log(`reading practice seen on ${practiceLog.length} beat(s):`);
+    for (const line of practiceLog) console.log(`  ${line}`);
+    if (hear > 0 || planner > 0) console.log(`FAIL  the lesson path called ${hear ? "/api/hear" : "/api/planner"} — the answer path is touch-only`);
+    if (gum > (DRILLS ? 1 : 0)) console.log(`FAIL  the microphone was asked for ${gum} time(s) — only the ✋ may ask`);
+    if (median !== null && median > 200) console.log(`FAIL  median tap → feedback ${median} ms, over 200`);
+    const judged = [...expectedById.values()].filter((b) => b.expectedAnswer && b.answerMode);
+    const asked = answers.filter((a) => !a.via.startsWith("tap on the board") && !a.via.startsWith("nothing tappable"));
+    const noSurface = answers.filter((a) => a.via.startsWith("nothing tappable") || a.via === "no pad" || a.via === "no surface");
+    const byVia = new Map<string, number>();
+    for (const a of asked) byVia.set(a.via.replace(/ WRONG on purpose/u, ""), (byVia.get(a.via.replace(/ WRONG on purpose/u, "")) ?? 0) + 1);
+    console.log(`\ntouch surfaces used (${asked.length} judged answers, ${noSurface.length} with no surface${noSurface.length ? ": " + noSurface.map((a) => a.beatId.replace(/^authored:/u, "")).join(", ") : ""}):`);
+    for (const [via, n] of byVia) console.log(`  ${via.padEnd(34)} ${n}`);
+    console.log(`  script: ${judged.length} judged questions carry an answerMode · speech-primary 0 (readAloud is unjudged practice; its judged step is the chips: ${judged.filter((b) => b.answerMode === "readAloud").length} such questions)`);
+  }
+  if (WRONG_BEAT) console.log(`retry button (ආයෙත් උත්සාහ කරන්න) tapped ${retryTaps} time(s) — the visible way back after a miss`);
   console.log(`\nmastery (${stars.filter((s) => s.startsWith("★")).length} star(s)):`);
   for (const line of stars) console.log(`  ${line}`);
   if (!stars.length) console.log("  no concept finished before the run ended");
@@ -570,7 +755,9 @@ async function main(): Promise<void> {
   page.close();
   browser.kill();
   const layoutClean = flagged.filter((a) => a.audit!.portraitOverlap || a.audit!.cutOff || a.audit!.small.length).length === 0;
-  process.exit(done && layoutClean ? 0 : 1);
+  const voiceClean = (apiCalls.get("hear") ?? 0) === 0 && (apiCalls.get("planner") ?? 0) === 0;
+  const latencyClean = latencies.length === 0 || [...latencies].sort((a, b) => a - b)[Math.floor(latencies.length / 2)]! <= 200;
+  process.exit(done && layoutClean && voiceClean && latencyClean ? 0 : 1);
 }
 
 main().catch((error) => {

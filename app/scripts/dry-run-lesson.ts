@@ -39,7 +39,11 @@ import {
   type OrchestratorState,
   type PlannerDecision,
 } from "../src/lib/lessonOrchestrator";
-import { answersMatch, exampleAnswerFor } from "../src/lib/answerCheck";
+import { answersMatch, exampleAnswerFor, parseAnswerPredicate } from "../src/lib/answerCheck";
+import { ANSWER_MODES, READING_PRACTICE, SPEECH_PRIMARY, TOUCH_SURFACE, conceptSkill } from "../src/lib/answerMode";
+import { validateChoices } from "../src/lib/distractors";
+import { judgePhraseLocally } from "../src/lib/phraseJudge";
+import { isNumberWord } from "../src/lib/sinhalaNumber";
 import { listAuthoredLines } from "../src/lib/authoredLines";
 import { parseAuthoredScript, type AuthoredScriptFile } from "../src/lib/authoredScript";
 import { describeStage, eventKey, initialStage, isKnownEvent, reduceStage, rodsNamedIn, type Storyboard } from "../src/lib/choreography";
@@ -487,7 +491,7 @@ async function runAssertions(
   // 6a. TEXTBOOK EXERCISE AUDIT — every textbook exercise/table the design
   //     assigns to a session-1 concept, and whether a beat stages it.
   const design = JSON.parse(await readFile(path.join(process.cwd(), "../docs/design/maths-5-1.json"), "utf8")) as {
-    concepts: Array<{ conceptTag: string; textbookContent: Array<{ step: number; contentBankIds: string[]; summary: string }> }>;
+    concepts: Array<{ conceptTag: string; objective?: string; textbookContent: Array<{ step: number; contentBankIds: string[]; summary: string }> }>;
   };
   console.log(`\n${"=".repeat(78)}\nTEXTBOOK EXERCISE AUDIT (design → beats)\n${"=".repeat(78)}`);
   const unstaged: string[] = [];
@@ -516,6 +520,61 @@ async function runAssertions(
   const modeCounts = new Map<number, number>();
   for (const beat of script.beats) if (beat.id.startsWith("authored:") && (beat.type === "ASK" || beat.type === "CHECK_MY_WORK")) modeCounts.set(beat.mode ?? 0, (modeCounts.get(beat.mode ?? 0) ?? 0) + 1);
   console.log(`  PASS  every authored ASK has a mode (${[...modeCounts.entries()].map(([m, n]) => `mode ${m}: ${n}`).join(", ")})`);
+
+  // 6d. Every question has an answerMode and a touch surface; every
+  //     chip-dealing question has three valid options. Printed in full —
+  //     the options are part of the script now.
+  const questions = script.beats.filter((beat) => beat.id.startsWith("authored:") && (beat.type === "ASK" || beat.type === "CHECK_MY_WORK" || beat.type === "SOFT_CHECK"));
+  const withoutMode = questions.filter((beat) => !beat.answerMode);
+  assert.deepStrictEqual(withoutMode.map((b) => b.id), [], "questions without an answerMode");
+  const designObjectives = new Map(design.concepts.map((c) => [c.conceptTag, c.objective ?? ""]));
+  for (const beat of questions) {
+    const fromObjective = conceptSkill(beat.conceptTag, designObjectives.get(beat.conceptTag));
+    assert.equal(fromObjective, conceptSkill(beat.conceptTag), `${beat.id}: the design objective and the concept tag name different skills`);
+  }
+  const perMode = new Map<string, { asks: number; soft: number }>();
+  for (const beat of questions) {
+    const entry = perMode.get(beat.answerMode!) ?? { asks: 0, soft: 0 };
+    if (beat.type === "SOFT_CHECK") entry.soft += 1;
+    else entry.asks += 1;
+    perMode.set(beat.answerMode!, entry);
+  }
+  console.log("\nANSWER MODES (per question, derived at build time)");
+  console.log("==============================================================================");
+  console.log(`  ${"mode".padEnd(14)} ${"judged ASKs".padStart(11)} ${"soft checks".padStart(11)}   touch surface`);
+  for (const mode of ANSWER_MODES) {
+    const entry = perMode.get(mode) ?? { asks: 0, soft: 0 };
+    console.log(`  ${mode.padEnd(14)} ${String(entry.asks).padStart(11)} ${String(entry.soft).padStart(11)}   ${TOUCH_SURFACE[mode]}`);
+  }
+  const judged = questions.filter((b) => b.type !== "SOFT_CHECK");
+  const speechPrimary = judged.filter((b) => SPEECH_PRIMARY[b.answerMode!]).length;
+  const speechPrimaryAll = questions.filter((b) => SPEECH_PRIMARY[b.answerMode!]).length;
+  console.log(`  speech-primary share: ${speechPrimary}/${judged.length} judged questions (${Math.round((100 * speechPrimary) / judged.length)}%) · ${speechPrimaryAll}/${questions.length} counting soft checks (${Math.round((100 * speechPrimaryAll) / questions.length)}%)`);
+  assert.equal(speechPrimary, 0, "a judged question leads with speech — the answer path is touch-only");
+  const practice = judged.filter((b) => READING_PRACTICE[b.answerMode!]).length;
+  console.log(`  reading practice (unjudged, before the chips): ${practice} question(s)`);
+  console.log("\n  every judged question, its mode and its options:");
+  const optionProblems: string[] = [];
+  for (const beat of judged) {
+    const mode = beat.answerMode!;
+    const open = Boolean(parseAnswerPredicate(beat.expectedAnswer));
+    const needsChips = mode === "why" || mode === "readAloud" || mode === "valueOrPlace";
+    const set = beat.choices ?? null;
+    if (set || needsChips || !open) {
+      const problems = open ? [] : validateChoices(set, beat.expectedAnswer ?? "", mode === "why" && beat.rubric ? (o) => judgePhraseLocally(o, beat.rubric!).accepted : undefined);
+      if (problems.length && (needsChips || set)) optionProblems.push(`${beat.id}: ${problems.join(", ")}`);
+    }
+    // The touch surface the mode leads with is really there.
+    const surfaceOk =
+      mode === "build" ? open || Boolean(set) || /^[\d\s,]+$/u.test(beat.expectedAnswer ?? "") || beat.expectedAnswer?.split(/\s+/u).every((t) => isNumberWord(t))
+      : mode === "cell" ? beat.board.kind === "set_active_blank" || Boolean(set)
+      : Boolean(set);
+    assert.ok(surfaceOk, `${beat.id} (${mode}) has no touch surface: ${TOUCH_SURFACE[mode]}`);
+    const shown = set ? set.options.map((o, i) => (i === set.correctIndex ? `[${o}]` : o)).join(" · ") : open ? "(open build: the picker, no chips)" : "(pad; chips after a miss)";
+    console.log(`    ${beat.id.replace(/^authored:/u, "").padEnd(22)} ${mode.padEnd(13)} ${shown}`);
+  }
+  assert.deepStrictEqual(optionProblems, [], `option sets that fail the validator: ${optionProblems.join("; ")}`);
+  console.log(`  PASS  every question has an answerMode and its touch surface; ${judged.filter((b) => b.choices).length} option sets pass the validator (3 distinct, exactly one correct, no relabelled answer)`);
 
   // 6b. The storyboard fits the script it will choreograph: every session-1
   //     authored beat has a storyboard beat and vice versa, each beat's
@@ -555,7 +614,8 @@ async function runAssertions(
   assert.deepStrictEqual(unknown, [], `storyboard events with no matching primitive: ${unknown.join(", ")}`);
   // 6d. Every sentence that names a place while the abacus is up glows
   //     the rod it names (a bead_add on that rod counts — the runtime glows
-  //     the rod it fills).
+  //     the rod it fills; so does a part flying from that rod into the
+  //     expansion beneath — the flight is the attention on that rod, M8).
   const darkRods: string[] = [];
   let glowStage = initialStage();
   for (const sb of storyboard.beats) {
@@ -564,7 +624,7 @@ async function runAssertions(
       const abacusUp = glowStage.base?.kind === "abacus" || events.some((e) => e.primitive === "abacus" && e.event === "show");
       if (abacusUp) {
         for (const rod of rodsNamedIn(sentence)) {
-          const lit = events.some((e) => e.primitive === "abacus" && (e.event === "rod_glow" || e.event === "bead_add") && Number(e.args?.rod) === rod);
+          const lit = events.some((e) => e.primitive === "expansion" && e.event === "part_fly" && Number(e.args?.fromRod) === rod) || events.some((e) => e.primitive === "abacus" && (e.event === "rod_glow" || e.event === "bead_add") && (Number(e.args?.rod) === rod || (Array.isArray(e.args?.rods) && (e.args!.rods as number[]).includes(rod))));
           if (!lit) darkRods.push(`${sb.id.replace("authored:", "")} s${index} rod ${rod}`);
         }
       }
@@ -724,8 +784,10 @@ async function assertSpeechChannel(): Promise<void> {
     /goal: text \? undefined : buildDirectorLine\(beat\)/.test(runtime),
     "director text is only used to WRITE a line when the beat has none",
   );
+  // The screen hands the clip's text to the shell, which draws it on the caption line (design: Gemunu 20 at bottom 26).
   const screen = await readFile(path.join(process.cwd(), "src/components/LessonScreen.tsx"), "utf8");
-  assert.ok(/\{caption\}/.test(screen), "the caption renders the spoken clip's text");
+  const shell = await readFile(path.join(process.cwd(), "src/components/SessionShell.tsx"), "utf8");
+  assert.ok(/captionsOn && caption \? caption/.test(screen) && /caption=\{caption\}/.test(shell), "the caption renders the spoken clip's text");
   assert.ok(!/\{inputTranscript\}/.test(screen), "the caption never renders the child's own words");
   assert.ok(!screen.includes("[DIRECTOR]"), "no [DIRECTOR] text in the caption component");
   console.log("  PASS  speech is cached-clip playback; answers are recorded; no director text in the caption path");

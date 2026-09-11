@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { shuffleBySeed } from "@/lib/distractors";
 import { supabaseAdmin } from "@/lib/supabaseClient";
 import { getActiveChildId } from "@/lib/activeChild";
 import { buildRecapAskBeat, recapAskable } from "@/lib/recapBeat";
@@ -19,8 +20,12 @@ import type { Beat } from "@/lib/lessonOrchestrator";
  * yet. The runtime then just moves on past the RECAP intro.
  */
 
-/** ONE question — a returning session reviews briefly, it doesn't quiz. */
-const RECAP_QUESTIONS = 1;
+/**
+ * Practice is MCQ only: up to five questions per concept from the verified
+ * bank, each with three options from the distractor engine; every concept
+ * the child worked on last time is reviewed, weakest first.
+ */
+const QUESTIONS_PER_CONCEPT = 5;
 
 interface RecapCandidate {
   conceptTag: string;
@@ -90,9 +95,10 @@ export async function POST(request: NextRequest) {
       const masteryB = b.attempts === 0 ? 0.5 : b.correct / b.attempts;
       return masteryA - masteryB || b.attempts - a.attempts;
     })
-    .slice(0, RECAP_QUESTIONS);
+    ;
 
-  // One verified, askable item per chosen concept.
+  // Up to five verified, MCQ-askable items per chosen concept, in a
+  // deterministic order per child so a repeat visit does not repeat.
   const beats: Beat[] = [];
   for (const candidate of chosen) {
     const { data: items } = await supabaseAdmin
@@ -101,12 +107,20 @@ export async function POST(request: NextRequest) {
       .eq("concept_tag", candidate.conceptTag)
       .eq("verified", true)
       .neq("component_type", "explanation")
-      .limit(20);
+      .limit(40);
     const askable = (items ?? [])
       .map((item) => recapAskable(item))
       .filter((entry): entry is NonNullable<typeof entry> => entry !== null);
     if (askable.length === 0) continue;
-    beats.push(buildRecapAskBeat(askable[Math.floor(Math.random() * askable.length)]));
+    const seen = new Set<string>();
+    for (const entry of shuffleBySeed(askable, `${childId}:${candidate.conceptTag}:${candidate.attempts}`)) {
+      // One question per distinct answer, so five items that all ask "6000" do not repeat.
+      const key = `${entry.answerMode}:${(entry.blank?.value ?? entry.solution ?? "").toString()}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      beats.push(buildRecapAskBeat(entry));
+      if (seen.size >= QUESTIONS_PER_CONCEPT) break;
+    }
   }
 
   return NextResponse.json({ ok: true, beats });

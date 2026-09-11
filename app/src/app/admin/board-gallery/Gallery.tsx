@@ -13,6 +13,7 @@ import { sinhalaNumberName } from "@/lib/sinhalaNumber";
 import {
   Abacus,
   BlankTable,
+  ChoiceChips,
   ChalkText,
   DigitPicker,
   DURATION_MS,
@@ -106,6 +107,8 @@ export function Gallery({ initialViewport }: { initialViewport: Viewport }) {
         <TitleCardSection viewport={viewport} />
         <TextCardSection viewport={viewport} />
         <BlankTableSection viewport={viewport} />
+        <ChoiceChipsSection viewport={viewport} />
+        <TurnSection viewport={viewport} />
         <FeedbackSection viewport={viewport} />
       </main>
     </div>
@@ -284,7 +287,7 @@ function AbacusSection({ viewport }: { viewport: Viewport }) {
         digits={digits}
         shown={shown}
         animate={animate}
-        glowRod={glow}
+        glowRods={glow === null ? [] : [glow]}
         childAnswer={child}
         readout={touch ? "live" : "asFilled"}
         interactive={touch}
@@ -342,7 +345,7 @@ function ExpansionSection({ viewport }: { viewport: Viewport }) {
         },
       ]}
     >
-      <Abacus digits={digits} shown={digits} compact glowRod={glow} />
+      <Abacus digits={digits} shown={digits} compact glowRods={glow === null ? [] : [glow]} />
       <Expansion
         number={number}
         parts={parts}
@@ -799,6 +802,81 @@ function FeedbackSection({ viewport }: { viewport: Viewport }) {
       <NumberCards values={[84, 101, 528]} size={30} />
       <Abacus digits={[5, 4, 2, 1]} shown={[5, 4, 2, 1]} compact readout="none" />
       <FeedbackFX kind={fx.kind} at={fx.at} nonce={fx.nonce} />
+    </Section>
+  );
+}
+
+function ChoiceChipsSection({ viewport }: { viewport: Viewport }) {
+  const [chips, setChips] = useState<{ options: string[]; micCue: boolean } | null>(null);
+  const [picked, setPicked] = useState<string | null>(null);
+  const [touch, setTouch] = useState(true);
+  return (
+    <Section
+      id="choiceChips"
+      primitive="choiceChips"
+      title="— three options along the foot of the board"
+      blurb="show deals three chips made by the distractor engine (a phrase's findings, three number names, three values); the correct one is never marked. A readAloud question puts the 🎤 කියන්න cue above them — speech leads, the chips are for a child who would rather tap. Touch: every chip is ≥ 48 px."
+      viewport={viewport}
+      actions={[
+        { label: "clear", event: "choiceChips.clear", run: () => { setChips(null); setPicked(null); }, role: "reset" },
+        { label: "show 3 findings", event: "choiceChips.show", role: "animate-in", run: () => { setPicked(null); setChips({ options: ["අටේ අගය අසූවයි, අට නෙවෙයි", "හතරේ අගය හතළිහයි", "අසූ හතර හරියටම හරි"], micCue: false }); } },
+        { label: "show 3 names + 🎤", event: "choiceChips.show", run: () => { setPicked(null); setChips({ options: [sinhalaNumberName(5421), sinhalaNumberName(5412), sinhalaNumberName(5241)], micCue: true }); } },
+        { label: "show 5000 · 500 · 5", event: "choiceChips.show", run: () => { setPicked(null); setChips({ options: ["500", "5000", "5"], micCue: false }); } },
+        { label: touch ? "touch: on" : "touch: off", run: () => setTouch((t) => !t) },
+      ]}
+    >
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
+        <div style={{ fontFamily: "var(--font-sinhala, sans-serif)", color: "#2b1d12", fontSize: 18 }}>{picked ? `tapped: ${picked}` : "the question is on the board above the chips"}</div>
+        {chips && <ChoiceChips options={chips.options} micCue={chips.micCue} interactive={touch} glow={touch} onPick={(option) => setPicked(option)} />}
+      </div>
+    </Section>
+  );
+}
+
+function TurnSection({ viewport }: { viewport: Viewport }) {
+  const [turn, setTurn] = useState<"rod" | "beads" | "pause" | "retry" | null>(null);
+  const [picked, setPicked] = useState<string | null>(null);
+  const [shown, setShown] = useState([5, 4, 2, 1]);
+  return (
+    <Section
+      id="turn"
+      primitive="turn"
+      title="— where the child's turn lands"
+      blurb="your_turn { answerMode, surface } is not drawn itself: it says which surface leads, so the glow goes there and nowhere else. On `rod` every rod becomes a button (a tap answers with what that rod shows); on `beads` the whole abacus breathes. pause { ms, cue } is reading practice (a faint 🎤, nothing recorded) or a soft check (no cue); read_back { number } is Zara reading the number herself. over ends it."
+      viewport={viewport}
+      actions={[
+        { label: "over", event: "turn.over", run: () => { setTurn(null); setPicked(null); }, role: "reset" },
+        { label: "your_turn valueOrPlace on rod", event: "turn.your_turn", role: "animate-in", run: () => { setPicked(null); setTurn("rod"); } },
+        { label: "your_turn build on beads", event: "turn.your_turn", run: () => { setPicked(null); setShown([0, 0, 0, 0]); setTurn("beads"); } },
+        { label: "pause 3 s with 🎤 cue", event: "turn.pause", run: () => { setPicked(null); setTurn("pause"); } },
+        { label: "read_back 5 421", event: "turn.read_back", run: () => { setTurn(null); setPicked(`Zara: මම කියන්නම් — ${sinhalaNumberName(5421)}`); } },
+        { label: "retry (paper button)", event: "turn.retry", run: () => { setTurn("retry"); setPicked(null); } },
+      ]}
+    >
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, width: "100%" }}>
+        <Abacus
+          digits={turn === "beads" ? [9, 9, 9, 9] : [5, 4, 2, 1]}
+          shown={shown}
+          readout={turn === "beads" ? "live" : "asFilled"}
+          interactive={turn === "beads"}
+          onChange={setShown}
+          pickRods={turn === "rod"}
+          onPickRod={(rod) => setPicked(`rod ${rod} → ${[5, 4, 2, 1][rod]! * 10 ** (3 - rod)}`)}
+          glow={turn === "beads"}
+          compact={viewport === "phone"}
+        />
+        {picked && <div style={{ fontFamily: "var(--font-sinhala, sans-serif)", color: "#1e4c99", fontWeight: 700 }}>{picked}</div>}
+        {turn === "pause" && (
+          <div data-testid="pause-cue" className="wb-pause-cue" aria-hidden>
+            🎤
+          </div>
+        )}
+        {turn === "retry" && (
+          <button type="button" className="wb-tap wb-retry" data-testid="turn-retry" onClick={() => { setTurn("rod"); setPicked("retry → the rods reopen"); }}>
+            ආයෙත් උත්සාහ කරන්න
+          </button>
+        )}
+      </div>
     </Section>
   );
 }

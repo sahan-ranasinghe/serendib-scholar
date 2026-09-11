@@ -297,9 +297,12 @@ async function main(): Promise<void> {
       return new Promise((resolve) => setTimeout(() => {
         const out = [];
         for (const s of document.querySelectorAll('[data-primitive]')) {
+          // the hit area may reach beyond the drawn box (a table cell's 30 px row, the tray's ♪ chip): measure what a finger meets
+          const reach = (el, r0) => { el.scrollIntoView({ block: 'center', inline: 'center' }); const r = el.getBoundingClientRect(); const cx = r.left + r.width / 2, cy = r.top + r.height / 2; const hits = (x, y) => { const h = document.elementFromPoint(x, y); return !!h && (h === el || el.contains(h)); }; let top = r.top, bottom = r.bottom, left = r.left, right = r.right; for (let y = r.top - 2; y > r.top - 30 && hits(cx, y); y -= 2) top = y; for (let y = r.bottom + 2; y < r.bottom + 30 && hits(cx, y); y += 2) bottom = y; for (let x = r.left - 2; x > r.left - 30 && hits(x, cy); x -= 2) left = x; for (let x = r.right + 2; x < r.right + 30 && hits(x, cy); x += 2) right = x; return { w: right - left, h: bottom - top }; };
           for (const el of s.querySelectorAll('[data-board] [role="button"], [data-board] button')) {
             const r = el.getBoundingClientRect();
-            if (r.width > 0 && (r.width < 47.5 || r.height < 47.5)) out.push(s.getAttribute('data-primitive') + ': ' + (el.getAttribute('aria-label') || el.textContent || el.tagName).slice(0, 40) + ' ' + Math.round(r.width) + '×' + Math.round(r.height));
+            const eff = r.width > 0 && (r.width < 47.5 || r.height < 47.5) ? reach(el, r) : { w: r.width, h: r.height };
+            if (r.width > 0 && (eff.w < 47.5 || eff.h < 47.5)) out.push(s.getAttribute('data-primitive') + ': ' + (el.getAttribute('aria-label') || el.textContent || el.tagName).slice(0, 40) + ' ' + Math.round(r.width) + '×' + Math.round(r.height));
           }
         }
         resolve(out);

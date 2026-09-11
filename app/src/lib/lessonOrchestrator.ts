@@ -26,6 +26,8 @@ import { AUTHORED_LINES } from "@/lib/authoredLines";
 
 export type { BeatType, DirectorContext };
 import type { PhraseRubric } from "@/lib/authoredScript";
+import type { AnswerMode } from "@/lib/answerMode";
+import type { ChoiceSet } from "@/lib/distractors";
 export { BEAT_REGISTRY, beatSpec, estimateBeatSeconds };
 
 /** Which of the three teaching modes a beat belongs to. Null for beats outside them. */
@@ -106,6 +108,10 @@ export interface Beat {
    * board offers them as tappable choices (speech stays fully available).
    */
   answerChoices?: string[];
+  /** Which surface leads the answer (src/lib/answerMode.ts); every judged question has one. */
+  answerMode?: AnswerMode;
+  /** Three tappable options with the correct one's index (src/lib/distractors.ts), for the modes that lead with chips. */
+  choices?: ChoiceSet;
   /** The answer an ASK beat is looking for, for the planner's deterministic check. */
   expectedAnswer?: string;
   /** A phrase question's rubric — judged by token match, then one model call (src/lib/phraseJudge.ts). */
@@ -257,6 +263,19 @@ export const MISSES_BEFORE_RETEACH = 2;
  *   +10s        → she demonstrates the answer herself and moves on,
  *                 logged as "not attempted" (mastery never credited).
  */
+/**
+ * The touch-only ladder: a surface with no tap for 12 s gets one gentle
+ * recorded nudge; at 25 s she demonstrates the answer and moves on, the
+ * item logged as not attempted. (The voice silence ladder below is kept
+ * for the opt-in reading assessment only.)
+ */
+export const TOUCH_NUDGE_MS = 12_000;
+export const TOUCH_GIVEUP_MS = 25_000;
+/** Reading practice: the child's own time to say the number before Zara reads it. */
+export const READ_ALOUD_PAUSE_MS = 3000;
+/** A soft check: a brief pause while she reacts; any tap counts as engagement. */
+export const SOFT_CHECK_PAUSE_MS = 2000;
+
 export const ASK_SILENCE_TIMEOUT_MS = 8000;
 export const ASK_HELP_TIMEOUT_MS = 12000;
 export const ASK_GIVEUP_TIMEOUT_MS = 10000;
@@ -313,6 +332,23 @@ export function sessionForBeat(script: LessonScript, beatIndex: number): Session
  * repeat of the question: a child who is thinking hears a repeat as
  * pressure, and one who is stuck needs a different way in.
  */
+/** The touch ladder's one nudge (verbatim). */
+export function buildNudgeBeat(asked: Beat): Beat {
+  return {
+    ...asked,
+    id: `${asked.id}:nudge`,
+    type: "WAIT",
+    goal: "Nudge (verbatim): any chip or tile will do, have a go.",
+    spokenText: AUTHORED_LINES.touchNudge,
+    sayCandidates: undefined,
+    board: { kind: "none" },
+    expectedAnswer: undefined,
+    rubric: undefined,
+    choices: undefined,
+    endBy: "pausing",
+  };
+}
+
 export function buildWaitBeat(asked: Beat): Beat {
   return {
     ...asked,

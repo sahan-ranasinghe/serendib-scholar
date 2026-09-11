@@ -21,9 +21,10 @@
  *
  * No React here: the dry run and the session harness import it too.
  */
+import type { AnswerMode } from "@/lib/answerMode";
 import type { BoardContent } from "@/lib/board";
 import type { LessonComponent, PlaceValueBreakdownRow, PlaceValueNumberNameRow } from "@/data/lessons/lesson1-numbers";
-import type { Target } from "@/components/board/events";
+import type { Target, TurnSurface } from "@/components/board/events";
 import { VOCABULARY } from "@/components/board/events";
 import { sinhalaNumberName } from "@/lib/sinhalaNumber";
 
@@ -45,7 +46,7 @@ export interface StoryboardBeat {
   sentences: string[];
   boardAtStart: string;
   events: StoryboardEvent[];
-  child: { kind: string; via: string; expects?: string } | null;
+  child: { kind: string; via: string; expects?: string; answerMode?: string; surface?: string } | null;
   sees: string;
 }
 
@@ -149,15 +150,16 @@ export type StageBase =
       digits: number[];
       shown: number[];
       animate: boolean;
-      glowRod: number | null;
+      /** The rods glowing now: the ones named in the same sentence, together; otherwise one. */
+      glowRods: number[];
       childAnswer: string | null;
       /** The expanded form, staged BENEATH the abacus. */
       expansion: ExpansionState | null;
     }
-  | { kind: "numberCards"; values: number[]; ringed: number | null }
+  | { kind: "numberCards"; values: number[]; ringed: number | null; /** Cards drawn from a ten-card row (they lift; the row veils) — rule d. */ drawn?: number[]; /** The number the drawn cards make, shown beside them (G3: "3 0 5 8 → 3058"). */ made?: string }
   | { kind: "chalk"; lines: ChalkLine[] }
   | { kind: "textCard"; text: string }
-  | { kind: "titleCard"; title: string; emoji?: string }
+  | { kind: "titleCard"; title: string; emoji?: string; /** Text cards shown beside the (dimmed) title card — G1: the title persists, the cards stack beside it. */ cards?: string[] }
   | {
       kind: "digitPicker";
       pool: number[];
@@ -166,6 +168,10 @@ export type StageBase =
       builtName: string | null;
       builtBy: "child" | "tutor";
       itemId?: string;
+      /** The five-number puzzle's ledger: every number the child has built from this pool, in order. */
+      ledger: string[];
+      /** The textbook's digit puzzle (item 7daf0141): the ledger of five is on the board. */
+      puzzle?: boolean;
     }
   | { kind: "expansion"; expansion: ExpansionState }
   | {
@@ -196,6 +202,18 @@ export interface StageState {
   /** Bumped by chalkText.erase — the felt sweeps. */
   wipe: number;
   feedback: { kind: FeedbackKind; at: Target | null; nonce: number };
+  /** Three tappable options, dealt for the child's turn (choiceChips.show). */
+  chips: { options: string[]; correctIndex: number } | null;
+  /** The child's turn is open: which surface leads, so the glow lands there (turn.your_turn). */
+  turn: { answerMode: AnswerMode; surface: TurnSurface } | null;
+  /** A short pause with nothing to answer — reading practice (🎤 cue, nothing recorded) or a soft check (turn.pause). */
+  pause: { ms: number; cue: "mic" | null } | null;
+  /** A wrong answer's visible way back: the "ආයෙත් උත්සාහ කරන්න" paper button, top-right (turn.retry). */
+  retry: boolean;
+  /** Read-aloud practice on the board (the design's R1 step cards): 1 = the child's 3 s to say it, 2 = Zara reads it, 3 = choose the name from the chips. */
+  practice: { step: 1 | 2 | 3; number: number | null } | null;
+  /** The puzzle ledgers, by hand of digits (sorted): what the child built from each, so a hand dealt again finds its ledger. */
+  pickerLedgers: Record<string, string[]>;
   /** Monotonic counter for keys. */
   seq: number;
 }
@@ -210,6 +228,12 @@ export function initialStage(): StageState {
     highlight: null,
     wipe: 0,
     feedback: { kind: "correct", at: null, nonce: 0 },
+    chips: null,
+    turn: null,
+    pause: null,
+    retry: false,
+    practice: null,
+    pickerLedgers: {},
     seq: 1,
   };
 }
@@ -224,6 +248,9 @@ export interface ReduceContext {
 
 const asNumberArray = (value: unknown): number[] => (Array.isArray(value) ? value.map(Number) : []);
 
+/** Bases that persist while chalk is written beside them (design rule b); a title card or a card row gives way to a sum. */
+const PERSISTENT_BASES = new Set<StageBase extends infer B ? (B extends { kind: infer K } ? K : never) : never>(["abacus", "textCard", "digitPicker", "expansion", "blankTable", "placeValueStrip", "money"]);
+
 /** A chalk line that is a term — a word or two, no digits — is written beside the board, not instead of it. */
 function isTermNote(text: string): boolean {
   return !/\d/u.test(text) && text.trim().split(/\s+/u).length <= 3;
@@ -231,7 +258,7 @@ function isTermNote(text: string): boolean {
 
 /** A base change clears what was drawn around the old one. */
 function withBase(state: StageState, base: StageBase, pointer: Target | null): StageState {
-  return { ...state, base, notes: [], highlight: null, pointer, seq: state.seq + 1 };
+  return { ...state, base, notes: [], highlight: null, pointer, practice: null, seq: state.seq + 1 };
 }
 
 /**
@@ -251,7 +278,7 @@ export function reduceStage(state: StageState, event: Pick<StoryboardEvent, "pri
       const shown = sameNumber ? previous.shown : digits.map((d) => (bare ? 0 : d));
       return withBase(
         state,
-        { kind: "abacus", digits, shown, animate: Boolean(args.animate), glowRod: null, childAnswer: null, expansion: null },
+        { kind: "abacus", digits, shown, animate: Boolean(args.animate), glowRods: [], childAnswer: null, expansion: null },
         { text: "abacus" },
       );
     }
@@ -262,12 +289,15 @@ export function reduceStage(state: StageState, event: Pick<StoryboardEvent, "pri
       const shown = state.base.shown.map((n, i) => (i === rod ? Math.min(state.base!.kind === "abacus" ? state.base.digits[i]! : 9, n + count) : n));
       // Beads landing on a rod ARE the attention: the rod she is filling
       // glows, so the hundreds rod lights when she names it and fills it.
-      return { ...state, base: { ...state.base, shown, glowRod: rod }, pointer: { rod }, seq };
+      return { ...state, base: { ...state.base, shown, glowRods: [rod] }, pointer: { rod }, seq };
     }
     case "abacus.rod_glow": {
       if (state.base?.kind !== "abacus") return state;
       const rod = Number(args.rod);
-      return { ...state, base: { ...state.base, glowRod: rod }, pointer: { rod }, seq };
+      // A group named in one sentence glows together; otherwise one glow only.
+      const rods = Array.isArray(args.rods) && (args.rods as unknown[]).length ? asNumberArray(args.rods) : [rod];
+      // One glow at a time: a chalk ring still on the board gives way to the rod's glow.
+      return { ...state, base: { ...state.base, glowRods: rods }, pointer: { rod: rods[0] ?? rod }, highlight: null, seq };
     }
     case "abacus.child_answer_overlay": {
       if (state.base?.kind !== "abacus") return state;
@@ -298,7 +328,7 @@ export function reduceStage(state: StageState, event: Pick<StoryboardEvent, "pri
       const number = Number(args.number);
       const parts = (Array.isArray(args.parts) ? args.parts : [null, null, null, null]).map((p) => (p === null || p === undefined ? null : String(p)));
       const expansion: ExpansionState = { number, parts, fly: null };
-      if (state.base?.kind === "abacus") return { ...state, base: { ...state.base, expansion }, pointer: { number }, highlight: null, seq };
+      if (state.base?.kind === "abacus") return { ...state, base: { ...state.base, expansion }, notes: state.notes.filter((n) => /\d/u.test(n.text)), pointer: { number }, highlight: null, seq };
       return withBase(state, { kind: "expansion", expansion }, { number });
     }
     case "expansion.part_reveal": {
@@ -313,7 +343,8 @@ export function reduceStage(state: StageState, event: Pick<StoryboardEvent, "pri
       const index = Number(args.index);
       const fromRod = Number(args.fromRod);
       const fly = { fromRod, index, key: seq };
-      if (state.base?.kind === "abacus" && state.base.expansion) return { ...state, base: { ...state.base, expansion: { ...state.base.expansion, fly }, glowRod: fromRod }, pointer: { part: index }, seq };
+      // The flight is the attention (M8: no glow while 5000 flies from its rod); a bare rod's 0 is written under a rod_glow instead (M9).
+      if (state.base?.kind === "abacus" && state.base.expansion) return { ...state, base: { ...state.base, expansion: { ...state.base.expansion, fly }, glowRods: [] }, pointer: { part: index }, seq };
       if (state.base?.kind === "expansion") return { ...state, base: { ...state.base, expansion: { ...state.base.expansion, fly } }, pointer: { part: index }, seq };
       return state;
     }
@@ -323,7 +354,10 @@ export function reduceStage(state: StageState, event: Pick<StoryboardEvent, "pri
       const itemId = ctx.legacy?.kind === "digitPicker" ? ctx.legacy.itemId : undefined;
       const same = state.base?.kind === "digitPicker" && state.base.pool.join() === pool.join();
       if (same) return { ...state, pointer: { text: "picker" }, seq };
-      return withBase(state, { kind: "digitPicker", pool, built: null, builtName: null, builtBy: "child", itemId }, { text: "picker" });
+      // A hand dealt again — whatever came between — finds the ledger of what the child built from it.
+      // The puzzle: the printed pool (an item), and every hand dealt while it is on the board.
+      const puzzle = Boolean(itemId) || (state.base?.kind === "digitPicker" && Boolean(state.base.puzzle));
+      return withBase(state, { kind: "digitPicker", pool, built: null, builtName: null, builtBy: "child", itemId, ledger: state.pickerLedgers[handKey(pool)] ?? [], puzzle }, { text: "picker" });
     }
     case "digitPicker.tap": {
       if (state.base?.kind !== "digitPicker") return state;
@@ -337,7 +371,10 @@ export function reduceStage(state: StageState, event: Pick<StoryboardEvent, "pri
       if (!digits) return state; // the child never built one — the picker stays as it is
       const name = literal && typeof args.name === "string" && !args.name.includes("(") ? args.name : safeName(Number(digits));
       const by = args.by === "tutor" ? "tutor" : "child";
-      return { ...state, base: { ...state.base, built: digits, builtName: name, builtBy: by }, pointer: { number: Number(digits) }, seq };
+      // The puzzle's ledger: every number the child builds from this hand, once — kept on the stage, by hand.
+      const ledger = by === "child" && !state.base.ledger.includes(digits) ? [...state.base.ledger, digits] : state.base.ledger;
+      const pickerLedgers = by === "child" ? { ...state.pickerLedgers, [handKey(state.base.pool)]: ledger } : state.pickerLedgers;
+      return { ...state, base: { ...state.base, built: digits, builtName: name, builtBy: by, ledger }, pickerLedgers, pointer: { number: Number(digits) }, seq };
     }
     case "digitPicker.clear_built": {
       if (state.base?.kind !== "digitPicker") return state;
@@ -348,6 +385,10 @@ export function reduceStage(state: StageState, event: Pick<StoryboardEvent, "pri
       const values = asNumberArray(args.values);
       const same = state.base?.kind === "numberCards" && state.base.values.join() === values.join();
       if (same) return { ...state, pointer: { card: values[0]! }, seq };
+      // Four cards drawn from the ten-card row lift out of it (rule d): the row stays, veiled.
+      if (state.base?.kind === "numberCards" && state.base.values.length === 10 && values.length > 0 && values.length < 10 && values.every((v) => state.base!.kind === "numberCards" && state.base.values.includes(v))) {
+        return { ...state, base: { ...state.base, drawn: values, ringed: null }, pointer: { card: values[0]! }, highlight: null, seq };
+      }
       return withBase(state, { kind: "numberCards", values, ringed: null }, values.length ? { card: values[0]! } : null);
     }
     case "numberCards.highlight_ring": {
@@ -370,8 +411,18 @@ export function reduceStage(state: StageState, event: Pick<StoryboardEvent, "pri
         const lines = append && last && text.startsWith(last.text) ? [...state.base.lines.slice(0, -1), { ...line, key: last.key + 0.5 }] : [...state.base.lines, line];
         return { ...state, base: { kind: "chalk", lines }, pointer: { text }, seq };
       }
-      if (state.base !== null && isTermNote(text)) {
-        return { ...state, notes: [...state.notes, line], pointer: { text }, seq };
+      // A table carries its own labels: a term written beside it has nowhere to sit (the table spans the inset), so only the pointer moves.
+      if (state.base?.kind === "blankTable" && isTermNote(text)) return { ...state, pointer: { text: "table" }, seq };
+      if (state.base !== null && (isTermNote(text) || PERSISTENT_BASES.has(state.base.kind))) {
+        // Rule (b): the abacus, a card, the picker, the expansion and the
+        // tables stay while chalk is written beside them — the lines stack
+        // (an append grows the last one); a term is always a note.
+        const last = state.notes[state.notes.length - 1];
+        // A sum beneath the base stands with the other sums; her term labels step aside for it (G10).
+        const kept = isTermNote(text) ? state.notes : state.notes.filter((n) => !isTermNote(n.text));
+        const lastKept = kept[kept.length - 1];
+        const notes = append && last && text.startsWith(last.text) ? [...kept.filter((n) => n !== last), { ...line, key: last.key + 0.5 }] : lastKept && text.startsWith(lastKept.text) && append ? [...kept.slice(0, -1), { ...line, key: lastKept.key + 0.5 }] : [...kept, line];
+        return { ...state, notes, pointer: { text }, seq };
       }
       return withBase(state, { kind: "chalk", lines: [line] }, { text });
     }
@@ -387,7 +438,9 @@ export function reduceStage(state: StageState, event: Pick<StoryboardEvent, "pri
     case "highlight.circle":
     case "highlight.underline": {
       const target = (args.target as Target) ?? null;
-      return { ...state, highlight: target ? { kind: event.event as "circle" | "underline", target } : null, pointer: target ?? state.pointer, seq };
+      // One glow at a time: a saffron ring on the board takes the rods' glow with it.
+      const base = target && state.base?.kind === "abacus" && state.base.glowRods.length ? { ...state.base, glowRods: [] } : state.base;
+      return { ...state, base, highlight: target ? { kind: event.event as "circle" | "underline", target } : null, pointer: target ?? state.pointer, seq };
     }
     case "highlight.off":
       return { ...state, highlight: null, seq };
@@ -401,10 +454,21 @@ export function reduceStage(state: StageState, event: Pick<StoryboardEvent, "pri
     // --- cards ---
     case "titleCard.show": {
       const title = String(args.title ?? "");
-      return withBase(state, { kind: "titleCard", title, emoji: typeof args.emoji === "string" ? args.emoji : undefined }, { text: title });
+      // The design's title card carries no pointer (M1, M2).
+      return withBase(state, { kind: "titleCard", title, emoji: typeof args.emoji === "string" ? args.emoji : undefined }, null);
     }
     case "textCard.show": {
       const text = String(args.text ?? "");
+      // A text card beside the title card: the title stays, dimmed, and the cards stack beside it (G1, rule b).
+      if (state.base?.kind === "titleCard") {
+        // A term card stacks behind the number card and leaves the hand on the number (G1: pointer on 100 000).
+        const pointer = /\d/u.test(text) || !state.pointer ? { text } : state.pointer;
+        return { ...state, base: { ...state.base, cards: [...(state.base.cards ?? []), text].slice(-2) }, pointer, highlight: null, seq };
+      }
+      // The number the drawn cards make joins the row (G3: "3 0 5 8 → 3058") instead of replacing it; the arrow is the eye, no hand.
+      if (state.base?.kind === "numberCards" && state.base.drawn?.length && state.base.drawn.join("") === text.replace(/\s/gu, "")) {
+        return { ...state, base: { ...state.base, made: text }, pointer: null, highlight: null, seq };
+      }
       return withBase(state, { kind: "textCard", text }, { text });
     }
     // --- table ---
@@ -417,17 +481,54 @@ export function reduceStage(state: StageState, event: Pick<StoryboardEvent, "pri
     case "blankTable.row_activate": {
       if (state.base?.kind !== "blankTable") return state;
       const cell = { row: Number(args.row), field: String(args.field) };
-      return { ...state, base: { ...state.base, activeBlank: cell }, pointer: { cell }, seq };
+      // The hand rests on the row's number (M10, G13: "pointer on 6572").
+      const numberCell = { row: cell.row, field: state.base.columns[0]?.key ?? cell.field };
+      return { ...state, base: { ...state.base, activeBlank: cell }, pointer: { cell: numberCell }, seq };
     }
     case "blankTable.cell_fill": {
       if (state.base?.kind !== "blankTable") return state;
       const fill: TableFill = { row: Number(args.row), field: String(args.field), value: String(args.value ?? ""), by: args.by === "child" ? "child" : "tutor" };
       const filled = [...state.base.filled.filter((f) => !(f.row === fill.row && f.field === fill.field)), fill];
-      return { ...state, base: { ...state.base, filled, activeBlank: null }, pointer: { cell: { row: fill.row, field: fill.field } }, seq };
+      // Filling the outlined cell closes it; a fill elsewhere (her worked row) leaves the child's cell outlined.
+      const activeBlank = state.base.activeBlank && state.base.activeBlank.row === fill.row && state.base.activeBlank.field === fill.field ? null : state.base.activeBlank;
+      return { ...state, base: { ...state.base, filled, activeBlank }, pointer: { cell: { row: fill.row, field: state.base.columns[0]?.key ?? fill.field } }, seq };
     }
+    case "choiceChips.show": {
+      const options = Array.isArray(args.options) ? (args.options as unknown[]).map(String) : [];
+      if (options.length === 0) return state;
+      return { ...state, chips: { options, correctIndex: Number(args.correctIndex ?? 0) }, seq };
+    }
+    case "choiceChips.clear":
+      return state.chips ? { ...state, chips: null, seq } : state;
+    case "turn.your_turn": {
+      const answerMode = String(args.answerMode) as AnswerMode;
+      // The practice's third step: the name is chosen from the chips.
+      const practice = state.practice && answerMode === "readAloud" ? { ...state.practice, step: 3 as const } : null;
+      // The child's turn: her term labels beside the surface step aside (M7, S2 show the abacus without "ගණක රාමුව"); a sum stays.
+      const notes = state.notes.filter((n) => /\d/u.test(n.text));
+      return { ...state, turn: { answerMode, surface: String(args.surface) as TurnSurface }, pause: null, retry: false, practice, notes, seq };
+    }
+    case "turn.over":
+      return state.turn || state.chips || state.pause || state.retry || state.practice ? { ...state, turn: null, chips: null, pause: null, retry: false, practice: null, seq } : state;
+    case "turn.retry":
+      return { ...state, retry: true, turn: null, practice: null, seq };
+    case "turn.pause": {
+      // Reading practice comes before the chips: a pause clears any chips still on the foot of the board.
+      const cue = args.cue === "mic" ? "mic" : null;
+      const number = typeof args.number === "number" ? args.number : null;
+      return { ...state, pause: { ms: Number(args.ms ?? 0), cue }, turn: null, chips: null, practice: cue === "mic" ? { step: 1, number } : null, seq };
+    }
+    case "turn.read_back":
+      // Zara reads the number herself (composed audio); the step cards move to her.
+      return { ...state, pause: null, practice: { step: 2, number: typeof args.number === "number" ? args.number : (state.practice?.number ?? null) }, seq };
     default:
       return state;
   }
+}
+
+/** A hand of digits, order-free. */
+function handKey(pool: number[]): string {
+  return [...pool].sort((a, b) => a - b).join("");
 }
 
 function safeName(value: number): string {
@@ -466,7 +567,7 @@ export function stageFromLegacy(content: BoardContent | null): StageBase {
   if (!content || content.type === "empty") return null;
   switch (content.type) {
     case "abacus":
-      return { kind: "abacus", digits: content.digits, shown: content.shown, animate: content.selfAnimate, glowRod: null, childAnswer: content.childAnswer, expansion: null };
+      return { kind: "abacus", digits: content.digits, shown: content.shown, animate: content.selfAnimate, glowRods: [], childAnswer: content.childAnswer, expansion: null };
     case "title_card":
       return { kind: "titleCard", title: content.title, emoji: content.emoji };
     case "text_card": {
@@ -482,7 +583,7 @@ export function stageFromLegacy(content: BoardContent | null): StageBase {
         const [component] = components;
         if (component!.type === "DigitPickerPuzzle") {
           const built = content.builtNumber?.digits ?? null;
-          return { kind: "digitPicker", pool: component!.props.availableDigits, built, builtName: content.builtNumber?.name ?? null, builtBy: "child", itemId: content.itemId };
+          return { kind: "digitPicker", pool: component!.props.availableDigits, built, builtName: content.builtNumber?.name ?? null, builtBy: "child", itemId: content.itemId , ledger: [] };
         }
         if (component!.type === "PlaceValueTable") {
           const props = component!.props;
@@ -500,7 +601,7 @@ export function stageFromLegacy(content: BoardContent | null): StageBase {
           };
         }
         if (component!.type === "AbacusDiagram") {
-          return { kind: "abacus", digits: component!.props.digits, shown: component!.props.digits, animate: false, glowRod: null, childAnswer: null, expansion: null };
+          return { kind: "abacus", digits: component!.props.digits, shown: component!.props.digits, animate: false, glowRods: [], childAnswer: null, expansion: null };
         }
       }
       return { kind: "legacy", content };
@@ -576,6 +677,10 @@ export function answerSurfaceFor(stage: StageState): SurfaceInfo | null {
 
 /** One line for logs, data attributes and the session trace. */
 export function describeStage(stage: StageState): string {
+  return describeBase(stage) + (stage.chips ? ` · chips ${stage.chips.options.join(" | ")}` : "") + (stage.turn ? ` · your turn: ${stage.turn.answerMode} on ${stage.turn.surface}` : "") + (stage.pause ? ` · pause ${stage.pause.ms}ms${stage.pause.cue ? " (🎤 cue)" : ""}` : "") + (stage.retry ? " · retry button" : "");
+}
+
+function describeBase(stage: StageState): string {
   const base = stage.base;
   let text = "nothing";
   if (base) {
@@ -596,7 +701,7 @@ export function describeStage(stage: StageState): string {
         text = `title "${base.title}"`;
         break;
       case "digitPicker":
-        text = `picker ${base.pool.join("·")}${base.built ? ` built ${base.built}` : ""}`;
+        text = `picker ${base.pool.join("·")}${base.built ? ` built ${base.built}` : ""}${base.ledger.length ? ` ledger ${base.ledger.join(",")}` : ""}`;
         break;
       case "expansion":
         text = `expansion ${base.expansion.number}`;

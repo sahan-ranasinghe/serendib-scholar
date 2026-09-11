@@ -34,10 +34,10 @@ on it; `events.ts` carries the vocabulary as data (`VOCABULARY`,
 
 | Primitive | Component | Status |
 |---|---|---|
-| `abacus.show / bead_add / rod_glow / child_answer_overlay / clear_overlay` | `Abacus` — `digits`, `shown`, `animate`, `glowRod`, `childAnswer`; touch: tray-to-rod drag, tap to remove | implemented |
+| `abacus.show / bead_add / rod_glow / child_answer_overlay / clear_overlay` | `Abacus` — `digits`, `shown`, `animate`, `glowRods` (a group named together glows together), `childAnswer`; touch: tray-to-rod drag, tap to remove, or tap a rod to answer | implemented |
 | `placeValueStrip.show / digit_drop / column_glow` | `PlaceValueStrip` — `digits`, `glowColumn`; touch: tap a column, digit pad | implemented |
 | `expansion.show / part_reveal / part_fly` | `Expansion` — `number`, `parts`, `fly`; sits beneath an `Abacus` on the same board and flies from its registered rod | implemented |
-| `digitPicker.show / tap / built_number / clear_built` | `DigitPicker` — `pool`, `built`, `builtName`; touch: tap in/out, drag to reorder | implemented (`pool` must be digits — the storyboard's "as printed" pool is resolved by the lesson wiring) |
+| `digitPicker.show / tap / built_number / clear_built` | `DigitPicker` — `pool`, `built`, `builtName`, `ledger` (the five-number puzzle: builds done with a ✓, the current row glowing); touch: tap in/out, drag to reorder | implemented (`pool` must be digits — the storyboard's "as printed" pool is resolved by the lesson wiring) |
 | `numberCards.show / highlight_ring / ring_off` | `NumberCards` — `values`, `ringed`; a real dealt row; touch: tap to select, drag to order | implemented |
 | `chalkText.write / erase` | `ChalkText` — `text`, `append` (progressive, ≤ 600 ms); erase is the `Whiteboard`'s `wipeKey` | implemented |
 | `pointer.move_to / pulse / hide` | `Pointer` — `at: Target`, `pulseKey`; resolves rod, column, card, cell, part, digit, text span and `{number}` through the board's target registry | implemented |
@@ -61,6 +61,10 @@ the session-1 storyboard no longer stages it.
 
 ---
 
+## The look
+
+Every primitive's look is the Claude Design export's (`docs/design/export/handoff/…/components.dc.html`): paper on board (radius 12, 2 px ink-18 border, the paper shadow), wood for anything structural, 3 px round-capped chalk strokes, Zara in marker blue with a ✎ badge, the child in green with a ✓, one saffron glow at a time with siblings veiled to 38 %, Yaldevi 20 px labels beneath, StrokeNum glyphs for every numeral. `npm run design:check` diffs each state against the export's reference PNGs (see `app/docs/BOARD.md`, "The design is the look").
+
 ## Primitives
 
 ### `abacus`
@@ -75,7 +79,9 @@ The four-rod bead abacus (`AnimatedAbacus.tsx`).
   - `bead_add { rod, count }` — 120 ms per bead, ≤ 600 ms. Beads drop
     onto one rod one at a time; the line counting them ("එක, දෙක…") is
     what they are counted to.
-  - `rod_glow { rod }` — 300 ms. The named rod brightens; the others dim
+  - `rod_glow { rod, rods? }` — 300 ms. The named rod brightens; the others dim.
+    Rods named in the same sentence glow together (`rods: [...]`); otherwise
+    one glow only
     slightly. Fires whenever a place is named while the abacus is up.
   - `child_answer_overlay { text }` — 250 ms. The child's spoken or
     typed number written in a second colour beneath the rods.
@@ -178,9 +184,46 @@ without the write animation.
 The textbook's place-value table (`PlaceValueTable`) with blanks to fill.
 
 - **props** `{ rows, filled: FilledAnswer[], activeBlank: {row,field}|null }`
+- **touch** a tapped blank opens the number pad — or, for a `numberName`
+  cell, the Sinhala **word bank** (`WordBank`): the name's own words plus
+  two distractors from `nameWordBank` (a digit's word at the adjacent
+  place, an off-by-one value), 56 px tiles tapped in order into the cell,
+  used tiles veiled, ⌫ takes the last back.
 - **events**
   - `show { rows }` — 400 ms.
   - `row_activate { row, field }` — 250 ms. That cell is outlined and the
     number pad points at it.
   - `cell_fill { row, field, value, by: "child"|"tutor" }` — 300 ms.
     Green tick for the child, blue pen for Zara.
+
+### `choiceChips`
+Three tappable options along the foot of the board — a phrase's findings,
+three number names, three values — made by the distractor engine
+(`src/lib/distractors.ts`), never by a model. The correct one is not
+marked; the judge decides. A readAloud question shows a "🎤 කියන්න" cue
+above them: speech leads, the chips are for a child who would rather tap.
+
+- **props** `{ options: string[], correctIndex, interactive, micCue }`
+- **events**
+  - `show { options, correctIndex }` — 300 ms. The chips deal in.
+  - `clear` — 150 ms.
+- **targets** `{ text: "chips" }`
+
+### `turn`
+Not drawn; it says where the child's turn lands, so the glow goes there
+and nowhere else (a soft check glows nothing).
+
+- **events**
+  - `your_turn { answerMode, surface }` — 300 ms. `answerMode` is one of
+    build · cell · valueOrPlace · why · readAloud (`src/lib/answerMode.ts`);
+    `surface` one of picker · beads · pad · cell · rod · column · chips · mic.
+    Rods become buttons on `rod`; the picker breathes on `picker`; the
+    chips breathe on `chips`.
+  - `pause { ms, cue? }` — up to 3000 ms. Reading practice (`cue: "mic"`:
+    a faint 🎤, the child's own moment to say it, nothing recorded) or a
+    soft check (no cue). Clears any chips.
+  - `read_back { number }` — 400 ms. Zara reads the number herself
+    ("මම කියන්නම් —" + the composed number); the board does not change.
+  - `retry` — 300 ms. A wrong answer's visible way back: the paper button
+    "ආයෙත් උත්සාහ කරන්න" top-right; a tap reopens the surface.
+  - `over` — 150 ms. The glow, the chips and the retry button go.

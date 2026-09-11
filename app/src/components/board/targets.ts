@@ -57,6 +57,10 @@ export interface BoardRegistry {
   surface: HTMLElement | null;
   /** Where Pointer, Highlight and FeedbackFX draw — a layer above the content. */
   overlay: HTMLElement | null;
+  /** The dock at the foot of the board (a number pad, a word bank) — docked inputs render into it. */
+  dock: HTMLElement | null;
+  /** A docked input announces itself (+1 on mount, −1 on unmount) so the content inset makes room (bottom 190). */
+  noteDock: (delta: number) => void;
   /** Bumped whenever something registers, so overlays re-measure. */
   version: number;
 }
@@ -69,6 +73,8 @@ const NO_BOARD: BoardRegistry = {
   measure: () => null,
   surface: null,
   overlay: null,
+  dock: null,
+  noteDock: () => {},
   version: 0,
 };
 
@@ -78,7 +84,7 @@ export function useBoard(): BoardRegistry {
 }
 
 /** The registry a Whiteboard provides. */
-export function useBoardRegistry(surface: HTMLElement | null, overlay: HTMLElement | null): BoardRegistry {
+export function useBoardRegistry(surface: HTMLElement | null, overlay: HTMLElement | null, dock: HTMLElement | null = null, noteDock: (delta: number) => void = () => {}, layout = 0): BoardRegistry {
   const entries = useRef(new Map<string, Element[]>());
   const [version, setVersion] = useState(0);
   const register = useCallback((keys: string[], element: Element) => {
@@ -121,8 +127,9 @@ export function useBoardRegistry(surface: HTMLElement | null, overlay: HTMLEleme
     [surface],
   );
   return useMemo(
-    () => ({ register, resolve, measure, surface, overlay, version }),
-    [register, resolve, measure, surface, overlay, version],
+    // `layout` (the dock opening or closing) moves everything on the surface: overlays re-measure as if something had registered.
+    () => ({ register, resolve, measure, surface, overlay, dock, noteDock, version: version + layout * 100000 }),
+    [register, resolve, measure, surface, overlay, dock, noteDock, version, layout],
   );
 }
 

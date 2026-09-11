@@ -29,10 +29,14 @@ Follow `Abacus.tsx` / `NumberCards.tsx`:
 - A `"use client"` component whose props ARE the vocabulary's state
   (`digits`, `ringed`, `glowRod` …). Events are state changes the parent
   makes; a transient event (a fly, a pulse) is a `key`/nonce prop.
-- Colours and springs from `theme.ts` only (`BOARD`, `SPRING`,
-  `SPRING_BOUNCY`); Sinhala words through `WriteOn`, numbers through
-  `HandNumber` (stroke-drawn glyphs; every number in a string registers as a
-  `number:<n>` target on its own glyphs).
+- Colours, shadows and springs from `tokens.ts` only (`BOARD`, `SHADOW`,
+  `SPRING`, `SPRING_BOUNCY`) — every value is a `var(--…)` from the design's
+  `src/app/tokens.css`; nothing may resolve to a colour that is not a token.
+  Sinhala words through `WriteOn` (Gemunu Libre 700, never under 28 px on
+  the board), numbers through `HandNumber` (the design's StrokeNum glyphs,
+  `HandGlyphs.ts`; every number in a string registers as a `number:<n>`
+  target on its own glyphs). Copy the primitive's markup from
+  `docs/design/export/handoff/…/components.dc.html` — don't reinterpret it.
 - Any stroke you animate with `pathLength` must be drawn in the SVG's own
   pixel space — never `viewBox` + `preserveAspectRatio="none"`. The stroke
   audit fails a non-uniform stroke.
@@ -40,7 +44,7 @@ Follow `Abacus.tsx` / `NumberCards.tsx`:
   the component root as `component:<name>` (and `text:<name>` if the
   storyboard says `{text:"<name>"}`), and each part under the vocabulary's
   key (`tick:3`, `cell:2/field`).
-- Touch: every interactive target ≥ 48 px (`TOUCH_MIN`), pointer events
+- Touch: every interactive target ≥ 56 px (`TOUCH_MIN`), pointer events
   via `useDrag` for drags, `onClick` for taps; no long-press, no double-tap.
   Interactive only when `interactive` is true — the runtime turns it on
   for the child's turn.
@@ -85,16 +89,78 @@ npm run dry-run:lesson         # storyboard ↔ script, every event reduces, rod
 npm run session:check          # a real run, every beat photographed
 ```
 
+## The design is the look
+
+The session screen and every primitive follow the Claude Design export in
+`docs/design/export/handoff/design_handoff_serendib_scholar/` (README.md,
+DESIGN.md rules 1–9 and a–h, `components.dc.html`, `Session*.dc.html`,
+`Zara.dc.html`, `Lena.dc.html`, `StrokeNum.dc.html`, `Abacus.dc.html`).
+The runtime decides what happens; the export decides how it looks.
+
+- `src/app/tokens.css` is the export's file verbatim; `src/app/fonts.css`
+  points its `--font-*` names at the `next/font` faces (Gemunu Libre,
+  Abhaya Libre, Yaldevi; Inter for parent-zone English; Noto Sans Sinhala
+  only as the fallback).
+- The shell (`SessionShell.tsx`, `board.css`): strip 28 px teal with the
+  title in Yaldevi 20, eight concept stops, ⏸ ↺ ⏹ (48×28 cells whose hit
+  areas reach 56 px into the frame) and the සි caption toggle; wood frame
+  10, tray 22, board `--color-board` with a 32 px grid; content inset
+  L94 / R82 / T22 / B64 from the frame (B124 with chips, B190 with a
+  docked pad or word bank — docked inputs render into the Whiteboard's
+  `dock` and announce themselves with `noteDock`); chips and docks span
+  L94 → R130; ✋ 56 px at R12 / B76; Zara 64 px at L10 / B6; Lena 48 px at
+  R14 / B16; the retry note 56 px at R82 / T22; the caption in Gemunu 20
+  at B26. The ✋ chat and the first-time mic explanation are sheets over
+  the board dimmed to 38 % with Zara at 160 px.
+- Rule (b), persistent board: the reducer keeps the abacus, a text card,
+  the picker, the expansion and the tables while chalk is written beside
+  them (`stage.notes`, a stack of three, older lines at 60 %); a title card
+  or a card row gives way to a sum. Four cards drawn from the ten-card row
+  lift out of it (`drawn`). Read-aloud practice is the three step cards
+  (`stage.practice`).
+- The abacus's number expanded ("5 421 = 5000 + …", "7000 + 0 + 60") is
+  the expansion primitive beneath the persisting abacus: the storyboard
+  generator turns such a text intent into `expansion.show` plus a
+  `part_fly` + `part_reveal` per value (a bare rod's 0 is written under a
+  `rod_glow`), and the reducer keeps the abacus (M8, M9; storyboard fixes
+  B2/B3). Rule b is for chalk events only.
+- Box model: the export's pages have no CSS reset, so inside the session
+  screen and the design gallery every box is `content-box` (a 56 px chip
+  with a 2 px border is drawn 60 px); buttons keep Chromium's `border-box`;
+  `border-box` is set inline only where the export writes it.
+- One glow (or one glow group) at a time; siblings veil to 38 %; motion
+  ≤ 600 ms on `cubic-bezier(.34,1.3,.64,1)`; correct = ✓ + saffron sparkle;
+  wrong = wobble ±6 px / ±3° + the retry note; never red.
+
+```
+npm run design:check -- http://localhost:3001            # manifest · numbers · SSIM · rules
+npm run design:check -- http://localhost:3001 --only=M7  # one frame
+```
+
+`/admin/design-preview?frame=<id>` stages any frame of
+`src/lib/designFrames.ts` (the storyboard replayed to its beat, then the
+frame's own turn); `/admin/design-gallery` mirrors `components.html`
+section for section. The harness serves the export over http (support.js
+loads StrokeNum, Zara and Lena; the export's Google Fonts link is answered
+with the app's own font files), renders every frame of Session*.dc.html
+and every section of components.dc.html in the same Chromium at 1× and
+the frame's own size, checks each render is whole (no placeholder boxes,
+no template text, strokes present — else the frame's PNG in
+`docs/design/reference/` stands in, and the report says which), measures
+the shell against the README numbers (±1 px, CSS sizes), diffs every
+frame and section against its reference at full resolution with nothing
+masked (SSIM ≥ 0.90 or an explanation per frame, diffs and renders in
+`.design-check/`), and asserts the rules on every staged frame.
+
 ## A phone held sideways
 
-The content area under the 28 px strip is about 290 px tall at 844×390 and
-260 px at 800×360. `BoardStage` measures it (`COMPACT_BELOW_PX`, 340) and
-passes `compact` to the primitives that have a compact form (the abacus,
-the digit picker); a new primitive that stacks anything under itself (a
-readout, the child's answer, a note) needs one too, or the session check
-flags it `cut-off`. Rows a child cannot tap may be shorter than 48 px
-(`BlankTable` keeps 48 px only on the row with a blank); no text under
-16 px.
+The design's one layout is 844×390; the frame stretches to the phone and
+the content inset stays as above. A primitive that stacks anything under
+itself (a readout, the child's answer, a note) must fit the 216 px the
+inset leaves under the chips (150 px over a dock), or the session check
+flags it `cut-off`. Table cells are 30 px (34 in the name table) as the
+design draws them; the child taps a cell, then answers on the docked pad
+or word bank. No child-facing Sinhala under 20 px.
 
 ```
 npm run session:check -- http://localhost:3001 --viewport=800x360 --scheme=dark
@@ -106,6 +172,53 @@ second walks the four failure modes (a tap while she talks, a rotation, a
 backgrounded tab, a clip that cannot be fetched) and the retry ladder on
 one question. Run them against a production build — a dev server reloads
 the page on every source edit.
+
+## Answering: every question has a touch surface
+
+Each ASK / SOFT_CHECK / CHECK_MY_WORK carries an `answerMode`, derived at
+build time (`src/lib/answerMode.ts`) from what it expects and the
+concept's skill — never typed by hand:
+
+| mode | leads with | chips |
+|---|---|---|
+| build | the picker, the beads, the pad | after a miss (never for an open build) |
+| cell | tap the cell, then the pad | after a miss |
+| valueOrPlace | tap the rod or column, or 3 chips | from the start |
+| why | 3 chips (the rubric's findings) | from the start |
+| readAloud | reading practice first: 3 s to say it (faint 🎤, nothing recorded), then Zara reads it back ("මම කියන්නම් —" + the composed number) | 3 name-chips from the start of the judged step |
+
+The three options come from `src/lib/distractors.ts` (deterministic:
+swapped digits, a zero dropped or added, one place off; the adjacent
+place's value, the digit instead of the value; the rubric's findings) and
+every set passes `validateChoices`. Every judged answer is a touch, judged
+on the device (`answersMatch`, or the rubric's token match for a finding);
+the microphone opens only in the ✋ chat. A surface with no tap gets one
+recorded nudge at 12 s and, at 25 s, her demonstration. The storyboard emits `turn.your_turn
+{answerMode, surface}` and, for the chip modes, `choiceChips.show` on the
+question's last sentence; the runtime does the same for beats the
+storyboard does not know (a recap, a retry). A tapped answer is never
+read back (CONFIRM is for hearings); a soft check has no chips and no
+glow. `npm run dry-run:lesson` prints the mode table, the speech-primary
+share and every question's options, and fails on a question with no mode
+or no surface.
+
+## Touch inputs the primitives own
+
+- **Word bank** (`WordBank`, opened by `BlankTable` for a `numberName`
+  cell): the name's own words plus two distractors from `nameWordBank`
+  (a digit's word at the adjacent place, an off-by-one value), 56 px
+  tiles tapped in order, used tiles veiled, ⌫ takes the last back, ✓
+  commits the line — judged by `answersMatch` like any other answer.
+- **Ledger** (`DigitPicker` `ledger`): the five-number puzzle's builds so
+  far with a ✓, the current row glowing; `digitPicker.built_number` by the
+  child appends, and a re-deal of the same hand keeps it.
+- **Glow groups** (`Abacus` `glowRods`): rods named in one sentence glow
+  together (`rod_glow { rods }`); otherwise one glow only.
+- **Retry** (`turn.retry`): the "ආයෙත් උත්සාහ කරන්න" paper button, top-right,
+  after a miss; the surface reopens on its tap or on its own after 12 s.
+- The strip's ⏸ ↺ ⏹ keep their small pills but their hit areas reach 56 px
+  down into the board frame (`.strip-control::after`); the session check
+  probes this.
 
 ## What the runtime does for you
 

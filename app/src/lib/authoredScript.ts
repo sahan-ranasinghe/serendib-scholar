@@ -11,6 +11,9 @@
  * changes until a human has read docs/review/session-1-original.md.
  */
 import type { TeachingMode, Beat, BeatBoardAction } from "@/lib/lessonOrchestrator";
+import { conceptSkill, deriveAnswerMode, type AnswerMode } from "@/lib/answerMode";
+import { renderNumberMarkers } from "@/lib/sinhalaNumber";
+import { choicesForQuestion, type ChoiceSet } from "@/lib/distractors";
 import type { LessonComponent } from "@/data/lessons/lesson1-numbers";
 import type { DesignConceptTag } from "@/lib/lessonDesign";
 
@@ -287,6 +290,7 @@ function describeBoard(intent: AuthoredBoardIntent): string {
  */
 export function toRuntimeBeats(file: AuthoredScriptFile, lessonTitle: string): Beat[] {
   const modes = assignModes(file.beats);
+  const answerModes = assignAnswerModes(file.beats);
   return file.beats.map((authored, index) => {
     const asking = authored.type === "ASK" || authored.type === "CHECK_MY_WORK" || authored.type === "HOOK" || authored.type === "SOFT_CHECK";
     return {
@@ -311,6 +315,8 @@ export function toRuntimeBeats(file: AuthoredScriptFile, lessonTitle: string): B
       expectedAnswer: authored.expectedAnswer,
       answerChoices: authored.answerChoices,
       rubric: authored.rubric,
+      answerMode: answerModes.get(authored.id),
+      choices: answerModes.has(authored.id) ? choicesForBeat(authored, answerModes.get(authored.id)!) : undefined,
       endBy: asking && authored.pauseType !== "RHETORICAL" ? "asking" : "pausing",
     } as Beat;
   });
@@ -330,6 +336,47 @@ export function toRuntimeBeats(file: AuthoredScriptFile, lessonTitle: string): B
  * Guide steps are read off each beat's `guideStep` in first-seen order per
  * concept, so a step's position is its position in the guide.
  */
+/**
+ * Which surface leads each question's answer, derived from what it expects
+ * and the concept's skill (src/lib/answerMode.ts). A soft check with no
+ * expected answer checks the skill of the nearest earlier judged question
+ * in its concept.
+ */
+export function assignAnswerModes(beats: AuthoredBeat[]): Map<string, AnswerMode> {
+  const modes = new Map<string, AnswerMode>();
+  const preceding = new Map<string, AnswerMode>();
+  for (const beat of beats) {
+    if (beat.type !== "ASK" && beat.type !== "SOFT_CHECK" && beat.type !== "CHECK_MY_WORK") continue;
+    const mode = deriveAnswerMode({
+      type: beat.type,
+      expectedAnswer: beat.expectedAnswer ?? null,
+      boardKind: beat.boardIntent.kind,
+      hasRubric: Boolean(beat.rubric),
+      skill: conceptSkill(beat.conceptTag),
+      precedingMode: preceding.get(beat.conceptTag) ?? null,
+    });
+    modes.set(beat.id, mode);
+    if (beat.expectedAnswer) preceding.set(beat.conceptTag, mode);
+  }
+  return modes;
+}
+
+/** The three options a judged question deals (chip modes from the start, the others after a miss). */
+export function choicesForBeat(beat: AuthoredBeat, mode: AnswerMode): ChoiceSet | undefined {
+  if (beat.type === "SOFT_CHECK") return undefined;
+  return (
+    choicesForQuestion({
+      id: beat.id,
+      answerMode: mode,
+      expectedAnswer: beat.expectedAnswer ?? null,
+      rubric: beat.rubric ?? null,
+      numbers: beat.numbers ?? renderNumberMarkers(beat.sourceText).numbers,
+      line: beat.sourceText,
+      field: beat.boardIntent.kind === "blank" ? beat.boardIntent.field : null,
+    }) ?? undefined
+  );
+}
+
 export function assignModes(beats: AuthoredBeat[]): Map<string, TeachingMode> {
   const stepsByConcept = new Map<string, string[]>();
   for (const beat of beats) {

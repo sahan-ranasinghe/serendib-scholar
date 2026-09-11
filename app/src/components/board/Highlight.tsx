@@ -1,64 +1,60 @@
 "use client";
 
 /**
- * A chalk-yellow mark on something already on the board — a ring round
- * it or a line under it, drawn as a stroke.
- *
- * Vocabulary:
- *   circle { target }     → kind="circle", target
- *   underline { target }  → kind="underline", target
- *   off                   → kind=null
+ * A chalk mark on something already there: the design's saffron ring
+ * (inset −14 around a card, −8 around a whole abacus) or its underline,
+ * 3.5 px, drawn once in 250 ms.
  */
 import { AnimatePresence, motion } from "framer-motion";
 import { createPortal } from "react-dom";
 import { useBoard, useTargetRect, type Target } from "./targets";
-import { BOARD } from "./theme";
-import { ringPath, underlinePath } from "./strokes";
+import { RING_D, RING_FRAME_D, UNDERLINE_D } from "./strokes";
 
 export interface HighlightProps {
   kind: "circle" | "underline" | null;
   target: Target | null;
 }
 
-const PAD = 10;
-
 export function Highlight({ kind, target }: HighlightProps) {
   const board = useBoard();
   const rect = useTargetRect(kind ? target : null);
   if (!board.overlay) return null;
   const key = kind && target ? `${kind}:${JSON.stringify(target)}` : null;
+  // a ring around a whole primitive (an abacus) sits closer than one around a card
+  const big = rect !== null && rect.width > 200;
+  const pad = big ? 8 : 14;
   return createPortal(
     <AnimatePresence>
       {kind && rect && (
-        // A plain, React-positioned box: motion.svg keeps the style it
-        // mounted with, so left/top must not live on it. The path is drawn
-        // in this box's own pixel space, so its length reveal is uniform.
         <div
           key={key}
           data-testid={`highlight-${kind}`}
           style={{
             position: "absolute",
-            left: rect.x - PAD,
-            top: kind === "circle" ? rect.y - PAD : rect.y + rect.height - 4,
-            width: rect.width + PAD * 2,
-            height: kind === "circle" ? rect.height + PAD * 2 : 14,
+            left: kind === "circle" ? rect.x - pad : rect.x,
+            top: kind === "circle" ? rect.y - pad : rect.y + rect.height - 2,
+            width: kind === "circle" ? rect.width + pad * 2 : rect.width,
+            height: kind === "circle" ? rect.height + pad * 2 : 10,
           }}
           aria-hidden
         >
           <motion.svg
             className="chalk-stroke"
-            width={rect.width + PAD * 2}
-            height={kind === "circle" ? rect.height + PAD * 2 : 14}
+            viewBox={kind === "circle" ? "0 0 100 80" : "0 0 100 10"}
+            preserveAspectRatio="none"
+            width="100%"
+            height="100%"
             initial={{ opacity: 1 }}
             exit={{ opacity: 0, transition: { duration: 0.15 } }}
             style={{ display: "block", overflow: "visible" }}
           >
             <motion.path
-              d={kind === "circle" ? ringPath(rect.width + PAD * 2, rect.height + PAD * 2) : underlinePath(rect.width + PAD * 2, 14)}
+              d={kind === "circle" ? (big ? RING_FRAME_D : RING_D) : UNDERLINE_D}
               fill="none"
-              stroke={BOARD.chalkYellow}
-              strokeWidth={kind === "circle" ? 5 : 6}
+              stroke="var(--color-saffron)"
+              strokeWidth={3.5}
               strokeLinecap="round"
+              vectorEffect="non-scaling-stroke"
               initial={{ pathLength: 0 }}
               animate={{ pathLength: 1 }}
               transition={{ duration: 0.25, ease: "easeOut" }}

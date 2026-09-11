@@ -38,7 +38,11 @@
  */
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { parseAuthoredScript, type AuthoredBeat, type AuthoredBoardIntent } from "../src/lib/authoredScript";
+import { parseAuthoredScript, assignAnswerModes, choicesForBeat, type AuthoredBeat, type AuthoredBoardIntent } from "../src/lib/authoredScript";
+import { TOUCH_SURFACE, valueOfAnswer, type AnswerMode } from "../src/lib/answerMode";
+import { READ_ALOUD_PAUSE_MS, SOFT_CHECK_PAUSE_MS } from "../src/lib/lessonOrchestrator";
+import type { ChoiceSet } from "../src/lib/distractors";
+import type { TurnSurface } from "../src/components/board/events";
 import { renderNumberMarkers, sinhalaNumberName } from "../src/lib/sinhalaNumber";
 import { sentencesOf } from "../src/lib/scriptDistance";
 import { parseAnswerPredicate } from "../src/lib/answerCheck";
@@ -76,7 +80,7 @@ const KNOWN_ITEMS: Record<string, { primitive: "digitPicker" | "blankTable"; sum
 // --- vocabulary ---------------------------------------------------------------
 type Primitive =
   | "abacus" | "placeValueStrip" | "expansion" | "digitPicker" | "numberCards"
-  | "chalkText" | "pointer" | "highlight" | "money" | "titleCard" | "textCard" | "blankTable";
+  | "chalkText" | "pointer" | "highlight" | "money" | "titleCard" | "textCard" | "blankTable" | "turn" | "choiceChips";
 
 interface Event {
   sentenceIndex: number;
@@ -109,6 +113,8 @@ interface BoardState {
   digits: number[] | null; // abacus / expansion digits, by rod
   terms: Set<string>; // written this concept
   interactive: boolean; // picker or table up
+  /** A question left its turn (and any chips) open; the next beat closes it. */
+  turnOpen: boolean;
   pool: number[] | null;
   cards: number[] | null;
   ringed: number | null;
@@ -120,10 +126,12 @@ interface BoardState {
   /** Set when the runtime re-stages an already-built abacus with animate. */
   reanimated: boolean;
   focus: string | null; // what the pointer would rest on
+  /** The expansion beneath the abacus (design M8/M9): its four parts, null while blank. */
+  expansion: Array<string | null> | null;
 }
 
 function emptyState(): BoardState {
-  return { primitive: null, description: "nothing", visible: new Set(), digits: null, terms: new Set(), interactive: false, pool: null, cards: null, ringed: null, chalk: null, shown: null, abacusLost: null, reanimated: false, focus: null };
+  return { primitive: null, description: "nothing", visible: new Set(), digits: null, terms: new Set(), interactive: false, pool: null, cards: null, ringed: null, chalk: null, shown: null, abacusLost: null, reanimated: false, focus: null, turnOpen: false, expansion: null };
 }
 
 function derive(digits: number[]): Set<string> {
@@ -140,6 +148,35 @@ function numbersInText(text: string): Set<string> {
   const out = new Set<string>();
   for (const m of text.replace(/(\d)\s(?=\d{3}(?!\d))/gu, "$1").matchAll(/\d+/gu)) out.add(m[0]);
   return out;
+}
+
+/** The value of digit `rod` of an abacus at its place. */
+function partValueOf(digits: number[], rod: number): string {
+  return String((digits[rod] ?? 0) * 10 ** (digits.length - 1 - rod));
+}
+
+/**
+ * A text intent that is the abacus's number expanded — "5 421 = 5000 +",
+ * "7000 + 0 + 60", "7062 = 7000 + 0 + 60 + 2" — as the parts it writes,
+ * in order from the thousands; null when the text is anything else.
+ * (Design M8/M9: such a line is the expansion primitive beneath the
+ * abacus, each value flying from its rod into its slot.)
+ */
+function expansionLine(text: string, digits: number[]): string[] | null {
+  const whole = digits.join("");
+  let rest = text.trim();
+  const head = /^([\d\s]+)=\s*(.*)$/u.exec(rest);
+  if (head) {
+    if (head[1]!.replace(/\s/gu, "") !== whole) return null;
+    rest = head[2]!;
+  }
+  if (!rest) return head ? [] : null;
+  const values = rest.split("+").map((v) => v.replace(/\s/gu, ""));
+  if (values[values.length - 1] === "") values.pop(); // a trailing "+" waits for the next part
+  if (values.length === 0 || values.length > digits.length) return null;
+  if (!values.every((v, i) => /^\d+$/u.test(v) && v === partValueOf(digits, i))) return null;
+  // a bare value that is not the leading part (e.g. a card "84") is not an expansion
+  return values;
 }
 
 function textbook(n: number): string {
@@ -162,7 +199,7 @@ function applyIntent(state: BoardState, intent: AuthoredBoardIntent): Event[] {
       return [at0("chalkText", "erase")];
     case "title":
       Object.assign(state, emptyState(), { terms: state.terms, primitive: "titleCard", description: `title card "${intent.title}"`, focus: intent.title });
-      return [at0("titleCard", "show", { title: intent.title })];
+      return [at0("titleCard", "show", { title: intent.title, emoji: TITLE_EMOJI[intent.title] ?? "📘" })];
     case "text": {
       // Rule 6, the example: a number made from the picker's own digits is
       // built on the picker, not written beside it in chalk.
@@ -180,6 +217,46 @@ function applyIntent(state: BoardState, intent: AuthoredBoardIntent): Event[] {
       const stillAbout = candidate !== null && [...numbersInText(intent.text)].some((n) => derive(candidate).has(n));
       const lostAbacus = stillAbout ? candidate : null;
       const cards = rowOfCards(intent.text);
+      // Design M8/M9: the abacus's number expanded is the expansion primitive
+      // beneath the persisting abacus — each part flies from its rod into
+      // its slot (part_fly + part_reveal); a bare rod's 0 is written with the
+      // rod glowing. Rule b (chalk beside the base) is for chalk events only.
+      const expansion = previous.primitive === "abacus" && previous.digits ? expansionLine(intent.text, previous.digits) : null;
+      if (expansion !== null && previous.digits) {
+        const digits = previous.digits;
+        const events: Event[] = [];
+        const parts: Array<string | null> = previous.expansion ? [...previous.expansion] : digits.map(() => null);
+        if (!previous.expansion) events.push(at0("expansion", "show", { number: Number(digits.join("")), parts: digits.map(() => null) }));
+        expansion.forEach((value, index) => {
+          if (parts[index] !== null) return;
+          parts[index] = value;
+          if (digits[index]! > 0) events.push(at0("expansion", "part_fly", { fromRod: index, index }));
+          else events.push(at0("abacus", "rod_glow", { rod: index }));
+          events.push(at0("expansion", "part_reveal", { index, value }));
+          state.visible.add(value);
+        });
+        state.expansion = parts;
+        state.focus = "abacus";
+        state.description = `the abacus showing ${textbook(Number(digits.join("")))} with its expansion beneath (${parts.map((p) => p ?? "▢").join(" + ")})`;
+        if (intent.highlight) events.push(at0("highlight", "circle", { target: { text: intent.highlight } }));
+        return events;
+      }
+      // Design rule (b): the abacus (and a card, the picker, the expansion,
+      // the tables) stays while chalk is written beside it — the reducer
+      // stacks the line as a note, so the rods are still there to glow.
+      const persistent = previous.primitive === "abacus" || previous.primitive === "textCard" || previous.primitive === "digitPicker" || previous.primitive === "expansion" || previous.primitive === "blankTable";
+      const isSum = !cards && !(intent.text.length <= 14 && !/[=+]/u.test(intent.text));
+      if (persistent && isSum) {
+        const sameText = previous.chalk === intent.text;
+        const grows = previous.chalk !== null && intent.text.startsWith(previous.chalk) && !sameText;
+        for (const n of numbersInText(intent.text)) state.visible.add(n);
+        state.chalk = intent.text;
+        state.focus = intent.highlight ?? intent.text;
+        state.description = `${previous.description.replace(/ with chalk ".*"$/u, "")} with chalk "${intent.text.replace(/\n/g, " / ")}"`;
+        const events: Event[] = sameText ? [] : [at0("chalkText", "write", grows ? { text: intent.text, append: intent.text.slice(previous.chalk!.length).trim() } : { text: intent.text })];
+        if (intent.highlight) events.push(at0("highlight", "circle", { target: { text: intent.highlight } }));
+        return events;
+      }
       Object.assign(state, emptyState(), { terms: state.terms, abacusLost: lostAbacus });
       state.visible = numbersInText(intent.text);
       state.chalk = intent.text;
@@ -335,6 +412,9 @@ function analyse(sourceSentence: string, index: number): SentenceFacts {
   return { index, spoken, numbers, rods, terms, deictic, looks: LOOK.test(spoken), boardAct: BOARD_ACT.test(spoken) };
 }
 
+/** The title cards' emoji: 🔢 and 🏏 are the design's (M1, M2); the rest follow the same idea. */
+const TITLE_EMOJI: Record<string, string> = { "සංඛ්‍යා - 1": "🔢", "සංඛ්‍යා කියවමු": "🏏", "ස්ථානීය අගය": "🧮", "තනිව විසඳමු": "✏️" };
+
 interface NoteCandidate {
   beatId: string;
   kind: "referent" | "look" | "number-mismatch" | "no-way-to-act" | "nothing-to-show" | "too-much-to-show" | "board-abacus-gone" | "board-reanimate" | "board-cards-as-chalk";
@@ -352,7 +432,7 @@ interface StoryboardBeat {
   sentences: string[];
   boardAtStart: string;
   events: Event[];
-  child: { kind: string; via: string; expects?: string } | null;
+  child: { kind: string; via: string; expects?: string; answerMode?: string; surface?: string } | null;
   sees: string;
 }
 
@@ -383,7 +463,7 @@ function exampleOnPicker(text: string, pool: number[]): number | null {
   return [...String(number)].map(Number).sort().join() === digits.join() ? number : null;
 }
 
-function planBeat(beat: AuthoredBeat, state: BoardState, upcoming: AuthoredBoardIntent[]): { plan: StoryboardBeat; notes: NoteCandidate[] } {
+function planBeat(beat: AuthoredBeat, state: BoardState, upcoming: AuthoredBoardIntent[], answer: { mode: AnswerMode; choices: ChoiceSet | null } | null = null): { plan: StoryboardBeat; notes: NoteCandidate[] } {
   const boardAtStart = state.description;
   /** Will the board acquire this number within the next few beats? Announcing a number before building it is how a demonstration starts. */
   const arrivesSoon = (n: number): boolean =>
@@ -433,6 +513,14 @@ function planBeat(beat: AuthoredBeat, state: BoardState, upcoming: AuthoredBoard
         const whole = Number(state.digits.join(""));
         if (n === whole) { point({ number: n }); continue; }
         const rod = state.digits.findIndex((d, i) => d * 10 ** (3 - i) === n && d !== 0);
+        if (rod >= 0 && state.expansion && state.expansion[rod] === null && beat.type !== "ASK" && beat.type !== "SOFT_CHECK" && beat.type !== "CHECK_MY_WORK") {
+          // The expansion beneath is waiting for this part: it flies from its rod (M8).
+          state.expansion[rod] = String(n);
+          state.visible.add(String(n));
+          mine.push({ sentenceIndex: f.index, primitive: "expansion", event: "part_fly", args: { fromRod: rod, index: rod } });
+          mine.push({ sentenceIndex: f.index, primitive: "expansion", event: "part_reveal", args: { index: rod, value: String(n) } });
+          continue;
+        }
         if (rod >= 0) { mine.push({ sentenceIndex: f.index, primitive: "abacus", event: "rod_glow", args: { rod } }); continue; }
         if (POWERS_OF_TEN.has(n)) { const r = 3 - Math.log10(n); if (r >= 0 && r <= 3) point({ rod: r }); continue; }
         if (n < 10 && state.digits.includes(n)) { point({ rod: state.digits.indexOf(n) }); continue; }
@@ -458,6 +546,8 @@ function planBeat(beat: AuthoredBeat, state: BoardState, upcoming: AuthoredBoard
     // the glow is the eye, the beads are the hands; without it the hundreds
     // rod stayed dark while she said its name and filled it (:40).
     for (const rod of f.rods) {
+      // a part that flew from this rod in this beat is the attention on it already (M8: no glow beside a flight)
+      if (state.primitive === "abacus" && [...mine, ...events].some((e) => e.primitive === "expansion" && e.event === "part_fly" && e.args?.fromRod === rod)) continue;
       if (state.primitive === "abacus") mine.push({ sentenceIndex: f.index, primitive: "abacus", event: "rod_glow", args: { rod } });
       else if (state.primitive === "expansion") point({ part: rod });
       else if (state.primitive === "blankTable") point({ column: ROD_LABELS[rod] });
@@ -514,7 +604,20 @@ function planBeat(beat: AuthoredBeat, state: BoardState, upcoming: AuthoredBoard
     // thing as the beads — it is kept, and it does not count against the cap.
     const beadRods = new Set(unique.filter((e) => e.event === "bead_add").map((e) => e.args?.rod));
     const animations = unique.filter((e) => e.primitive !== "pointer");
-    const counted = animations.filter((e) => !(e.event === "rod_glow" && beadRods.has(e.args?.rod)));
+    // Rods named in the same sentence glow together: one grouped rod_glow
+    // (rods: [...]) in place of several — one animation for the cap, one
+    // glow group on the board; otherwise the single glow stands.
+    const glows = animations.filter((e) => e.event === "rod_glow");
+    if (glows.length > 1) {
+      const rods = [...new Set(glows.map((e) => e.args?.rod as number))].sort((a, b) => a - b);
+      const grouped: Event = { sentenceIndex: f.index, primitive: "abacus", event: "rod_glow", args: { rod: rods[0]!, rods } };
+      const firstIndex = animations.indexOf(glows[0]!);
+      for (const g of glows.slice(1)) animations.splice(animations.indexOf(g), 1);
+      animations[firstIndex] = grouped;
+    }
+    // A part's reveal after its flight is the flight landing, not a second animation.
+    const flownParts = new Set(unique.filter((e) => e.primitive === "expansion" && e.event === "part_fly").map((e) => e.args?.index));
+    const counted = animations.filter((e) => !(e.event === "rod_glow" && (beadRods.has(e.args?.rod) || (Array.isArray(e.args?.rods) && (e.args!.rods as number[]).every((r) => beadRods.has(r))))) && !(e.primitive === "expansion" && e.event === "part_reveal" && flownParts.has(e.args?.index)));
     const pointers = unique.filter((e) => e.primitive === "pointer");
     if (counted.length > 2) {
       notes.push({ beatId: beat.id, kind: "too-much-to-show", sentenceIndex: f.index, line: f.spoken, problem: `${counted.length} things to show in one sentence (${counted.map((e) => `${e.primitive}.${e.event}${e.args && "rod" in e.args ? ` ${ROD_LABELS[e.args.rod as number]}` : ""}`).join(", ")}) — only two fit` });
@@ -528,21 +631,51 @@ function planBeat(beat: AuthoredBeat, state: BoardState, upcoming: AuthoredBoard
     }
   });
 
-  // The child.
+  // The child. The turn event says which surface leads, so the glow lands
+  // there; the chip modes deal their three options as she finishes asking.
+  // The beat after a question closes the turn (the runtime does this
+  // itself when the window shuts; here it keeps the storyboard honest).
+  const isQuestion = beat.type === "ASK" || beat.type === "CHECK_MY_WORK" || beat.type === "SOFT_CHECK" || beat.pauseType === "SOFT_CHECK";
+  if (state.turnOpen && !isQuestion) {
+    events.unshift({ sentenceIndex: 0, primitive: "turn", event: "over", args: {} });
+    state.turnOpen = false;
+  }
+  if (isQuestion) state.turnOpen = true;
   let child: StoryboardBeat["child"] = null;
   const expects = beat.expectedAnswer ?? undefined;
+  const lastSentence = Math.max(0, facts.length - 1);
   if (beat.type === "ASK" || beat.type === "CHECK_MY_WORK") {
     const predicate = parseAnswerPredicate(expects);
-    const via = predicate
-      ? "tap digits on the picker, or say the number"
-      : beat.boardIntent.kind === "blank"
-        ? "the number pad into the active cell, or say it"
-        : /^[\d\s,]+$/u.test(expects ?? "")
-          ? "number pad or voice"
-          : "voice";
-    child = { kind: beat.type === "CHECK_MY_WORK" ? "find the mistake" : "answer", via, expects: predicate ? `any arrangement of ${predicate.digits.join(",")}` : expects };
+    const mode = answer?.mode ?? "build";
+    const chips = answer?.choices ?? null;
+    const rodPick = mode === "valueOrPlace" && state.primitive === "abacus";
+    const surface: TurnSurface =
+      mode === "build" ? (state.primitive === "digitPicker" ? "picker" : "pad")
+      : mode === "cell" ? "cell"
+      : rodPick ? "rod"
+      : "chips";
+    // Every judged answer is a touch; the microphone never opens here.
+    const via =
+      mode === "build" ? (predicate ? "tap digits on the picker" : "the number pad")
+      : mode === "cell" ? "the number pad into the active cell"
+      : mode === "valueOrPlace" ? `${rodPick ? "tap the rod, or " : ""}tap one of 3 chips`
+      : mode === "why" ? "tap one of 3 findings"
+      : "3 s to say it (🎤 cue, nothing recorded) → Zara reads it → tap one of 3 name-chips";
+    child = { kind: beat.type === "CHECK_MY_WORK" ? "find the mistake" : "answer", via, expects: predicate ? `any arrangement of ${predicate.digits.join(",")}` : expects, answerMode: mode, surface };
+    if (mode === "readAloud") {
+      // Reading practice first: the pause, then her read-back, then the chips.
+      const value = valueOfAnswer(expects ?? null);
+      events.push({ sentenceIndex: lastSentence, primitive: "turn", event: "pause", args: value !== null ? { ms: READ_ALOUD_PAUSE_MS, cue: "mic", number: value } : { ms: READ_ALOUD_PAUSE_MS, cue: "mic" } });
+      if (value !== null) events.push({ sentenceIndex: lastSentence, primitive: "turn", event: "read_back", args: { number: value } });
+    }
+    events.push({ sentenceIndex: lastSentence, primitive: "turn", event: "your_turn", args: { answerMode: mode, surface } });
+    // The chips deal as she finishes asking — except after reading practice, where the runtime deals them at the judged step.
+    if (chips && (mode === "why" || mode === "readAloud" || mode === "valueOrPlace")) {
+      events.push({ sentenceIndex: lastSentence, primitive: "choiceChips", event: "show", args: { options: chips.options, correctIndex: chips.correctIndex } });
+    }
   } else if (beat.type === "SOFT_CHECK" || beat.pauseType === "SOFT_CHECK") {
-    child = { kind: "soft check", via: "mic open 5s; any reply acknowledged after 1.2s of quiet; silence flows on" };
+    child = { kind: "soft check", via: "a 2 s pause while she reacts; a tap counts as engagement; no mic, no acknowledgement clip", answerMode: answer?.mode ?? undefined, surface: "pause" };
+    events.push({ sentenceIndex: lastSentence, primitive: "turn", event: "pause", args: { ms: SOFT_CHECK_PAUSE_MS } });
   }
   if (state.reanimated) {
     state.reanimated = false;
@@ -568,8 +701,10 @@ function planBeat(beat: AuthoredBeat, state: BoardState, upcoming: AuthoredBoard
     state.visible.add((expects ?? "").replace(/[\s,]/gu, ""));
   }
 
-  const seesEvents = events.filter((e) => e.primitive !== "pointer").map(describeEvent);
-  const sees = [state.description[0].toUpperCase() + state.description.slice(1), ...seesEvents].join("; ") + (child ? ` — ${child.kind === "soft check" ? "the mic opens briefly" : `they answer via ${child.via}`}.` : ".");
+  // The board's events; the child's part (turn, chips) is the suffix, once.
+  const seesEvents = events.filter((e) => e.primitive !== "pointer" && e.primitive !== "turn" && e.primitive !== "choiceChips").map(describeEvent);
+  // What the child sees and does — from the turn's actual surface, never a stale mic.
+  const sees = [state.description[0].toUpperCase() + state.description.slice(1), ...seesEvents].join("; ") + (child ? ` — ${child.kind === "soft check" ? child.via : `they answer via ${child.via}`}.` : ".");
 
   return {
     plan: {
@@ -580,7 +715,8 @@ function planBeat(beat: AuthoredBeat, state: BoardState, upcoming: AuthoredBoard
       line: spokenLine,
       sentences: facts.map((f) => f.spoken),
       boardAtStart,
-      events,
+      // A rod a part flew from in this beat is lit by the flight (M8): no separate glow on it.
+      events: events.filter((e) => !(e.primitive === "abacus" && e.event === "rod_glow" && events.some((f) => f.primitive === "expansion" && f.event === "part_fly" && f.args?.fromRod === e.args?.rod))),
       child,
       sees,
     },
@@ -593,7 +729,7 @@ function describeEvent(e: Event): string {
   switch (`${e.primitive}.${e.event}`) {
     case "abacus.show": return (a.startEmpty ? "bare rods appear" : `the abacus shows ${textbook(Number((a.digits as number[]).join("")))}`) + (a.animate ? " (beads landing on their own)" : "");
     case "abacus.bead_add": return `${a.count} bead(s) drop onto the ${ROD_LABELS[a.rod as number]} rod`;
-    case "abacus.rod_glow": return `the ${ROD_LABELS[a.rod as number]} rod glows`;
+    case "abacus.rod_glow": return Array.isArray(a.rods) && (a.rods as number[]).length > 1 ? `the ${(a.rods as number[]).map((r) => ROD_LABELS[r]).join(" and ")} rods glow together` : `the ${ROD_LABELS[a.rod as number]} rod glows`;
     case "numberCards.show": return `cards ${((a.values as number[]) ?? []).join(" · ")} deal in`;
     case "numberCards.highlight_ring": return `a ring around ${a.value}`;
     case "chalkText.write": return a.append ? `"${a.append}" is written on, making "${String(a.text).replace(/\n/g, " / ")}"` : `"${String(a.text).replace(/\n/g, " / ")}" is written`;
@@ -606,9 +742,16 @@ function describeEvent(e: Event): string {
     case "digitPicker.built_number": return a.by === "tutor" ? `Zara's example ${a.digits} and its name appear under the tiles` : "their number and its name appear under the tiles";
     case "expansion.show": return `${textbook(a.number as number)} = ▢ + ▢ + ▢ + ▢`;
     case "expansion.part_reveal": return `${a.value} is written into slot ${a.index}`;
+    case "expansion.part_fly": return `the value flies from rod ${ROD_LABELS[Number(a.fromRod)]} into slot ${a.index}`;
     case "blankTable.show": return "the place-value table";
     case "blankTable.row_activate": return `row ${a.row}'s ${a.field} cell is outlined`;
     case "blankTable.cell_fill": return `${a.value} written into row ${a.row}`;
+    case "choiceChips.show": return `3 chips deal in: ${((a.options as string[]) ?? []).join(" · ")}`;
+    case "choiceChips.clear": return "the chips go";
+    case "turn.your_turn": return `the child's turn: ${a.answerMode} — ${TOUCH_SURFACE[a.answerMode as AnswerMode] ?? a.surface}${a.surface === "rod" ? " (the rods glow)" : a.surface === "chips" ? " (the chips glow)" : a.surface === "picker" ? " (the picker glows)" : ""}`;
+    case "turn.over": return "the turn ends";
+    case "turn.pause": return a.cue === "mic" ? `${Number(a.ms) / 1000} s to say it — the portrait perks up, a faint 🎤 cue, nothing recorded` : `a ${Number(a.ms) / 1000} s pause while she reacts (a tap counts as engagement)`;
+    case "turn.read_back": return `Zara reads ${textbook(Number(a.number))} herself ("මම කියන්නම් —" + the composed number)`;
     default: return `${e.primitive}.${e.event}`;
   }
 }
@@ -625,6 +768,7 @@ async function main(): Promise<void> {
   }
 
   const plans: StoryboardBeat[] = [];
+  const answerModes = assignAnswerModes(file.beats);
   const notes: NoteCandidate[] = [];
   let state = emptyState();
   let concept: string | null = null;
@@ -639,7 +783,8 @@ async function main(): Promise<void> {
     }
     const index = file.beats.indexOf(beat);
     const upcoming = file.beats.slice(index + 1, index + 4).filter((b) => b.conceptTag === beat.conceptTag).map((b) => b.boardIntent);
-    const { plan, notes: beatNotes } = planBeat(beat, state, upcoming);
+    const mode = answerModes.get(beat.id) ?? null;
+    const { plan, notes: beatNotes } = planBeat(beat, state, upcoming, mode ? { mode, choices: choicesForBeat(beat, mode) ?? null } : null);
     plans.push(plan);
     notes.push(...beatNotes);
   }

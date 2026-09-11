@@ -1,29 +1,24 @@
 "use client";
 
 /**
- * A chalk circle of digit tiles the child builds a number from. Tapped
- * tiles lift into the slot row above; the built number and its Sinhala
- * name are written beneath, on top of the picker — never instead of it.
+ * The digit picker, from the design: a slot row of 56×56 paper squares
+ * (dashed ink-40 when empty, solid ink-18 with a hard 2 px shadow when
+ * filled, dashed saffron on saffron-soft for the slot that waits), a
+ * chalk-dashed ellipse (200×132) holding 52×52 paper tiles in StrokeNum 34,
+ * the picker's glow on that ring when it is the child's turn, and the
+ * built number's Sinhala name beneath in Gemunu 24 — green with a ✓ for
+ * the child, marker blue for Zara. The five-number puzzle adds a ledger
+ * beside the ring (Session Gaps G6).
  *
- * Vocabulary:
- *   show { pool }                    → pool
- *   tap { digit }                    → built (the parent appends the tile)
- *   built_number { digits, name, by? } → builtName (the readout); `by`
- *                                      colours it — the child's green, or
- *                                      marker blue for an example Zara builds
- *   clear_built                      → built = [], builtName = null
- *
- * `built` is a list of pool INDEXES, so a pool with two 3s stays honest.
- *
- * TOUCH: tap a tile in, tap a slot out, drag a slot tile to reorder.
+ * TOUCH: tap a tile into the next slot; tap a filled slot to take it out;
+ * drag a filled slot onto another to reorder.
  */
 import { AnimatePresence, LayoutGroup, motion } from "framer-motion";
 import { useId, useState } from "react";
 import { createPortal } from "react-dom";
 import { HandNumber } from "./HandNumber";
-import { WriteOn } from "./WriteOn";
 import { useTargetRef } from "./targets";
-import { BOARD, SPRING, TOUCH_MIN } from "./theme";
+import { BOARD, FONT_SINHALA, FONT_LABEL, FONT_LATIN, SPRING, TOUCH_MIN } from "./tokens";
 import { playSound } from "./sound";
 import { hitTest, useDrag, type DragPoint } from "./useDrag";
 
@@ -39,17 +34,23 @@ export interface DigitPickerProps {
   builtBy?: "child" | "tutor";
   interactive?: boolean;
   onChange?: (built: number[]) => void;
-  /** Smaller tiles and circle — the lesson's phone-sized board. */
+  /** Kept for callers; the design has one size. */
   compact?: boolean;
+  /** The picker is the answer surface: the ring glows. */
+  glow?: boolean;
+  /** The five-number puzzle's ledger: numbers built so far (✓), the current row glowing while the child builds. */
+  ledger?: string[];
+  ledgerRows?: number;
 }
 
+const SLOT = 56;
 const TILE = 52;
 
-export function DigitPicker({ pool, built, length, builtName = null, builtBy = "child", interactive = false, onChange, compact = false }: DigitPickerProps) {
+export function DigitPicker({ pool, built, length, builtName = null, builtBy = "child", interactive = false, onChange, glow = false, ledger, ledgerRows = 5 }: DigitPickerProps) {
   const slots = length ?? pool.length;
   const group = useId();
   const number = built.map((i) => pool[i]).join("");
-  const builtColour = builtBy === "tutor" ? BOARD.markerBlue : BOARD.markerGreen;
+  const builtColour = builtBy === "tutor" ? BOARD.markerBlue : BOARD.successText;
   const rootRef = useTargetRef(["component:picker", "text:picker", "component:digitPicker"]);
   const builtRef = useTargetRef(number ? `number:${Number(number)}` : null);
 
@@ -63,8 +64,6 @@ export function DigitPicker({ pool, built, length, builtName = null, builtBy = "
     playSound("beadClick");
     onChange?.(built.filter((_, i) => i !== position));
   };
-
-  // --- drag a filled slot onto another slot to reorder --------------------
   const [ghost, setGhost] = useState<{ point: DragPoint; digit: number } | null>(null);
   const drag = useDrag<number>({
     onStart: (position, point) => setGhost({ point, digit: pool[built[position]!] ?? 0 }),
@@ -87,117 +86,149 @@ export function DigitPicker({ pool, built, length, builtName = null, builtBy = "
     },
   });
 
-  // Tiles sit on a ring inside the chalk circle.
-  // Compact: the ring just clears the tiles, and a phone's 360 px still fits the slots, the ring and the number with its name.
-  const radius = compact ? (pool.length <= 4 ? 44 : 64) : pool.length <= 4 ? 62 : 84;
-  const diameter = radius * 2 + TILE + (compact ? 4 : 16);
+  const waiting = interactive ? built.length : -1;
+  // The design's ring holds four tiles at 200×132; a printed pool (the textbook puzzle deals eleven) widens to six tiles a row, two rows.
+  const ringCols = pool.length <= 4 ? 2 : Math.min(6, Math.ceil(pool.length / 2));
+  const ringW = pool.length <= 4 ? 200 : ringCols * 62 + 52;
+  const ringH = pool.length <= 4 ? 132 : Math.ceil(pool.length / ringCols) * 62 + 20;
+  const current = ledger ? ledger.length : -1;
 
   return (
     <LayoutGroup id={group}>
-      <div ref={rootRef} data-testid="digit-picker" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-        {/* the slot row */}
-        <div style={{ display: "flex", gap: 8 }} data-testid="digit-picker-slots">
-          {Array.from({ length: slots }).map((_, position) => {
-            const poolIndex = built[position];
-            const filled = poolIndex !== undefined;
-            return (
-              <div
-                key={position}
-                data-slot={position}
-                data-testid={`picker-slot-${position}`}
-                className={interactive && filled ? "wb-touch" : undefined}
-                {...(interactive && filled ? drag(position) : {})}
-                role={interactive && filled ? "button" : undefined}
-                aria-label={filled ? `slot ${position + 1}: ${pool[poolIndex]} — tap to remove, drag to reorder` : `slot ${position + 1}: empty`}
-                style={{
-                  width: TILE,
-                  height: TILE,
-                  minWidth: TOUCH_MIN,
-                  minHeight: TOUCH_MIN,
-                  borderRadius: 10,
-                  boxShadow: `inset 0 0 0 3px ${BOARD.markerBlue}`,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                {filled && (
-                  <motion.div layoutId={`${group}-tile-${poolIndex}`} transition={{ ...SPRING, duration: 0.1 }} style={{ pointerEvents: "none" }}>
-                    <Tile digit={pool[poolIndex]!} />
-                  </motion.div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-        {/* the chalk circle with the pool */}
-        <div style={{ position: "relative", width: diameter, height: diameter }}>
-          <svg
-            className="chalk-stroke"
-            viewBox="0 0 100 100"
-            width={diameter}
-            height={diameter}
-            style={{ position: "absolute", inset: 0 }}
-            aria-hidden
-          >
-            <motion.ellipse
-              cx="50"
-              cy="50"
-              rx="47"
-              ry="46"
-              fill="none"
-              stroke={BOARD.markerBlue}
-              strokeWidth="2.2"
-              strokeLinecap="round"
-              transform="rotate(-8 50 50)"
-              initial={{ pathLength: 0 }}
-              animate={{ pathLength: 1 }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
-            />
-          </svg>
-          {pool.map((digit, index) => {
-            const angle = -Math.PI / 2 + (index / pool.length) * Math.PI * 2;
-            const x = diameter / 2 + Math.cos(angle) * radius - TILE / 2;
-            const y = diameter / 2 + Math.sin(angle) * radius - TILE / 2;
-            const used = built.includes(index);
-            return (
-              <PoolTile key={index} digit={digit} index={index} x={x} y={y} used={used} group={group} interactive={interactive} onTap={() => tapTile(index)} />
-            );
-          })}
-        </div>
-        {/* the built number, on top of the picker, in the child's colour */}
-        <AnimatePresence>
-          {number && (
-            <motion.div
-              key={number}
-              ref={builtRef}
-              data-testid="digit-picker-built"
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, transition: { duration: 0.15 } }}
-              transition={{ duration: 0.4 }}
-              // Compact: the number and its name share one line, so the readout never pushes the ring off a short surface.
-              style={{ display: "flex", flexDirection: compact ? "row" : "column", alignItems: compact ? "baseline" : "center", gap: compact ? 14 : 2, flexWrap: "wrap", justifyContent: "center" }}
-            >
-              <HandNumber text={number} size={compact ? 30 : 32} color={builtColour} budgetMs={400} />
-              {builtName && <WriteOn text={builtName} size={18} color={builtColour} durationMs={400} />}
-            </motion.div>
+      <div ref={rootRef} data-testid="digit-picker" style={{ display: "flex", gap: 40, alignItems: "center", justifyContent: "center", flexWrap: "wrap", maxWidth: "100%" }}>
+        <div style={{ display: "grid", gap: 12, justifyItems: "center" }}>
+          {ledger && <div style={{ font: `600 20px/1.5 ${FONT_LABEL}`, color: BOARD.inkSoft }}>පොතේ ඉලක්කම්</div>}
+          {/* the slot row — the puzzle has none: its number forms in the ledger's current row (G6) */}
+          {!ledger && (
+          <div style={{ display: "flex", gap: 8 }} data-testid="digit-picker-slots">
+            {Array.from({ length: slots }).map((_, position) => {
+              const poolIndex = built[position];
+              const filled = poolIndex !== undefined;
+              const waits = position === waiting;
+              return (
+                <div
+                  key={position}
+                  data-slot={position}
+                  data-testid={`picker-slot-${position}`}
+                  className={interactive && filled ? "wb-touch" : undefined}
+                  {...(interactive && filled ? drag(position) : {})}
+                  role={interactive && filled ? "button" : undefined}
+                  aria-label={filled ? `slot ${position + 1}: ${pool[poolIndex]} — tap to remove, drag to reorder` : `slot ${position + 1}: empty`}
+                  style={{
+                    width: SLOT,
+                    height: SLOT,
+                    minWidth: TOUCH_MIN,
+                    minHeight: TOUCH_MIN,
+                    border: waits ? `3px dashed ${BOARD.chalkYellow}` : filled ? `2px solid ${BOARD.ink18}` : `3px dashed ${BOARD.ink40}`,
+                    borderRadius: 12,
+                    background: waits ? BOARD.saffronSoft : BOARD.paper,
+                    boxShadow: filled ? "0 2px 0 #D8D1C2" : "none",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+
+                  }}
+                >
+                  {filled && (
+                    <motion.div layoutId={`${group}-tile-${poolIndex}`} transition={SPRING}>
+                      <HandNumber text={pool[poolIndex]!} size={34} color={BOARD.ink} draw={false} registerNumbers={false} />
+                    </motion.div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
           )}
-        </AnimatePresence>
+          {/* the chalk ring with the pool */}
+          <div
+            data-testid="picker-ring"
+            className={glow && !ledger ? "wb-glow" : undefined}
+            style={{
+              position: "relative",
+              width: ringW,
+              height: ringH,
+              borderRadius: "50%",
+              border: `3px dashed ${BOARD.ink40}`,
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 10,
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "14px 26px",
+              boxSizing: "border-box",
+            }}
+          >
+            {pool.map((digit, index) => {
+              const used = built.includes(index);
+              return <Tile key={index} index={index} digit={digit} used={used} interactive={interactive && !used} onTap={() => tapTile(index)} layoutId={`${group}-tile-${index}`} />;
+            })}
+          </div>
+          {/* the built number's name — the child's in green with a ✓, Zara's in blue */}
+          <AnimatePresence>
+            {(number || builtName) && (
+              <motion.div
+                key={`${number}:${builtName ?? ""}`}
+                ref={builtRef}
+                data-testid="digit-picker-built"
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, transition: { duration: 0.15 } }}
+                transition={{ duration: 0.4 }}
+                style={{ minHeight: 34, display: "flex", alignItems: "center", gap: 10, font: `700 24px/1.5 ${FONT_SINHALA}`, color: builtColour, whiteSpace: "nowrap" }}
+              >
+                {builtName ?? ""}
+                {builtName && builtBy === "child" && " ✓"}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+        {ledger && (
+          <div data-testid="picker-ledger" style={{ display: "grid", gap: 6 }}>
+            <div style={{ font: `600 20px/1.5 ${FONT_LABEL}`, color: BOARD.inkSoft }}>හදපු සංඛ්‍යා {ledgerRows}</div>
+            {Array.from({ length: ledgerRows }).map((_, row) => {
+              const done = ledger[row];
+              const active = row === current && interactive;
+              return (
+                <div
+                  key={row}
+                  data-testid={`ledger-row-${row}`}
+                  data-done={done ? "true" : undefined}
+                  data-current={active ? "true" : undefined}
+                  role={active && built.length ? "button" : undefined}
+                  aria-label={active ? `row ${row + 1}: ${number || "empty"} — tap to take the last digit back` : undefined}
+                  onClick={active && built.length ? () => tapSlot(built.length - 1) : undefined}
+                  style={{ display: "flex", alignItems: "center", gap: 12, height: 34, minHeight: active && built.length ? TOUCH_MIN : undefined }}
+                >
+                  <span style={{ width: 28, height: 28, borderRadius: "50%", background: done ? BOARD.markerGreen : active ? BOARD.chalkYellow : "rgba(27,27,27,.25)", color: "#fff", font: `700 16px/28px ${FONT_LATIN}`, textAlign: "center" }}>{row + 1}</span>
+                  <div
+                    className={active ? "wb-glow" : undefined}
+                    style={{
+                      width: 150,
+                      height: 32,
+                      border: active ? `3px dashed ${BOARD.chalkYellow}` : done ? `2px solid ${BOARD.ink18}` : "3px dashed rgba(27,27,27,.3)",
+                      borderRadius: 8,
+                      background: active ? BOARD.saffronSoft : BOARD.paper,
+                      display: "flex",
+                      alignItems: "center",
+                      padding: "0 10px",
+                      boxSizing: "border-box",
+                      gap: 10,
+                    }}
+                  >
+                    {done && <HandNumber text={done} size={26} color={BOARD.successText} draw={false} registerNumbers={false} />}
+                    {active && number && <HandNumber text={number} size={26} color={BOARD.successText} draw={false} registerNumbers={false} />}
+                    {active && <span style={{ width: 2, height: 24, background: BOARD.successText }} />}
+                    {done && <span style={{ marginLeft: "auto", width: 22, height: 22, borderRadius: "50%", background: BOARD.markerGreen, color: "#fff", font: `700 16px/22px ${FONT_LATIN}`, textAlign: "center" }}>✓</span>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
         {ghost &&
           createPortal(
-            <div
-              style={{
-                position: "fixed",
-                left: ghost.point.x - TILE / 2,
-                top: ghost.point.y - TILE / 2 - 14,
-                pointerEvents: "none",
-                zIndex: 1000,
-                filter: "drop-shadow(0 12px 10px rgba(0,0,0,0.35))",
-                transform: "scale(1.12)",
-              }}
-            >
-              <Tile digit={ghost.digit} />
+            <div style={{ position: "fixed", left: ghost.point.x - TILE / 2, top: ghost.point.y - TILE / 2 - 14, pointerEvents: "none", zIndex: 1000, width: TILE, height: TILE, background: BOARD.paper, border: `2px solid ${BOARD.ink18}`, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "var(--shadow-lift)", transform: "rotate(-5deg)" }}>
+              <HandNumber text={ghost.digit} size={34} color={BOARD.ink} draw={false} registerNumbers={false} />
             </div>,
             document.body,
           )}
@@ -206,65 +237,40 @@ export function DigitPicker({ pool, built, length, builtName = null, builtBy = "
   );
 }
 
-function PoolTile({
-  digit,
-  index,
-  x,
-  y,
-  used,
-  group,
-  interactive,
-  onTap,
-}: {
-  digit: number;
-  index: number;
-  x: number;
-  y: number;
-  used: boolean;
-  group: string;
-  interactive: boolean;
-  onTap: () => void;
-}) {
+function Tile({ index, digit, used, interactive, onTap, layoutId }: { index: number; digit: number; used: boolean; interactive: boolean; onTap: () => void; layoutId: string }) {
   const ref = useTargetRef<HTMLDivElement>(`digit:${digit}`);
   return (
-    <div
+    <motion.div
       ref={ref}
+      layout
       data-testid={`picker-tile-${index}`}
-      className={interactive && !used ? "wb-tap" : undefined}
-      onClick={interactive && !used ? onTap : undefined}
-      role={interactive && !used ? "button" : undefined}
-      aria-label={used ? `${digit} (used)` : `${digit} — tap to add`}
-      style={{ position: "absolute", left: x, top: y, width: TILE, height: TILE, display: "flex", alignItems: "center", justifyContent: "center" }}
-    >
-      {/* the tile's shadow stays in the circle when the tile has gone up */}
-      <div
-        aria-hidden
-        style={{ position: "absolute", inset: 6, borderRadius: 10, boxShadow: `inset 0 0 0 2px ${BOARD.inkSoft}`, opacity: used ? 0.35 : 0 }}
-      />
-      {!used && (
-        <motion.div layoutId={`${group}-tile-${index}`} transition={{ ...SPRING, duration: 0.1 }}>
-          <Tile digit={digit} />
-        </motion.div>
-      )}
-    </div>
-  );
-}
-
-function Tile({ digit }: { digit: number }) {
-  return (
-    <div
+      className={interactive ? "wb-tap" : undefined}
+      role={interactive ? "button" : undefined}
+      aria-label={`${digit}${used ? " (used)" : ""}`}
+      onClick={interactive ? onTap : undefined}
+      animate={{ opacity: used ? 0.38 : 1, y: 0 }}
+      whileTap={interactive ? { y: -8, rotate: -5, boxShadow: "var(--shadow-lift)" } : undefined}
+      transition={SPRING}
       style={{
-        width: TILE - 8,
-        height: TILE - 8,
-        borderRadius: 10,
-        background: "#fffdf7",
-        boxShadow: "0 2px 0 rgba(0,0,0,0.2), 0 4px 10px rgba(40,25,10,0.15)",
+        width: TILE,
+        height: TILE,
+        minWidth: interactive ? TOUCH_MIN : undefined,
+        minHeight: interactive ? TOUCH_MIN : undefined,
+        background: BOARD.paper,
+        border: `2px solid ${BOARD.ink18}`,
+        borderRadius: 12,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
+        boxShadow: "0 2px 0 #D8D1C2",
+
       }}
     >
-      <HandNumber text={digit} size={28} draw={false} />
-    </div>
+      {!used && (
+        <motion.div layoutId={layoutId}>
+          <HandNumber text={digit} size={34} color={BOARD.ink} draw={false} registerNumbers={false} />
+        </motion.div>
+      )}
+    </motion.div>
   );
 }

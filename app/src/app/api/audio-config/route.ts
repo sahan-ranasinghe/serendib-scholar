@@ -9,5 +9,8 @@ import { AUDIO_FORMAT_VERSION } from "@/lib/audioCache";
  * advertised here.
  */
 export async function GET() {
-  return NextResponse.json({ ok: true, voice: ZARA_VOICE, version: AUDIO_FORMAT_VERSION });
+  // VOICE_ASSESSMENT=on (server env, no rebuild) lets an opt-in reading
+  // assessment record and transcribe the readAloud pause. Off, the
+  // microphone never opens on the lesson path — only in the ✋ chat.
+  return NextResponse.json({ ok: true, voice: ZARA_VOICE, version: AUDIO_FORMAT_VERSION, voiceAssessment: process.env.VOICE_ASSESSMENT === "on" });
 }

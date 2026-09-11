@@ -126,11 +126,13 @@ function splitAtValue(line: string): NumberFrame {
   return { before: before.trim(), after: after.replace(/^[.\s]+/u, "").trim() };
 }
 
-export const NUMBER_FRAMES: { built: NumberFrame; heard: NumberFrame; answer: NumberFrame } = {
+export const NUMBER_FRAMES: { built: NumberFrame; heard: NumberFrame; answer: NumberFrame; readBack: NumberFrame } = {
   /** After an open build task: the number alone follows "look at the board". */
   built: { before: "ඔයා හැදුවේ", after: "නේද?" },
   /** CONFIRM — AUTHORED_LINES.confirmHeard around the heard number. */
   heard: splitAtValue(AUTHORED_LINES.confirmHeard),
   /** The give-up demonstration — AUTHORED_LINES.giveUpReveal around the answer. */
   answer: splitAtValue(AUTHORED_LINES.giveUpReveal),
+  /** Reading practice — AUTHORED_LINES.readBack, then the number. */
+  readBack: { before: AUTHORED_LINES.readBack, after: "" },
 };

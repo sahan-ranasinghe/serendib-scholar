@@ -1,17 +1,18 @@
 "use client";
 
 /**
- * A number and its expanded form: 5 421 = ▢ + ▢ + ▢ + ▢.
+ * A number and its expanded form, from the design: "5 421 =" in StrokeNum
+ * then paper slots — 64×48 dashed ink-40 when blank (80×56 radius 12 when
+ * the expansion stands alone, rule h), a filled slot 96×48 with a 2 px
+ * ink-18 border and Zara's ✎ badge, the tapped slot dashed saffron on
+ * saffron-soft with the glow, and a value flying from its rod into its
+ * slot with a lift shadow at −6°.
  *
  * Vocabulary:
  *   show { number, parts }          → props; every part starts blank
  *   part_reveal { index, value }    → parts[index] = value (Zara writes it, ✎)
  *   part_fly { fromRod, index }     → `fly`: the value floats from the
  *                                     abacus rod into its slot, then reveals
- *
- * Built to sit BENEATH an abacus on the same board — it never replaces
- * it. For part_fly the abacus must be on the board too: the flight
- * starts at the registered `rod:<fromRod>` element.
  *
  * TOUCH: tap a blank to answer on the pad.
  */
@@ -21,7 +22,7 @@ import { createPortal } from "react-dom";
 import { HandNumber } from "./HandNumber";
 import { NumberPad } from "./NumberPad";
 import { useBoard, useTargetRef, type Rect } from "./targets";
-import { BOARD, formatNumber, SPRING, TOUCH_MIN } from "./theme";
+import { BOARD, FONT_LATIN, formatNumber, SPRING, TOUCH_MIN } from "./tokens";
 import { playSound } from "./sound";
 
 export interface ExpansionFlight {
@@ -42,8 +43,12 @@ export interface ExpansionProps {
   /** The child's answers, in the second colour. */
   answered?: Array<number | string | null>;
   size?: number;
-  /** Float the answer pad at the board's edge (the lesson's small board). */
+  /** Dock the pad at the board's foot (the lesson board). */
   dockPad?: boolean;
+  /** Standing alone on the board (no abacus above): the larger slots. */
+  alone?: boolean;
+  /** The next blank to fill glows (Zara's turn to write, or the child's). */
+  glowIndex?: number | null;
 }
 
 /** The value of digit `index` of `number` — what flies and what is revealed. */
@@ -53,21 +58,22 @@ export function partValue(number: number, index: number): string {
   return String(digit * 10 ** (digits.length - 1 - index));
 }
 
-export function Expansion({ number, parts, fly = null, onFlyDone, interactive = false, onAnswer, answered, size = 34, dockPad = false }: ExpansionProps) {
+export function Expansion({ number, parts, fly = null, onFlyDone, interactive = false, onAnswer, answered, size, dockPad = false, alone = false, glowIndex = null }: ExpansionProps) {
   const board = useBoard();
   const [active, setActive] = useState<number | null>(null);
+  const [draft, setDraft] = useState("");
   const [flight, setFlight] = useState<{ key: number; index: number; from: Rect; to: Rect; value: string } | null>(null);
-  // Values that have landed by flight, kept per number so a new `show`
-  // starts blank without an effect having to clear anything.
+  // The slot a value is flying towards stays blank until it lands (M8: "5000 flies from the 1000 rod into the first slot").
+  const [inFlight, setInFlight] = useState<{ key: number; index: number } | null>(null);
   const [landedFor, setLandedFor] = useState<{ number: number; values: Record<number, string> }>({ number, values: {} });
   const landed = landedFor.number === number ? landedFor.values : {};
-  const land = (index: number, value: string) =>
-    setLandedFor((l) => ({ number, values: { ...(l.number === number ? l.values : {}), [index]: value } }));
+  const land = (index: number, value: string) => setLandedFor((l) => ({ number, values: { ...(l.number === number ? l.values : {}), [index]: value } }));
   const rootRef = useTargetRef(["component:expansion", `number:${number}`]);
+  const glyph = size ?? (alone ? 44 : 34);
 
-  // A new `fly`: after paint, find the rod and the slot and send the value across.
   useEffect(() => {
     if (!fly) return;
+    setInFlight({ key: fly.key, index: fly.index });
     const frame = requestAnimationFrame(() => {
       const rod = board.resolve({ rod: fly.fromRod });
       const slot = board.resolve({ part: fly.index });
@@ -75,8 +81,8 @@ export function Expansion({ number, parts, fly = null, onFlyDone, interactive = 
       const to = slot ? board.measure(slot) : null;
       const value = partValue(number, fly.index);
       if (!from || !to) {
-        // No abacus on the board: nothing to fly from, so just reveal.
         land(fly.index, value);
+        setInFlight(null);
         onFlyDone?.(fly.index, value);
         return;
       }
@@ -87,28 +93,25 @@ export function Expansion({ number, parts, fly = null, onFlyDone, interactive = 
   }, [fly?.key]);
 
   return (
-    <div ref={rootRef} data-testid="expansion" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
-      <motion.div
-        initial={{ opacity: 0, y: 6 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-        style={{ display: "flex", alignItems: "center", flexWrap: "wrap", justifyContent: "center", gap: "0.35em", rowGap: 8 }}
-      >
-        <HandNumber text={formatNumber(number)} size={size} draw={false} targetBase={`text:${number}`} />
-        <HandNumber text="=" size={size} draw={false} />
+    <div ref={rootRef} data-testid="expansion" data-alone={alone || undefined} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+      <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} style={{ display: "flex", alignItems: "center", flexWrap: alone ? "nowrap" : "wrap", justifyContent: "center", gap: alone ? 12 : 10, position: "relative" }}>
+        <HandNumber text={`${formatNumber(number)} =`} size={glyph} draw={false} targetBase={`text:${number}`} />
         {parts.map((part, index) => {
-          const value = part ?? landed[index] ?? null;
-          const child = answered?.[index] ?? null;
+          const flying = inFlight !== null && inFlight.index === index && landed[index] === undefined;
+          const value = flying ? null : (part ?? landed[index] ?? null);
+          const child = flying ? null : (answered?.[index] ?? null);
           return (
-            <span key={index} style={{ display: "inline-flex", alignItems: "center", gap: "0.35em" }}>
-              {index > 0 && <HandNumber text="+" size={size} draw={false} />}
+            <span key={index} style={{ display: "inline-flex", alignItems: "center", gap: alone ? 12 : 10 }}>
+              {index > 0 && <HandNumber text="+" size={glyph} draw={false} />}
               <Part
                 index={index}
                 value={value !== null ? String(value) : null}
                 childValue={child !== null ? String(child) : null}
-                size={size}
-                interactive={interactive && value === null}
+                alone={alone}
+                interactive={interactive && value === null && child === null}
                 active={active === index}
+                draft={active === index ? draft : ""}
+                glow={glowIndex === index && value === null && child === null}
                 onTap={() => setActive((a) => (a === index ? null : index))}
               />
             </span>
@@ -121,11 +124,16 @@ export function Expansion({ number, parts, fly = null, onFlyDone, interactive = 
             key={active}
             mode="number"
             docked={dockPad}
+            onChange={setDraft}
             onCommit={(value) => {
               onAnswer?.(active, value);
               setActive(null);
+              setDraft("");
             }}
-            onCancel={() => setActive(null)}
+            onCancel={() => {
+              setActive(null);
+              setDraft("");
+            }}
           />
         )}
       </AnimatePresence>
@@ -135,19 +143,20 @@ export function Expansion({ number, parts, fly = null, onFlyDone, interactive = 
           <motion.div
             key={flight.key}
             data-testid="expansion-flight"
-            initial={{ left: flight.from.x + flight.from.width / 2, top: flight.from.y + flight.from.height * 0.4, opacity: 0.7, scale: 0.8 }}
-            animate={{ left: flight.to.x + flight.to.width / 2, top: flight.to.y + flight.to.height / 2, opacity: 1, scale: 1 }}
-            transition={{ ...SPRING, stiffness: 300, damping: 26 }}
+            initial={{ left: flight.from.x + flight.from.width / 2, top: flight.from.y + flight.from.height * 0.4, opacity: 0.7, scale: 0.8, rotate: -6 }}
+            animate={{ left: flight.to.x + flight.to.width / 2, top: flight.to.y + flight.to.height / 2, opacity: 1, scale: 1, rotate: 0 }}
+            transition={SPRING}
             onAnimationComplete={() => {
               playSound("chalk");
               land(flight.index, flight.value);
+              setInFlight(null);
               onFlyDone?.(flight.index, flight.value);
               setFlight(null);
             }}
-            style={{ position: "absolute", transform: "translate(-50%, -50%)", pointerEvents: "none" }}
+            style={{ position: "absolute", pointerEvents: "none", filter: "drop-shadow(0 10px 8px rgba(27,27,27,.25))" }}
           >
-            <div style={{ transform: "translate(-50%, -50%)", filter: "drop-shadow(0 6px 6px rgba(0,0,0,0.25))" }}>
-              <HandNumber text={flight.value} size={size} draw={false} />
+            <div style={{ transform: "translate(-50%, -50%)" }}>
+              <HandNumber text={flight.value} size={30} draw={false} />
             </div>
           </motion.div>,
           board.overlay,
@@ -156,56 +165,57 @@ export function Expansion({ number, parts, fly = null, onFlyDone, interactive = 
   );
 }
 
-function Part({
-  index,
-  value,
-  childValue,
-  size,
-  interactive,
-  active,
-  onTap,
-}: {
-  index: number;
-  value: string | null;
-  childValue: string | null;
-  size: number;
-  interactive: boolean;
-  active: boolean;
-  onTap: () => void;
-}) {
+function Part({ index, value, childValue, alone, interactive, active, glow, draft = "", onTap }: { index: number; value: string | null; childValue: string | null; alone: boolean; interactive: boolean; active: boolean; glow: boolean; draft?: string; onTap: () => void }) {
   const shown = value ?? childValue;
   const ref = useTargetRef<HTMLSpanElement>([`part:${index}`, ...(shown ? [`number:${Number(shown)}`] : [])]);
+  const w = alone ? 80 : 64;
+  const h = alone ? 56 : 46;
+  const r = alone ? 12 : 10;
+  const waits = active || glow;
   return (
     <motion.span
       ref={ref}
       data-testid={`expansion-part-${index}`}
       data-value={shown ?? ""}
-      className={interactive ? "wb-tap" : undefined}
+      className={`${interactive ? "wb-tap" : ""} ${waits ? "wb-glow" : ""}`.trim() || undefined}
       onClick={interactive ? onTap : undefined}
       role={interactive ? "button" : undefined}
       aria-label={interactive ? `part ${index + 1} — tap to answer` : `part ${index + 1}: ${shown ?? "blank"}`}
-      animate={{ backgroundColor: active ? BOARD.chalkYellowSoft : "rgba(243,198,75,0)" }}
+      initial={false}
+      animate={{ backgroundColor: waits ? BOARD.saffronSoft : BOARD.paper }}
       style={{
+        position: "relative",
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
-        minWidth: Math.max(TOUCH_MIN, size * 1.8),
-        minHeight: Math.max(TOUCH_MIN, size * 1.3),
-        padding: "2px 8px",
-        borderRadius: 8,
-        boxShadow: shown ? undefined : `inset 0 0 0 3px ${BOARD.markerBlue}`,
-        position: "relative",
+        minWidth: shown ? (alone ? 100 : 84) : w,
+        height: h,
+        minHeight: interactive ? TOUCH_MIN : undefined,
+        padding: shown ? (alone ? "0 8px" : "0 6px") : 0,
+        border: shown ? `2px solid ${BOARD.ink18}` : `3px dashed ${waits ? BOARD.chalkYellow : BOARD.ink40}`,
+        borderRadius: r,
+        boxSizing: alone ? "content-box" : "border-box",
       }}
     >
       {value ? (
         <>
-          <HandNumber key={value} text={formatNumber(value)} size={size} budgetMs={350} />
-          <span aria-hidden style={{ position: "absolute", top: -8, right: -6, fontSize: 13, color: BOARD.markerBlue }}>
+          <HandNumber key={value} text={value} size={alone ? 36 : 30} budgetMs={350} />
+          <span aria-hidden style={{ position: "absolute", right: -8, top: -10, width: 22, height: 22, borderRadius: "50%", background: BOARD.markerBlue, color: "#fff", font: `16px/22px ${FONT_LATIN}`, textAlign: "center" }}>
             ✎
           </span>
         </>
+      ) : active && draft ? (
+        <>
+          <HandNumber key={draft} text={draft} size={alone ? 36 : 30} color={BOARD.successText} draw={false} registerNumbers={false} />
+          <span aria-hidden style={{ width: 2, height: alone ? 30 : 24, background: BOARD.successText, marginLeft: 4 }} />
+        </>
       ) : childValue ? (
-        <HandNumber key={childValue} text={formatNumber(childValue)} size={size} color={BOARD.markerGreen} budgetMs={350} />
+        <>
+          <HandNumber key={childValue} text={childValue} size={alone ? 36 : 30} color={BOARD.successText} budgetMs={350} />
+          <span aria-hidden style={{ position: "absolute", right: -8, top: -10, width: 22, height: 22, borderRadius: "50%", background: BOARD.markerGreen, color: "#fff", font: `700 16px/22px ${FONT_LATIN}`, textAlign: "center" }}>
+            ✓
+          </span>
+        </>
       ) : null}
     </motion.span>
   );

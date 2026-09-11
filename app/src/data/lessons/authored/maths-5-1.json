@@ -1096,7 +1096,7 @@
     {
       "conceptTag": "readWrite4Digit",
       "type": "CHECK_MY_WORK",
-      "spokenText": "ඔන්න {address}, මම අසූ හතර කියන සංඛ්‍යාව වෙන් කරලා ලිව්වා. ඒත් මගේ වැඩේ පොඩි වැරැද්දක් වුණා වගේ. මට උදව්වක් විදිහට ඒ වැරැද්ද හොයලා කියන්න පුළුවන්ද?",
+      "spokenText": "ඔන්න {address}, මම අසූ හතර කියන සංඛ්‍යාව වෙන් කරලා ලිව්වා. ඒත් මගේ වැඩේ පොඩි වැරැද්දක් වුණා වගේ. මට උදව්වක් විදිහට ඒ වැරැද්ද හොයලා කියන්න හෝ තෝරන්න පුළුවන්ද?",
       "numbers": [
         84
       ],
@@ -1110,11 +1110,11 @@
       "guideStep": "peer-check (guide) → find Zara's mistake",
       "maxSimilarity": {
         "jaccard": 0.1935483870967742,
-        "cosine": 0.8041662164311002,
+        "cosine": null,
         "closest": "6000 කියලා ලිව්වා."
       },
       "id": "authored:readWrite4Digit:31",
-      "sourceText": "ඔන්න {address}, මම {number:84} කියන සංඛ්‍යාව වෙන් කරලා ලිව්වා. ඒත් මගේ වැඩේ පොඩි වැරැද්දක් වුණා වගේ. මට උදව්වක් විදිහට ඒ වැරැද්ද හොයලා කියන්න පුළුවන්ද?",
+      "sourceText": "ඔන්න {address}, මම {number:84} කියන සංඛ්‍යාව වෙන් කරලා ලිව්වා. ඒත් මගේ වැඩේ පොඩි වැරැද්දක් වුණා වගේ. මට උදව්වක් විදිහට ඒ වැරැද්ද හොයලා කියන්න හෝ තෝරන්න පුළුවන්ද?",
       "rubric": {
         "acceptIfAnyOf": [
           "අසූව",
@@ -1132,7 +1132,8 @@
           "හතරේ අගය හතළිහයි",
           "අසූ හතර හරියටම හරි"
         ]
-      }
+      },
+      "humanEdited": true
     },
     {
       "id": "authored:readWrite4Digit:31a",
@@ -1499,7 +1500,7 @@
       "id": "authored:placeValue4Digit:48",
       "conceptTag": "placeValue4Digit",
       "type": "ASK",
-      "spokenText": "සියයස්ථානයේ තියෙන පබළු ගණන කියන්න පුළුවන්ද?",
+      "spokenText": "සියයස්ථානයේ තියෙන පබළු ගණන කියන්න හෝ තෝරන්න පුළුවන්ද?",
       "numbers": [],
       "pauseType": "ASK",
       "boardIntent": {
@@ -1508,11 +1509,11 @@
       "expectedAnswer": "හතර",
       "guideStep": "Ask the class about the digit shown by the beads at each place, the place value at each place, and the value represented by the digit at each place.",
       "maxSimilarity": {
-        "jaccard": 0,
+        "jaccard": 0.13725490196078433,
         "cosine": null,
-        "closest": ""
+        "closest": "දැනගන්න පුළුවන් වෙන්නේ."
       },
-      "sourceText": "සියයස්ථානයේ තියෙන පබළු ගණන කියන්න පුළුවන්ද?",
+      "sourceText": "සියයස්ථානයේ තියෙන පබළු ගණන කියන්න හෝ තෝරන්න පුළුවන්ද?",
       "humanEdited": true
     },
     {

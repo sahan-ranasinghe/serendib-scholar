@@ -1,28 +1,49 @@
 /*
- * The whiteboard itself: a wooden frame, an off-white surface with a
- * faint grid, a marker tray along the bottom. Colours here mirror
- * theme.ts (BOARD) — the CSS cannot import it, so keep the two in step.
+ * The board, per the design (docs/design/export/handoff — DESIGN.md rules
+ * 1–9, README "Layout"). Every value is a token or a number the design
+ * wrote. Positions are measured from the wood frame's edges: the frame
+ * sits under the 28 px strip and fills the screen.
+ *
+ *   frame: wood, surface inset 10 / 10 / 22 (tray), grid 32 px at 7 % teal
+ *   content: left 94 · right 82 · top 22 · bottom 64 (124 with chips,
+ *            190 with a dock — and the content top-aligns)
+ *   chips / docks: left 94 → right 130 (clear of the ✋ at right 12 / bottom 76)
+ *   Zara 64 px at left 10 / bottom 6 · Lena 48 px at right 14 / bottom 16
+ *   retry note: right 82 / top 22 · caption: left 94 · right 82 · bottom 26
  */
 
+/* The export's pages have no CSS reset: every box is content-box (a 56 px chip with a 2 px border is drawn 60 px).
+   Tailwind's preflight makes the app border-box; inside the session screen and the design gallery the export's model wins. */
+.lesson-screen,
+.lesson-screen *,
+.lesson-screen *::before,
+.lesson-screen *::after,
+[data-design-gallery],
+[data-design-gallery] *,
+[data-design-gallery] *::before,
+[data-design-gallery] *::after {
+  box-sizing: content-box;
+}
+/* …except buttons, which Chromium's own stylesheet draws border-box (the export's ✋, retry note and sheet buttons are <button>s) */
+.lesson-screen button,
+[data-design-gallery] button {
+  box-sizing: border-box;
+}
+
 .wb-frame {
-  --wb-pad: 14px;
-  --wb-tray: 26px;
   position: relative;
   box-sizing: border-box;
-  border-radius: 16px;
-  background:
-    repeating-linear-gradient(98deg, rgba(255, 255, 255, 0.05) 0 2px, transparent 2px 9px),
-    linear-gradient(135deg, #b8895a 0%, #8b5a35 48%, #6e4528 100%);
-  box-shadow:
-    0 12px 32px rgba(40, 25, 10, 0.28),
-    inset 0 2px 0 rgba(255, 255, 255, 0.2),
-    inset 0 -3px 0 rgba(0, 0, 0, 0.28);
-  color: #2a2418;
-  font-family: var(--font-noto-sinhala, "Noto Sans Sinhala"), "Noto Sans Sinhala", "Iskoola Pota", "Nirmala UI", system-ui, sans-serif;
+  background: var(--color-wood);
+  color: var(--color-ink);
+  font-family: var(--font-display);
+}
+.wb-frame[data-viewport="stretch"] {
+  width: 100%;
+  height: 100%;
 }
 .wb-frame[data-viewport="phone"] {
   width: min(100%, 844px);
-  aspect-ratio: 844 / 390;
+  aspect-ratio: 844 / 362;
 }
 .wb-frame[data-viewport="desktop"] {
   width: min(100%, 1024px);
@@ -32,89 +53,166 @@
   width: 100%;
   aspect-ratio: 16 / 9;
 }
-.wb-frame[data-viewport="stretch"] {
+/* a gallery cell: the primitive on plain board paper, no frame, no tray */
+.wb-frame[data-viewport="cell"] {
+  background: var(--color-board);
+  border-radius: 12px;
+  padding: 20px;
   width: 100%;
-  height: 100%;
 }
-/* the corner slot: the tutor's portrait, in the frame's bottom-left, never over content */
-.wb-corner {
-  position: absolute;
-  left: 6px;
-  bottom: 4px;
-  z-index: 9;
+.wb-frame[data-viewport="cell"] .wb-surface {
+  position: relative;
+  inset: auto;
+  background: transparent;
+  background-image: none;
+  box-shadow: none;
+  border-radius: 0;
+  overflow: visible;
 }
-.wb-frame[data-corner] .wb-content {
-  padding-left: 92px;
+.wb-frame[data-viewport="cell"] .wb-content {
+  position: relative;
+  inset: auto;
+  padding: 0;
+  justify-content: flex-start;
 }
-.wb-frame[data-corner] .wb-tray {
-  left: 96px;
-}
-
-/* the child's turn: the answer surface breathes */
-.wb-your-turn {
-  animation: wb-breathe 1.7s ease-in-out infinite;
-}
-.wb-your-turn-soft {
-  animation: wb-breathe-soft 2.2s ease-in-out infinite;
-}
-@keyframes wb-breathe {
-  0%, 100% { box-shadow: 0 0 0 3px rgba(243, 198, 75, 0.35), 0 0 0 rgba(243, 198, 75, 0); }
-  50% { box-shadow: 0 0 0 5px rgba(243, 198, 75, 0.7), 0 0 26px 6px rgba(243, 198, 75, 0.45); }
-}
-@keyframes wb-breathe-soft {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(243, 198, 75, 0); }
-  50% { box-shadow: 0 0 18px 3px rgba(243, 198, 75, 0.35); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .wb-your-turn, .wb-your-turn-soft { animation: none; box-shadow: 0 0 0 4px rgba(243, 198, 75, 0.6); }
-}
-@media (max-width: 480px) {
-  .wb-frame {
-    --wb-pad: 9px;
-    --wb-tray: 20px;
-    border-radius: 12px;
-  }
+.wb-frame[data-viewport="cell"] .wb-footer {
+  position: relative;
+  inset: auto;
+  margin-top: 12px;
 }
 
 .wb-surface {
   position: absolute;
-  inset: var(--wb-pad) var(--wb-pad) calc(var(--wb-pad) + var(--wb-tray) * 0.55) var(--wb-pad);
-  overflow: hidden;
-  border-radius: 5px;
-  background-color: #f6f1e4;
-  background-image:
-    linear-gradient(rgba(74, 58, 30, 0.08) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(74, 58, 30, 0.08) 1px, transparent 1px);
-  background-size: 28px 28px;
-  box-shadow:
-    inset 0 0 0 1px rgba(0, 0, 0, 0.14),
-    inset 0 8px 22px rgba(60, 40, 10, 0.1);
-}
-/* a faint sheen — someone wiped this board a hundred times */
-.wb-surface::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(ellipse at 25% 15%, rgba(255, 255, 255, 0.35), transparent 55%),
-    radial-gradient(ellipse at 80% 90%, rgba(120, 100, 60, 0.06), transparent 60%);
-  z-index: 2;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  bottom: 22px;
+  background-color: var(--color-board);
+  background-image: linear-gradient(var(--color-grid) 1px, transparent 1px), linear-gradient(90deg, var(--color-grid) 1px, transparent 1px);
+  background-size: 32px 32px;
+  border-radius: 6px 6px 0 0;
+  box-shadow: var(--shadow-frame);
 }
 
+/* the marker tray */
+.wb-tray {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 22px;
+  background: var(--color-wood-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+.wb-marker {
+  width: 60px;
+  height: 10px;
+  border-radius: 5px;
+  box-shadow: inset -14px 0 0 var(--color-ink);
+}
+.wb-mute {
+  /* the design's ♪ chip is 26×16 at right 88 on the tray; the button around it is a 50×48 hit box */
+  position: absolute;
+  right: 76px;
+  top: -13px;
+  width: 50px;
+  height: 48px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 3;
+}
+.wb-mute-chip {
+  width: 26px;
+  height: 16px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  font: 11px/1 var(--font-latin);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.wb-felt {
+  display: none;
+}
+
+/* content lives inside the inset; the foot changes with chips or a dock */
+/* the README's inset (L94 R82 T22 B64) is measured from the wood frame; the
+   surface already sits 10 / 10 / 22 inside it, so the content's own offsets
+   are the difference */
 .wb-content {
   position: absolute;
-  inset: 0;
-  z-index: 1;
+  left: 84px;
+  right: 72px;
+  top: 12px;
+  bottom: 42px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: clamp(8px, 2.2vw, 16px);
-  padding: 3.5% 4%;
+  gap: 10px;
   box-sizing: border-box;
-  container-type: size;
 }
+.wb-frame[data-foot="chips"] .wb-content {
+  bottom: 102px; /* 124 from the frame */
+}
+.wb-frame[data-foot="dock"] .wb-content {
+  bottom: 168px; /* 190 from the frame */
+  justify-content: flex-start;
+}
+
+/* the foot: chips centred left 94 → right 130; a dock hugs left 94 */
+.wb-footer {
+  position: absolute;
+  left: 94px;
+  right: 130px;
+  bottom: 64px;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  z-index: 5;
+}
+.wb-footer[data-kind="dock"] {
+  right: auto;
+  justify-content: flex-start;
+}
+.wb-footer[data-kind="bank"] {
+  justify-content: center;
+}
+/* the dock: a pad hugs left 94; a word bank spans 94 → 130 */
+.wb-dock {
+  position: absolute;
+  left: 94px;
+  right: 130px;
+  bottom: 64px;
+  display: flex;
+  justify-content: flex-start;
+  align-items: flex-end;
+  z-index: 5;
+  pointer-events: none;
+}
+.wb-dock > * {
+  pointer-events: auto;
+}
+.wb-frame[data-viewport="cell"] .wb-dock {
+  position: relative;
+  inset: auto;
+  margin-top: 12px;
+}
+.wb-sheet-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+}
+
 .wb-overlay {
   position: absolute;
   inset: 0;
@@ -125,96 +223,182 @@
   position: absolute;
 }
 
-/* the marker wobble — a hand drew these strokes */
-.wb-surface .hand-stroke,
-.wb-surface .chalk-stroke {
-  filter: url(#marker-wobble);
+/* the corners: Zara, Lena, the ✋ */
+.wb-corner {
+  position: absolute;
+  left: 10px;
+  bottom: 6px;
+  z-index: 9;
+}
+.wb-lena {
+  position: absolute;
+  right: 14px;
+  bottom: 16px;
+  z-index: 9;
+}
+.wb-hand {
+  position: absolute;
+  right: 12px;
+  bottom: 76px;
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  border: 2px solid var(--color-ink-18);
+  border-radius: 50%;
+  background: var(--color-paper);
+  box-shadow: 0 2px 0 #D8D1C2;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 9;
 }
 
+/* the retry note: 56 px, top-right of the inset */
+.wb-retry {
+  position: absolute;
+  right: 82px;
+  top: 22px;
+  height: 56px;
+  padding: 0 22px;
+  border: 2px solid var(--color-ink-18);
+  border-radius: 12px;
+  background: var(--color-paper);
+  color: var(--color-teal);
+  font: 700 24px/1.5 var(--font-display);
+  box-shadow: 0 2px 0 #D8D1C2;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  cursor: pointer;
+  z-index: 7;
+}
+
+/* the caption line */
+.wb-caption {
+  position: absolute;
+  left: 94px;
+  right: 82px;
+  bottom: 26px;
+  text-align: center;
+  font: 700 20px/1.6 var(--font-display);
+  color: var(--color-ink);
+  text-wrap: pretty;
+  pointer-events: none;
+  z-index: 5;
+}
+/* the tap hint pill, top-right of the inset (while the pad or picker waits) */
+.wb-tap-hint {
+  position: absolute;
+  right: 82px;
+  top: 22px;
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: var(--color-card);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 600 20px/1.5 var(--font-label);
+  color: var(--color-teal);
+  z-index: 5;
+}
+
+/* the ✋ sheet and the first-time mic explanation: the board dims 38 %, Zara at 160 */
+.wb-dim {
+  position: absolute;
+  inset: 10px 10px 22px;
+  background: rgba(27, 27, 27, 0.38);
+  border-radius: 6px 6px 0 0;
+  z-index: 20;
+}
+.wb-zara-large {
+  position: absolute;
+  left: 34px;
+  bottom: 40px;
+  z-index: 21;
+}
+.wb-sheet {
+  position: absolute;
+  left: 230px;
+  right: 24px;
+  top: 24px;
+  bottom: 34px;
+  background: var(--color-paper);
+  border-radius: 16px;
+  box-shadow: var(--shadow-lift);
+  display: flex;
+  flex-direction: column;
+  padding: 14px 18px;
+  gap: 10px;
+  z-index: 21;
+}
+.wb-sheet[data-kind="mic"] {
+  padding: 16px 20px;
+  gap: 12px;
+}
+
+/* your turn: the one element to touch glows and breathes over 2.4 s;
+   every sibling is veiled to 38 %; a soft check glows nothing */
+.wb-glow {
+  box-shadow: var(--shadow-glow);
+  animation: wb-breathe var(--dur-glow) ease-in-out infinite;
+}
+.wb-veil {
+  opacity: 0.38;
+}
+.wb-your-turn-soft {
+  animation: none;
+}
+@keyframes wb-breathe {
+  0%, 100% { box-shadow: 0 0 0 4px var(--color-saffron), 0 0 24px 6px var(--color-saffron-glow); }
+  50% { box-shadow: 0 0 0 4px var(--color-saffron), 0 0 10px 2px var(--color-saffron-glow); }
+}
+
+/* reading practice: a faint mic at the foot — her cue to try saying it; nothing listens */
+.wb-pause-cue {
+  font-size: 26px;
+  opacity: 0.45;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(255, 253, 247, 0.7);
+  animation: wb-cue-breathe 1.6s ease-in-out infinite;
+}
+@keyframes wb-cue-breathe {
+  0%, 100% { opacity: 0.35; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.06); }
+}
+
+/* the felt sweep on erase */
 .wb-eraser {
   position: absolute;
-  top: 6%;
-  bottom: 6%;
+  top: 40%;
   left: 0;
-  width: 22%;
+  width: 48px;
+  height: 36px;
+  background: #5B4636;
+  border-radius: 6px;
+  transform: rotate(-8deg);
+  box-shadow: 0 4px 8px rgba(27, 27, 27, 0.25);
   z-index: 7;
-  border-radius: 10px;
-  background: linear-gradient(180deg, #6b6b6b, #3f3f3f 55%, #2b2b2b);
-  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35);
   pointer-events: none;
 }
 
-.wb-tray {
-  position: absolute;
-  left: 7%;
-  right: 7%;
-  bottom: 3px;
-  height: var(--wb-tray);
-  border-radius: 6px 6px 3px 3px;
-  background: linear-gradient(180deg, #c99a6a, #a7754a 60%, #7d5231);
-  box-shadow:
-    inset 0 2px 0 rgba(255, 255, 255, 0.25),
-    0 3px 6px rgba(0, 0, 0, 0.35);
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 0 14px;
-  box-sizing: border-box;
-  z-index: 3;
-}
-.wb-marker {
-  height: 8px;
-  width: 54px;
-  border-radius: 4px;
-  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.25), 0 1px 2px rgba(0, 0, 0, 0.3);
-}
-.wb-marker::after {
-  content: "";
-  display: block;
-  width: 12px;
-  height: 8px;
-  margin-left: 42px;
-  border-radius: 0 4px 4px 0;
-  background: #2a2418;
-}
-.wb-felt {
-  height: 12px;
-  width: 30px;
-  border-radius: 3px;
-  background: linear-gradient(180deg, #4c4c4c, #2e2e2e);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
-}
-.wb-mute {
-  margin-left: auto;
-  min-width: 48px;
-  min-height: 48px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 0;
-  background: transparent;
-  color: #f6f1e4;
-  cursor: pointer;
-  border-radius: 24px;
-  touch-action: manipulation;
-}
-.wb-mute:focus-visible {
-  outline: 2px solid #f3c64b;
-  outline-offset: -6px;
-}
-
-/* every interactive thing on the board: one finger, no gestures */
+/* touch: anything liftable is paper; hit areas ≥ 56 px on child surfaces */
+.wb-tap,
 .wb-touch {
   touch-action: none;
-  user-select: none;
-  -webkit-user-select: none;
   -webkit-tap-highlight-color: transparent;
+  user-select: none;
   cursor: pointer;
 }
-.wb-tap {
-  touch-action: manipulation;
-  user-select: none;
-  -webkit-user-select: none;
-  -webkit-tap-highlight-color: transparent;
-  cursor: pointer;
+.wb-tap:active,
+.wb-touch:active {
+  transform: translateY(2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wb-glow, .wb-pause-cue { animation: none; }
+  .wb-glow { box-shadow: var(--shadow-glow); }
+  .wb-pause-cue { opacity: 0.5; }
 }

@@ -82,7 +82,10 @@ export const MEASURE_JS = `(function (sectionId, ask) {
     const drawn = Math.max(0, Math.min(1, first / P));
     const m = path.ownerSVGElement.getScreenCTM();
     const sx = Math.hypot(m.a, m.b), sy = Math.hypot(m.c, m.d);
-    const uniform = Math.abs(sx - sy) / Math.max(sx, sy) < 0.02;
+    // The design's rings and underlines stretch a 100×80 / 100×10 path over the target (viewBox + preserveAspectRatio="none")
+    // with vector-effect: non-scaling-stroke — the path scales, the 3.5 px stroke does not, so the mark stays uniform.
+    const nonScaling = (path.getAttribute('vector-effect') || getComputedStyle(path).vectorEffect || '') === 'non-scaling-stroke';
+    const uniform = nonScaling || Math.abs(sx - sy) / Math.max(sx, sy) < 0.02;
     return { label: label(path), drawn: Number(drawn.toFixed(3)), uniform, sx: Number(sx.toFixed(3)), sy: Number(sy.toFixed(3)), length: Math.round(path.getTotalLength()), box: rect(path.ownerSVGElement) };
   });
   // A key like "text:84 = 80 + 4/place:ද" back into a Target, resolved by the board's own registry.
@@ -163,19 +166,21 @@ export function judgeAtRest(probe: StrokeProbe, m: Measured): string[] {
       const h = m.highlight.box;
       if (m.highlight.kind !== kind) problems.push(`drew a ${m.highlight.kind}, expected a ${kind}`);
       if (m.highlight.opacity < 0.98) problems.push(`${kind} is faded (opacity ${m.highlight.opacity})`);
-      if (!near(h.left, t.left - PAD) || !near(h.width, t.width + PAD * 2)) {
+      // The design's ring insets −14 (−8 round a target wider than 200 px); the underline hangs under the target's edge.
+      const pad = kind === "circle" ? (t.width > 200 ? 8 : 14) : 0;
+      if (!near(h.left, t.left - pad) || !near(h.width, t.width + pad * 2)) {
         problems.push(`${kind} is the wrong width/position: spans ${Math.round(h.left)}…${Math.round(h.right)} for a target at ${Math.round(t.left)}…${Math.round(t.right)} (${m.targetLabel})`);
       }
-      if (kind === "circle" && (!near(h.top, t.top - PAD) || !near(h.height, t.height + PAD * 2))) {
+      if (kind === "circle" && (!near(h.top, t.top - pad) || !near(h.height, t.height + pad * 2))) {
         problems.push(`circle is the wrong height/position: ${Math.round(h.top)}…${Math.round(h.bottom)} for a target at ${Math.round(t.top)}…${Math.round(t.bottom)}`);
       }
-      if (kind === "underline" && !near(h.top, t.bottom - 4)) problems.push(`underline sits at ${Math.round(h.top)}, the target's bottom is ${Math.round(t.bottom)}`);
+      if (kind === "underline" && !near(h.top, t.bottom - 2, 4)) problems.push(`underline sits at ${Math.round(h.top)}, the target's bottom is ${Math.round(t.bottom)}`);
     }
   }
   if (expect.ring !== undefined) {
     if (!m.card) problems.push(`card ${expect.ring} not found`);
     else if (!m.ring) problems.push(`no ring drawn around card ${expect.ring}`);
-    else if (!near(m.ring.left, m.card.left - PAD, 4) || !near(m.ring.width, m.card.width + PAD * 2, 4) || !near(m.ring.top, m.card.top - PAD, 4)) {
+    else if (!near(m.ring.left, m.card.left - 14, 4) || !near(m.ring.width, m.card.width + 28, 4) || !near(m.ring.top, m.card.top - 14, 4)) {
       problems.push(`ring off its card: ring ${Math.round(m.ring.left)}…${Math.round(m.ring.right)} vs card ${Math.round(m.card.left)}…${Math.round(m.card.right)}`);
     }
   }
@@ -197,13 +202,14 @@ export function judgeAtRest(probe: StrokeProbe, m: Measured): string[] {
   }
   if (expect.cell) {
     if (!m.cell?.active) problems.push(`cell ${expect.cell} is not active`);
-    else if (!m.cell.shadow.includes("243, 198, 75")) problems.push(`cell ${expect.cell} has no chalk-yellow outline (${m.cell.shadow.slice(0, 60)})`);
+    else if (!m.cell.shadow.includes("233, 180, 76")) problems.push(`cell ${expect.cell} has no saffron outline (${m.cell.shadow.slice(0, 60)})`);
   }
   if (expect.pointerAt) {
     if (!m.target) problems.push(`pointer target ${expect.pointerAt} is not registered`);
     else if (!m.pointer || m.pointer.missing || m.pointer.opacity < 0.98) problems.push(`pointer is hidden or aimed at nothing for ${expect.pointerAt}`);
     else {
-      const tipX = m.pointer.box.left + 9;
+      // the design's hand is 40 wide with the chalk at its centre
+      const tipX = m.pointer.box.left + 20;
       const tipY = m.pointer.box.top;
       const cx = m.target.left + m.target.width / 2;
       if (!near(tipX, cx, 4) || !near(tipY, m.target.bottom - 4, 4)) {

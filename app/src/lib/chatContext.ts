@@ -11,7 +11,7 @@
  * No React here — the chat-check harness builds the same context offline.
  */
 import type { StageState } from "@/lib/choreography";
-import { formatNumber } from "@/components/board/theme";
+import { formatNumber } from "@/components/board/tokens";
 
 export interface ChatAnswer {
   question: string;
@@ -45,7 +45,7 @@ export function serializeStage(stage: StageState): string {
         const shown = base.shown.join("");
         const complete = base.shown.every((n, i) => n >= (base.digits[i] ?? 0));
         parts.push(`ගණක රාමුවේ ${complete ? formatNumber(base.digits.join("")) : `පබළු ${shown} (හදන්නේ ${formatNumber(base.digits.join(""))})`}`);
-        if (base.glowRod !== null) parts.push(`${ROD_NAMES[base.glowRod] ?? "කූරක්"} දැන් පෙන්වනවා`);
+        if (base.glowRods.length) parts.push(`${base.glowRods.map((r) => ROD_NAMES[r] ?? "කූරක්").join(" සහ ")} දැන් පෙන්වනවා`);
         if (base.expansion) parts.push(`යටින් ${formatNumber(base.expansion.number)} = ${base.expansion.parts.map((p) => (p === null ? "▢" : formatNumber(p))).join(" + ")}`);
         if (base.childAnswer) parts.push(`ළමයාගේ උත්තරය ${base.childAnswer}`);
         break;

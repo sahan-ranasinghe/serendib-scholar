@@ -20,7 +20,8 @@
           "primitive": "titleCard",
           "event": "show",
           "args": {
-            "title": "සංඛ්‍යා - 1"
+            "title": "සංඛ්‍යා - 1",
+            "emoji": "🔢"
           }
         }
       ],
@@ -85,7 +86,8 @@
           "primitive": "titleCard",
           "event": "show",
           "args": {
-            "title": "සංඛ්‍යා - 1"
+            "title": "සංඛ්‍යා - 1",
+            "emoji": "🔢"
           }
         }
       ],
@@ -159,12 +161,22 @@
         "එහෙනම් අපි පටන් ගමු!"
       ],
       "boardAtStart": "card \"ලොකු සංඛ්‍යා\"",
-      "events": [],
+      "events": [
+        {
+          "sentenceIndex": 1,
+          "primitive": "turn",
+          "event": "pause",
+          "args": {
+            "ms": 2000
+          }
+        }
+      ],
       "child": {
         "kind": "soft check",
-        "via": "mic open 5s; any reply acknowledged after 1.2s of quiet; silence flows on"
+        "via": "a 2 s pause while she reacts; a tap counts as engagement; no mic, no acknowledgement clip",
+        "surface": "pause"
       },
-      "sees": "Card \"ලොකු සංඛ්‍යා\" — the mic opens briefly."
+      "sees": "Card \"ලොකු සංඛ්‍යා\" — a 2 s pause while she reacts; a tap counts as engagement; no mic, no acknowledgement clip."
     },
     {
       "id": "authored:readWrite4Digit:0",
@@ -182,15 +194,25 @@
           "primitive": "titleCard",
           "event": "show",
           "args": {
-            "title": "සංඛ්‍යා කියවමු"
+            "title": "සංඛ්‍යා කියවමු",
+            "emoji": "🏏"
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "pause",
+          "args": {
+            "ms": 2000
           }
         }
       ],
       "child": {
         "kind": "soft check",
-        "via": "mic open 5s; any reply acknowledged after 1.2s of quiet; silence flows on"
+        "via": "a 2 s pause while she reacts; a tap counts as engagement; no mic, no acknowledgement clip",
+        "surface": "pause"
       },
-      "sees": "Title card \"සංඛ්‍යා කියවමු\"; title \"සංඛ්‍යා කියවමු\" — the mic opens briefly."
+      "sees": "Title card \"සංඛ්‍යා කියවමු\"; title \"සංඛ්‍යා කියවමු\" — a 2 s pause while she reacts; a tap counts as engagement; no mic, no acknowledgement clip."
     },
     {
       "id": "authored:readWrite4Digit:1",
@@ -238,14 +260,56 @@
           "args": {
             "value": 84
           }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "pause",
+          "args": {
+            "ms": 3000,
+            "cue": "mic",
+            "number": 84
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "read_back",
+          "args": {
+            "number": 84
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "your_turn",
+          "args": {
+            "answerMode": "readAloud",
+            "surface": "chips"
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "choiceChips",
+          "event": "show",
+          "args": {
+            "options": [
+              "හතළිස් අට",
+              "අසූ හතර",
+              "අටසිය හතර"
+            ],
+            "correctIndex": 1
+          }
         }
       ],
       "child": {
         "kind": "answer",
-        "via": "voice",
-        "expects": "අසූ හතර"
+        "via": "3 s to say it (🎤 cue, nothing recorded) → Zara reads it → tap one of 3 name-chips",
+        "expects": "අසූ හතර",
+        "answerMode": "readAloud",
+        "surface": "chips"
       },
-      "sees": "Number cards 84 · 101 · 528 · 997 (ring on 84); a ring around 84 — they answer via voice."
+      "sees": "Number cards 84 · 101 · 528 · 997 (ring on 84); a ring around 84 — they answer via 3 s to say it (🎤 cue, nothing recorded) → Zara reads it → tap one of 3 name-chips."
     },
     {
       "id": "authored:readWrite4Digit:3",
@@ -288,14 +352,56 @@
           "args": {
             "value": 101
           }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "pause",
+          "args": {
+            "ms": 3000,
+            "cue": "mic",
+            "number": 101
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "read_back",
+          "args": {
+            "number": 101
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "your_turn",
+          "args": {
+            "answerMode": "readAloud",
+            "surface": "chips"
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "choiceChips",
+          "event": "show",
+          "args": {
+            "options": [
+              "එකොළහ",
+              "එකසිය එක",
+              "එකසිය දහය"
+            ],
+            "correctIndex": 1
+          }
         }
       ],
       "child": {
         "kind": "answer",
-        "via": "voice",
-        "expects": "එකසිය එක"
+        "via": "3 s to say it (🎤 cue, nothing recorded) → Zara reads it → tap one of 3 name-chips",
+        "expects": "එකසිය එක",
+        "answerMode": "readAloud",
+        "surface": "chips"
       },
-      "sees": "Number cards 84 · 101 · 528 · 997 (ring on 101); a ring around 101 — they answer via voice."
+      "sees": "Number cards 84 · 101 · 528 · 997 (ring on 101); a ring around 101 — they answer via 3 s to say it (🎤 cue, nothing recorded) → Zara reads it → tap one of 3 name-chips."
     },
     {
       "id": "authored:readWrite4Digit:3b",
@@ -308,6 +414,12 @@
       ],
       "boardAtStart": "number cards 84 · 101 · 528 · 997 (ring on 101)",
       "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "over",
+          "args": {}
+        },
         {
           "sentenceIndex": 0,
           "primitive": "chalkText",
@@ -364,13 +476,23 @@
           "args": {
             "value": 997
           }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "pause",
+          "args": {
+            "ms": 2000
+          }
         }
       ],
       "child": {
         "kind": "soft check",
-        "via": "mic open 5s; any reply acknowledged after 1.2s of quiet; silence flows on"
+        "via": "a 2 s pause while she reacts; a tap counts as engagement; no mic, no acknowledgement clip",
+        "answerMode": "readAloud",
+        "surface": "pause"
       },
-      "sees": "Number cards 84 · 101 · 528 · 997 (ring on 997); a ring around 997 — the mic opens briefly."
+      "sees": "Number cards 84 · 101 · 528 · 997 (ring on 997); a ring around 997 — a 2 s pause while she reacts; a tap counts as engagement; no mic, no acknowledgement clip."
     },
     {
       "id": "authored:readWrite4Digit:5a",
@@ -489,14 +611,25 @@
               "number": 999
             }
           }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "your_turn",
+          "args": {
+            "answerMode": "build",
+            "surface": "pad"
+          }
         }
       ],
       "child": {
         "kind": "answer",
-        "via": "number pad or voice",
-        "expects": "1000"
+        "via": "the number pad",
+        "expects": "1000",
+        "answerMode": "build",
+        "surface": "pad"
       },
-      "sees": "Chalk \"999 + 1 = ?\"; \"999 + 1 = ?\" is written — they answer via number pad or voice."
+      "sees": "Chalk \"999 + 1 = ?\"; \"999 + 1 = ?\" is written — they answer via the number pad."
     },
     {
       "id": "authored:readWrite4Digit:9",
@@ -549,13 +682,23 @@
           "args": {
             "text": "1000"
           }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "pause",
+          "args": {
+            "ms": 2000
+          }
         }
       ],
       "child": {
         "kind": "soft check",
-        "via": "mic open 5s; any reply acknowledged after 1.2s of quiet; silence flows on"
+        "via": "a 2 s pause while she reacts; a tap counts as engagement; no mic, no acknowledgement clip",
+        "answerMode": "build",
+        "surface": "pause"
       },
-      "sees": "Card \"1000\"; card \"1000\" — the mic opens briefly."
+      "sees": "Card \"1000\"; card \"1000\" — a 2 s pause while she reacts; a tap counts as engagement; no mic, no acknowledgement clip."
     },
     {
       "id": "authored:readWrite4Digit:11",
@@ -567,7 +710,14 @@
         "ඊළඟට අපි කාඩ්පත් පාවිච්චි කරලා අලුත් සංඛ්‍යා හදමු."
       ],
       "boardAtStart": "card \"1000\"",
-      "events": [],
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "over",
+          "args": {}
+        }
+      ],
       "child": null,
       "sees": "Card \"1000\"."
     },
@@ -676,14 +826,56 @@
               "text": "3058"
             }
           }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "pause",
+          "args": {
+            "ms": 3000,
+            "cue": "mic",
+            "number": 3058
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "read_back",
+          "args": {
+            "number": 3058
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "your_turn",
+          "args": {
+            "answerMode": "readAloud",
+            "surface": "chips"
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "choiceChips",
+          "event": "show",
+          "args": {
+            "options": [
+              "තුන්දහස් අසූ පහ",
+              "තුන්දහස් පනස් අට",
+              "තුන්දහස් පන්සිය අට"
+            ],
+            "correctIndex": 1
+          }
         }
       ],
       "child": {
         "kind": "answer",
-        "via": "voice",
-        "expects": "තුන්දහස් පනස් අට"
+        "via": "3 s to say it (🎤 cue, nothing recorded) → Zara reads it → tap one of 3 name-chips",
+        "expects": "තුන්දහස් පනස් අට",
+        "answerMode": "readAloud",
+        "surface": "chips"
       },
-      "sees": "Card \"3058\" — they answer via voice."
+      "sees": "Card \"3058\" — they answer via 3 s to say it (🎤 cue, nothing recorded) → Zara reads it → tap one of 3 name-chips."
     },
     {
       "id": "authored:readWrite4Digit:16",
@@ -696,6 +888,12 @@
       ],
       "boardAtStart": "card \"3058\"",
       "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "over",
+          "args": {}
+        },
         {
           "sentenceIndex": 0,
           "primitive": "chalkText",
@@ -717,7 +915,7 @@
         }
       ],
       "child": null,
-      "sees": "Chalk \"3058 - තුන්දහස් පනස් අට\"; \"- තුන්දහස් පනස් අට\" is written on, making \"3058 - තුන්දහස් පනස් අට\"."
+      "sees": "Card \"3058\" with chalk \"3058 - තුන්දහස් පනස් අට\"; \"- තුන්දහස් පනස් අට\" is written on, making \"3058 - තුන්දහස් පනස් අට\"."
     },
     {
       "id": "authored:readWrite4Digit:17",
@@ -728,7 +926,7 @@
       "sentences": [
         "මෙතන සියයේ තැනට කිසිම අගයක් කියවෙන්නේ නැහැ, නේද?"
       ],
-      "boardAtStart": "chalk \"3058 - තුන්දහස් පනස් අට\"",
+      "boardAtStart": "card \"3058\" with chalk \"3058 - තුන්දහස් පනස් අට\"",
       "events": [
         {
           "sentenceIndex": 0,
@@ -743,7 +941,7 @@
         }
       ],
       "child": null,
-      "sees": "Chalk \"3058 - තුන්දහස් පනස් අට\"."
+      "sees": "Card \"3058\" with chalk \"3058 - තුන්දහස් පනස් අට\"."
     },
     {
       "id": "authored:readWrite4Digit:18",
@@ -754,13 +952,24 @@
       "sentences": [
         "නම කියද්දී නොකියවුණත් ඒ තැනට බිංදුවක් ලියන්න ඕනේ, හරිද?"
       ],
-      "boardAtStart": "chalk \"3058 - තුන්දහස් පනස් අට\"",
-      "events": [],
+      "boardAtStart": "card \"3058\" with chalk \"3058 - තුන්දහස් පනස් අට\"",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "pause",
+          "args": {
+            "ms": 2000
+          }
+        }
+      ],
       "child": {
         "kind": "soft check",
-        "via": "mic open 5s; any reply acknowledged after 1.2s of quiet; silence flows on"
+        "via": "a 2 s pause while she reacts; a tap counts as engagement; no mic, no acknowledgement clip",
+        "answerMode": "readAloud",
+        "surface": "pause"
       },
-      "sees": "Chalk \"3058 - තුන්දහස් පනස් අට\" — the mic opens briefly."
+      "sees": "Card \"3058\" with chalk \"3058 - තුන්දහස් පනස් අට\" — a 2 s pause while she reacts; a tap counts as engagement; no mic, no acknowledgement clip."
     },
     {
       "id": "authored:readWrite4Digit:18c",
@@ -771,7 +980,7 @@
       "sentences": [
         "පොතේ මේ වගුවේ එක පැත්තක සංඛ්‍යාව, අනිත් පැත්තේ ඒකේ නම තියෙනවා."
       ],
-      "boardAtStart": "chalk \"3058 - තුන්දහස් පනස් අට\"",
+      "boardAtStart": "card \"3058\" with chalk \"3058 - තුන්දහස් පනස් අට\"",
       "events": [
         {
           "sentenceIndex": 0,
@@ -804,14 +1013,25 @@
             "row": 0,
             "field": "numberName"
           }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "your_turn",
+          "args": {
+            "answerMode": "cell",
+            "surface": "cell"
+          }
         }
       ],
       "child": {
         "kind": "answer",
-        "via": "the number pad into the active cell, or say it",
-        "expects": "හයදහස් පන්සිය විසි අට"
+        "via": "the number pad into the active cell",
+        "expects": "හයදහස් පන්සිය විසි අට",
+        "answerMode": "cell",
+        "surface": "cell"
       },
-      "sees": "The numeral ↔ number-name table: 6 528 · දෙදහස් හාරසිය තිහ · තුන්දහස් එකසියය · 5 060 · එක්දහස් අට · 9 015; row 0's numberName cell is outlined — they answer via the number pad into the active cell, or say it."
+      "sees": "The numeral ↔ number-name table: 6 528 · දෙදහස් හාරසිය තිහ · තුන්දහස් එකසියය · 5 060 · එක්දහස් අට · 9 015; row 0's numberName cell is outlined — they answer via the number pad into the active cell."
     },
     {
       "id": "authored:readWrite4Digit:18e",
@@ -824,6 +1044,12 @@
       ],
       "boardAtStart": "the numeral ↔ number-name table: 6 528 · දෙදහස් හාරසිය තිහ · තුන්දහස් එකසියය · 5 060 · එක්දහස් අට · 9 015",
       "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "over",
+          "args": {}
+        },
         {
           "sentenceIndex": 0,
           "primitive": "blankTable",
@@ -879,14 +1105,25 @@
               "number": 2430
             }
           }
+        },
+        {
+          "sentenceIndex": 1,
+          "primitive": "turn",
+          "event": "your_turn",
+          "args": {
+            "answerMode": "cell",
+            "surface": "cell"
+          }
         }
       ],
       "child": {
         "kind": "answer",
-        "via": "the number pad into the active cell, or say it",
-        "expects": "2430"
+        "via": "the number pad into the active cell",
+        "expects": "2430",
+        "answerMode": "cell",
+        "surface": "cell"
       },
-      "sees": "The numeral ↔ number-name table: 6 528 · දෙදහස් හාරසිය තිහ · තුන්දහස් එකසියය · 5 060 · එක්දහස් අට · 9 015; row 1's number cell is outlined — they answer via the number pad into the active cell, or say it."
+      "sees": "The numeral ↔ number-name table: 6 528 · දෙදහස් හාරසිය තිහ · තුන්දහස් එකසියය · 5 060 · එක්දහස් අට · 9 015; row 1's number cell is outlined — they answer via the number pad into the active cell."
     },
     {
       "id": "authored:readWrite4Digit:18g",
@@ -899,6 +1136,12 @@
       ],
       "boardAtStart": "the numeral ↔ number-name table: 6 528 · දෙදහස් හාරසිය තිහ · තුන්දහස් එකසියය · 5 060 · එක්දහස් අට · 9 015",
       "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "over",
+          "args": {}
+        },
         {
           "sentenceIndex": 0,
           "primitive": "blankTable",
@@ -997,13 +1240,23 @@
               "number": 1
             }
           }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "pause",
+          "args": {
+            "ms": 2000
+          }
         }
       ],
       "child": {
         "kind": "soft check",
-        "via": "mic open 5s; any reply acknowledged after 1.2s of quiet; silence flows on"
+        "via": "a 2 s pause while she reacts; a tap counts as engagement; no mic, no acknowledgement clip",
+        "answerMode": "cell",
+        "surface": "pause"
       },
-      "sees": "The digit picker 1 · 3 · 6 · 4 — the mic opens briefly."
+      "sees": "The digit picker 1 · 3 · 6 · 4 — a 2 s pause while she reacts; a tap counts as engagement; no mic, no acknowledgement clip."
     },
     {
       "id": "authored:readWrite4Digit:21",
@@ -1016,6 +1269,12 @@
       ],
       "boardAtStart": "the digit picker 1 · 3 · 6 · 4",
       "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "over",
+          "args": {}
+        },
         {
           "sentenceIndex": 0,
           "primitive": "pointer",
@@ -1050,14 +1309,25 @@
               "text": "picker"
             }
           }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "your_turn",
+          "args": {
+            "answerMode": "build",
+            "surface": "picker"
+          }
         }
       ],
       "child": {
         "kind": "answer",
-        "via": "tap digits on the picker, or say the number",
-        "expects": "any arrangement of 1,3,6,4"
+        "via": "tap digits on the picker",
+        "expects": "any arrangement of 1,3,6,4",
+        "answerMode": "build",
+        "surface": "picker"
       },
-      "sees": "The digit picker 1 · 3 · 6 · 4 — they answer via tap digits on the picker, or say the number."
+      "sees": "The digit picker 1 · 3 · 6 · 4 — they answer via tap digits on the picker."
     },
     {
       "id": "authored:readWrite4Digit:22a",
@@ -1070,6 +1340,12 @@
       ],
       "boardAtStart": "the digit picker 1 · 3 · 6 · 4",
       "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "over",
+          "args": {}
+        },
         {
           "sentenceIndex": 0,
           "primitive": "digitPicker",
@@ -1139,13 +1415,22 @@
               "text": "the built number"
             }
           }
+        },
+        {
+          "sentenceIndex": 1,
+          "primitive": "turn",
+          "event": "pause",
+          "args": {
+            "ms": 2000
+          }
         }
       ],
       "child": {
         "kind": "soft check",
-        "via": "mic open 5s; any reply acknowledged after 1.2s of quiet; silence flows on"
+        "via": "a 2 s pause while she reacts; a tap counts as engagement; no mic, no acknowledgement clip",
+        "surface": "pause"
       },
-      "sees": "The digit picker 1 · 3 · 6 · 4 showing 1 364 — the mic opens briefly."
+      "sees": "The digit picker 1 · 3 · 6 · 4 showing 1 364 — a 2 s pause while she reacts; a tap counts as engagement; no mic, no acknowledgement clip."
     },
     {
       "id": "authored:readWrite4Digit:30",
@@ -1194,14 +1479,25 @@
               4
             ]
           }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "your_turn",
+          "args": {
+            "answerMode": "build",
+            "surface": "picker"
+          }
         }
       ],
       "child": {
         "kind": "answer",
-        "via": "tap digits on the picker, or say the number",
-        "expects": "any arrangement of 1,3,6,4"
+        "via": "tap digits on the picker",
+        "expects": "any arrangement of 1,3,6,4",
+        "answerMode": "build",
+        "surface": "picker"
       },
-      "sees": "The digit picker 1 · 3 · 6 · 4; digit tiles 1 · 3 · 6 · 4 — they answer via tap digits on the picker, or say the number."
+      "sees": "The digit picker 1 · 3 · 6 · 4; digit tiles 1 · 3 · 6 · 4 — they answer via tap digits on the picker."
     },
     {
       "id": "authored:readWrite4Digit:30b",
@@ -1214,6 +1510,12 @@
       ],
       "boardAtStart": "the digit picker 1 · 3 · 6 · 4",
       "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "over",
+          "args": {}
+        },
         {
           "sentenceIndex": 0,
           "primitive": "digitPicker",
@@ -1250,14 +1552,25 @@
               4
             ]
           }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "your_turn",
+          "args": {
+            "answerMode": "build",
+            "surface": "picker"
+          }
         }
       ],
       "child": {
         "kind": "answer",
-        "via": "tap digits on the picker, or say the number",
-        "expects": "any arrangement of 1,3,6,4"
+        "via": "tap digits on the picker",
+        "expects": "any arrangement of 1,3,6,4",
+        "answerMode": "build",
+        "surface": "picker"
       },
-      "sees": "The digit picker 1 · 3 · 6 · 4; digit tiles 1 · 3 · 6 · 4 — they answer via tap digits on the picker, or say the number."
+      "sees": "The digit picker 1 · 3 · 6 · 4; digit tiles 1 · 3 · 6 · 4 — they answer via tap digits on the picker."
     },
     {
       "id": "authored:readWrite4Digit:30d",
@@ -1270,6 +1583,12 @@
       ],
       "boardAtStart": "the digit picker 1 · 3 · 6 · 4",
       "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "over",
+          "args": {}
+        },
         {
           "sentenceIndex": 0,
           "primitive": "digitPicker",
@@ -1306,14 +1625,25 @@
               4
             ]
           }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "your_turn",
+          "args": {
+            "answerMode": "build",
+            "surface": "picker"
+          }
         }
       ],
       "child": {
         "kind": "answer",
-        "via": "tap digits on the picker, or say the number",
-        "expects": "any arrangement of 1,3,6,4"
+        "via": "tap digits on the picker",
+        "expects": "any arrangement of 1,3,6,4",
+        "answerMode": "build",
+        "surface": "picker"
       },
-      "sees": "The digit picker 1 · 3 · 6 · 4; digit tiles 1 · 3 · 6 · 4 — they answer via tap digits on the picker, or say the number."
+      "sees": "The digit picker 1 · 3 · 6 · 4; digit tiles 1 · 3 · 6 · 4 — they answer via tap digits on the picker."
     },
     {
       "id": "authored:readWrite4Digit:30f",
@@ -1326,6 +1656,12 @@
       ],
       "boardAtStart": "the digit picker 1 · 3 · 6 · 4",
       "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "over",
+          "args": {}
+        },
         {
           "sentenceIndex": 0,
           "primitive": "digitPicker",
@@ -1344,11 +1680,11 @@
       "concept": "readWrite4Digit",
       "type": "CHECK_MY_WORK",
       "pause": "ASK",
-      "line": "ඔන්න පුතේ, මම අසූ හතර කියන සංඛ්‍යාව වෙන් කරලා ලිව්වා. ඒත් මගේ වැඩේ පොඩි වැරැද්දක් වුණා වගේ. මට උදව්වක් විදිහට ඒ වැරැද්ද හොයලා කියන්න පුළුවන්ද?",
+      "line": "ඔන්න පුතේ, මම අසූ හතර කියන සංඛ්‍යාව වෙන් කරලා ලිව්වා. ඒත් මගේ වැඩේ පොඩි වැරැද්දක් වුණා වගේ. මට උදව්වක් විදිහට ඒ වැරැද්ද හොයලා කියන්න හෝ තෝරන්න පුළුවන්ද?",
       "sentences": [
         "ඔන්න පුතේ, මම අසූ හතර කියන සංඛ්‍යාව වෙන් කරලා ලිව්වා.",
         "ඒත් මගේ වැඩේ පොඩි වැරැද්දක් වුණා වගේ.",
-        "මට උදව්වක් විදිහට ඒ වැරැද්ද හොයලා කියන්න පුළුවන්ද?"
+        "මට උදව්වක් විදිහට ඒ වැරැද්ද හොයලා කියන්න හෝ තෝරන්න පුළුවන්ද?"
       ],
       "boardAtStart": "the digit picker 1 · 3 · 6 · 4",
       "events": [
@@ -1369,14 +1705,38 @@
               "number": 84
             }
           }
+        },
+        {
+          "sentenceIndex": 2,
+          "primitive": "turn",
+          "event": "your_turn",
+          "args": {
+            "answerMode": "why",
+            "surface": "chips"
+          }
+        },
+        {
+          "sentenceIndex": 2,
+          "primitive": "choiceChips",
+          "event": "show",
+          "args": {
+            "options": [
+              "අටේ අගය අසූවයි, අට නෙවෙයි",
+              "අසූ හතර හරියටම හරි",
+              "හතරේ අගය හතළිහයි"
+            ],
+            "correctIndex": 0
+          }
         }
       ],
       "child": {
         "kind": "find the mistake",
-        "via": "voice",
-        "expects": "අටට බිංදුවක් දාලා නෑ"
+        "via": "tap one of 3 findings",
+        "expects": "අටට බිංදුවක් දාලා නෑ",
+        "answerMode": "why",
+        "surface": "chips"
       },
-      "sees": "Chalk \"84 = 8 + 4\"; \"84 = 8 + 4\" is written — they answer via voice."
+      "sees": "The digit picker 1 · 3 · 6 · 4 with chalk \"84 = 8 + 4\"; \"84 = 8 + 4\" is written — they answer via tap one of 3 findings."
     },
     {
       "id": "authored:readWrite4Digit:31a",
@@ -1388,14 +1748,30 @@
         "වැරැද්ද තමයි අටට බිංදුවක් නොදැමීම.",
         "ඒක අසූව විය යුතුයි — අසූ හතර කියන්නේ අසූවයි හතරයි."
       ],
-      "boardAtStart": "chalk \"84 = 8 + 4\"",
+      "boardAtStart": "the digit picker 1 · 3 · 6 · 4 with chalk \"84 = 8 + 4\"",
       "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "over",
+          "args": {}
+        },
         {
           "sentenceIndex": 0,
           "primitive": "chalkText",
           "event": "write",
           "args": {
             "text": "84 = 80 + 4"
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "number": 8
+            }
           }
         },
         {
@@ -1410,7 +1786,7 @@
         }
       ],
       "child": null,
-      "sees": "Chalk \"84 = 80 + 4\"; \"84 = 80 + 4\" is written."
+      "sees": "The digit picker 1 · 3 · 6 · 4 with chalk \"84 = 80 + 4\"; \"84 = 80 + 4\" is written."
     },
     {
       "id": "authored:readWrite4Digit:31b",
@@ -1421,14 +1797,15 @@
       "sentences": [
         "දැන් අපි ලොකු සංඛ්‍යා ගැන බලමු."
       ],
-      "boardAtStart": "chalk \"84 = 80 + 4\"",
+      "boardAtStart": "the digit picker 1 · 3 · 6 · 4 with chalk \"84 = 80 + 4\"",
       "events": [
         {
           "sentenceIndex": 0,
           "primitive": "titleCard",
           "event": "show",
           "args": {
-            "title": "ස්ථානීය අගය"
+            "title": "ස්ථානීය අගය",
+            "emoji": "🧮"
           }
         }
       ],
@@ -1563,15 +1940,11 @@
           "primitive": "abacus",
           "event": "rod_glow",
           "args": {
-            "rod": 1
-          }
-        },
-        {
-          "sentenceIndex": 0,
-          "primitive": "abacus",
-          "event": "rod_glow",
-          "args": {
-            "rod": 2
+            "rod": 1,
+            "rods": [
+              1,
+              2
+            ]
           }
         },
         {
@@ -1584,7 +1957,7 @@
         }
       ],
       "child": null,
-      "sees": "The abacus, rods bare; the සි rod glows; the ද rod glows; the දා rod glows."
+      "sees": "The abacus, rods bare; the සි and ද rods glow together; the දා rod glows."
     },
     {
       "id": "authored:placeValue4Digit:37",
@@ -1596,12 +1969,23 @@
         "එතකොට කූරු හතරේ පිළිවෙළ ඔයාට මතක හිටියා නේද පුතේ?"
       ],
       "boardAtStart": "the abacus, rods bare",
-      "events": [],
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "pause",
+          "args": {
+            "ms": 2000
+          }
+        }
+      ],
       "child": {
         "kind": "soft check",
-        "via": "mic open 5s; any reply acknowledged after 1.2s of quiet; silence flows on"
+        "via": "a 2 s pause while she reacts; a tap counts as engagement; no mic, no acknowledgement clip",
+        "answerMode": "valueOrPlace",
+        "surface": "pause"
       },
-      "sees": "The abacus, rods bare — the mic opens briefly."
+      "sees": "The abacus, rods bare — a 2 s pause while she reacts; a tap counts as engagement; no mic, no acknowledgement clip."
     },
     {
       "id": "authored:placeValue4Digit:38",
@@ -1614,6 +1998,12 @@
       ],
       "boardAtStart": "the abacus, rods bare",
       "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "over",
+          "args": {}
+        },
         {
           "sentenceIndex": 0,
           "primitive": "pointer",
@@ -1726,20 +2116,16 @@
           "primitive": "abacus",
           "event": "rod_glow",
           "args": {
-            "rod": 2
-          }
-        },
-        {
-          "sentenceIndex": 0,
-          "primitive": "abacus",
-          "event": "rod_glow",
-          "args": {
-            "rod": 3
+            "rod": 2,
+            "rods": [
+              2,
+              3
+            ]
           }
         }
       ],
       "child": null,
-      "sees": "The abacus showing 5 421; 2 bead(s) drop onto the ද rod; 1 bead(s) drop onto the එ rod; the ද rod glows; the එ rod glows."
+      "sees": "The abacus showing 5 421; 2 bead(s) drop onto the ද rod; 1 bead(s) drop onto the එ rod; the ද and එ rods glow together."
     },
     {
       "id": "authored:placeValue4Digit:42",
@@ -1807,14 +2193,38 @@
           "args": {
             "rod": 3
           }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "your_turn",
+          "args": {
+            "answerMode": "valueOrPlace",
+            "surface": "rod"
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "choiceChips",
+          "event": "show",
+          "args": {
+            "options": [
+              "0",
+              "2",
+              "1"
+            ],
+            "correctIndex": 2
+          }
         }
       ],
       "child": {
         "kind": "answer",
-        "via": "voice",
-        "expects": "එක"
+        "via": "tap the rod, or tap one of 3 chips",
+        "expects": "එක",
+        "answerMode": "valueOrPlace",
+        "surface": "rod"
       },
-      "sees": "The abacus showing 5 421; the එ rod glows — they answer via voice."
+      "sees": "The abacus showing 5 421; the එ rod glows — they answer via tap the rod, or tap one of 3 chips."
     },
     {
       "id": "authored:placeValue4Digit:45",
@@ -1827,6 +2237,12 @@
       ],
       "boardAtStart": "the abacus showing 5 421",
       "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "over",
+          "args": {}
+        },
         {
           "sentenceIndex": 0,
           "primitive": "abacus",
@@ -1877,9 +2293,9 @@
       "concept": "placeValue4Digit",
       "type": "ASK",
       "pause": "ASK",
-      "line": "සියයස්ථානයේ තියෙන පබළු ගණන කියන්න පුළුවන්ද?",
+      "line": "සියයස්ථානයේ තියෙන පබළු ගණන කියන්න හෝ තෝරන්න පුළුවන්ද?",
       "sentences": [
-        "සියයස්ථානයේ තියෙන පබළු ගණන කියන්න පුළුවන්ද?"
+        "සියයස්ථානයේ තියෙන පබළු ගණන කියන්න හෝ තෝරන්න පුළුවන්ද?"
       ],
       "boardAtStart": "the abacus showing 5 421",
       "events": [
@@ -1890,14 +2306,38 @@
           "args": {
             "rod": 1
           }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "your_turn",
+          "args": {
+            "answerMode": "valueOrPlace",
+            "surface": "rod"
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "choiceChips",
+          "event": "show",
+          "args": {
+            "options": [
+              "4",
+              "3",
+              "5"
+            ],
+            "correctIndex": 0
+          }
         }
       ],
       "child": {
         "kind": "answer",
-        "via": "voice",
-        "expects": "හතර"
+        "via": "tap the rod, or tap one of 3 chips",
+        "expects": "හතර",
+        "answerMode": "valueOrPlace",
+        "surface": "rod"
       },
-      "sees": "The abacus showing 5 421; the සි rod glows — they answer via voice."
+      "sees": "The abacus showing 5 421; the සි rod glows — they answer via tap the rod, or tap one of 3 chips."
     },
     {
       "id": "authored:placeValue4Digit:49",
@@ -1910,6 +2350,12 @@
       ],
       "boardAtStart": "the abacus showing 5 421",
       "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "over",
+          "args": {}
+        },
         {
           "sentenceIndex": 0,
           "primitive": "abacus",
@@ -2006,12 +2452,23 @@
         "ස්ථානය අනුව අගය වෙනස් වෙන හැටි පැහැදිලියි නේද පුතේ?"
       ],
       "boardAtStart": "the place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003",
-      "events": [],
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "pause",
+          "args": {
+            "ms": 2000
+          }
+        }
+      ],
       "child": {
         "kind": "soft check",
-        "via": "mic open 5s; any reply acknowledged after 1.2s of quiet; silence flows on"
+        "via": "a 2 s pause while she reacts; a tap counts as engagement; no mic, no acknowledgement clip",
+        "answerMode": "valueOrPlace",
+        "surface": "pause"
       },
-      "sees": "The place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003 — the mic opens briefly."
+      "sees": "The place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003 — a 2 s pause while she reacts; a tap counts as engagement; no mic, no acknowledgement clip."
     },
     {
       "id": "authored:placeValue4Digit:54",
@@ -2134,20 +2591,16 @@
           "primitive": "abacus",
           "event": "rod_glow",
           "args": {
-            "rod": 2
-          }
-        },
-        {
-          "sentenceIndex": 1,
-          "primitive": "abacus",
-          "event": "rod_glow",
-          "args": {
-            "rod": 3
+            "rod": 2,
+            "rods": [
+              2,
+              3
+            ]
           }
         }
       ],
       "child": null,
-      "sees": "The abacus showing 5 421; the සි rod glows; the ද rod glows; the එ rod glows."
+      "sees": "The abacus showing 5 421; the සි rod glows; the ද and එ rods glow together."
     },
     {
       "id": "authored:placeValue4Digit:58",
@@ -2179,14 +2632,56 @@
               "text": "abacus"
             }
           }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "pause",
+          "args": {
+            "ms": 3000,
+            "cue": "mic",
+            "number": 5421
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "read_back",
+          "args": {
+            "number": 5421
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "your_turn",
+          "args": {
+            "answerMode": "readAloud",
+            "surface": "chips"
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "choiceChips",
+          "event": "show",
+          "args": {
+            "options": [
+              "පන්දහස් හාරසිය විසි එක",
+              "පන්දහස් දෙසිය හතළිස් එක",
+              "පන්දහස් හාරසිය දොළහ"
+            ],
+            "correctIndex": 0
+          }
         }
       ],
       "child": {
         "kind": "answer",
-        "via": "voice",
-        "expects": "පන්දහස් හාරසිය විසි එක"
+        "via": "3 s to say it (🎤 cue, nothing recorded) → Zara reads it → tap one of 3 name-chips",
+        "expects": "පන්දහස් හාරසිය විසි එක",
+        "answerMode": "readAloud",
+        "surface": "chips"
       },
-      "sees": "The abacus showing 5 421; a chalk ring around 5 421 — they answer via voice."
+      "sees": "The abacus showing 5 421; a chalk ring around 5 421 — they answer via 3 s to say it (🎤 cue, nothing recorded) → Zara reads it → tap one of 3 name-chips."
     },
     {
       "id": "authored:placeValue4Digit:59",
@@ -2199,6 +2694,12 @@
       ],
       "boardAtStart": "the abacus showing 5 421",
       "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "over",
+          "args": {}
+        },
         {
           "sentenceIndex": 0,
           "primitive": "chalkText",
@@ -2219,7 +2720,7 @@
         }
       ],
       "child": null,
-      "sees": "Chalk \"5 421 - පන්දහස් හාරසිය විසි එක\"; \"5 421 - පන්දහස් හාරසිය විසි එක\" is written."
+      "sees": "The abacus showing 5 421 with chalk \"5 421 - පන්දහස් හාරසිය විසි එක\"; \"5 421 - පන්දහස් හාරසිය විසි එක\" is written."
     },
     {
       "id": "authored:placeValue4Digit:60",
@@ -2230,7 +2731,7 @@
       "sentences": [
         "අපි මේ සංඛ්‍යාව අකුරෙන් ලියන්නේ පන්දහස් හාරසිය විසි එක කියලයි."
       ],
-      "boardAtStart": "chalk \"5 421 - පන්දහස් හාරසිය විසි එක\"",
+      "boardAtStart": "the abacus showing 5 421 with chalk \"5 421 - පන්දහස් හාරසිය විසි එක\"",
       "events": [
         {
           "sentenceIndex": 0,
@@ -2241,13 +2742,23 @@
               "number": 5421
             }
           }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "pause",
+          "args": {
+            "ms": 2000
+          }
         }
       ],
       "child": {
         "kind": "soft check",
-        "via": "mic open 5s; any reply acknowledged after 1.2s of quiet; silence flows on"
+        "via": "a 2 s pause while she reacts; a tap counts as engagement; no mic, no acknowledgement clip",
+        "answerMode": "readAloud",
+        "surface": "pause"
       },
-      "sees": "Chalk \"5 421 - පන්දහස් හාරසිය විසි එක\" — the mic opens briefly."
+      "sees": "The abacus showing 5 421 with chalk \"5 421 - පන්දහස් හාරසිය විසි එක\" — a 2 s pause while she reacts; a tap counts as engagement; no mic, no acknowledgement clip."
     },
     {
       "id": "authored:placeValue4Digit:61",
@@ -2258,7 +2769,7 @@
       "sentences": [
         "දැන් අපි තවත් අලුත් සංඛ්‍යාවක් ගණක රාමුවේ බලමුකෝ."
       ],
-      "boardAtStart": "chalk \"5 421 - පන්දහස් හාරසිය විසි එක\"",
+      "boardAtStart": "the abacus showing 5 421 with chalk \"5 421 - පන්දහස් හාරසිය විසි එක\"",
       "events": [
         {
           "sentenceIndex": 0,
@@ -2309,14 +2820,56 @@
               "text": "abacus"
             }
           }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "pause",
+          "args": {
+            "ms": 3000,
+            "cue": "mic",
+            "number": 6831
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "read_back",
+          "args": {
+            "number": 6831
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "your_turn",
+          "args": {
+            "answerMode": "readAloud",
+            "surface": "chips"
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "choiceChips",
+          "event": "show",
+          "args": {
+            "options": [
+              "හයදහස් තුන්සිය අසූ එක",
+              "හයදහස් අටසිය තිස් එක",
+              "හයදහස් අටසිය දහතුන"
+            ],
+            "correctIndex": 1
+          }
         }
       ],
       "child": {
         "kind": "answer",
-        "via": "voice",
-        "expects": "හයදහස් අටසිය තිස් එක"
+        "via": "3 s to say it (🎤 cue, nothing recorded) → Zara reads it → tap one of 3 name-chips",
+        "expects": "හයදහස් අටසිය තිස් එක",
+        "answerMode": "readAloud",
+        "surface": "chips"
       },
-      "sees": "The abacus showing 6 831 — they answer via voice."
+      "sees": "The abacus showing 6 831 — they answer via 3 s to say it (🎤 cue, nothing recorded) → Zara reads it → tap one of 3 name-chips."
     },
     {
       "id": "authored:placeValue4Digit:63",
@@ -2330,6 +2883,12 @@
       ],
       "boardAtStart": "the abacus showing 6 831",
       "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "over",
+          "args": {}
+        },
         {
           "sentenceIndex": 0,
           "primitive": "chalkText",
@@ -2350,7 +2909,7 @@
         }
       ],
       "child": null,
-      "sees": "Chalk \"6 831 - හයදහස් අටසිය තිස් එක\"; \"6 831 - හයදහස් අටසිය තිස් එක\" is written."
+      "sees": "The abacus showing 6 831 with chalk \"6 831 - හයදහස් අටසිය තිස් එක\"; \"6 831 - හයදහස් අටසිය තිස් එක\" is written."
     },
     {
       "id": "authored:placeValue4Digit:64",
@@ -2361,7 +2920,7 @@
       "sentences": [
         "දැන් අපි කලින් ගත්තු පන්දහස් හාරසිය විසි එක විහිදුවා ලියමු, පුතේ."
       ],
-      "boardAtStart": "chalk \"6 831 - හයදහස් අටසිය තිස් එක\"",
+      "boardAtStart": "the abacus showing 6 831 with chalk \"6 831 - හයදහස් අටසිය තිස් එක\"",
       "events": [
         {
           "sentenceIndex": 0,
@@ -2443,14 +3002,38 @@
               "rod": 0
             }
           }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "your_turn",
+          "args": {
+            "answerMode": "valueOrPlace",
+            "surface": "rod"
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "choiceChips",
+          "event": "show",
+          "args": {
+            "options": [
+              "5000",
+              "500",
+              "5"
+            ],
+            "correctIndex": 0
+          }
         }
       ],
       "child": {
         "kind": "answer",
-        "via": "voice",
-        "expects": "පන්දහස"
+        "via": "tap the rod, or tap one of 3 chips",
+        "expects": "පන්දහස",
+        "answerMode": "valueOrPlace",
+        "surface": "rod"
       },
-      "sees": "The abacus showing 5 421 — they answer via voice."
+      "sees": "The abacus showing 5 421 — they answer via tap the rod, or tap one of 3 chips."
     },
     {
       "id": "authored:placeValue4Digit:67",
@@ -2465,25 +3048,45 @@
       "events": [
         {
           "sentenceIndex": 0,
-          "primitive": "chalkText",
-          "event": "write",
+          "primitive": "turn",
+          "event": "over",
+          "args": {}
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "expansion",
+          "event": "show",
           "args": {
-            "text": "5 421 = 5000 +"
+            "number": 5421,
+            "parts": [
+              null,
+              null,
+              null,
+              null
+            ]
           }
         },
         {
           "sentenceIndex": 0,
-          "primitive": "pointer",
-          "event": "move_to",
+          "primitive": "expansion",
+          "event": "part_fly",
           "args": {
-            "target": {
-              "number": 5000
-            }
+            "fromRod": 0,
+            "index": 0
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "expansion",
+          "event": "part_reveal",
+          "args": {
+            "index": 0,
+            "value": "5000"
           }
         }
       ],
       "child": null,
-      "sees": "Chalk \"5 421 = 5000 +\"; \"5 421 = 5000 +\" is written."
+      "sees": "The abacus showing 5 421 with its expansion beneath (5000 + ▢ + ▢ + ▢); 5 421 = ▢ + ▢ + ▢ + ▢; the value flies from rod දා into slot 0; 5000 is written into slot 0."
     },
     {
       "id": "authored:placeValue4Digit:68",
@@ -2494,21 +3097,39 @@
       "sentences": [
         "සියයස්ථානයේ තියෙන්නේ හතරක්, ඒ නිසා අගය හාරසියයයි."
       ],
-      "boardAtStart": "chalk \"5 421 = 5000 +\"",
+      "boardAtStart": "the abacus showing 5 421 with its expansion beneath (5000 + ▢ + ▢ + ▢)",
       "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "expansion",
+          "event": "part_fly",
+          "args": {
+            "fromRod": 1,
+            "index": 1
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "expansion",
+          "event": "part_reveal",
+          "args": {
+            "index": 1,
+            "value": "400"
+          }
+        },
         {
           "sentenceIndex": 0,
           "primitive": "pointer",
           "event": "move_to",
           "args": {
             "target": {
-              "text": "5 421 = 5000 +"
+              "rod": 1
             }
           }
         }
       ],
       "child": null,
-      "sees": "Chalk \"5 421 = 5000 +\"."
+      "sees": "The abacus showing 5 421 with its expansion beneath (5000 + ▢ + ▢ + ▢); the value flies from rod සි into slot 1; 400 is written into slot 1."
     },
     {
       "id": "authored:placeValue4Digit:70",
@@ -2519,14 +3140,57 @@
       "sentences": [
         "ඊළඟට දහයස්ථානයේ තියෙන දෙකෙන් ලැබෙන අගය කීයද?"
       ],
-      "boardAtStart": "chalk \"5 421 = 5000 +\"",
-      "events": [],
+      "boardAtStart": "the abacus showing 5 421 with its expansion beneath (5000 + ▢ + ▢ + ▢)",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "abacus",
+          "event": "rod_glow",
+          "args": {
+            "rod": 2
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "rod": 2
+            }
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "your_turn",
+          "args": {
+            "answerMode": "valueOrPlace",
+            "surface": "rod"
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "choiceChips",
+          "event": "show",
+          "args": {
+            "options": [
+              "200",
+              "20",
+              "2"
+            ],
+            "correctIndex": 1
+          }
+        }
+      ],
       "child": {
         "kind": "answer",
-        "via": "voice",
-        "expects": "විස්ස"
+        "via": "tap the rod, or tap one of 3 chips",
+        "expects": "විස්ස",
+        "answerMode": "valueOrPlace",
+        "surface": "rod"
       },
-      "sees": "Chalk \"5 421 = 5000 +\" — they answer via voice."
+      "sees": "The abacus showing 5 421 with its expansion beneath (5000 + ▢ + ▢ + ▢); the ද rod glows — they answer via tap the rod, or tap one of 3 chips."
     },
     {
       "id": "authored:placeValue4Digit:71",
@@ -2537,30 +3201,35 @@
       "sentences": [
         "දහයස්ථානයේ දෙකේ අගය විස්සයි."
       ],
-      "boardAtStart": "chalk \"5 421 = 5000 +\"",
+      "boardAtStart": "the abacus showing 5 421 with its expansion beneath (5000 + ▢ + ▢ + ▢)",
       "events": [
         {
           "sentenceIndex": 0,
-          "primitive": "chalkText",
-          "event": "write",
+          "primitive": "turn",
+          "event": "over",
+          "args": {}
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "expansion",
+          "event": "part_fly",
           "args": {
-            "text": "5 421 = 5000 + 400 + 20 +",
-            "append": "400 + 20 +"
+            "fromRod": 2,
+            "index": 2
           }
         },
         {
           "sentenceIndex": 0,
-          "primitive": "pointer",
-          "event": "move_to",
+          "primitive": "expansion",
+          "event": "part_reveal",
           "args": {
-            "target": {
-              "number": 20
-            }
+            "index": 2,
+            "value": "20"
           }
         }
       ],
       "child": null,
-      "sees": "Chalk \"5 421 = 5000 + 400 + 20 +\"; \"400 + 20 +\" is written on, making \"5 421 = 5000 + 400 + 20 +\"."
+      "sees": "The abacus showing 5 421 with its expansion beneath (5000 + 400 + 20 + ▢); the value flies from rod ද into slot 2; 20 is written into slot 2; the ද rod glows."
     },
     {
       "id": "authored:placeValue4Digit:72",
@@ -2571,10 +3240,29 @@
       "sentences": [
         "අන්තිමට එකස්ථානයේ තියෙන්නේ එකක්, ඒ නිසා ලැබෙන්නේ එකමයි."
       ],
-      "boardAtStart": "chalk \"5 421 = 5000 + 400 + 20 +\"",
-      "events": [],
+      "boardAtStart": "the abacus showing 5 421 with its expansion beneath (5000 + 400 + 20 + ▢)",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "expansion",
+          "event": "part_fly",
+          "args": {
+            "fromRod": 3,
+            "index": 3
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "expansion",
+          "event": "part_reveal",
+          "args": {
+            "index": 3,
+            "value": "1"
+          }
+        }
+      ],
       "child": null,
-      "sees": "Chalk \"5 421 = 5000 + 400 + 20 +\"."
+      "sees": "The abacus showing 5 421 with its expansion beneath (5000 + 400 + 20 + ▢); the value flies from rod එ into slot 3; 1 is written into slot 3; the එ rod glows."
     },
     {
       "id": "authored:placeValue4Digit:74",
@@ -2585,7 +3273,7 @@
       "sentences": [
         "මේ විදියට එකතු කිරීමක් ලෙස ලිවීමට තමයි විහිදුවා ලියනවා කියන්නේ, පැහැදිලියි නේද පුතේ?"
       ],
-      "boardAtStart": "chalk \"5 421 = 5000 + 400 + 20 +\"",
+      "boardAtStart": "the abacus showing 5 421 with its expansion beneath (5000 + 400 + 20 + ▢)",
       "events": [
         {
           "sentenceIndex": 0,
@@ -2596,13 +3284,23 @@
               "text": "විහිදුවා"
             }
           }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "pause",
+          "args": {
+            "ms": 2000
+          }
         }
       ],
       "child": {
         "kind": "soft check",
-        "via": "mic open 5s; any reply acknowledged after 1.2s of quiet; silence flows on"
+        "via": "a 2 s pause while she reacts; a tap counts as engagement; no mic, no acknowledgement clip",
+        "answerMode": "valueOrPlace",
+        "surface": "pause"
       },
-      "sees": "Chalk \"5 421 = 5000 + 400 + 20 +\" — the mic opens briefly."
+      "sees": "The abacus showing 5 421 with its expansion beneath (5000 + 400 + 20 + ▢) — a 2 s pause while she reacts; a tap counts as engagement; no mic, no acknowledgement clip."
     },
     {
       "id": "authored:placeValue4Digit:75",
@@ -2613,7 +3311,7 @@
       "sentences": [
         "අපි දැන් තවත් සංඛ්‍යාවක් ගණක රාමුවෙන් පෙන්වලා බලමු පුතේ."
       ],
-      "boardAtStart": "chalk \"5 421 = 5000 + 400 + 20 +\"",
+      "boardAtStart": "the abacus showing 5 421 with its expansion beneath (5000 + 400 + 20 + ▢)",
       "events": [
         {
           "sentenceIndex": 0,
@@ -2672,13 +3370,22 @@
               "rod": 0
             }
           }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "pause",
+          "args": {
+            "ms": 2000
+          }
         }
       ],
       "child": {
         "kind": "soft check",
-        "via": "mic open 5s; any reply acknowledged after 1.2s of quiet; silence flows on"
+        "via": "a 2 s pause while she reacts; a tap counts as engagement; no mic, no acknowledgement clip",
+        "surface": "pause"
       },
-      "sees": "The abacus showing 7 062; the දා rod glows — the mic opens briefly."
+      "sees": "The abacus showing 7 062; the දා rod glows — a 2 s pause while she reacts; a tap counts as engagement; no mic, no acknowledgement clip."
     },
     {
       "id": "authored:placeValue4Digit:77",
@@ -2693,25 +3400,45 @@
       "events": [
         {
           "sentenceIndex": 0,
-          "primitive": "textCard",
+          "primitive": "turn",
+          "event": "over",
+          "args": {}
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "expansion",
           "event": "show",
           "args": {
-            "text": "7000"
+            "number": 7062,
+            "parts": [
+              null,
+              null,
+              null,
+              null
+            ]
           }
         },
         {
           "sentenceIndex": 0,
-          "primitive": "pointer",
-          "event": "move_to",
+          "primitive": "expansion",
+          "event": "part_fly",
           "args": {
-            "target": {
-              "number": 7000
-            }
+            "fromRod": 0,
+            "index": 0
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "expansion",
+          "event": "part_reveal",
+          "args": {
+            "index": 0,
+            "value": "7000"
           }
         }
       ],
       "child": null,
-      "sees": "Card \"7000\"; card \"7000\"."
+      "sees": "The abacus showing 7 062 with its expansion beneath (7000 + ▢ + ▢ + ▢); 7 062 = ▢ + ▢ + ▢ + ▢; the value flies from rod දා into slot 0; 7000 is written into slot 0."
     },
     {
       "id": "authored:placeValue4Digit:78",
@@ -2722,10 +3449,19 @@
       "sentences": [
         "ඊළඟට තියෙන සියයස්ථානයේ කූර දිහා හොඳින් බලන්නකෝ."
       ],
-      "boardAtStart": "card \"7000\"",
-      "events": [],
+      "boardAtStart": "the abacus showing 7 062 with its expansion beneath (7000 + ▢ + ▢ + ▢)",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "abacus",
+          "event": "rod_glow",
+          "args": {
+            "rod": 1
+          }
+        }
+      ],
       "child": null,
-      "sees": "Card \"7000\"."
+      "sees": "The abacus showing 7 062 with its expansion beneath (7000 + ▢ + ▢ + ▢); the සි rod glows."
     },
     {
       "id": "authored:placeValue4Digit:79",
@@ -2736,7 +3472,7 @@
       "sentences": [
         "එතන පබළු කීයක් දකින්න තියෙනවද?"
       ],
-      "boardAtStart": "card \"7000\"",
+      "boardAtStart": "the abacus showing 7 062 with its expansion beneath (7000 + ▢ + ▢ + ▢)",
       "events": [
         {
           "sentenceIndex": 0,
@@ -2744,17 +3480,41 @@
           "event": "move_to",
           "args": {
             "target": {
-              "text": "7000"
+              "text": "abacus"
             }
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "your_turn",
+          "args": {
+            "answerMode": "valueOrPlace",
+            "surface": "rod"
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "choiceChips",
+          "event": "show",
+          "args": {
+            "options": [
+              "2",
+              "0",
+              "1"
+            ],
+            "correctIndex": 1
           }
         }
       ],
       "child": {
         "kind": "answer",
-        "via": "voice",
-        "expects": "බිංදුව"
+        "via": "tap the rod, or tap one of 3 chips",
+        "expects": "බිංදුව",
+        "answerMode": "valueOrPlace",
+        "surface": "rod"
       },
-      "sees": "Card \"7000\" — they answer via voice."
+      "sees": "The abacus showing 7 062 with its expansion beneath (7000 + ▢ + ▢ + ▢) — they answer via tap the rod, or tap one of 3 chips."
     },
     {
       "id": "authored:placeValue4Digit:80",
@@ -2766,15 +3526,29 @@
         "කූරේ කිසිම පබළුවක් නෑ.",
         "ඒ නිසා එතන අගය බිංදුවයි."
       ],
-      "boardAtStart": "card \"7000\"",
+      "boardAtStart": "the abacus showing 7 062 with its expansion beneath (7000 + ▢ + ▢ + ▢)",
       "events": [
         {
           "sentenceIndex": 0,
-          "primitive": "chalkText",
-          "event": "write",
+          "primitive": "turn",
+          "event": "over",
+          "args": {}
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "abacus",
+          "event": "rod_glow",
           "args": {
-            "text": "7000 + 0",
-            "append": "+ 0"
+            "rod": 1
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "expansion",
+          "event": "part_reveal",
+          "args": {
+            "index": 1,
+            "value": "0"
           }
         },
         {
@@ -2783,13 +3557,13 @@
           "event": "move_to",
           "args": {
             "target": {
-              "number": 0
+              "rod": 1
             }
           }
         }
       ],
       "child": null,
-      "sees": "Chalk \"7000 + 0\"; \"+ 0\" is written on, making \"7000 + 0\"."
+      "sees": "The abacus showing 7 062 with its expansion beneath (7000 + 0 + ▢ + ▢); the සි rod glows; 0 is written into slot 1."
     },
     {
       "id": "authored:placeValue4Digit:81",
@@ -2801,15 +3575,34 @@
         "දහයස්ථානයේ කූර දිහා බැලුවොත් අපට පබළු හයක් පේනවා.",
         "එකකින් දහයක් පෙන්වන නිසා එතනින් හැටක් හැදෙනවා."
       ],
-      "boardAtStart": "chalk \"7000 + 0\"",
+      "boardAtStart": "the abacus showing 7 062 with its expansion beneath (7000 + 0 + ▢ + ▢)",
       "events": [
         {
           "sentenceIndex": 0,
-          "primitive": "chalkText",
-          "event": "write",
+          "primitive": "expansion",
+          "event": "part_fly",
           "args": {
-            "text": "7000 + 0 + 60",
-            "append": "+ 60"
+            "fromRod": 2,
+            "index": 2
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "expansion",
+          "event": "part_reveal",
+          "args": {
+            "index": 2,
+            "value": "60"
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "rod": 2
+            }
           }
         },
         {
@@ -2818,13 +3611,13 @@
           "event": "move_to",
           "args": {
             "target": {
-              "number": 60
+              "rod": 2
             }
           }
         }
       ],
       "child": null,
-      "sees": "Chalk \"7000 + 0 + 60\"; \"+ 60\" is written on, making \"7000 + 0 + 60\"."
+      "sees": "The abacus showing 7 062 with its expansion beneath (7000 + 0 + 60 + ▢); the value flies from rod ද into slot 2; 60 is written into slot 2; the ද rod glows."
     },
     {
       "id": "authored:placeValue4Digit:82",
@@ -2836,13 +3629,40 @@
         "අවසාන කූරේ, ඒ කියන්නේ එකස්ථානයේ තියෙන්නේ පබළු දෙකයි.",
         "එකස්ථානයේ ඒ පබළු දෙකෙන් හැදෙන අගය කීයද පුතේ?"
       ],
-      "boardAtStart": "chalk \"7000 + 0 + 60\"",
-      "events": [],
+      "boardAtStart": "the abacus showing 7 062 with its expansion beneath (7000 + 0 + 60 + ▢)",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "abacus",
+          "event": "rod_glow",
+          "args": {
+            "rod": 3
+          }
+        },
+        {
+          "sentenceIndex": 1,
+          "primitive": "abacus",
+          "event": "rod_glow",
+          "args": {
+            "rod": 3
+          }
+        },
+        {
+          "sentenceIndex": 1,
+          "primitive": "turn",
+          "event": "pause",
+          "args": {
+            "ms": 2000
+          }
+        }
+      ],
       "child": {
         "kind": "soft check",
-        "via": "mic open 5s; any reply acknowledged after 1.2s of quiet; silence flows on"
+        "via": "a 2 s pause while she reacts; a tap counts as engagement; no mic, no acknowledgement clip",
+        "answerMode": "valueOrPlace",
+        "surface": "pause"
       },
-      "sees": "Chalk \"7000 + 0 + 60\" — the mic opens briefly."
+      "sees": "The abacus showing 7 062 with its expansion beneath (7000 + 0 + 60 + ▢); the එ rod glows; the එ rod glows — a 2 s pause while she reacts; a tap counts as engagement; no mic, no acknowledgement clip."
     },
     {
       "id": "authored:placeValue4Digit:83",
@@ -2853,29 +3673,35 @@
       "sentences": [
         "ඒක දෙකයි."
       ],
-      "boardAtStart": "chalk \"7000 + 0 + 60\"",
+      "boardAtStart": "the abacus showing 7 062 with its expansion beneath (7000 + 0 + 60 + ▢)",
       "events": [
         {
           "sentenceIndex": 0,
-          "primitive": "chalkText",
-          "event": "write",
+          "primitive": "turn",
+          "event": "over",
+          "args": {}
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "expansion",
+          "event": "part_fly",
           "args": {
-            "text": "7062 = 7000 + 0 + 60 + 2"
+            "fromRod": 3,
+            "index": 3
           }
         },
         {
           "sentenceIndex": 0,
-          "primitive": "pointer",
-          "event": "move_to",
+          "primitive": "expansion",
+          "event": "part_reveal",
           "args": {
-            "target": {
-              "number": 2
-            }
+            "index": 3,
+            "value": "2"
           }
         }
       ],
       "child": null,
-      "sees": "Chalk \"7062 = 7000 + 0 + 60 + 2\"; \"7062 = 7000 + 0 + 60 + 2\" is written."
+      "sees": "The abacus showing 7 062 with its expansion beneath (7000 + 0 + 60 + 2); the value flies from rod එ into slot 3; 2 is written into slot 3; the එ rod glows."
     },
     {
       "id": "authored:placeValue4Digit:84",
@@ -2886,7 +3712,7 @@
       "sentences": [
         "එහෙනම් මේ මුළු සංඛ්‍යාව හත්දහස් හැට දෙකයි, අපි එය දිගහැරලා ලිව්වා නේද?"
       ],
-      "boardAtStart": "chalk \"7062 = 7000 + 0 + 60 + 2\"",
+      "boardAtStart": "the abacus showing 7 062 with its expansion beneath (7000 + 0 + 60 + 2)",
       "events": [
         {
           "sentenceIndex": 0,
@@ -2897,13 +3723,22 @@
               "number": 7062
             }
           }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "pause",
+          "args": {
+            "ms": 2000
+          }
         }
       ],
       "child": {
         "kind": "soft check",
-        "via": "mic open 5s; any reply acknowledged after 1.2s of quiet; silence flows on"
+        "via": "a 2 s pause while she reacts; a tap counts as engagement; no mic, no acknowledgement clip",
+        "surface": "pause"
       },
-      "sees": "Chalk \"7062 = 7000 + 0 + 60 + 2\" — the mic opens briefly."
+      "sees": "The abacus showing 7 062 with its expansion beneath (7000 + 0 + 60 + 2) — a 2 s pause while she reacts; a tap counts as engagement; no mic, no acknowledgement clip."
     },
     {
       "id": "authored:placeValue4Digit:85",
@@ -2914,7 +3749,7 @@
       "sentences": [
         "ඔන්න පුතේ, මම ඔයාට ඉලක්කම් කාඩ්පත් හතරක් දෙනවා — එක, තුන, අට, හය."
       ],
-      "boardAtStart": "chalk \"7062 = 7000 + 0 + 60 + 2\"",
+      "boardAtStart": "the abacus showing 7 062 with its expansion beneath (7000 + 0 + 60 + 2)",
       "events": [
         {
           "sentenceIndex": 0,
@@ -3012,14 +3847,38 @@
               "place": "දා"
             }
           }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "your_turn",
+          "args": {
+            "answerMode": "valueOrPlace",
+            "surface": "chips"
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "choiceChips",
+          "event": "show",
+          "args": {
+            "options": [
+              "600",
+              "6",
+              "6000"
+            ],
+            "correctIndex": 2
+          }
         }
       ],
       "child": {
         "kind": "answer",
-        "via": "number pad or voice",
-        "expects": "6000"
+        "via": "tap one of 3 chips",
+        "expects": "6000",
+        "answerMode": "valueOrPlace",
+        "surface": "chips"
       },
-      "sees": "Card \"6 831\" — they answer via number pad or voice."
+      "sees": "Card \"6 831\" — they answer via tap one of 3 chips."
     },
     {
       "id": "authored:placeValue4Digit:89",
@@ -3032,6 +3891,12 @@
       ],
       "boardAtStart": "card \"6 831\"",
       "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "over",
+          "args": {}
+        },
         {
           "sentenceIndex": 0,
           "primitive": "chalkText",
@@ -3053,7 +3918,7 @@
         }
       ],
       "child": null,
-      "sees": "Chalk \"6 831 = 6000 + 800 + 30 + 1\"; \"= 6000 + 800 + 30 + 1\" is written on, making \"6 831 = 6000 + 800 + 30 + 1\"."
+      "sees": "Card \"6 831\" with chalk \"6 831 = 6000 + 800 + 30 + 1\"; \"= 6000 + 800 + 30 + 1\" is written on, making \"6 831 = 6000 + 800 + 30 + 1\"."
     },
     {
       "id": "authored:placeValue4Digit:90",
@@ -3064,7 +3929,7 @@
       "sentences": [
         "එතකොට මේක දිගහැරලා ලිව්වාම එන්නේ මේ විදිහට නේද?"
       ],
-      "boardAtStart": "chalk \"6 831 = 6000 + 800 + 30 + 1\"",
+      "boardAtStart": "card \"6 831\" with chalk \"6 831 = 6000 + 800 + 30 + 1\"",
       "events": [
         {
           "sentenceIndex": 0,
@@ -3075,13 +3940,23 @@
               "text": "6 831 = 6000 + 800 + 30 + 1"
             }
           }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "pause",
+          "args": {
+            "ms": 2000
+          }
         }
       ],
       "child": {
         "kind": "soft check",
-        "via": "mic open 5s; any reply acknowledged after 1.2s of quiet; silence flows on"
+        "via": "a 2 s pause while she reacts; a tap counts as engagement; no mic, no acknowledgement clip",
+        "answerMode": "valueOrPlace",
+        "surface": "pause"
       },
-      "sees": "Chalk \"6 831 = 6000 + 800 + 30 + 1\" — the mic opens briefly."
+      "sees": "Card \"6 831\" with chalk \"6 831 = 6000 + 800 + 30 + 1\" — a 2 s pause while she reacts; a tap counts as engagement; no mic, no acknowledgement clip."
     },
     {
       "id": "authored:placeValue4Digit:91",
@@ -3092,7 +3967,7 @@
       "sentences": [
         "තව ක්‍රමයකට හැදුවොත් අපිට අටදහස් හයසිය දහතුන ලැබෙනවා."
       ],
-      "boardAtStart": "chalk \"6 831 = 6000 + 800 + 30 + 1\"",
+      "boardAtStart": "card \"6 831\" with chalk \"6 831 = 6000 + 800 + 30 + 1\"",
       "events": [
         {
           "sentenceIndex": 0,
@@ -3136,14 +4011,38 @@
               "number": 8613
             }
           }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "your_turn",
+          "args": {
+            "answerMode": "valueOrPlace",
+            "surface": "chips"
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "choiceChips",
+          "event": "show",
+          "args": {
+            "options": [
+              "800",
+              "8000",
+              "8"
+            ],
+            "correctIndex": 1
+          }
         }
       ],
       "child": {
         "kind": "answer",
-        "via": "number pad or voice",
-        "expects": "8000"
+        "via": "tap one of 3 chips",
+        "expects": "8000",
+        "answerMode": "valueOrPlace",
+        "surface": "chips"
       },
-      "sees": "Card \"8 613\" — they answer via number pad or voice."
+      "sees": "Card \"8 613\" — they answer via tap one of 3 chips."
     },
     {
       "id": "authored:placeValue4Digit:93",
@@ -3157,6 +4056,12 @@
       ],
       "boardAtStart": "card \"8 613\"",
       "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "over",
+          "args": {}
+        },
         {
           "sentenceIndex": 0,
           "primitive": "chalkText",
@@ -3188,7 +4093,7 @@
         }
       ],
       "child": null,
-      "sees": "Chalk \"8 613 = 8000 + 600 + 10 + 3\"; \"= 8000 + 600 + 10 + 3\" is written on, making \"8 613 = 8000 + 600 + 10 + 3\"."
+      "sees": "Card \"8 613\" with chalk \"8 613 = 8000 + 600 + 10 + 3\"; \"= 8000 + 600 + 10 + 3\" is written on, making \"8 613 = 8000 + 600 + 10 + 3\"."
     },
     {
       "id": "authored:placeValue4Digit:94",
@@ -3200,7 +4105,7 @@
         "අපි කලින් ගත්තු හත්දහස් හැට දෙක දිහා ආයෙත් බලමු.",
         "බිංදුවක් ආවොත් එතැනින් කිසිම අගයක් එකතු වෙන්නේ නෑ නේද පුතේ?"
       ],
-      "boardAtStart": "chalk \"8 613 = 8000 + 600 + 10 + 3\"",
+      "boardAtStart": "card \"8 613\" with chalk \"8 613 = 8000 + 600 + 10 + 3\"",
       "events": [
         {
           "sentenceIndex": 0,
@@ -3226,13 +4131,23 @@
               "number": 7062
             }
           }
+        },
+        {
+          "sentenceIndex": 1,
+          "primitive": "turn",
+          "event": "pause",
+          "args": {
+            "ms": 2000
+          }
         }
       ],
       "child": {
         "kind": "soft check",
-        "via": "mic open 5s; any reply acknowledged after 1.2s of quiet; silence flows on"
+        "via": "a 2 s pause while she reacts; a tap counts as engagement; no mic, no acknowledgement clip",
+        "answerMode": "valueOrPlace",
+        "surface": "pause"
       },
-      "sees": "The abacus showing 7 062; the abacus shows 7 062 — the mic opens briefly."
+      "sees": "The abacus showing 7 062; the abacus shows 7 062 — a 2 s pause while she reacts; a tap counts as engagement; no mic, no acknowledgement clip."
     },
     {
       "id": "authored:placeValue4Digit:95",
@@ -3250,7 +4165,8 @@
           "primitive": "titleCard",
           "event": "show",
           "args": {
-            "title": "තනිව විසඳමු"
+            "title": "තනිව විසඳමු",
+            "emoji": "✏️"
           }
         }
       ],
@@ -3331,14 +4247,38 @@
               "part": 0
             }
           }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "your_turn",
+          "args": {
+            "answerMode": "valueOrPlace",
+            "surface": "chips"
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "choiceChips",
+          "event": "show",
+          "args": {
+            "options": [
+              "6",
+              "4",
+              "5"
+            ],
+            "correctIndex": 2
+          }
         }
       ],
       "child": {
         "kind": "answer",
-        "via": "number pad or voice",
-        "expects": "5"
+        "via": "tap one of 3 chips",
+        "expects": "5",
+        "answerMode": "valueOrPlace",
+        "surface": "chips"
       },
-      "sees": "5 421 = ▢ + ▢ + ▢ + ▢ — they answer via number pad or voice."
+      "sees": "5 421 = ▢ + ▢ + ▢ + ▢ — they answer via tap one of 3 chips."
     },
     {
       "id": "authored:placeValue4Digit:99",
@@ -3351,6 +4291,12 @@
       ],
       "boardAtStart": "5 421 = ▢ + ▢ + ▢ + ▢",
       "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "over",
+          "args": {}
+        },
         {
           "sentenceIndex": 0,
           "primitive": "pointer",
@@ -3385,13 +4331,23 @@
               "part": -1
             }
           }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "pause",
+          "args": {
+            "ms": 2000
+          }
         }
       ],
       "child": {
         "kind": "soft check",
-        "via": "mic open 5s; any reply acknowledged after 1.2s of quiet; silence flows on"
+        "via": "a 2 s pause while she reacts; a tap counts as engagement; no mic, no acknowledgement clip",
+        "answerMode": "valueOrPlace",
+        "surface": "pause"
       },
-      "sees": "5 421 = ▢ + ▢ + ▢ + ▢ — the mic opens briefly."
+      "sees": "5 421 = ▢ + ▢ + ▢ + ▢ — a 2 s pause while she reacts; a tap counts as engagement; no mic, no acknowledgement clip."
     },
     {
       "id": "authored:placeValue4Digit:101",
@@ -3404,6 +4360,12 @@
       ],
       "boardAtStart": "5 421 = ▢ + ▢ + ▢ + ▢",
       "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "over",
+          "args": {}
+        },
         {
           "sentenceIndex": 0,
           "primitive": "expansion",
@@ -3479,14 +4441,25 @@
               "number": 6572
             }
           }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "your_turn",
+          "args": {
+            "answerMode": "cell",
+            "surface": "cell"
+          }
         }
       ],
       "child": {
         "kind": "answer",
-        "via": "the number pad into the active cell, or say it",
-        "expects": "6000"
+        "via": "the number pad into the active cell",
+        "expects": "6000",
+        "answerMode": "cell",
+        "surface": "cell"
       },
-      "sees": "The place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003; row 1's valueRepresented cell is outlined — they answer via the number pad into the active cell, or say it."
+      "sees": "The place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003; row 1's valueRepresented cell is outlined — they answer via the number pad into the active cell."
     },
     {
       "id": "authored:placeValue4Digit:104",
@@ -3500,6 +4473,12 @@
       ],
       "boardAtStart": "the place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003",
       "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "over",
+          "args": {}
+        },
         {
           "sentenceIndex": 0,
           "primitive": "pointer",
@@ -3553,14 +4532,25 @@
               "number": 5024
             }
           }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "your_turn",
+          "args": {
+            "answerMode": "cell",
+            "surface": "cell"
+          }
         }
       ],
       "child": {
         "kind": "answer",
-        "via": "the number pad into the active cell, or say it",
-        "expects": "4"
+        "via": "the number pad into the active cell",
+        "expects": "4",
+        "answerMode": "cell",
+        "surface": "cell"
       },
-      "sees": "The place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003; row 2's valueRepresented cell is outlined — they answer via the number pad into the active cell, or say it."
+      "sees": "The place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003; row 2's valueRepresented cell is outlined — they answer via the number pad into the active cell."
     },
     {
       "id": "authored:placeValue4Digit:106",
@@ -3574,6 +4564,12 @@
       ],
       "boardAtStart": "the place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003",
       "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "over",
+          "args": {}
+        },
         {
           "sentenceIndex": 0,
           "primitive": "pointer",
@@ -3627,14 +4623,25 @@
               "number": 8700
             }
           }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "your_turn",
+          "args": {
+            "answerMode": "cell",
+            "surface": "cell"
+          }
         }
       ],
       "child": {
         "kind": "answer",
-        "via": "the number pad into the active cell, or say it",
-        "expects": "7"
+        "via": "the number pad into the active cell",
+        "expects": "7",
+        "answerMode": "cell",
+        "surface": "cell"
       },
-      "sees": "The place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003; row 3's digit cell is outlined — they answer via the number pad into the active cell, or say it."
+      "sees": "The place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003; row 3's digit cell is outlined — they answer via the number pad into the active cell."
     },
     {
       "id": "authored:placeValue4Digit:108",
@@ -3648,6 +4655,12 @@
       ],
       "boardAtStart": "the place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003",
       "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "over",
+          "args": {}
+        },
         {
           "sentenceIndex": 0,
           "primitive": "pointer",

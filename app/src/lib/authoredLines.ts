@@ -51,8 +51,16 @@ export const AUTHORED_LINES = {
   recapIntro: "අපි ඊයේ කරපු දේ ටිකක් බලමු {address}.",
   /** The review question itself — the board shows the item being asked about. */
   recapAsk: "මේකේ උත්තරේ මොකක්ද කියන්න බලන්න.",
-  /** CONFIRM: a doubtful hearing, read back to the child. {value} = what was heard. */
+  /** CONFIRM: a doubtful hearing, read back to the child. {value} = what was heard. (Voice assessment only.) */
   confirmHeard: "ඔයා කිව්වේ {value} නේද?",
+
+  // --- the touch-only answer path ------------------------------------------
+  /** Reading practice: after the child's 3 s to say it, Zara reads the number herself — this frame, then the composed number. */
+  readBack: "මම කියන්නම් —",
+  /** A touch surface with no tap for 12 s: one gentle nudge, then at 25 s she demonstrates and moves on. */
+  touchNudge: "ඕනෑම එකක් තෝරලා බලන්න.",
+  /** The first ✋: the only moment the microphone is asked for, explained in her words before the browser asks. */
+  micPermission: "ඔයාගේ කටහඬ අහන්න මට අවසර ඕනේ. හරි කියලා දෙන්නකෝ.",
   /**
    * The practice questions. The BOARD says which cell is being asked about
    * (the active blank is highlighted), so the words stay the same every

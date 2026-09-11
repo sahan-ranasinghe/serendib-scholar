@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<svg viewBox="0 0 200 200" width="{{ size }}" height="{{ size }}" style="display:block;overflow:visible;flex:none" data-part="lena">
+  <g transform="{{ bodyT }}">
+    <g data-part="tail"><path d="{{ tailD }}" fill="none" stroke="#7A6247" stroke-width="24" stroke-linecap="round"></path><path d="{{ tailD }}" fill="none" stroke="#B8A388" stroke-width="7" stroke-linecap="round" stroke-dasharray="14 12"></path></g>
+    <g data-part="feet"><ellipse cx="{{ footLx }}" cy="174" rx="11" ry="5" fill="#6A5340"></ellipse><ellipse cx="{{ footRx }}" cy="176" rx="11" ry="5" fill="#6A5340"></ellipse></g>
+    <g data-part="body"><ellipse cx="100" cy="136" rx="40" ry="36" fill="#8C7455"></ellipse>
+      <path d="M112 106q8 30 4 62M124 110q12 26 8 54M134 118q12 22 8 40" fill="none" stroke="#EADFC8" stroke-width="4" stroke-linecap="round"></path>
+      <ellipse cx="86" cy="146" rx="20" ry="24" fill="#EADFC8"></ellipse></g>
+    <g data-part="head" transform="{{ headT }}">
+      <g data-part="ears"><ellipse cx="58" cy="66" rx="8" ry="13" fill="#8C7455" transform="{{ earLT }}"></ellipse><ellipse cx="58" cy="68" rx="4" ry="8" fill="#D9A08F" transform="{{ earLT }}"></ellipse><ellipse cx="94" cy="64" rx="8" ry="13" fill="#8C7455" transform="{{ earRT }}"></ellipse><ellipse cx="94" cy="66" rx="4" ry="8" fill="#D9A08F" transform="{{ earRT }}"></ellipse></g>
+      <circle cx="76" cy="94" r="30" fill="#8C7455"></circle>
+      <ellipse cx="60" cy="104" rx="14" ry="11" fill="#EADFC8"></ellipse>
+      <circle cx="50" cy="100" r="3.5" fill="#3A2A22"></circle>
+      <path d="M52 102L30 96M52 104L30 106M52 106L32 114" stroke="#3A2A22" stroke-width="1.5" stroke-linecap="round"></path>
+      <g data-part="eyes">
+        <circle cx="{{ eyeLx }}" cy="{{ eyeY }}" r="{{ eyeR }}" fill="#2A1C17"></circle><circle cx="{{ eyeRx }}" cy="{{ eyeY2 }}" r="{{ eyeR }}" fill="#2A1C17"></circle>
+        <circle cx="{{ hiLx }}" cy="{{ hiY }}" r="1.8" fill="#fff" opacity="{{ hiOp }}"></circle><circle cx="{{ hiRx }}" cy="{{ hiY2 }}" r="1.8" fill="#fff" opacity="{{ hiOp }}"></circle>
+        <path d="{{ lidD }}" fill="none" stroke="#2A1C17" stroke-width="3" stroke-linecap="round"></path>
+        <path d="{{ browD }}" fill="none" stroke="#3A2A22" stroke-width="2.5" stroke-linecap="round"></path>
+      </g>
+      <path data-part="mouth" d="{{ mouthD }}" fill="{{ mouthFill }}" stroke="#3A2A22" stroke-width="2" stroke-linecap="round"></path>
+    </g>
+    <g data-part="paws"><ellipse cx="{{ pawLx }}" cy="{{ pawLy }}" rx="7" ry="5" fill="#6A5340"></ellipse><ellipse cx="{{ pawRx }}" cy="{{ pawRy }}" rx="7" ry="5" fill="#6A5340"></ellipse></g>
+    <sc-if value="{{ flame }}" hint-placeholder-val="{{ false }}"><g data-part="flame"><path d="M46 112c-18 22-14 48 4 48s24-22 10-36c2 12-8 16-10 8-4-8 2-14-4-20z" fill="#D9643A"></path><path d="M50 136c-7 10-5 22 2 22s10-10 4-18c0 6-4 8-5 4-2-4 1-6-1-8z" fill="#E9B44C"></path></g></sc-if>
+    <sc-if value="{{ zz }}" hint-placeholder-val="{{ false }}"><g data-part="doze"><circle cx="112" cy="58" r="4" fill="none" stroke="#7A6247" stroke-width="2"></circle><circle cx="124" cy="44" r="6" fill="none" stroke="#7A6247" stroke-width="2"></circle><circle cx="140" cy="26" r="8" fill="none" stroke="#7A6247" stroke-width="2"></circle></g></sc-if>
+    <sc-if value="{{ bang }}" hint-placeholder-val="{{ false }}"><g data-part="wake-mark"><path d="M104 22v20" stroke="#E9B44C" stroke-width="6" stroke-linecap="round"></path><circle cx="104" cy="54" r="3.5" fill="#E9B44C"></circle></g></sc-if>
+    <sc-if value="{{ nudge }}" hint-placeholder-val="{{ false }}"><path d="M28 132q-8 10 0 20M18 126q-12 16 0 32" fill="none" stroke="#B8A388" stroke-width="2.5" stroke-linecap="round"></path></sc-if>
+  </g>
+</svg>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:220,&quot;height&quot;:220},&quot;state&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;idle&quot;,&quot;options&quot;:[&quot;idle&quot;,&quot;idle-2&quot;,&quot;idle-3&quot;,&quot;alert&quot;,&quot;peek&quot;,&quot;hop&quot;,&quot;droop-then-nudge&quot;,&quot;doze&quot;,&quot;wake&quot;,&quot;hold-flame&quot;],&quot;tsType&quot;:&quot;string&quot;},&quot;size&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:48,&quot;min&quot;:32,&quot;max&quot;:320,&quot;unit&quot;:&quot;px&quot;,&quot;tsType&quot;:&quot;number&quot;}}">
+class Component extends DCLogic {
+  static TAIL = {
+    up: 'M136 152C186 150 192 78 152 62C132 54 120 80 138 96', flick: 'M136 152C190 156 200 96 166 74C150 64 136 84 150 98',
+    straight: 'M136 150C170 130 178 70 150 48', wrap: 'M136 152C180 170 150 190 100 182C70 178 60 160 70 150', low: 'M136 152C186 160 202 112 178 98',
+  };
+  static S = {
+    idle:   {},
+    'idle-2': { tail: 'flick' },
+    'idle-3': { headT: 'rotate(8 76 110)', eyes: [-2, 0] },
+    alert:  { bodyT: 'translate(0 -6) scale(1 1.06)', tail: 'straight', earL: 'rotate(-6 58 79)', earR: 'rotate(6 94 77)', eyeR: 7 },
+    peek:   { bodyT: 'translate(-12 0) rotate(-8 100 176)', headT: 'rotate(-10 76 110)', eyes: [-3, 1], pawL: [58, 132], pawR: [90, 160] },
+    hop:    { bodyT: 'translate(0 -26)', tail: 'straight', eyeR: 7, mouth: 'open', feet: [86, 100], pawL: [70, 156], pawR: [92, 156] },
+    'droop-then-nudge': { headT: 'rotate(-12 76 110)', earL: 'rotate(-45 58 79)', earR: 'rotate(-40 94 77)', tail: 'low', lids: true, pawL: [40, 150], nudge: true },
+    doze:   { bodyT: 'translate(0 12) scale(1 .92)', tail: 'wrap', earL: 'rotate(-25 58 79)', earR: 'rotate(-20 94 77)', closed: true, zz: true },
+    wake:   { bodyT: 'translate(0 -4)', earL: 'rotate(-10 58 79)', earR: 'rotate(12 94 77)', eyeR: 7.5, brow: true, bang: true, mouth: 'open' },
+    'hold-flame': { eyes: [-3, 3], pawL: [56, 150], pawR: [62, 158], flame: true },
+  };
+  renderVals() {
+    const p = this.props, s = Component.S[p.state ?? 'idle'] || Component.S.idle;
+    const [dx, dy] = s.eyes || [0, 0], r = s.closed ? 0 : (s.eyeR ?? 5.5);
+    const pl = s.pawL || [74, 158], pr = s.pawR || [90, 160], ft = s.feet || [82, 106];
+    const mouth = s.mouth === 'open' ? 'M52 108q5 7 10 0z' : 'M54 108q4 3 8 0';
+    return {
+      size: Number(p.size ?? 48), bodyT: s.bodyT || '', headT: s.headT || '', tailD: Component.TAIL[s.tail || 'up'],
+      earLT: s.earL || '', earRT: s.earR || '',
+      eyeLx: 68 + dx, eyeRx: 88 + dx, eyeY: 90 + dy, eyeY2: 88 + dy, eyeR: r, hiLx: 70 + dx, hiRx: 90 + dx, hiY: 88 + dy, hiY2: 86 + dy, hiOp: s.closed ? 0 : 1,
+      lidD: s.closed ? 'M62 92q6 4 12 0M83 90q5 4 10 0' : (s.lids ? 'M61 86q7-4 14 0M81 84q7-4 14 0' : 'M0 0'),
+      browD: s.brow ? 'M82 76q6-4 12 0' : 'M0 0', mouthD: mouth, mouthFill: s.mouth === 'open' ? '#3A2A22' : 'none',
+      pawLx: pl[0], pawLy: pl[1], pawRx: pr[0], pawRy: pr[1], footLx: ft[0], footRx: ft[1],
+      flame: !!s.flame, zz: !!s.zz, bang: !!s.bang, nudge: !!s.nudge,
+    };
+  }
+}
+</script>
+</body>
+</html>

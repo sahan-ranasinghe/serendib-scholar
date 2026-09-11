@@ -1,0 +1,253 @@
+"use client";
+
+/**
+ * The session screen's look, from the design (docs/design/export/handoff —
+ * README "Layout", Session.dc.html):
+ *
+ *   ┌─ strip 28 px teal: title · 8 concept stops · ⏸ ↺ ⏹ · සි ─────────┐
+ *   ├─ wood frame 10 · board #F7F3EA, 32 px grid · tray 22 ─────────────┤
+ *   │   content inset L94 R82 T22 B64 (124 with chips, 190 with a dock)  │
+ *   │   ◉ Zara 64 at L10/B6      ✋ 56 at R12/B76      🐱 Lena 48 R14/B16 │
+ *   └────────────────────────────────────────────────────────────────────┘
+ *
+ * Purely presentational: LessonScreen feeds it the runtime; the design
+ * preview (/admin/design-preview) feeds it a staged frame. Data attributes
+ * on the root (`data-beat-id`, `data-status`, `data-your-turn`,
+ * `data-character`) are the QA harness's view — see scripts/session-check.ts.
+ */
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import type { BoardContent } from "@/lib/board";
+import type { StageState } from "@/lib/choreography";
+import ZaraCharacter, { type ZaraState } from "@/components/ZaraCharacter";
+import LenaCharacter, { type LenaState } from "@/components/LenaCharacter";
+import { BoardStage, type YourTurn } from "@/components/board/BoardStage";
+import { ProgressStrip, type ConceptStop } from "@/components/ProgressStrip";
+
+/** How often the amplitude state refreshes while Zara talks (~12fps is plenty for 3 mouth shapes). */
+const AMPLITUDE_INTERVAL_MS = 80;
+
+export type SessionSheet = { kind: "mic"; onAllow: () => void; onType: () => void } | { kind: "chat"; child: string | null; zara: string | null; listening: boolean; onReturn: () => void };
+
+export interface SessionShellProps {
+  stage: StageState;
+  yourTurn: YourTurn | null;
+  zaraState: ZaraState;
+  lenaState: LenaState;
+  pointerSide: "left" | "right" | null;
+  /** Zara is speaking: the mouth follows the output amplitude, the chalk cursor waits. */
+  talking: boolean;
+  getAmplitude: () => number;
+  /** The corner portrait is dimmed (muted or paused). */
+  zaraDimmed?: boolean;
+  paused?: boolean;
+  conceptStops: ConceptStop[];
+  captionsOn: boolean;
+  onToggleCaptions: () => void;
+  /** The caption line (already decided: the clip's text on request, or a line with no clip). */
+  caption: string | null;
+  hint: string | null;
+  sheet: SessionSheet | null;
+  /** Zara and Lena are on the frame (the lesson is up). */
+  charactersShown: boolean;
+  /** The ✋ is on the frame. */
+  handShown: boolean;
+  chatting?: boolean;
+  onHand: () => void;
+  onPause: () => void;
+  onRepeat: () => void;
+  onEnd: () => void;
+  onAnswer: (text: string) => void;
+  onTouch: () => void;
+  onIdleTouch?: () => void;
+  onPointerSide?: (side: "left" | "right" | null) => void;
+  renderLegacy?: (content: BoardContent) => ReactNode;
+  onTitleTap?: () => void;
+  onRootPointerDown?: () => void;
+  /** The harness's data attributes on the root. */
+  data?: Record<string, string | undefined>;
+  /** Overlays over the board (the device gate, an error, the summary card). */
+  children?: ReactNode;
+}
+
+export function SessionShell({ stage, yourTurn, zaraState, lenaState, pointerSide, talking, getAmplitude, zaraDimmed = false, paused = false, conceptStops, captionsOn, onToggleCaptions, caption, hint, sheet, charactersShown, handShown, chatting = false, onHand, onPause, onRepeat, onEnd, onAnswer, onTouch, onIdleTouch, onPointerSide, renderLegacy, onTitleTap, onRootPointerDown, data, children }: SessionShellProps) {
+  // Zara in the frame's corner. The mouth's amplitude is the portrait's
+  // own state (ZaraPortrait polls it), so her talking never re-renders the
+  // board — and the board's props are stable, so BoardStage (memoised)
+  // redraws only when the stage changes.
+  const portrait = useMemo(() => <ZaraPortrait state={zaraState} side={pointerSide} talking={talking} getAmplitude={getAmplitude} dimmed={zaraDimmed} />, [zaraState, pointerSide, talking, getAmplitude, zaraDimmed]);
+  const large = useMemo(() => <ZaraPortrait state={zaraState} side={pointerSide} talking={talking} getAmplitude={getAmplitude} dimmed={false} size={160} />, [zaraState, pointerSide, talking, getAmplitude]);
+  const lenaSlot = useMemo(() => (charactersShown ? <Lena state={lenaState} /> : undefined), [charactersShown, lenaState]);
+  const handSlot = useMemo(
+    () =>
+      handShown ? (
+        <button type="button" className="wb-hand wb-tap" data-testid="hand" onClick={onHand} aria-label={chatting ? "කතාව ඉවරයි" : "Zara එක්ක කතා කරන්න"}>
+          ✋
+        </button>
+      ) : undefined,
+    [handShown, onHand, chatting],
+  );
+  const boardSheet = sheet
+    ? sheet.kind === "mic"
+      ? { kind: "mic" as const, testId: "mic-ask", zara: large, content: <MicAskSheet onAllow={sheet.onAllow} onType={sheet.onType} /> }
+      : { kind: "chat" as const, testId: "chat-sheet", zara: large, content: <ChatSheet child={sheet.child} zara={sheet.zara} listening={sheet.listening} onReturn={sheet.onReturn} /> }
+    : null;
+
+  return (
+    <div className="lesson-screen" onPointerDown={onRootPointerDown} {...data} data-character={zaraState} data-lena={lenaState} data-paused={paused || undefined} data-pause={stage.pause ? (stage.pause.cue ?? "soft") : undefined} style={{ position: "fixed", inset: 0, display: "flex", flexDirection: "column", background: "var(--color-wood)", color: "var(--color-ink)" }}>
+      {/* ---- the strip: title · concept stops · ⏸ ↺ ⏹ · සි ---------------- */}
+      <header data-testid="session-strip" style={{ position: "relative", zIndex: 30, height: 28, flex: "none", background: "var(--color-teal)", display: "flex", alignItems: "center", padding: "0 0 0 14px", color: "#fff" }}>
+        <span data-testid="session-title" onClick={onTitleTap} style={{ font: "600 20px/28px var(--font-label)", whiteSpace: "nowrap" }}>
+          ගණිතය · සංඛ්‍යා - 1
+        </span>
+        <span style={{ flex: 1 }} />
+        <ProgressStrip stops={conceptStops} />
+        {/* ⏸ ↺ ⏹: 48×28 cells in the strip; the hit areas reach 56 px down into the board frame */}
+        <button type="button" aria-label="විරාමය" onClick={onPause} className="strip-control" style={{ font: "16px/1 var(--font-latin)" }}>
+          {paused ? "▶" : "⏸"}
+        </button>
+        <button type="button" aria-label="නැවත කියන්න" onClick={onRepeat} className="strip-control" style={{ font: "18px/1 var(--font-latin)" }}>
+          ↺
+        </button>
+        <button type="button" aria-label="අවසන් කරන්න" onClick={onEnd} className="strip-control" style={{ font: "16px/1 var(--font-latin)" }}>
+          ⏹
+        </button>
+        <button type="button" aria-label="උපසිරැසි" aria-pressed={captionsOn} onClick={onToggleCaptions} className="strip-control">
+          <span style={{ padding: "0 5px", border: "2px solid #fff", borderRadius: 4, font: "600 13px/16px var(--font-label)", background: captionsOn ? "#fff" : "transparent", color: captionsOn ? "var(--color-teal)" : "#fff" }}>සි</span>
+        </button>
+      </header>
+
+      {/* ---- the board, edge to edge ---------------------------------------- */}
+      <main data-testid="session-main" style={{ position: "relative", minHeight: 0, flex: 1, overflow: "hidden" }}>
+        <BoardStage
+          stage={stage}
+          yourTurn={yourTurn}
+          onAnswer={onAnswer}
+          onTouch={onTouch}
+          onIdleTouch={onIdleTouch}
+          onPointerSide={onPointerSide}
+          renderLegacy={renderLegacy}
+          cornerSlot={charactersShown ? portrait : undefined}
+          lenaSlot={lenaSlot}
+          handSlot={handSlot}
+          caption={caption}
+          sheet={boardSheet}
+          hint={hint}
+          writing={talking}
+        />
+        {children}
+      </main>
+
+      {/* ---- portrait: friendly rotate card (the lesson is held) --------- */}
+      <div className="rotate-card">
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 20, borderRadius: 16, background: "var(--color-paper)", padding: "32px 40px", textAlign: "center", boxShadow: "var(--shadow-lift)" }}>
+          <span className="rotate-phone" style={{ fontSize: 60 }}>📱</span>
+          <p style={{ margin: 0, font: "700 26px/1.4 var(--font-display)", color: "var(--color-ink)" }}>දුරකථනය හරවන්න!</p>
+          <p style={{ margin: 0, font: "400 20px/1.5 var(--font-body)", color: "var(--color-ink-70)" }}>පාඩම නවත්තලා — හැරෙව්වම දිගටම යනවා</p>
+        </div>
+      </div>
+
+      <style>{`
+        /* the 48×28 cell stays in the strip; the hit area (::after) reaches 56 px down into the board frame */
+        .strip-control { position: relative; display: flex; align-items: center; justify-content: center; height: 28px; width: 48px; padding: 0; background: transparent; border: 0; color: inherit; cursor: pointer; }
+        .strip-control::after { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 60px; }
+        .rotate-card { display: none; }
+        @media (orientation: portrait) {
+          .rotate-card { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; background: var(--color-teal); }
+        }
+        .zara-portrait { display: block; }
+        .rotate-phone { display: inline-block; animation: rotate-phone 1.8s ease-in-out infinite; }
+        @keyframes rotate-phone { 0%, 20% { transform: rotate(0deg); } 55%, 80% { transform: rotate(90deg); } 100% { transform: rotate(90deg); } }
+        @media (prefers-reduced-motion: reduce) { .rotate-phone { animation: none; } }
+      `}</style>
+    </div>
+  );
+}
+
+/**
+ * Zara's round portrait (64 px in the corner, 160 px on a sheet). The
+ * mouth's amplitude is polled here, at ~12 fps while she talks, so only
+ * this small subtree re-renders on each tick.
+ */
+export function ZaraPortrait({ state, side, talking, getAmplitude, dimmed, size = 64 }: { state: ZaraState; side: "left" | "right" | null; talking: boolean; getAmplitude: () => number; dimmed: boolean; size?: number }) {
+  const [amplitude, setAmplitude] = useState(0);
+  useEffect(() => {
+    if (!talking) return;
+    const timer = setInterval(() => setAmplitude(getAmplitude()), AMPLITUDE_INTERVAL_MS);
+    return () => clearInterval(timer);
+  }, [talking, getAmplitude]);
+  const mouth = talking ? amplitude : 0;
+  return (
+    // the wrapper takes the portrait's drawn size (its 3 px paper border included) so the box sits where the export anchors it
+    <div className="zara-portrait" data-testid="zara-portrait" data-state={state} data-size={size} style={{ display: "block", width: "max-content", lineHeight: 0, opacity: dimmed ? 0.6 : 1, transition: "opacity 300ms" }}>
+      <ZaraCharacter state={state} amplitude={mouth} side={side} portrait size={size} />
+    </div>
+  );
+}
+
+function Lena({ state }: { state: LenaState }) {
+  return (
+    <div data-testid="lena" data-state={state} style={{ width: 48, height: 48 }}>
+      <LenaCharacter state={state} size={48} />
+    </div>
+  );
+}
+
+/** The first ✋ (P1): why she listens, that nothing is stored, and the choice. */
+function MicAskSheet({ onAllow, onType }: { onAllow: () => void; onType: () => void }) {
+  const badge = (n: number, bg: string) => <span style={{ width: 28, height: 28, borderRadius: "50%", background: bg, color: "#fff", font: "700 15px/28px var(--font-latin)", textAlign: "center", flex: "none" }}>{n}</span>;
+  return (
+    <>
+      <span style={{ font: "700 26px/1.4 var(--font-display)", color: "var(--color-ink)" }}>මට ඔයාගේ කතාව අහන්න අවසර දෙනවද?</span>
+      <div style={{ display: "grid", gap: 8, font: "400 20px/1.5 var(--font-body)", color: "var(--color-ink)" }}>
+        <div style={{ display: "flex", gap: 10 }}>
+          {badge(1, "var(--color-teal)")}
+          <span>ඔයා ✋ ඔබලා මගෙන් ප්‍රශ්නයක් අහද්දී විතරයි මම අහන්නේ.</span>
+        </div>
+        <div style={{ display: "flex", gap: 10 }}>
+          {badge(2, "var(--color-success)")}
+          <span>ඔයාගේ කටහඬ කොහෙත් තියාගන්නේ නෑ — වචන විතරයි අකුරු වෙන්නේ.</span>
+        </div>
+        <div style={{ display: "flex", gap: 10 }}>
+          {badge(3, "var(--color-coral)")}
+          <span>කැමති නැත්නම් ටයිප් කරලාත් අහන්න පුළුවන්.</span>
+        </div>
+      </div>
+      <div style={{ marginTop: "auto", display: "flex", gap: 10, justifyContent: "flex-end" }}>
+        <button type="button" data-testid="mic-ask-type" onClick={onType} style={{ height: 56, padding: "0 22px", border: "2px solid var(--color-ink-18)", borderRadius: 12, background: "var(--color-paper)", color: "var(--color-teal)", font: "700 24px/1.5 var(--font-display)", cursor: "pointer" }}>
+          ටයිප් කරන්නම්
+        </button>
+        <button type="button" data-testid="mic-ask-allow" onClick={onAllow} style={{ height: 56, padding: "0 28px", border: 0, borderRadius: 12, background: "var(--color-teal)", color: "#fff", font: "700 24px/1.5 var(--font-display)", boxShadow: "var(--shadow-button)", cursor: "pointer" }}>
+          හරි, අවසර දෙන්න
+        </button>
+      </div>
+    </>
+  );
+}
+
+/** The ✋ chat (S3): the listening pill, the last two lines, one way back. */
+function ChatSheet({ child, zara, listening, onReturn }: { child: string | null; zara: string | null; listening: boolean; onReturn: () => void }) {
+  return (
+    <>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <span style={{ font: "700 24px/1.5 var(--font-display)", color: "var(--color-ink)" }}>✋ Zara එක්කම කතා කරන්න</span>
+        <span data-testid="chat-listening" style={{ display: "flex", alignItems: "center", gap: 8, height: 40, padding: "0 14px", borderRadius: 999, background: "var(--color-coral-soft)", font: "600 20px/1.5 var(--font-label)", color: "var(--color-coral)", opacity: listening ? 1 : 0.5 }}>
+          <span style={{ width: 12, height: 12, borderRadius: "50%", background: "var(--color-coral)" }} />
+          🎤 {listening ? "අහගෙන ඉන්නවා" : "සම්බන්ධ වෙනවා…"}
+        </span>
+      </div>
+      <div style={{ flex: 1, display: "grid", gap: 8, alignContent: "start", overflow: "hidden" }}>
+        <div data-testid="chat-line-child" style={{ justifySelf: "end", maxWidth: "78%", padding: "6px 14px", borderRadius: "14px 14px 4px 14px", background: "var(--color-success-soft)", font: "400 20px/1.6 var(--font-body)", color: "var(--color-ink)" }}>
+          {child ?? "…"}
+        </div>
+        <div data-testid="chat-line-zara" style={{ justifySelf: "start", maxWidth: "82%", padding: "6px 14px", borderRadius: "14px 14px 14px 4px", background: "var(--color-card)", font: "400 20px/1.6 var(--font-body)", color: "var(--color-ink)", visibility: zara ? "visible" : "hidden" }}>
+          {zara ?? ""}
+        </div>
+      </div>
+      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+        <button type="button" data-testid="chat-return" onClick={onReturn} style={{ height: 48, padding: "0 24px", border: 0, borderRadius: 12, background: "var(--color-teal)", color: "#fff", font: "700 22px/1.5 var(--font-display)", boxShadow: "var(--shadow-button)", cursor: "pointer" }}>
+          පාඩමට ආයෙත්
+        </button>
+      </div>
+    </>
+  );
+}

@@ -12,7 +12,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { DURATION_MS, IMPLEMENTED, VOCABULARY, type EventName } from "../src/components/board/events";
-import { SPRING, SPRING_BOUNCY, SPRING_SNAPPY } from "../src/components/board/theme";
+import { SPRING, SPRING_BOUNCY, SPRING_SNAPPY } from "../src/components/board/tokens";
 
 interface StoryboardEvent {
   primitive: string;

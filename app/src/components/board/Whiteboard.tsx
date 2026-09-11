@@ -19,10 +19,10 @@ import "./board.css";
 import { AnimatePresence, MotionConfig, motion } from "framer-motion";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { BoardContext, useBoardRegistry, type BoardRegistry } from "./targets";
-import { BOARD, SPRING } from "./theme";
+import { BOARD, SPRING } from "./tokens";
 import { playSound, setMuted, useMuted } from "./sound";
 
-export type Viewport = "phone" | "desktop" | "fill" | "stretch";
+export type Viewport = "phone" | "desktop" | "fill" | "stretch" | "cell";
 
 export interface WhiteboardProps {
   viewport?: Viewport;
@@ -34,14 +34,35 @@ export interface WhiteboardProps {
   testId?: string;
   /** Something anchored in the frame's bottom-left corner, outside the content (the tutor's portrait). */
   cornerSlot?: ReactNode;
+  /** A row along the foot of the surface (the answer chips, a dock); the content keeps clear of it. */
+  footer?: ReactNode;
+  /** What the foot holds: chips (content bottom 124) or a dock — a pad or word bank (content bottom 190, content top-aligned). */
+  footKind?: "chips" | "dock" | "bank";
+  /** Lena, on the frame at right 14 / bottom 16. */
+  lenaSlot?: ReactNode;
+  /** The ✋, on the frame at right 12 / bottom 76 (56 px). */
+  handSlot?: ReactNode;
+  /** The caption line, left 94 / right 82 / bottom 26. */
+  caption?: ReactNode;
+  /** A sheet over the dimmed board (the ✋ chat, the first-time mic explanation): { zara, sheet }. */
+  sheet?: { zara: ReactNode; content: ReactNode; kind?: "chat" | "mic"; testId?: string } | null;
+  /** Things positioned against the frame itself (the retry note, the tap hint). */
+  frameSlot?: ReactNode;
 }
 
 const WIPE_MS = 200;
 
-export function Whiteboard({ viewport = "fill", children, wipeKey, showTray = true, className, testId, cornerSlot }: WhiteboardProps) {
+export function Whiteboard({ viewport = "fill", children, wipeKey, showTray = true, className, testId, cornerSlot, footer, footKind, lenaSlot, handSlot, caption, sheet, frameSlot }: WhiteboardProps) {
   const [surface, setSurface] = useState<HTMLElement | null>(null);
   const [overlay, setOverlay] = useState<HTMLElement | null>(null);
-  const registry = useBoardRegistry(surface, overlay);
+  const [dock, setDock] = useState<HTMLElement | null>(null);
+  // Docked inputs (a pad, a word bank) count themselves in; while one is
+  // up the content inset's bottom is 190 and the chips row stands down.
+  const [docked, setDocked] = useState(0);
+  const noteDock = useCallback((delta: number) => setDocked((n) => Math.max(0, n + delta)), []);
+  const dockUp = docked > 0;
+  const registry = useBoardRegistry(surface, overlay, dock, noteDock, dockUp ? 1 : 0);
+  const foot = dockUp || footKind === "dock" || footKind === "bank" ? "dock" : footer ? "chips" : undefined;
   // QA hook: board-check asks the surface what a target resolves to, so
   // its expectations are the registry's answers, not a DOM guess.
   // `resolve` is stable for the life of the board, so the ref can carry it.
@@ -67,10 +88,17 @@ export function Whiteboard({ viewport = "fill", children, wipeKey, showTray = tr
   return (
     <MotionConfig reducedMotion="user" transition={SPRING}>
       <BoardContext.Provider value={registry}>
-        <div className={`wb-frame ${className ?? ""}`} data-viewport={viewport} data-testid={testId} data-board data-corner={cornerSlot ? "true" : undefined}>
-          <div className="wb-surface" ref={attachSurface}>
-            <MarkerWobbleDefs />
-            <div className="wb-content" style={{ opacity: wiping ? 0 : 1, transition: `opacity ${WIPE_MS * 0.6}ms ease-out` }}>
+        <div
+          className={`wb-frame ${className ?? ""}`}
+          data-viewport={viewport}
+          data-testid={testId}
+          data-board
+          data-corner={cornerSlot ? "true" : undefined}
+          data-footer={footer && !dockUp ? "true" : undefined}
+          data-foot={foot}
+        >
+          <div className="wb-surface" ref={attachSurface} data-testid="board-surface">
+            <div className="wb-content" data-testid="board-content" style={{ opacity: wiping ? 0 : 1, transition: `opacity ${WIPE_MS * 0.6}ms ease-out` }}>
               {children}
             </div>
             <div className="wb-overlay" ref={setOverlay} />
@@ -86,10 +114,37 @@ export function Whiteboard({ viewport = "fill", children, wipeKey, showTray = tr
               )}
             </AnimatePresence>
           </div>
+          {footer && !dockUp && (
+            <div className="wb-footer" data-testid="board-footer" data-kind={footKind ?? "chips"}>
+              {footer}
+            </div>
+          )}
+          <div className="wb-dock" data-testid="board-dock" data-up={dockUp || undefined} ref={setDock} />
+          {frameSlot}
+          {caption && (
+            <div className="wb-caption" data-testid="caption">
+              {caption}
+            </div>
+          )}
           {showTray && <Tray />}
+          {handSlot}
           {cornerSlot && (
             <div className="wb-corner" data-testid="board-corner">
               {cornerSlot}
+            </div>
+          )}
+          {lenaSlot && (
+            <div className="wb-lena" data-testid="board-lena">
+              {lenaSlot}
+            </div>
+          )}
+          {sheet && (
+            <div className="wb-sheet-layer" data-testid={sheet.testId ?? "board-sheet"} data-kind={sheet.kind ?? "chat"}>
+              <div className="wb-dim" data-testid="board-dim" />
+              <div className="wb-zara-large">{sheet.zara}</div>
+              <div className="wb-sheet" data-kind={sheet.kind ?? "chat"}>
+                {sheet.content}
+              </div>
             </div>
           )}
         </div>
@@ -98,27 +153,13 @@ export function Whiteboard({ viewport = "fill", children, wipeKey, showTray = tr
   );
 }
 
-/** One turbulence + displacement filter, defined per board; strokes reference it by id. */
-function MarkerWobbleDefs() {
-  return (
-    <svg width="0" height="0" style={{ position: "absolute" }} aria-hidden>
-      <defs>
-        <filter id="marker-wobble" x="-6%" y="-6%" width="112%" height="112%">
-          <feTurbulence type="fractalNoise" baseFrequency="0.045" numOctaves="2" seed="7" result="noise" />
-          <feDisplacementMap in="SourceGraphic" in2="noise" scale="1.7" xChannelSelector="R" yChannelSelector="G" />
-        </filter>
-      </defs>
-    </svg>
-  );
-}
 
 function Tray() {
   const muted = useMuted();
   return (
     <div className="wb-tray" data-testid="board-tray">
       <span className="wb-marker" style={{ background: BOARD.markerBlue }} aria-hidden />
-      <span className="wb-marker" style={{ background: BOARD.markerRed }} aria-hidden />
-      <span className="wb-felt" aria-hidden />
+      <span className="wb-marker" style={{ background: BOARD.markerGreen }} aria-hidden />
       <button
         type="button"
         className="wb-mute"
@@ -130,17 +171,7 @@ function Tray() {
         }}
         data-testid="board-mute"
       >
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-          <path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor" stroke="none" />
-          {muted ? (
-            <path d="M16 9l5 6M21 9l-5 6" />
-          ) : (
-            <>
-              <path d="M16 9a4 4 0 0 1 0 6" />
-              <path d="M18.5 6.5a8 8 0 0 1 0 11" />
-            </>
-          )}
-        </svg>
+        <span className="wb-mute-chip">{muted ? "♪̸" : "♪"}</span>
       </button>
     </div>
   );

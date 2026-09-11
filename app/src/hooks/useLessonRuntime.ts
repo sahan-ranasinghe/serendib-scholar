@@ -30,9 +30,11 @@ import {
 } from "@/lib/choreography";
 import { AUTHORED_LINES } from "@/lib/authoredLines";
 import { confirmValueFor, CONFIRM_LIMIT } from "@/lib/confirmPolicy";
-import { judgePhrase } from "@/lib/phraseJudge";
+import { judgePhrase, judgePhraseLocally } from "@/lib/phraseJudge";
 import { renderNumberMarkers } from "@/lib/sinhalaNumber";
 import { parseTargetKey } from "@/lib/choreography";
+import { valueOfAnswer } from "@/lib/answerMode";
+import type { TurnSurface } from "@/components/board/events";
 import { serializeStage, type ChatAnswer, type ChatContext } from "@/lib/chatContext";
 import type { Target } from "@/components/board/events";
 import type { YourTurn } from "@/components/board/BoardStage";
@@ -44,11 +46,8 @@ import {
   buildConfirmBeat,
   buildFeedbackBeat,
   buildGiveUpBeat,
-  buildHookPraiseBeat,
-  buildOfferHelpBeat,
+  buildNudgeBeat,
   buildReteachBeats,
-  buildSoftAckBeat,
-  buildWaitBeat,
   buildDirectorLine,
   conceptSummary,
   createInitialState,
@@ -56,10 +55,10 @@ import {
   isLessonComplete,
   resolveConfirmation,
   ASK_SILENCE_TIMEOUT_MS,
-  ASK_HELP_TIMEOUT_MS,
-  ASK_GIVEUP_TIMEOUT_MS,
-  SOFT_CHECK_WINDOW_MS,
-  SOFT_CHECK_SILENCE_MS,
+  TOUCH_NUDGE_MS,
+  TOUCH_GIVEUP_MS,
+  READ_ALOUD_PAUSE_MS,
+  SOFT_CHECK_PAUSE_MS,
   UNAIDED_CORRECT_TO_ADVANCE,
   FRAMING_CONCEPT,
   type AdvanceResult,
@@ -115,7 +114,10 @@ export type RuntimeStatus =
   | "locked"
   | "preparing"
   | "teaching"
-  | "listening"
+  /** The child's turn: a touch surface is open (nothing is recorded). */
+  | "turn"
+  /** A short pause with nothing to answer: reading practice, a soft check. */
+  | "pausing"
   | "thinking"
   | "chatting"
   | "done"
@@ -165,20 +167,6 @@ interface AudioConfig {
 
 const MIC_TAIL_MS = 400;
 
-/**
- * Whether a SOFT_CHECK's audio is transcribed.
- *
- * OFF, deliberately. A soft check is not judged — any sound at all earns
- * the same authored "හරි!" — but transcription costs a measured ~5s
- * round trip, and a live run showed 12s between the child chirping and
- * her answering. That silence is the opposite of what a soft check is
- * for. The recording still gates the acknowledgement (she only answers if
- * they actually made a sound); only the words are skipped.
- *
- * Turn this on to put soft-check transcripts back in the session log, at
- * the cost of that pause and one flash-audio call per soft check.
- */
-const TRANSCRIBE_SOFT_CHECKS = false;
 
 export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
   const [status, setStatus] = useState<RuntimeStatus>("idle");
@@ -226,6 +214,9 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
   const [noClipCaption, setNoClipCaption] = useState<string | null>(null);
   /** A brief on-screen hint (a tap while she talks, a rotation). */
   const [hint, setHint] = useState<string | null>(null);
+  /** The first ✋: the board dims and Zara explains why she listens (the design's P1); the browser's prompt follows only after "හරි". */
+  const [micAsk, setMicAsk] = useState(false);
+  const micAskRef = useRef<((granted: boolean) => void) | null>(null);
   const hintTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   /** Automatic holds (portrait, backgrounded) alongside the parent's ⏸. */
   const holdsRef = useRef(new Set<string>());
@@ -251,6 +242,17 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
   const sessionStatsRef = useRef({ concepts: new Set<string>(), correct: 0, asked: 0 });
   const recorderRef = useRef<AnswerRecorderHandle | null>(null);
   const padAnswerRef = useRef<string | null>(null);
+  /** Resolves the open touch window the moment the child taps. */
+  const tapResolveRef = useRef<(() => void) | null>(null);
+  /**
+   * VOICE_ASSESSMENT (server env, read from /api/audio-config): the opt-in
+   * reading assessment records and transcribes the readAloud pause. Off —
+   * the default — nothing on the lesson path touches the microphone,
+   * /api/hear, CONFIRM or the rubric model: only the ✋ chat opens the mic.
+   */
+  const voiceAssessmentRef = useRef(false);
+  /** How many times the ✋ chat opened the microphone this sitting (the cost log). */
+  const micOpensRef = useRef(0);
   /**
    * The number the child last built on the digit picker (judged correct by
    * a permutation predicate). A "builtNumber" board draws it; the composed
@@ -318,6 +320,8 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
 
   const fireFeedback = (kind: "correct" | "wrong" | "celebrate", at: Target | null) => {
     setStage({ ...stageRef.current, feedback: { kind, at, nonce: stageRef.current.feedback.nonce + 1 } });
+    // For the harness: tap-to-feedback latency, on the page's own clock.
+    (window as unknown as { __lastFeedbackAt?: number }).__lastFeedbackAt = performance.now();
   };
 
   /**
@@ -617,27 +621,12 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
   // -----------------------------------------------------------------
 
   /**
-   * Opens the child's window and waits for an answer: the mic records
-   * until they stop talking, then the clip goes to /api/hear. Returns null
-   * when they never started (the caller's ladder takes over).
+   * The child's turn opens on the board: the surface that leads, the chips,
+   * the pad fallback, the pointer parked. Nothing is recorded here.
    */
-  const listenForAnswer = async (
-    beat: Beat,
-    onsetTimeoutMs: number,
-    options: { transcribe?: boolean; silenceMs?: number } = {},
-  ): Promise<{ transcript: string; number: string | null; confidence: number | null } | null> => {
-    const stream = streamRef.current;
-    if (!stream || stoppedRef.current) return null;
+  const openTurn = (beat: Beat) => {
     const missesSoFar = missesRef.current.get(beat.id) ?? 0;
     const confirmsSoFar = confirmsRef.current.get(beat.id) ?? 0;
-
-    setRuntimeStatus("listening");
-    // Parent mute means "don't listen to this child right now": no
-    // recording, no transcription — the ladder simply runs its course.
-    if (mutedRef.current) {
-      await wait(onsetTimeoutMs);
-      return null;
-    }
     // Tap-to-answer stays available for the whole window.
     if (beat.expectedAnswer) {
       if (beat.answerChoices && beat.answerChoices.length >= 2) {
@@ -655,17 +644,48 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
     // rebuilt, so its beads stay put for a reading question.
     const surface = answerSurfaceFor(stageRef.current);
     const expectedDigits = (beat.expectedAnswer ?? "").replace(/\D/g, "");
-    const touchable = surface !== null && (surface.surface !== "abacus" || (expectedDigits !== "" && expectedDigits !== surface.shownNumber));
+    const soft = beat.type === "SOFT_CHECK";
+    const mode = beat.answerMode ?? null;
+    // valueOrPlace with the abacus up: a tap on a rod answers with what the
+    // rod shows — its bead count when the question counts beads, else its
+    // digit's value at its place.
+    const rodPick: "count" | "value" | undefined =
+      !soft && mode === "valueOrPlace" && surface?.surface === "abacus"
+        ? (valueOfAnswer(beat.expectedAnswer) ?? 10) < 10 && /පබළු/u.test(beat.spokenText ?? "")
+          ? "count"
+          : "value"
+        : undefined;
+    const touchable = surface !== null && (surface.surface !== "abacus" || rodPick !== undefined || (expectedDigits !== "" && expectedDigits !== surface.shownNumber));
     answerTargetRef.current = surface?.target ?? null;
-    // A phrase question after one miss: three tappable findings (the
-    // correct one shuffled in), so a child who knows but cannot phrase it
-    // is never stuck.
-    const rubricChoices = beat.rubric?.choices && missesSoFar >= 1 ? shuffleBy(beat.rubric.choices, beat.id) : undefined;
+    // The chips: from the start for the chip-primary modes (why, readAloud
+    // beneath the 🎤 cue, valueOrPlace beside the rods); for a build or a
+    // cell only after a miss, or once the hearing has been doubtful twice.
+    // Never on a soft check.
+    const chipsFromStart = mode === "why" || mode === "readAloud" || mode === "valueOrPlace";
+    const legacyChoices = beat.answerChoices && beat.answerChoices.length >= 2 && beat.expectedAnswer ? { options: beat.answerChoices, correctIndex: beat.answerChoices.indexOf(beat.expectedAnswer) } : undefined;
+    const chips = !soft && (chipsFromStart || missesSoFar >= 1 || confirmsSoFar >= CONFIRM_LIMIT) ? (beat.choices ?? legacyChoices) : undefined;
+    const turnSurface: TurnSurface = rodPick
+        ? "rod"
+        : surface?.surface === "digitPicker" && touchable
+          ? "picker"
+          : surface?.surface === "abacus" && touchable
+            ? "beads"
+            : surface?.surface === "blankTable" || surface?.surface === "expansion"
+              ? "cell"
+              : chips
+                ? "chips"
+                : "pad";
+    dispatchStage({ primitive: "turn", event: "your_turn", args: { answerMode: mode ?? "build", surface: turnSurface } });
+    if (chips) dispatchStage({ primitive: "choiceChips", event: "show", args: { options: chips.options, correctIndex: chips.correctIndex } });
+    else if (stageRef.current.chips) dispatchStage({ primitive: "choiceChips", event: "clear", args: {} });
     setYourTurn({
-      kind: beat.type === "SOFT_CHECK" ? "soft" : "ask",
+      kind: soft ? "soft" : "ask",
       surface: surface?.surface ?? null,
       touchable,
-      choices: rubricChoices ?? (beat.answerChoices && beat.answerChoices.length >= 2 ? beat.answerChoices : undefined),
+      answerMode: mode ?? undefined,
+      chips,
+      rodPick,
+      micCue: !soft && mode === "readAloud",
       // Two doubtful hearings: the pad opens by itself, no third "say it again".
       padFirst: confirmsSoFar >= CONFIRM_LIMIT,
       // A number, a digit set, or a number NAME ("අසූ හතර") — the pad answers all three (see answersMatch).
@@ -677,7 +697,162 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
       ),
     });
     setStage({ ...stageRef.current, parked: true });
+  };
 
+  const closeTurn = () => {
+    setAnswerPad(null);
+    setYourTurn(null);
+    setStage({ ...reduceStage(stageRef.current, { primitive: "turn", event: "over", args: {} }), parked: false });
+  };
+
+  /** Resolves with the tapped answer, or null when the window runs out. The mailbox is padAnswerRef. */
+  const awaitTap = (ms: number): Promise<string | null> =>
+    new Promise((resolve) => {
+      if (padAnswerRef.current) {
+        resolve(padAnswerRef.current);
+        return;
+      }
+      const timer = setTimeout(() => {
+        tapResolveRef.current = null;
+        resolve(padAnswerRef.current);
+      }, ms);
+      tapResolveRef.current = () => {
+        clearTimeout(timer);
+        tapResolveRef.current = null;
+        resolve(padAnswerRef.current);
+      };
+    });
+
+  /**
+   * A recorded authored line (the nudge, the mic explanation, the read-back
+   * frame) — played from its clip when the actor has recorded it, else read
+   * on the board for a moment. Never rendered on demand: these are the
+   * lines docs/RECORDING.md lists for the next session.
+   */
+  const sayAuthored = async (text: string): Promise<boolean> => {
+    const config = audioConfigRef.current;
+    const player = playerRef.current;
+    if (!config || !player || stoppedRef.current) return false;
+    const clip = await loadClipByKey(clipKey(text, config.voice), text).catch(() => null);
+    setCaption(text);
+    recentLinesRef.current.push(text);
+    if (clip) {
+      beatAudioMsRef.current += clip.meta.durationMs;
+      await player.playClip(clip.audio, { sentences: clip.meta.sentences });
+      await wait(MIC_TAIL_MS);
+      return true;
+    }
+    logEvent(`no clip yet for "${text.slice(0, 24)}…" — shown on the board`);
+    setNoClipCaption(text);
+    await wait(1800);
+    setNoClipCaption(null);
+    return false;
+  };
+
+  /**
+   * The answer window, touch only: the surface is open until a tap. No tap
+   * for 12 s → one gentle recorded nudge, the surface still open; at 25 s
+   * → null, and the caller demonstrates and moves on.
+   */
+  const answerByTouch = async (beat: Beat): Promise<string | null> => {
+    if (stoppedRef.current) return null;
+    padAnswerRef.current = null;
+    setRuntimeStatus("turn");
+    openTurn(beat);
+    let tapped = await awaitTap(TOUCH_NUDGE_MS);
+    if (!tapped && !stoppedRef.current) {
+      logEvent("no tap for 12s — one nudge");
+      const nudge = buildNudgeBeat(beat);
+      // The nudge's own length (its clip, or the 1.8 s it is shown for) comes off the 25 s.
+      const audioBefore = beatAudioMsRef.current;
+      const played = await sayAuthored(resolveAddress(nudge.spokenText ?? AUTHORED_LINES.touchNudge, childGenderRef.current));
+      const nudgeMs = played ? beatAudioMsRef.current - audioBefore + MIC_TAIL_MS : 1800;
+      await finishBeatLog(nudge, null);
+      tapped = padAnswerRef.current ?? (await awaitTap(Math.max(0, TOUCH_GIVEUP_MS - TOUCH_NUDGE_MS - nudgeMs)));
+    }
+    closeTurn();
+    padAnswerRef.current = null;
+    if (tapped) logEvent(`answer (tapped) "${tapped}"`);
+    return tapped;
+  };
+
+  /**
+   * Reading practice, unjudged: "කියන්න බලන්න" — three seconds for the
+   * child to say the number (the portrait perks up, a faint 🎤 cue, nothing
+   * recorded unless the reading assessment is on), then Zara reads it
+   * herself: the recorded frame "මම කියන්නම් —" and the composed number.
+   */
+  const readAloudPractice = async (beat: Beat): Promise<void> => {
+    const value = valueOfAnswer(beat.expectedAnswer);
+    if (value === null || stoppedRef.current) return;
+    setRuntimeStatus("pausing");
+    dispatchStage({ primitive: "turn", event: "pause", args: { ms: READ_ALOUD_PAUSE_MS, cue: "mic", number: value } });
+    logEvent(`reading practice: ${READ_ALOUD_PAUSE_MS / 1000}s to say it${voiceAssessmentRef.current ? " (assessment recording)" : " (nothing recorded)"}`);
+    if (voiceAssessmentRef.current) {
+      const heard = await listenForAnswerVoice(beat, READ_ALOUD_PAUSE_MS, { transcribe: true });
+      if (heard) logEvent(`reading assessment heard "${heard.transcript.slice(0, 30)}" — logged, never judged`);
+    } else {
+      await wait(READ_ALOUD_PAUSE_MS);
+    }
+    if (stoppedRef.current) return;
+    dispatchStage({ primitive: "turn", event: "read_back", args: { number: value } });
+    setRuntimeStatus("teaching");
+    const readBack: Beat = {
+      ...beat,
+      id: `${beat.id}:readback`,
+      type: "EXPLAIN",
+      goal: "Reading practice: she reads the number herself (verbatim frame + composed number).",
+      spokenText: `${AUTHORED_LINES.readBack} ${sinhalaNumberName(value)}`,
+      sayCandidates: undefined,
+      board: { kind: "none" },
+      expectedAnswer: undefined,
+      rubric: undefined,
+      choices: undefined,
+      endBy: "pausing",
+    };
+    activeBeatRef.current = readBack;
+    const spoken = await speakComposedNumber(value, NUMBER_FRAMES.readBack);
+    if (!spoken) {
+      // The frame is not recorded yet: the line is read on the board, not rendered.
+      logEvent("read-back clips not recorded yet — shown on the board");
+      setCaption(readBack.spokenText!);
+      setNoClipCaption(readBack.spokenText!);
+      await wait(2000);
+      setNoClipCaption(null);
+    }
+    await finishBeatLog(readBack, null);
+    activeBeatRef.current = beat;
+  };
+
+  /**
+   * VOICE ASSESSMENT ONLY (flag off by default): opens the microphone and
+   * waits for speech, then the clip goes to /api/hear. Kept so an opt-in
+   * reading assessment can be enabled without a rebuild; nothing on the
+   * lesson path reaches it while the flag is off.
+   */
+  const listenForAnswerVoice = async (
+    beat: Beat,
+    onsetTimeoutMs: number,
+    options: { transcribe?: boolean; silenceMs?: number } = {},
+  ): Promise<{ transcript: string; number: string | null; confidence: number | null; tapped?: boolean } | null> => {
+    if (!voiceAssessmentRef.current) return null;
+    if (!streamRef.current) {
+      try {
+        streamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
+      } catch {
+        logEvent("reading assessment: microphone refused");
+        return null;
+      }
+    }
+    const stream = streamRef.current;
+    if (!stream || stoppedRef.current) return null;
+    setRuntimeStatus("turn");
+    // Parent mute means "don't listen to this child right now".
+    if (mutedRef.current) {
+      await wait(onsetTimeoutMs);
+      return null;
+    }
+    openTurn(beat);
     padAnswerRef.current = null;
     const handle = recordAnswerClip(stream, {
       onsetTimeoutMs,
@@ -689,9 +864,7 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
     const recording = await handle.done;
     recorderRef.current = null;
     setMicLevel(0);
-    setAnswerPad(null);
-    setYourTurn(null);
-    setStage({ ...stageRef.current, parked: false });
+    closeTurn();
 
     // A tapped answer beats anything the mic heard.
     const tapped = padAnswerRef.current;
@@ -699,7 +872,7 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
     if (tapped) {
       logEvent(`answer (tapped) "${tapped}"`);
       // A tap is certain: it never needs a CONFIRM.
-      return { transcript: tapped, number: /^\d+$/.test(tapped) ? tapped : null, confidence: 1 };
+      return { transcript: tapped, number: /^\d+$/.test(tapped) ? tapped : null, confidence: 1, tapped: true };
     }
     if (!recording.spoke || stoppedRef.current) return null;
     // The child made a sound but their words aren't needed (see
@@ -928,48 +1101,15 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
 
     const handling = beatSpec(beat.type).onChildResponse;
 
-    if (beat.type === "SOFT_CHECK") {
-      // A soft window: any sound at all earns one authored acknowledgement.
-      // The words are transcribed for the log (a child answering a question
-      // she only half-asked deserves to be on the record), never judged.
-      const heard = await listenForAnswer(beat, SOFT_CHECK_WINDOW_MS, {
-        transcribe: TRANSCRIBE_SOFT_CHECKS,
-        // The acknowledgement waits for her to finish, not for a clock.
-        silenceMs: SOFT_CHECK_SILENCE_MS,
-      });
-      if (heard) {
-        childTranscriptRef.current = heard.transcript || "(the child responded)";
-        await finishBeatLog(beat, null);
-        advanceIfScripted(scripted, null);
-        await runBeat(buildSoftAckBeat(beat), false);
-        return;
-      }
+    if (beat.type === "SOFT_CHECK" || (beat.type === "HOOK" && beat.expectedAnswer) || beat.type === "BREAK_CHAT") {
+      // A brief pause while she reacts: no microphone, no acknowledgement
+      // clip. Any tap counts as engagement and is on the record; the
+      // lesson flows on either way. (A hook's doorway question and the
+      // break-time chat offer are the same pause — the ✋ opens a chat.)
+      const engaged = await softPause(beat.type === "SOFT_CHECK" ? SOFT_CHECK_PAUSE_MS : READ_ALOUD_PAUSE_MS);
+      childTranscriptRef.current = engaged ? "(the child tapped)" : "";
       await finishBeatLog(beat, null);
       advanceIfScripted(scripted, null);
-      return;
-    }
-
-    if (beat.type === "HOOK" && beat.expectedAnswer) {
-      // A doorway, not a test: a matching answer earns the exact praise
-      // line; anything else moves warmly on, uncorrected.
-      const heard = await listenForAnswer(beat, ASK_SILENCE_TIMEOUT_MS);
-      childTranscriptRef.current = heard?.transcript ?? "";
-      const said = heard?.number ?? heard?.transcript ?? "";
-      await finishBeatLog(beat, null);
-      advanceIfScripted(scripted, null);
-      if (said && answersMatch(beat.expectedAnswer, said)) {
-        await runBeat(buildHookPraiseBeat(beat), false);
-      }
-      return;
-    }
-
-    if (beat.type === "BREAK_CHAT") {
-      // An offer. Only a yes opens the live conversation.
-      const heard = await listenForAnswer(beat, ASK_SILENCE_TIMEOUT_MS);
-      childTranscriptRef.current = heard?.transcript ?? "";
-      await finishBeatLog(beat, null);
-      advanceIfScripted(scripted, null);
-      if (heard && classifyConfirmation(heard.transcript) === "yes") await openChat();
       return;
     }
 
@@ -983,6 +1123,38 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
     advanceIfScripted(scripted, null);
   };
 
+  /**
+   * A wrong state's visible way back: the "ආයෙත් උත්සාහ කරන්න" paper
+   * button, top-right. The surface reopens on its tap — or on its own after
+   * 12 s, so a child who just waits is never stuck.
+   */
+  const awaitRetry = async (): Promise<void> => {
+    if (stoppedRef.current) return;
+    padAnswerRef.current = null;
+    setRuntimeStatus("turn");
+    dispatchStage({ primitive: "turn", event: "retry", args: {} });
+    const tapped = await awaitTap(TOUCH_NUDGE_MS);
+    logEvent(tapped ? "retry: the child tapped ආයෙත් උත්සාහ කරන්න" : "retry: reopened on its own after 12s");
+    padAnswerRef.current = null;
+    setStage({ ...reduceStage(stageRef.current, { primitive: "turn", event: "over", args: {} }) });
+  };
+
+  /** A pause with nothing to answer: the portrait perks up; a tap is engagement. Returns whether the child tapped. */
+  const softPause = async (ms: number): Promise<boolean> => {
+    if (stoppedRef.current) return false;
+    padAnswerRef.current = null;
+    setRuntimeStatus("pausing");
+    dispatchStage({ primitive: "turn", event: "pause", args: { ms } });
+    setYourTurn({ kind: "soft", surface: null, touchable: false, numeric: false });
+    const tapped = await awaitTap(ms);
+    setYourTurn(null);
+    dispatchStage({ primitive: "turn", event: "over", args: {} });
+    padAnswerRef.current = null;
+    setRuntimeStatus("teaching");
+    if (tapped) logEvent("soft check: the child tapped");
+    return Boolean(tapped);
+  };
+
   const advanceIfScripted = (scripted: boolean, decision: PlannerDecision | null) => {
     const script = scriptRef.current;
     if (!scripted || !script) return null;
@@ -994,37 +1166,27 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
   };
 
   /**
-   * A question the child is expected to answer, with the never-wait-forever
-   * ladder: 8s of quiet → she nudges; 12s more → she offers help; 10s more
-   * → she demonstrates the answer and the lesson moves on (logged as NOT
-   * ATTEMPTED — no mastery credit, but no reteach spiral either).
+   * A question the child answers by touch. readAloud opens with the
+   * unjudged reading practice (not on a retry); then the surface is open
+   * until a tap — a nudge at 12 s, and at 25 s she demonstrates the answer
+   * and the lesson moves on (logged NOT ATTEMPTED — no mastery credit, no
+   * reteach spiral).
    */
-  const runQuestion = async (beat: Beat, scripted: boolean): Promise<void> => {
-    const ladder = [ASK_SILENCE_TIMEOUT_MS, ASK_HELP_TIMEOUT_MS, ASK_GIVEUP_TIMEOUT_MS];
-    for (let rung = 0; rung < ladder.length; rung += 1) {
-      const heard = await listenForAnswer(beat, ladder[rung]);
-      if (stoppedRef.current) return;
-      if (heard) {
-        await judgeAnswer(beat, scripted, heard);
-        return;
-      }
-      logEvent(`silence ladder rung ${rung + 1}`);
-      if (rung === 0) {
-        await runBeat(buildWaitBeat(beat), false);
-      } else if (rung === 1) {
-        await runBeat(buildOfferHelpBeat(beat), false);
-      } else {
-        // Bottom of the ladder: she shows them, and the lesson goes on.
-        childTranscriptRef.current = "";
-        await finishBeatLog(beat, { understood: false, next: "advance", reason: "Not attempted (silence ladder)." });
-        if (beat.expectedAnswer) void recordMastery(beat, false);
-        advanceIfScripted(scripted, null);
-        // The demonstration: the answer on the board whatever it is, and
-        // in her voice when its number words are recorded.
-        await revealAnswer(beat);
-      }
-      if (stoppedRef.current) return;
+  const runQuestion = async (beat: Beat, scripted: boolean, options: { retry?: boolean } = {}): Promise<void> => {
+    if (beat.answerMode === "readAloud" && !options.retry) await readAloudPractice(beat);
+    if (stoppedRef.current) return;
+    const tapped = await answerByTouch(beat);
+    if (stoppedRef.current) return;
+    if (tapped) {
+      await judgeTouch(beat, scripted, tapped);
+      return;
     }
+    logEvent("no tap by 25s — she demonstrates and moves on");
+    childTranscriptRef.current = "";
+    await finishBeatLog(beat, { understood: false, next: "advance", reason: "Not attempted (no tap in 25s)." });
+    if (beat.expectedAnswer) void recordMastery(beat, false);
+    advanceIfScripted(scripted, null);
+    await revealAnswer(beat);
   };
 
   /**
@@ -1037,13 +1199,33 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
    * fourth ask. A CONFIRM echoes only what was heard (src/lib/confirmPolicy),
    * and after two doubtful hearings the pad takes over.
    */
-  const judgeAnswer = async (
+  /**
+   * A tapped answer, judged on the spot with no network: the chip or tile
+   * either matches the expected answer (answersMatch: digits, a name, a
+   * digit set) or is one of the rubric's findings (judgePhraseLocally).
+   * Feedback fires before anything else — the burst lands within the tap.
+   */
+  const judgeTouch = async (beat: Beat, scripted: boolean, tapped: string): Promise<void> => {
+    childTranscriptRef.current = tapped;
+    const understood = beat.rubric ? judgePhraseLocally(tapped, beat.rubric).accepted : Boolean(beat.expectedAnswer && answersMatch(beat.expectedAnswer, tapped));
+    fireFeedback(understood ? "correct" : "wrong", answerTargetRef.current);
+    setCharacterMood(understood ? "celebrate" : "encourage");
+    const decision: PlannerDecision = { understood, next: "advance", reason: understood ? "touch: matches the expected answer" : "touch: does not match the expected answer" };
+    await settleAnswer(beat, scripted, tapped, decision, { feedbackFired: true });
+  };
+
+  /**
+   * VOICE ASSESSMENT ONLY: a hearing judged the old way — tangent check,
+   * exact match or planner, CONFIRM for a doubtful hearing, the rubric's
+   * model stage for a phrase. Unreachable while the flag is off.
+   */
+  const judgeSpokenAnswer = async (
     beat: Beat,
     scripted: boolean,
-    heard: { transcript: string; number: string | null; confidence: number | null },
+    heard: { transcript: string; number: string | null; confidence: number | null; tapped?: boolean },
   ): Promise<void> => {
     const script = scriptRef.current;
-    if (!script) return;
+    if (!script || !voiceAssessmentRef.current) return;
     const said = heard.number ?? heard.transcript;
     childTranscriptRef.current = heard.transcript;
 
@@ -1083,19 +1265,22 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
 
       // A doubtful hearing is read back before it is judged — what was
       // HEARD, never the answer key, and never a third time.
-      const echo = confirmValueFor({
-        hearing: heard,
-        expected: beat.expectedAnswer,
-        plannerGuess: decision.ambiguousNumber,
-        confirmsSoFar: confirmsRef.current.get(beat.id) ?? 0,
-      });
+      // A tapped answer is never read back: only a hearing can be doubtful.
+      const echo = heard.tapped
+        ? null
+        : confirmValueFor({
+            hearing: heard,
+            expected: beat.expectedAnswer,
+            plannerGuess: decision.ambiguousNumber,
+            confirmsSoFar: confirmsRef.current.get(beat.id) ?? 0,
+          });
       if (echo && beat.expectedAnswer !== undefined && !exact) {
         confirmsRef.current.set(beat.id, (confirmsRef.current.get(beat.id) ?? 0) + 1);
         const confirmBeat = buildConfirmBeat(beat, echo);
         const heardValue = /^\d+$/.test(echo) ? Number(echo) : NaN;
         if (Number.isInteger(heardValue)) showNumberOnBoard(heardValue);
         await deliverBeat(confirmBeat, Number.isInteger(heardValue) ? { composed: { value: heardValue, frame: NUMBER_FRAMES.heard } } : {});
-        const reply = await listenForAnswer(confirmBeat, ASK_SILENCE_TIMEOUT_MS);
+        const reply = await listenForAnswerVoice(confirmBeat, ASK_SILENCE_TIMEOUT_MS);
         const outcome = resolveConfirmation(beat, echo, reply ? classifyConfirmation(reply.transcript) : "other", answersMatch);
         if (outcome.kind === "judged") {
           decision = outcome.decision;
@@ -1108,6 +1293,19 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
       }
     }
 
+    await settleAnswer(beat, scripted, said, decision);
+  };
+
+  /**
+   * After a decision, spoken or tapped: the stats, mastery, the feedback
+   * beat, and the ladder. Miss 1 → the miss line and a retry (chips now on
+   * the surface); miss 2 → a RETEACH from a different angle and one more
+   * try; miss 3 → she states the answer (REVEAL) and the lesson moves on,
+   * the item logged as not mastered. Never a fourth ask.
+   */
+  const settleAnswer = async (beat: Beat, scripted: boolean, said: string, decision: PlannerDecision, options: { feedbackFired?: boolean } = {}): Promise<void> => {
+    const script = scriptRef.current;
+    if (!script) return;
     sessionStatsRef.current.asked += 1;
     noteMastery(beat.conceptTag, decision.understood);
     recentAnswersRef.current.push({ question: beat.spokenText ?? beat.goal, answer: said, correct: decision.understood });
@@ -1115,8 +1313,10 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
     // Correct → the burst on the answered element and a celebration; wrong
     // → the gentle wobble and an encouraging nod. Never both. The praise
     // or miss clip follows as the FEEDBACK beat.
-    fireFeedback(decision.understood ? "correct" : "wrong", answerTargetRef.current);
-    setCharacterMood(decision.understood ? "celebrate" : "encourage");
+    if (!options.feedbackFired) {
+      fireFeedback(decision.understood ? "correct" : "wrong", answerTargetRef.current);
+      setCharacterMood(decision.understood ? "celebrate" : "encourage");
+    }
     if (beat.conceptTag !== FRAMING_CONCEPT) sessionStatsRef.current.concepts.add(beat.conceptTag);
     void recordMastery(beat, decision.understood);
     if (stageRef.current.base?.kind === "abacus" && said && !beat.rubric) dispatchStage({ primitive: "abacus", event: "child_answer_overlay", args: { text: said.slice(0, 24) } });
@@ -1154,7 +1354,8 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
     if (misses === 1) {
       await runBeat(buildFeedbackBeat(beat, false, beat.expectedAnswer), false);
       setCharacterMood("none");
-      await runQuestion(beat, scripted);
+      await awaitRetry();
+      await runQuestion(beat, scripted, { retry: true });
       return;
     }
     if (misses === 2) {
@@ -1166,7 +1367,8 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
         if (stoppedRef.current) return;
         await runBeat(reteach, false);
       }
-      await runQuestion(beat, scripted);
+      await awaitRetry();
+      await runQuestion(beat, scripted, { retry: true });
       return;
     }
 
@@ -1245,9 +1447,41 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
 
   /** Pauses the lesson for a live conversation, and resumes when it ends. */
   const openChat = async () => {
-    const stream = streamRef.current;
     const player = playerRef.current;
-    if (!stream || !player) return;
+    if (!player || stoppedRef.current) return;
+    // The ✋ is the only place the microphone opens. The first time, she
+    // says why before the browser asks; a refusal is a hint, not an error,
+    // and the lesson simply carries on.
+    if (!streamRef.current) {
+      setRuntimeStatus("teaching");
+      logEvent("first ✋: asking for the microphone");
+      // The P1 sheet: her explanation plays while the sheet is up; the
+      // child's "හරි, අවසර දෙන්න" (or "ටයිප් කරන්නම්") decides what follows.
+      setMicAsk(true);
+      const decision = new Promise<boolean>((resolve) => {
+        micAskRef.current = resolve;
+      });
+      await sayAuthored(AUTHORED_LINES.micPermission);
+      const granted = stoppedRef.current ? false : await decision;
+      micAskRef.current = null;
+      setMicAsk(false);
+      if (!granted) {
+        logEvent("microphone not asked — the child chose not to (typed chat is not available yet)");
+        showHint("හරි, පාඩම දිගටම යමු", 2000);
+        return;
+      }
+      try {
+        streamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
+        micOpensRef.current += 1;
+        logEvent("microphone granted (chat)");
+      } catch {
+        logEvent("microphone refused — no chat");
+        showHint("කටහඬ නැතුව කතා කරන්න බෑ — පාඩම දිගටම යමු", 3000);
+        return;
+      }
+    }
+    const stream = streamRef.current;
+    if (!stream) return;
     setRuntimeStatus("chatting");
     setStage({ ...stageRef.current, pointer: null, parked: false });
     logEvent("live chat opened");
@@ -1348,7 +1582,7 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
     const { cachedSeconds, flashAudioSeconds, clipsPlayed, clipsRendered } = metricsRef.current;
     const liveSeconds = chat.liveSecondsRef.current ?? 0;
     logEvent(
-      `metrics cached=${Math.round(cachedSeconds)}s flash_audio=${Math.round(flashAudioSeconds)}s live=${liveSeconds}s`,
+      `metrics cached=${Math.round(cachedSeconds)}s flash_audio=${Math.round(flashAudioSeconds)}s live=${liveSeconds}s mic_opens=${micOpensRef.current}`,
     );
     await fetch("/api/session-log", {
       method: "POST",
@@ -1361,7 +1595,10 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
         beat_type: "SESSION_METRICS",
         director_text:
           `cached_seconds=${Math.round(cachedSeconds)} flash_audio_seconds=${Math.round(flashAudioSeconds)} ` +
-          `live_seconds=${liveSeconds} clips_played=${clipsPlayed} clips_rendered_on_demand=${clipsRendered}`,
+          `live_seconds=${liveSeconds} clips_played=${clipsPlayed} clips_rendered_on_demand=${clipsRendered} ` +
+          // flash_audio_seconds is the lesson path's transcription time: 0 unless VOICE_ASSESSMENT is on.
+          // live_seconds is the ✋ chat; mic_opens says how often the child chose to open it.
+          `mic_opens=${micOpensRef.current} voice_assessment=${voiceAssessmentRef.current ? "on" : "off"}`,
         started_at: new Date().toISOString(),
       }),
     }).catch(() => undefined);
@@ -1471,6 +1708,8 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
         fetchResumePoint(),
       ]);
       audioConfigRef.current = audioConfig?.ok && audioConfig.voice ? { voice: audioConfig.voice } : null;
+      voiceAssessmentRef.current = audioConfig?.voiceAssessment === true;
+      if (voiceAssessmentRef.current) logEvent("VOICE_ASSESSMENT is on: the reading pause records and transcribes");
       childGenderRef.current = child?.gender === "boy" || child?.gender === "girl" ? child.gender : "unspecified";
 
       let startIndex = 0;
@@ -1496,7 +1735,8 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
       flushMetricsRef.current = () => void reportMetrics(true);
       window.addEventListener("pagehide", flushMetricsRef.current);
 
-      streamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // No microphone here: the lesson path is touch-only. The ✋ chat asks
+      // for it, in her words, the first time the child taps it.
       const player = new PcmPlayer({ onPlaybackStateChange: setIsAiTalking });
       await player.resume();
       playerRef.current = player;
@@ -1583,6 +1823,11 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
     playerRef.current?.clear();
   }, []);
 
+  /** The P1 sheet's answer: "හරි, අවසර දෙන්න" (true) or "ටයිප් කරන්නම්" (false). */
+  const answerMicAsk = useCallback((granted: boolean) => {
+    micAskRef.current?.(granted);
+  }, []);
+
   /** ✋ — the child asks to talk. Opens at the next safe moment. */
   const requestChat = useCallback(() => {
     if (statusRef.current === "chatting") {
@@ -1596,6 +1841,8 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
   /** A tapped answer (number pad / choice) — the same path as a spoken one. */
   const submitTypedAnswer = useCallback((text: string) => {
     padAnswerRef.current = text;
+    (window as unknown as { __lastTapAt?: number }).__lastTapAt = performance.now();
+    tapResolveRef.current?.();
     recorderRef.current?.finish();
   }, []);
 
@@ -1648,11 +1895,18 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
     sessionSummary,
     noClipCaption,
     hint,
+    /** The first-✋ explanation sheet is up (the design's P1). */
+    micAsk,
+    answerMicAsk,
     holdFor,
     noteIdleTouch,
+    /** The opt-in reading assessment's voice path (VOICE_ASSESSMENT=on): nothing on the lesson path calls it while the flag is off. */
+    voiceAssessment: { listen: listenForAnswerVoice, judge: judgeSpokenAnswer, enabled: () => voiceAssessmentRef.current },
     muted,
     paused,
     chatting: chat.chatting,
+    /** The ✋ sheet's two-line live transcript. */
+    chatTranscript: chat.transcript,
     start,
     stop,
     togglePause,
@@ -1668,17 +1922,6 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
   };
 }
 
-/** The choices in a fixed order per beat — the correct finding is not always first. */
-function shuffleBy(items: string[], seed: string): string[] {
-  const out = [...items];
-  let hash = [...seed].reduce((sum, char) => (sum * 31 + char.charCodeAt(0)) >>> 0, 7);
-  for (let i = out.length - 1; i > 0; i -= 1) {
-    hash = (hash * 1103515245 + 12345) >>> 0;
-    const j = hash % (i + 1);
-    [out[i], out[j]] = [out[j]!, out[i]!];
-  }
-  return out;
-}
 
 function wait(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));

@@ -15,8 +15,8 @@
  */
 import { motion, useReducedMotion } from "framer-motion";
 import { useEffect, type CSSProperties, type ReactNode } from "react";
-import { GLYPHS } from "./HandGlyphs";
-import { placeOfDigit, BOARD, MAX_MS } from "./theme";
+import { GLYPHS, GLYPH_BOX, GLYPH_STROKE } from "./HandGlyphs";
+import { placeOfDigit, BOARD, MAX_MS } from "./tokens";
 import { useTargetRef } from "./targets";
 import { playSound } from "./sound";
 
@@ -53,7 +53,7 @@ export function HandNumber({
   targetBase,
   targetKeys,
   registerNumbers = true,
-  strokeWidth = 5,
+  strokeWidth = GLYPH_STROKE,
   className,
   style,
   onDrawn,
@@ -86,7 +86,7 @@ export function HandNumber({
       <Glyph
         key={`${index}:${char}`}
         d={glyph.d}
-        width={(glyph.w / 60) * size}
+        width={(glyph.w / GLYPH_BOX) * size}
         height={size}
         color={color}
         strokeWidth={strokeWidth}
@@ -192,7 +192,7 @@ function Glyph({
     <svg
       ref={ref}
       className="hand-stroke"
-      viewBox={`0 0 ${Math.round((width / height) * 60)} 60`}
+      viewBox={`0 0 ${Math.round((width / height) * GLYPH_BOX)} ${GLYPH_BOX}`}
       width={width}
       height={height}
       style={{ display: "block", overflow: "visible" }}

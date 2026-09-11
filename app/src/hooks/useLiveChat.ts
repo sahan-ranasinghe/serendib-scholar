@@ -33,6 +33,8 @@ const CHAT_IDLE_TIMEOUT_MS = 20000;
 
 export interface LiveChatHandle {
   chatting: boolean;
+  /** The live transcript's last two lines — what the child said, what Zara said — from the session's own transcriptions. */
+  transcript: { child: string; zara: string };
   /** Connected seconds so far this session — feeds the audio-cost split. */
   liveSecondsRef: React.RefObject<number>;
   /**
@@ -54,6 +56,9 @@ export interface LiveChatHandle {
 
 export function useLiveChat(): LiveChatHandle {
   const [chatting, setChatting] = useState(false);
+  const [transcript, setTranscript] = useState<{ child: string; zara: string }>({ child: "", zara: "" });
+  /** Whose line is being built: a new speaker starts a fresh line. */
+  const speakingRef = useRef<"child" | "zara" | null>(null);
   const clientRef = useRef<GeminiLiveClient | null>(null);
   const recorderRef = useRef<PcmRecorderHandle | null>(null);
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -94,6 +99,7 @@ export function useLiveChat(): LiveChatHandle {
           endRef.current = null;
           player.clear();
           setChatting(false);
+          speakingRef.current = null;
           resolve();
         };
         endRef.current = finish;
@@ -115,6 +121,7 @@ export function useLiveChat(): LiveChatHandle {
 
             const client = new GeminiLiveClient({
               onReady: async () => {
+                setTranscript({ child: "", zara: "" });
                 setChatting(true);
                 touchIdle();
                 recorderRef.current = await startPcmRecorder(stream, (chunk) => {
@@ -133,7 +140,17 @@ export function useLiveChat(): LiveChatHandle {
                 touchIdle();
                 player.enqueue(chunk);
               },
-              onInputTranscript: touchIdle,
+              onInputTranscript: (text) => {
+                touchIdle();
+                const fresh = speakingRef.current !== "child";
+                speakingRef.current = "child";
+                setTranscript((t) => ({ ...t, child: `${fresh ? "" : t.child}${text}`.slice(-140) }));
+              },
+              onOutputTranscript: (text) => {
+                const fresh = speakingRef.current !== "zara";
+                speakingRef.current = "zara";
+                setTranscript((t) => ({ ...t, zara: `${fresh ? "" : t.zara}${text}`.slice(-140) }));
+              },
               onInterrupted: () => player.clear(),
               onToolCall: async (calls: FunctionCall[]) => {
                 const responses = await Promise.all(
@@ -174,5 +191,5 @@ export function useLiveChat(): LiveChatHandle {
     [],
   );
 
-  return { chatting, liveSecondsRef, runChat, endChat };
+  return { chatting, transcript, liveSecondsRef, runChat, endChat };
 }

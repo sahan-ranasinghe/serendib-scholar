@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<div style="width:{{ w }}px;height:{{ h }}px;border-radius:{{ radius }};overflow:{{ overflow }};background:{{ bg }};position:relative;flex:none;box-shadow:{{ shadow }};border:{{ border }}">
+  <svg viewBox="{{ vb }}" width="{{ w }}" height="{{ h }}" style="display:block;position:relative;overflow:visible" data-part="zara">
+    <g transform="{{ bodyT }}">
+      <g data-part="bun"><circle cx="160" cy="60" r="22" fill="#2E1B14"></circle><path d="M146 50q14-8 28 4" fill="none" stroke="#4A3026" stroke-width="3" stroke-linecap="round"></path></g>
+      <g data-part="body">
+        <path d="M106 140h28v50h-28z" fill="#B27A4E"></path>
+        <path data-part="saree-skirt" d="M36 250h168l10 70H26z" fill="#5A3E8C"></path>
+        <path d="M60 256q12 8 24 0t24 0t24 0t24 0t24 0" fill="none" stroke="#D4A64A" stroke-width="2.5"></path>
+        <path d="M44 222C44 194 84 178 120 178s76 16 76 44l4 30H40z" fill="#E9B44C"></path>
+        <ellipse cx="48" cy="226" rx="20" ry="26" fill="#E9B44C"></ellipse>
+        <ellipse cx="192" cy="226" rx="20" ry="26" fill="#D9A23B"></ellipse>
+        <path d="M158 180c36 30-6 74-80 140h62c58-62 86-98 70-140z" fill="#5A3E8C"></path>
+        <path d="M158 180c36 30-6 74-80 140" fill="none" stroke="#D4A64A" stroke-width="3"></path>
+        <path d="M200 196c-6 40 6 74 4 124" fill="none" stroke="#D4A64A" stroke-width="2"></path>
+        <g data-part="saree-frill"><path d="M30 262q10-16 20 0t20 0t20 0t20 0l4 58H26z" fill="#5A3E8C"></path><path d="M30 262q10-16 20 0t20 0t20 0t20 0" fill="none" stroke="#D4A64A" stroke-width="3"></path><path d="M50 266v52M70 266v52M90 266v52" stroke="#4A3175" stroke-width="2"></path><path d="M40 270v46M60 270v46M80 270v46M100 270v46" stroke="#7A5FB0" stroke-width="1.5"></path></g>
+        <path d="M104 186q16 24 32 0" fill="none" stroke="#D4A64A" stroke-width="2"></path>
+      </g>
+      <g data-part="arm-left"><path d="{{ armL }}" fill="none" stroke="#D29A6A" stroke-width="18" stroke-linecap="round"></path><circle cx="{{ handLx }}" cy="{{ handLy }}" r="11" fill="#D29A6A"></circle></g>
+      <g data-part="arm-right"><path d="{{ armR }}" fill="none" stroke="#D29A6A" stroke-width="18" stroke-linecap="round"></path><circle cx="{{ handRx }}" cy="{{ handRy }}" r="11" fill="#D29A6A"></circle></g>
+      <g data-part="head" transform="{{ headT }}">
+        <ellipse cx="74" cy="112" rx="7" ry="10" fill="#D29A6A"></ellipse><ellipse cx="166" cy="112" rx="7" ry="10" fill="#C0875A"></ellipse>
+        <circle cx="74" cy="124" r="4" fill="#D4A64A"></circle><circle cx="166" cy="124" r="4" fill="#D4A64A"></circle>
+        <path data-part="face" d="{{ faceD }}" fill="#D29A6A"></path>
+        <path data-part="face-shade" d="{{ shadeD }}" fill="#B27A4E" opacity=".22"></path>
+        <ellipse data-part="hl-forehead" cx="108" cy="82" rx="12" ry="5" fill="#EDC094" opacity=".45"></ellipse>
+        <ellipse data-part="hl-cheek-l" cx="90" cy="122" rx="8" ry="4" fill="#EDC094" opacity=".5" transform="rotate(-18 90 122)"></ellipse>
+        <ellipse data-part="hl-cheek-r" cx="150" cy="122" rx="6" ry="3.5" fill="#EDC094" opacity=".35" transform="rotate(18 150 122)"></ellipse>
+        <path d="M119 94v16" fill="none" stroke="#EDC094" stroke-width="3" stroke-linecap="round" opacity=".55"></path>
+        <path data-part="hair" d="{{ hairD }}" fill="#2E1B14"></path>
+        <path d="{{ partD }}" fill="none" stroke="#4A3026" stroke-width="2.5" stroke-linecap="round"></path>
+        <ellipse cx="97" cy="126" rx="9" ry="5" fill="#E0805A" opacity=".32"></ellipse><ellipse cx="143" cy="126" rx="9" ry="5" fill="#E0805A" opacity=".32"></ellipse>
+        <g data-part="brows"><path d="{{ browL }}" transform="{{ browLT }}" fill="none" stroke="#2E1B14" stroke-width="4.5" stroke-linecap="round"></path><path d="{{ browR }}" transform="{{ browRT }}" fill="none" stroke="#2E1B14" stroke-width="4.5" stroke-linecap="round"></path></g>
+        <g data-part="eyes">
+          <path d="{{ eyeL }}" fill="#FFFAF3"></path><path d="{{ eyeR }}" fill="#FFFAF3"></path>
+          <circle cx="{{ irisLx }}" cy="{{ irisY }}" r="{{ irisR }}" fill="#4A2A18"></circle><circle cx="{{ irisRx }}" cy="{{ irisY }}" r="{{ irisR }}" fill="#4A2A18"></circle>
+          <circle cx="{{ pupLx }}" cy="{{ pupY }}" r="{{ pupR }}" fill="#1B1B1B"></circle><circle cx="{{ pupRx }}" cy="{{ pupY }}" r="{{ pupR }}" fill="#1B1B1B"></circle>
+          <circle cx="{{ hiLx }}" cy="{{ hiY }}" r="2.6" fill="#fff"></circle><circle cx="{{ hiRx }}" cy="{{ hiY }}" r="2.6" fill="#fff"></circle>
+          <circle cx="{{ hi2Lx }}" cy="{{ hi2Y }}" r="1.2" fill="#fff"></circle><circle cx="{{ hi2Rx }}" cy="{{ hi2Y }}" r="1.2" fill="#fff"></circle>
+          <path d="{{ lashL }}" fill="none" stroke="#2E1B14" stroke-width="3" stroke-linecap="round"></path><path d="{{ lashR }}" fill="none" stroke="#2E1B14" stroke-width="3" stroke-linecap="round"></path>
+          <path d="{{ smileEyeD }}" fill="none" stroke="#B27A4E" stroke-width="2.5" stroke-linecap="round" opacity=".8"></path>
+        </g>
+        <path d="M124 110q3 7-4 9" fill="none" stroke="#B27A4E" stroke-width="2.5" stroke-linecap="round"></path>
+        <g data-part="mouth"><path d="{{ mouthD }}" fill="{{ mouthFill }}" stroke="#A64F3C" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path><path d="{{ teethD }}" fill="#fff"></path><path d="{{ dimpleD }}" fill="none" stroke="#B27A4E" stroke-width="2.5" stroke-linecap="round"></path></g>
+      </g>
+    </g>
+  </svg>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:300,&quot;height&quot;:360},&quot;state&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;idle&quot;,&quot;options&quot;:[&quot;idle&quot;,&quot;talking&quot;,&quot;listening&quot;,&quot;thinking&quot;,&quot;encourage&quot;,&quot;celebrate&quot;,&quot;pointing-left&quot;,&quot;pointing-right&quot;,&quot;wave&quot;],&quot;tsType&quot;:&quot;string&quot;},&quot;face&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;A&quot;,&quot;options&quot;:[&quot;A&quot;,&quot;B&quot;,&quot;C&quot;],&quot;tsType&quot;:&quot;string&quot;},&quot;mouth&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;2&quot;,&quot;options&quot;:[&quot;1&quot;,&quot;2&quot;,&quot;3&quot;],&quot;tsType&quot;:&quot;string&quot;},&quot;size&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:240,&quot;min&quot;:48,&quot;max&quot;:480,&quot;unit&quot;:&quot;px&quot;,&quot;tsType&quot;:&quot;number&quot;},&quot;portrait&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  // Skin: base #D29A6A (light caramel), shade #B27A4E, highlight #EDC094, blush #E0805A, lip #A64F3C
+  static FACES = {
+    A: { faceD: 'M120 50c-32 0-48 26-48 60 0 34 20 56 48 56s48-22 48-56c0-34-16-60-48-60z',
+         shadeD: 'M152 90c12 26 6 56-14 74 26-12 36-50 14-74z',
+         hairD: 'M72 110c-4-44 18-64 48-64s52 20 48 64c-8-28-24-44-48-44s-40 16-48 44z', partD: 'M120 50v12',
+         eyeL: 'M86 106q15-18 30 0q-15 9-30 0z', eyeR: 'M124 106q15-18 30 0q-15 9-30 0z', irisR: 7, pupR: 3.4,
+         lashL: 'M86 106q15-18 30 0', lashR: 'M124 106q15-18 30 0',
+         browL: 'M88 90q13-11 27-5', browR: 'M125 85q14-6 27 5',
+         smile: 'M104 130q16 4 32 0q-16 14-32 0z', smileEye: 'M90 114q11 4 22 0M128 114q11 4 22 0', dimple: 'M0 0' },
+    B: { faceD: 'M120 48c-28 0-44 28-44 62 0 34 18 58 44 58s44-24 44-58c0-34-16-62-44-62z',
+         shadeD: 'M150 88c12 28 6 60-14 78 26-14 36-52 14-78z',
+         hairD: 'M76 108c-2-46 14-62 44-62s46 16 44 62c-6-24-14-34-30-36-18 8-40 4-58 36z', partD: 'M96 74q16-10 34-6',
+         eyeL: 'M86 106q15-20 30 0q-15 11-30 0z', eyeR: 'M124 106q15-20 30 0q-15 11-30 0z', irisR: 7.5, pupR: 3.6,
+         lashL: 'M86 106q15-20 30 0', lashR: 'M124 106q15-20 30 0',
+         browL: 'M88 86q13-13 27-5', browR: 'M125 81q14-8 27 5',
+         smile: 'M102 128q18 4 36 0q-18 18-36 0z', teeth: 'M106 129q14 3 28 0v4h-28z', smileEye: 'M90 115q11 4 22 0M128 115q11 4 22 0', dimple: 'M0 0' },
+    C: { faceD: 'M120 50c-32 0-50 24-50 56 0 32 26 60 50 60s50-28 50-60c0-32-18-56-50-56z',
+         shadeD: 'M154 90c12 26 4 56-16 72 26-12 36-48 16-72z',
+         hairD: 'M70 108c-4-42 18-60 50-60s54 18 50 60c-10-24-28-38-50-38s-40 14-50 38z', partD: 'M120 50v12',
+         eyeL: 'M86 106q15-16 30-2q-15 10-30 2z', eyeR: 'M124 104q15-14 30 2q-15 8-30-2z', irisR: 6.5, pupR: 3.2,
+         lashL: 'M86 106q15-16 30-2', lashR: 'M124 104q15-14 30 2',
+         browL: 'M88 90q13-8 27-5', browR: 'M125 85q14-3 27 5',
+         smile: 'M100 128q20 6 40 0q-20 14-40 0z', smileEye: 'M90 114q11 5 22 0M128 114q11 5 22 0', dimple: 'M95 124q-3 6 1 11M145 124q3 6-1 11' },
+  };
+  static MOUTH = {
+    soft: 'M106 130q14 8 28 0q-14 6-28 0z', half: 'M104 131q16 8 32-5q-16 12-32 5z', purse: 'M111 132q9 4 18 0q-9 5-18 0z',
+    talk1: 'M111 128q9-6 18 0q-9 11-18 0z', talk2: 'M106 126q14-6 28 0q-2 15-14 15t-14-15z', talk3: 'M104 128q16-8 32 0q-4 9-16 9t-16-9z',
+    big: 'M102 126q18 4 36 0q-4 19-18 19t-18-19z',
+  };
+  static ARM = {
+    downL: ['M46 230c-10 30-12 56-10 84', 34, 318], downR: ['M194 230c10 30 12 56 10 84', 206, 318],
+    pointL: ['M46 228C34 210 22 196 6 180', 4, 176], pointR: ['M194 228C206 210 218 196 234 180', 236, 176],
+    upL: ['M46 228C36 200 30 160 34 124', 34, 118], upR: ['M194 228C204 200 210 160 206 124', 206, 118],
+    chinR: ['M194 230c10 30-2 52-26 44C148 262 136 210 134 160', 132, 152], waveR: ['M194 228C210 208 218 176 212 140', 212, 132],
+  };
+  static STATES = {
+    idle:            { mouth: 'smile' },
+    talking:         { mouth: 'talk2', brow: -1 },
+    listening:       { mouth: 'soft', headT: 'rotate(-7 120 150) translate(0 6)', bodyT: 'translate(0 4)', brow: -4 },
+    thinking:        { mouth: 'purse', headT: 'rotate(5 120 150)', iris: [3, -3], browL: -5, browR: 2, armR: 'chinR' },
+    encourage:       { mouth: 'half', headT: 'translate(0 5) rotate(3 120 150)', brow: -2 },
+    celebrate:       { mouth: 'big', bodyT: 'translate(0 -8)', brow: -6, armL: 'upL', armR: 'upR' },
+    'pointing-left': { mouth: 'smile', headT: 'rotate(-4 120 150)', iris: [-3, 0], armL: 'pointL' },
+    'pointing-right':{ mouth: 'smile', headT: 'rotate(4 120 150)', iris: [3, 0], armR: 'pointR' },
+    wave:            { mouth: 'big', brow: -4, armR: 'waveR' },
+  };
+  renderVals() {
+    const p = this.props, F = Component.FACES[p.face ?? 'A'] || Component.FACES.A;
+    const st = Component.STATES[p.state ?? 'idle'] || Component.STATES.idle;
+    const size = Number(p.size ?? 240), portrait = !!p.portrait;
+    let mk = st.mouth; if (mk === 'talk2' && p.mouth) mk = 'talk' + p.mouth;
+    const smiling = mk === 'smile';
+    const mouthD = smiling ? F.smile : Component.MOUTH[mk];
+    const dark = /talk|big/.test(mk);
+    const al = Component.ARM[st.armL || 'downL'], ar = Component.ARM[st.armR || 'downR'];
+    const [ix, iy] = st.iris || [0, 0], bL = st.browL ?? st.brow ?? 0, bR = st.browR ?? st.brow ?? 0;
+    const iy0 = 102 + iy;
+    return {
+      faceD: F.faceD, shadeD: F.shadeD, hairD: F.hairD, partD: F.partD, eyeL: F.eyeL, eyeR: F.eyeR, lashL: F.lashL, lashR: F.lashR,
+      browL: F.browL, browR: F.browR, irisR: F.irisR, pupR: F.pupR, dimpleD: F.dimple,
+      smileEyeD: (smiling || mk === 'big' || mk === 'half') ? F.smileEye : 'M0 0',
+      mouthD, mouthFill: dark ? '#5B2A22' : '#A64F3C',
+      teethD: mk === 'big' ? 'M106 128q14 3 28 0v5h-28z' : (smiling && F.teeth ? F.teeth : 'M0 0'),
+      armL: al[0], handLx: al[1], handLy: al[2], armR: ar[0], handRx: ar[1], handRy: ar[2],
+      headT: st.headT || 'translate(0 0)', bodyT: st.bodyT || 'translate(0 0)', browLT: `translate(0 ${bL})`, browRT: `translate(0 ${bR})`,
+      irisLx: 101 + ix, irisRx: 139 + ix, irisY: iy0, pupLx: 101 + ix, pupRx: 139 + ix, pupY: iy0,
+      hiLx: 104 + ix, hiRx: 142 + ix, hiY: iy0 - 3, hi2Lx: 98 + ix, hi2Rx: 136 + ix, hi2Y: iy0 + 3,
+      talking: p.state === 'talking',
+      w: size, h: portrait ? size : Math.round(size * 320 / 240), vb: portrait ? '46 34 148 148' : '0 0 240 320',
+      radius: portrait ? '50%' : '0', overflow: portrait ? 'hidden' : 'visible', bg: portrait ? '#FBEFD3' : 'transparent',
+      shadow: portrait ? (p.state === 'talking' ? '0 0 0 4px #E9B44C, 0 0 0 10px rgba(233,180,76,.35), 0 6px 14px rgba(27,27,27,.12)' : '0 2px 0 #D8D1C2, 0 6px 14px rgba(27,27,27,.12)') : 'none', border: portrait ? '3px solid #FFFDF8' : 'none',
+    };
+  }
+}
+</script>
+</body>
+</html>

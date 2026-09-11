@@ -1,0 +1,13 @@
+/*
+ * The design's font families, served by next/font (self-hosted, no
+ * runtime request to Google). tokens.css names the families verbatim;
+ * this one rule, loaded AFTER it, points those names at the loaded faces
+ * — nothing else about tokens.css changes. Noto Sans Sinhala is the
+ * fallback only.
+ */
+:root {
+  --font-display: var(--font-gemunu), "Gemunu Libre", "Noto Sans Sinhala", sans-serif;
+  --font-body: var(--font-abhaya), "Abhaya Libre", "Noto Sans Sinhala", serif;
+  --font-label: var(--font-yaldevi), "Yaldevi", "Noto Sans Sinhala", sans-serif;
+  --font-latin: var(--font-inter), Inter, system-ui, sans-serif;
+}

@@ -7,7 +7,7 @@
  */
 import { motion, useReducedMotion } from "framer-motion";
 import { useEffect, type CSSProperties } from "react";
-import { BOARD, FONT_SINHALA, MAX_MS } from "./theme";
+import { BOARD, FONT_SINHALA, MAX_MS } from "./tokens";
 import { playSound } from "./sound";
 
 export interface WriteOnProps {
@@ -26,7 +26,7 @@ export function WriteOn({
   text,
   size = 28,
   color = BOARD.markerBlue,
-  weight = 600,
+  weight = 700,
   write = true,
   delayMs = 0,
   durationMs = 420,
@@ -50,7 +50,7 @@ export function WriteOn({
         fontSize: size,
         fontWeight: weight,
         color,
-        lineHeight: 1.35,
+        lineHeight: 1.5,
         whiteSpace: "pre-wrap",
         ...style,
       }}
