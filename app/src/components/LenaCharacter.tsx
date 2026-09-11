@@ -1,17 +1,11 @@
 "use client";
 
 /**
- * Lena (ලේනා) — the three-striped palm squirrel, ported from
- * Lena.dc.html: the same flat-fill + one-shade logic as Zara, 3-unit
- * feature strokes, faces left toward the board from the frame's
- * bottom-right. Layered parts carry the ids from lena.svg (tail, feet,
- * body, head, ears, eyes, mouth, paws) so the Rive rig can replace it.
- *
- * States (all set by the screen, never by a timer in here): idle,
- * idle-2 (tail flick), idle-3 (glance), alert, peek, hop,
- * droop-then-nudge, doze, wake, hold-flame.
+ * Lena (ලේනා) — the three-striped palm squirrel, ported byte-for-byte from
+ * the design export's Lena.dc.html: the SVG template and the TAIL / STATES
+ * tables are the export's, verbatim. Parts carry the rig ids as data-part
+ * (tail, feet, body, head, ears, eyes, mouth, paws, flame, doze, wake-mark).
  */
-
 export type LenaState = "idle" | "idle-2" | "idle-3" | "alert" | "peek" | "hop" | "droop-then-nudge" | "doze" | "wake" | "hold-flame";
 
 export interface LenaCharacterProps {
@@ -27,28 +21,28 @@ const TAIL: Record<string, string> = {
   low: "M136 152C186 160 202 112 178 98",
 };
 
-interface LenaPose {
-  bodyT?: string;
+interface LenaSpec {
+  tail?: string;
   headT?: string;
-  tail?: keyof typeof TAIL;
+  bodyT?: string;
+  eyes?: [number, number];
   earL?: string;
   earR?: string;
-  eyes?: [number, number];
   eyeR?: number;
-  mouth?: "open";
-  feet?: [number, number];
   pawL?: [number, number];
   pawR?: [number, number];
+  feet?: [number, number];
+  mouth?: "open";
   lids?: boolean;
   closed?: boolean;
-  brow?: boolean;
   zz?: boolean;
+  brow?: boolean;
   bang?: boolean;
   nudge?: boolean;
   flame?: boolean;
 }
 
-const STATES: Record<LenaState, LenaPose> = {
+export const LENA_STATES: Record<LenaState, LenaSpec> = {
   idle: {},
   "idle-2": { tail: "flick" },
   "idle-3": { headT: "rotate(8 76 110)", eyes: [-2, 0] },
@@ -62,33 +56,35 @@ const STATES: Record<LenaState, LenaPose> = {
 };
 
 export default function LenaCharacter({ state, size = 48 }: LenaCharacterProps) {
-  const s = STATES[state] ?? STATES.idle;
+  const s = LENA_STATES[state] ?? LENA_STATES.idle;
   const [dx, dy] = s.eyes ?? [0, 0];
   const r = s.closed ? 0 : (s.eyeR ?? 5.5);
   const pl = s.pawL ?? [74, 158];
   const pr = s.pawR ?? [90, 160];
   const ft = s.feet ?? [82, 106];
   const mouth = s.mouth === "open" ? "M52 108q5 7 10 0z" : "M54 108q4 3 8 0";
-  const lid = s.closed ? "M62 92q6 4 12 0M83 90q5 4 10 0" : s.lids ? "M61 86q7-4 14 0M81 84q7-4 14 0" : "M0 0";
   const tailD = TAIL[s.tail ?? "up"]!;
+  const lidD = s.closed ? "M62 92q6 4 12 0M83 90q5 4 10 0" : s.lids ? "M61 86q7-4 14 0M81 84q7-4 14 0" : "M0 0";
+  const browD = s.brow ? "M82 76q6-4 12 0" : "M0 0";
+  const hiOp = s.closed ? 0 : 1;
   return (
-    <svg viewBox="0 0 200 200" width={size} height={size} style={{ display: "block", overflow: "visible", flex: "none" }} data-part="lena" data-state={state} role="img" aria-label="Lena">
-      <g transform={s.bodyT ?? ""} style={{ transition: "transform var(--dur-ui) var(--ease-settle)" }}>
-        <g id="tail" data-part="tail">
+    <svg viewBox="0 0 200 200" width={size} height={size} style={{ display: "block", overflow: "visible", flex: "none" }} data-part="lena" data-lena-state={state}>
+      <g transform={s.bodyT ?? ""}>
+        <g data-part="tail">
           <path d={tailD} fill="none" stroke="#7A6247" strokeWidth="24" strokeLinecap="round" />
           <path d={tailD} fill="none" stroke="#B8A388" strokeWidth="7" strokeLinecap="round" strokeDasharray="14 12" />
         </g>
-        <g id="feet" data-part="feet">
+        <g data-part="feet">
           <ellipse cx={ft[0]} cy="174" rx="11" ry="5" fill="#6A5340" />
           <ellipse cx={ft[1]} cy="176" rx="11" ry="5" fill="#6A5340" />
         </g>
-        <g id="body" data-part="body">
+        <g data-part="body">
           <ellipse cx="100" cy="136" rx="40" ry="36" fill="#8C7455" />
-          <path id="stripes" d="M112 106q8 30 4 62M124 110q12 26 8 54M134 118q12 22 8 40" fill="none" stroke="#EADFC8" strokeWidth="4" strokeLinecap="round" />
-          <ellipse id="belly" cx="86" cy="146" rx="20" ry="24" fill="#EADFC8" />
+          <path d="M112 106q8 30 4 62M124 110q12 26 8 54M134 118q12 22 8 40" fill="none" stroke="#EADFC8" strokeWidth="4" strokeLinecap="round" />
+          <ellipse cx="86" cy="146" rx="20" ry="24" fill="#EADFC8" />
         </g>
-        <g id="head" data-part="head" transform={s.headT ?? ""} style={{ transition: "transform var(--dur-ui) var(--ease-settle)" }}>
-          <g id="ears" data-part="ears">
+        <g data-part="head" transform={s.headT ?? ""}>
+          <g data-part="ears">
             <ellipse cx="58" cy="66" rx="8" ry="13" fill="#8C7455" transform={s.earL ?? ""} />
             <ellipse cx="58" cy="68" rx="4" ry="8" fill="#D9A08F" transform={s.earL ?? ""} />
             <ellipse cx="94" cy="64" rx="8" ry="13" fill="#8C7455" transform={s.earR ?? ""} />
@@ -96,19 +92,19 @@ export default function LenaCharacter({ state, size = 48 }: LenaCharacterProps) 
           </g>
           <circle cx="76" cy="94" r="30" fill="#8C7455" />
           <ellipse cx="60" cy="104" rx="14" ry="11" fill="#EADFC8" />
-          <circle id="nose" cx="50" cy="100" r="3.5" fill="#3A2A22" />
-          <path id="whiskers" d="M52 102L30 96M52 104L30 106M52 106L32 114" stroke="#3A2A22" strokeWidth="1.5" strokeLinecap="round" />
-          <g id="eyes" data-part="eyes">
+          <circle cx="50" cy="100" r="3.5" fill="#3A2A22" />
+          <path d="M52 102L30 96M52 104L30 106M52 106L32 114" stroke="#3A2A22" strokeWidth="1.5" strokeLinecap="round" />
+          <g data-part="eyes">
             <circle cx={68 + dx} cy={90 + dy} r={r} fill="#2A1C17" />
             <circle cx={88 + dx} cy={88 + dy} r={r} fill="#2A1C17" />
-            <circle cx={70 + dx} cy={88 + dy} r="1.8" fill="#fff" opacity={s.closed ? 0 : 1} />
-            <circle cx={90 + dx} cy={86 + dy} r="1.8" fill="#fff" opacity={s.closed ? 0 : 1} />
-            <path d={lid} fill="none" stroke="#2A1C17" strokeWidth="3" strokeLinecap="round" />
-            <path d={s.brow ? "M82 76q6-4 12 0" : "M0 0"} fill="none" stroke="#3A2A22" strokeWidth="2.5" strokeLinecap="round" />
+            <circle cx={70 + dx} cy={88 + dy} r="1.8" fill="#fff" opacity={hiOp} />
+            <circle cx={90 + dx} cy={86 + dy} r="1.8" fill="#fff" opacity={hiOp} />
+            <path d={lidD} fill="none" stroke="#2A1C17" strokeWidth="3" strokeLinecap="round" />
+            <path d={browD} fill="none" stroke="#3A2A22" strokeWidth="2.5" strokeLinecap="round" />
           </g>
-          <path id="mouth" data-part="mouth" d={mouth} fill={s.mouth === "open" ? "#3A2A22" : "none"} stroke="#3A2A22" strokeWidth="2" strokeLinecap="round" />
+          <path data-part="mouth" d={mouth} fill={s.mouth === "open" ? "#3A2A22" : "none"} stroke="#3A2A22" strokeWidth="2" strokeLinecap="round" />
         </g>
-        <g id="paws" data-part="paws">
+        <g data-part="paws">
           <ellipse cx={pl[0]} cy={pl[1]} rx="7" ry="5" fill="#6A5340" />
           <ellipse cx={pr[0]} cy={pr[1]} rx="7" ry="5" fill="#6A5340" />
         </g>

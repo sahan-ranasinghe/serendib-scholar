@@ -131,7 +131,7 @@ async function main(): Promise<void> {
   }
   if (NO_WOBBLE) await page.send("Page.addScriptToEvaluateOnNewDocument", { source: `document.addEventListener('DOMContentLoaded', () => { const style = document.createElement('style'); style.textContent = '.wb-surface .hand-stroke, .wb-surface .chalk-stroke { filter: none !important; }'; document.head.appendChild(style); });` });
   const navigatedAt = Date.now();
-  await page.send("Page.navigate", { url: `${BASE}/` });
+  await page.send("Page.navigate", { url: `${BASE}/session` });
   await wait(3000);
 
   const tap = async (x: number, y: number) => {
@@ -226,7 +226,7 @@ async function main(): Promise<void> {
   // surface (the frame the child sees first), and the first primitive on it
   // (which waits for the script and the first clip).
   const measureFirstPaint = async (): Promise<{ fcp: number | null; surface: number | null; primitive: number | null }> => {
-    await page.send("Page.navigate", { url: `${BASE}/` });
+    await page.send("Page.navigate", { url: `${BASE}/session` });
     const marks: { fcp: number | null; surface: number | null; primitive: number | null } = { fcp: null, surface: null, primitive: null };
     for (const deadline = Date.now() + 90_000; Date.now() < deadline && (marks.surface === null || marks.primitive === null); ) {
       await wait(20);

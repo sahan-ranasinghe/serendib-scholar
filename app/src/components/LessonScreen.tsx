@@ -12,22 +12,25 @@
  *
  * The runtime decides what happens (useLessonRuntime); this file decides
  * only how it looks. Portrait shows a rotate-your-phone card and holds the
- * lesson; a backgrounded tab holds it too. The app opens straight into the
- * lesson (resume or session 1). The session's end shows a card of what the
- * child did today.
+ * lesson; a backgrounded tab holds it too. /session opens straight into the
+ * lesson (resume or session 1); the sitting's end goes to /session/summary.
+ * The edge states (loading, paused, rotate, error) are the design's
+ * (src/components/app/EdgeState.tsx), wired to the runtime's status.
  *
  * Data attributes on the root (`data-beat-id`, `data-status`,
  * `data-your-turn`, `data-character`) are the QA harness's view of the
  * lesson — see scripts/session-check.ts.
  */
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useRouter } from "next/navigation";
 import { useLessonRuntime } from "@/hooks/useLessonRuntime";
+import { EdgeState } from "@/components/app/EdgeState";
+import { leaveLessonDisplay } from "@/components/app/StartLessonButton";
 import type { BoardContent } from "@/lib/board";
 import TeachingBoard from "@/components/TeachingBoard";
 import type { ZaraState } from "@/components/ZaraCharacter";
 import type { LenaState } from "@/components/LenaCharacter";
 import { SessionShell, type SessionSheet } from "@/components/SessionShell";
-import { SessionSummaryCard } from "@/components/SessionSummaryCard";
 
 /** Lena dozes after this long of Zara talking without a turn. */
 const LENA_DOZE_AFTER_MS = 20000;
@@ -63,7 +66,10 @@ export default function LessonScreen() {
     getOutputAmplitude,
     resumeAudioOutput,
     submitAccessCode,
+    childSettings,
+    limitEnded,
   } = useLessonRuntime();
+  const router = useRouter();
 
   // Access-code entry (parent-facing, once per device — see /api/session-start).
   const [codeDraft, setCodeDraft] = useState("");
@@ -137,7 +143,44 @@ export default function LessonScreen() {
   // wakes when the turn comes, holds the flame when a star lands.
   const lenaState = useLenaState({ celebrate: characterMood === "celebrate", wrong: stage.retry, turn: listening || pausing, thinking, talking: isAiTalking, stops: conceptStops, beatId: snapshot.beatId ?? null });
 
-  const [captionsOn, setCaptionsOn] = useState(false);
+  // Captions: ON by default for a child session (the design shows them on);
+  // the සි toggle persists the choice per child (/api/child-settings) and
+  // caches it on the device so the first beat already has it.
+  const [captionsChoice, setCaptionsChoice] = useState<boolean | null>(() => {
+    try {
+      const cached = localStorage.getItem("ss:captions");
+      return cached === null ? null : cached === "1";
+    } catch {
+      return null;
+    }
+  });
+  const captionsOn = captionsChoice ?? childSettings?.captions ?? true;
+  const toggleCaptions = () => {
+    const next = !captionsOn;
+    setCaptionsChoice(next);
+    try {
+      localStorage.setItem("ss:captions", next ? "1" : "0");
+    } catch {
+      /* private mode */
+    }
+    void fetch("/api/child-settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ captions: next }) }).catch(() => undefined);
+  };
+
+  // The sitting's end: the summary screen (real lines from the log). The
+  // moment on the board is given a beat so the celebration lands first.
+  useEffect(() => {
+    if (status !== "done") return;
+    const timer = setTimeout(() => router.replace(limitEnded ? "/session/summary?limit=1" : "/session/summary"), 900);
+    return () => clearTimeout(timer);
+  }, [status, limitEnded, router]);
+
+  // Entering the lesson asked for fullscreen + landscape (StartLessonButton); leaving lets go of both.
+  useEffect(() => {
+    return () => {
+      void leaveLessonDisplay();
+    };
+  }, []);
+  const portrait = useSyncExternalStore(subscribePortrait, isPortrait, () => false);
 
   // Debug overlay: five taps on the lesson title within ~2.5s toggles it.
   const [debugOpen, setDebugOpen] = useState(false);
@@ -172,7 +215,6 @@ export default function LessonScreen() {
     }
   };
 
-  const [summaryDismissed, setSummaryDismissed] = useState(false);
   const inLesson = status !== "idle" && status !== "locked";
 
   const handShown = inLesson && status !== "error" && status !== "done";
@@ -202,7 +244,7 @@ export default function LessonScreen() {
       paused={paused}
       conceptStops={conceptStops}
       captionsOn={captionsOn}
-      onToggleCaptions={() => setCaptionsOn((v) => !v)}
+      onToggleCaptions={toggleCaptions}
       caption={captionText}
       hint={hint}
       sheet={sheet}
@@ -228,12 +270,22 @@ export default function LessonScreen() {
         "data-beat-type": snapshot.beatType,
         "data-status": status,
         "data-your-turn": yourTurn ? `${yourTurn.kind}:${yourTurn.surface ?? "pad"}:${yourTurn.touchable ? "touch" : "voice"}:${yourTurn.answerMode ?? "-"}${yourTurn.chips ? ":chips" : ""}${yourTurn.rodPick ? `:rod-${yourTurn.rodPick}` : ""}` : undefined,
+        "data-captions": captionsOn ? "on" : "off",
+        "data-error": error ?? undefined,
       }}
     >
+      {/* the designed error state — Zara, two buttons, never a stack trace (the message sits in data-error for the harness) */}
       {error && status !== "locked" && (
-        <button type="button" onClick={() => void start()} style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%, -50%)", height: 56, padding: "0 28px", border: 0, borderRadius: 12, background: "var(--color-paper)", color: "var(--color-coral-text)", font: "700 24px/1.5 var(--font-display)", boxShadow: "var(--shadow-lift)", cursor: "pointer", zIndex: 25 }}>
-          {error} — නැවත උත්සාහ කරන්න
-        </button>
+        <div style={{ position: "absolute", inset: 0, zIndex: 25 }}>
+          <EdgeState kind="error" onCta={() => void start()} altHref="/home" />
+        </div>
+      )}
+
+      {/* ⏸ — the designed paused state over the dimmed board (the rotate card covers it in portrait) */}
+      {paused && inLesson && !micAsk && status !== "chatting" && !portrait && (
+        <div style={{ position: "absolute", inset: 0, zIndex: 24 }}>
+          <EdgeState kind="paused" onCta={togglePause} onAlt={endSessionNow} />
+        </div>
       )}
 
       {/* device gate: the shared access code, entered once per device */}
@@ -259,8 +311,8 @@ export default function LessonScreen() {
         </div>
       )}
 
-      {/* the sitting's end: what the child did today */}
-      {status === "done" && sessionSummary && !summaryDismissed && <SessionSummaryCard summary={sessionSummary} onClose={() => setSummaryDismissed(true)} />}
+      {/* the sitting's end: the summary screen takes over (see the effect above); the board holds the celebration until then */}
+      {status === "done" && sessionSummary && <span data-testid="session-summary" data-asked={sessionSummary.asked} data-correct={sessionSummary.correct} hidden />}
 
       {debugOpen && debug && (
         <div style={{ position: "absolute", right: 8, top: 8, zIndex: 40, width: 256, borderRadius: 8, background: "rgba(0,0,0,.8)", padding: 8, font: "10px/1.3 ui-monospace, monospace", color: "#A7F3D0" }}>
@@ -299,13 +351,23 @@ export default function LessonScreen() {
         </div>
       )}
 
-      {status === "idle" && !error && (
-        <button type="button" onClick={() => void start()} style={{ position: "absolute", inset: 0, zIndex: 10, display: "flex", alignItems: "center", justifyContent: "center", border: 0, background: "rgba(27,27,27,.12)", font: "700 32px/1.5 var(--font-display)", color: "var(--color-teal)", cursor: "pointer" }}>
-          පටන් ගමු! 👆
-        </button>
+      {/* the designed loading state while the script and the first clip arrive (a tap starts again if autostart was blocked) */}
+      {(status === "idle" || status === "preparing") && !error && (
+        <div style={{ position: "absolute", inset: 0, zIndex: 10 }} onClick={status === "idle" ? () => void start() : undefined}>
+          <EdgeState kind="loading" />
+        </div>
       )}
     </SessionShell>
   );
+}
+
+function subscribePortrait(onChange: () => void): () => void {
+  const media = window.matchMedia("(orientation: portrait)");
+  media.addEventListener("change", onChange);
+  return () => media.removeEventListener("change", onChange);
+}
+function isPortrait(): boolean {
+  return window.matchMedia("(orientation: portrait)").matches;
 }
 
 /** Lena's state from what the lesson is doing (Lena.dc.html's table). */

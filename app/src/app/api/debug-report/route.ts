@@ -9,7 +9,7 @@ import { getActiveChildId } from "@/lib/activeChild";
  */
 export async function POST(request: NextRequest) {
   const { panel } = await request.json();
-  const childId = getActiveChildId();
+  const childId = await getActiveChildId();
   const { data: recent } = await supabaseAdmin
     .from("session_log")
     .select("sequence, beat_id, beat_type, concept_tag, director_text, child_transcript, planner_decision, started_at, ended_at, output_audio_ms")

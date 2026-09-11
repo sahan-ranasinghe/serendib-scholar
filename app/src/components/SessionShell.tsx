@@ -22,6 +22,7 @@ import ZaraCharacter, { type ZaraState } from "@/components/ZaraCharacter";
 import LenaCharacter, { type LenaState } from "@/components/LenaCharacter";
 import { BoardStage, type YourTurn } from "@/components/board/BoardStage";
 import { ProgressStrip, type ConceptStop } from "@/components/ProgressStrip";
+import { EdgeState } from "@/components/app/EdgeState";
 
 /** How often the amplitude state refreshes while Zara talks (~12fps is plenty for 3 mouth shapes). */
 const AMPLITUDE_INTERVAL_MS = 80;
@@ -139,11 +140,7 @@ export function SessionShell({ stage, yourTurn, zaraState, lenaState, pointerSid
 
       {/* ---- portrait: friendly rotate card (the lesson is held) --------- */}
       <div className="rotate-card">
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 20, borderRadius: 16, background: "var(--color-paper)", padding: "32px 40px", textAlign: "center", boxShadow: "var(--shadow-lift)" }}>
-          <span className="rotate-phone" style={{ fontSize: 60 }}>📱</span>
-          <p style={{ margin: 0, font: "700 26px/1.4 var(--font-display)", color: "var(--color-ink)" }}>දුරකථනය හරවන්න!</p>
-          <p style={{ margin: 0, font: "400 20px/1.5 var(--font-body)", color: "var(--color-ink-70)" }}>පාඩම නවත්තලා — හැරෙව්වම දිගටම යනවා</p>
-        </div>
+        <EdgeState kind="rotate" style={{ minHeight: "100%" }} />
       </div>
 
       <style>{`
@@ -152,12 +149,9 @@ export function SessionShell({ stage, yourTurn, zaraState, lenaState, pointerSid
         .strip-control::after { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 60px; }
         .rotate-card { display: none; }
         @media (orientation: portrait) {
-          .rotate-card { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; background: var(--color-teal); }
+          .rotate-card { position: fixed; inset: 0; z-index: 50; display: flex; align-items: stretch; justify-content: stretch; background: #F7F3EA; }
         }
         .zara-portrait { display: block; }
-        .rotate-phone { display: inline-block; animation: rotate-phone 1.8s ease-in-out infinite; }
-        @keyframes rotate-phone { 0%, 20% { transform: rotate(0deg); } 55%, 80% { transform: rotate(90deg); } 100% { transform: rotate(90deg); } }
-        @media (prefers-reduced-motion: reduce) { .rotate-phone { animation: none; } }
       `}</style>
     </div>
   );
@@ -230,7 +224,7 @@ function ChatSheet({ child, zara, listening, onReturn }: { child: string | null;
     <>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <span style={{ font: "700 24px/1.5 var(--font-display)", color: "var(--color-ink)" }}>✋ Zara එක්කම කතා කරන්න</span>
-        <span data-testid="chat-listening" style={{ display: "flex", alignItems: "center", gap: 8, height: 40, padding: "0 14px", borderRadius: 999, background: "var(--color-coral-soft)", font: "600 20px/1.5 var(--font-label)", color: "var(--color-coral)", opacity: listening ? 1 : 0.5 }}>
+        <span data-testid="chat-listening" style={{ display: "flex", alignItems: "center", gap: 8, height: 40, padding: "0 14px", borderRadius: 999, background: "var(--color-coral-soft)", font: "600 20px/1.5 var(--font-label)", color: "var(--color-coral-text)", opacity: listening ? 1 : 0.5 }}>
           <span style={{ width: 12, height: 12, borderRadius: "50%", background: "var(--color-coral)" }} />
           🎤 {listening ? "අහගෙන ඉන්නවා" : "සම්බන්ධ වෙනවා…"}
         </span>

@@ -30,9 +30,11 @@ export interface SessionClaims {
    * What kind of grant this is. "portal" is the voice actor's own gate
    * (PORTAL_PASSWORD, src/lib/portalAuth.ts) — a separate door for a
    * separate person, and listing it here is what stops a portal cookie
-   * from ever verifying as a child session, or the reverse.
+   * from ever verifying as a child session, or the reverse. "child" is the
+   * onboarding grant (which child this device belongs to — see
+   * activeChild.ts) and "parent" the PIN grant for the parent zone.
    */
-  kind: "session" | "device" | "portal";
+  kind: "session" | "device" | "portal" | "child" | "parent";
 }
 
 /**

@@ -438,3 +438,24 @@ alter table actor_lines enable row level security;
 alter table actor_takes enable row level security;
 -- As everywhere else in this file: no policies = deny-all for anon and
 -- authenticated. The portal reaches these only through the service role.
+
+-- ---------------------------------------------------------------------
+-- App shell (Integration C): the parent zone and the child profile.
+--
+-- avatar          the onboarding avatar slot the parent picked (a key from
+--                 the design's eight — the art is pending, see
+--                 docs/design/art-needed.md)
+-- parent_pin_hash PBKDF2-SHA256 of the parent's 4-digit PIN, salted with the
+--                 child id (src/lib/childStore.ts); null until the parent
+--                 sets one from the parent zone
+-- settings        { captions: bool, sound: bool, dailyLimitMinutes: 15|20|30 }
+--                 — captions default ON for a child (the design shows them
+--                 on), the daily limit is enforced by the lesson runtime
+--
+-- Until this ALTER has run on a database, src/lib/childStore.ts keeps the
+-- same three fields in a private storage object per child and says so in
+-- its provenance — nothing is faked, and nothing breaks.
+alter table children
+  add column if not exists avatar text,
+  add column if not exists parent_pin_hash text,
+  add column if not exists settings jsonb not null default '{}'::jsonb;

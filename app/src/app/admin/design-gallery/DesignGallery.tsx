@@ -279,9 +279,9 @@ export function DesignGallery() {
           ))}
         </div>
         <div style={{ display: "flex", gap: 18, alignItems: "center", background: "var(--color-board)", borderRadius: 12, padding: 16, marginTop: 16 }} data-design-cell>
-          <ZaraCharacter state="talking" amplitude={0.12} size={64} portrait />
-          <ZaraCharacter state="talking" amplitude={0.35} size={64} portrait />
-          <ZaraCharacter state="talking" amplitude={0.8} size={64} portrait />
+          <ZaraCharacter state="talking" amplitude={0} mouth={1} size={64} portrait />
+          <ZaraCharacter state="talking" amplitude={0} mouth={2} size={64} portrait />
+          <ZaraCharacter state="talking" amplitude={0} mouth={3} size={64} portrait />
           <span style={{ font: "11px/1.3 var(--font-latin)", color: "var(--color-ink-70)" }}>talking — mouth shapes 1 · 2 · 3 (small o · open · wide ah)</span>
         </div>
       </Section>

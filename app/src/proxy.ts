@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { SESSION_COOKIE, readCookie, verifyToken } from "@/lib/sessionAuth";
+import { DEVICE_COOKIE, SESSION_COOKIE, readCookie, verifyToken } from "@/lib/sessionAuth";
 import { hasPortalAccess } from "@/lib/portalAuth";
 
 /**
@@ -101,11 +101,21 @@ export default async function proxy(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "portal_locked" }, { status: 401 });
   }
 
-  const session = await verifyToken(readCookie(request.headers.get("cookie"), SESSION_COOKIE), "session");
-  if (!session) {
-    return NextResponse.json({ ok: false, error: "unauthenticated" }, { status: 401 });
+  const cookieHeader = request.headers.get("cookie");
+  const session = await verifyToken(readCookie(cookieHeader, SESSION_COOKIE), "session");
+  if (session) return NextResponse.next();
+
+  // The parent zone and onboarding are used without a lesson running, so a
+  // lesson's 4h session cookie is not the right key. The device grant (this
+  // device passed the ACCESS_CODE gate) is; the routes themselves then check
+  // the parent's PIN cookie where one has been set. In development with no
+  // ACCESS_CODE configured, session-start waives the gate — so do these.
+  if (path.startsWith("/api/parent/") || path.startsWith("/api/onboarding/")) {
+    const device = await verifyToken(readCookie(cookieHeader, DEVICE_COOKIE), "device");
+    const waived = !(process.env.ACCESS_CODE ?? "").trim() && process.env.NODE_ENV !== "production";
+    if (device || waived) return NextResponse.next();
   }
-  return NextResponse.next();
+  return NextResponse.json({ ok: false, error: "unauthenticated" }, { status: 401 });
 }
 
 export const config = {

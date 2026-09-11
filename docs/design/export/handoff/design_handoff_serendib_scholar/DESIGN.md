@@ -61,3 +61,12 @@ Saffron, coral and success green are never used as text colour on tinted grounds
 - **Chips inset is 124.** With chips at the foot the content inset's bottom is 124 px as the README says. The exported session frames were rendered with 190 (their frame data sets `contentBottom` twice and the later 190 wins) — a data quirk, not the rule.
 - **M8 / M9: the expansion is the expansion primitive beneath the persisting abacus.** An expansion event (show, part_fly, part_reveal) produces the slot primitive under the abacus and each value flies from its rod into its slot; a bare rod's 0 is written with the rod glowing. Rule b (persistent board) governs chalk events only.
 
+
+## Product resolutions (recorded 2026-09-11, Integration C — the app shell)
+- **Captions default ON.** A child session starts with the caption line on (the design shows it on); the සි toggle persists the choice per child (`children.settings.captions`, edited in the parent zone too).
+- **The session lives at /session.** The app opens on the splash; "පටන් ගමු" asks for fullscreen (and a landscape lock when installed) on that tap, and the session lets both go on leaving.
+- **Lena's outfit names are Screens C's** (තොප්පිය · හෙල්මට් · කූඩුව) on the Rewards screen; Screens B's longer forms (පාසල් තොප්පිය …) are recorded in the copy sheet as alternates for the review.
+- **Mastery, in one place.** A concept is mastered at ≥ 85 % correct over ≥ 3 judged answers (child_progress); a lesson's stars are its mastered concepts scaled to three; every mastered concept earns the next sticker slot and the latest one a certificate; an outfit unlocks per three stickers. All art stays a striped placeholder (docs/design/art-needed.md).
+- **Billing is ළඟදීම.** The subscription screen renders the export's structure with the plan and prices, but no invoice, card number or payment date until PayHere exists; onboarding's OTP and payment steps are dev-only stubs (DEV_ONBOARDING=stub) and say so on the screen.
+- **The PIN gate creates on first use.** With no PIN set, the first four digits entered become the parent's PIN (the export has no "create a PIN" line — listed as missing copy); afterwards the zone needs the PIN (a day's cookie).
+- **The S3 listening pill uses coral-text.** Session B's S3 frame draws "🎤 අහගෙන ඉන්නවා" in --color-coral on the coral-soft pill; the text-colour rule above says a tinted ground takes the *-text token, so the app uses --color-coral-text there (the rule wins over the frame's data, as with the chips inset).

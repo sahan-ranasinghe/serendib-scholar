@@ -1,28 +1,58 @@
 import "server-only";
+import { cookies } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import type { ChildGender } from "@/lib/addressToken";
+import { verifyToken } from "@/lib/sessionAuth";
+
+/** The onboarding grant: which child this device belongs to (signed, kind "child"). */
+export const CHILD_COOKIE = "ss_child";
 
 /**
  * THE one place the active child's identity comes from.
  *
- * Today it is an env var pointing at a test row in the `children` table —
- * good enough to build and test everything that needs a real child id
- * (session_log, child_progress, the RECAP beats). When a real
- * login/onboarding flow exists, this function reads the session instead,
- * and nothing else in the codebase changes: every server route that needs
- * the id calls this, and no client code ever supplies one.
+ * Onboarding (the profile step) creates a row in `children` and sets a
+ * signed ss_child cookie naming it; that cookie wins. Until a device has
+ * been through onboarding, DEV_CHILD_ID — a test row in `children` — is
+ * the fallback, so everything that needs a real child id (session_log,
+ * child_progress, the RECAP beats) keeps working on a dev machine. Every
+ * server route and page that needs the id calls this, and no client code
+ * ever supplies one.
  *
  * Server-only on purpose: the id identifies a real child and is written to
- * FK-checked tables, so the browser is never trusted to say who is present.
+ * FK-checked tables, so the browser is never trusted to say who is present
+ * (the cookie is HMAC-signed by the server that minted it).
  */
-export function getActiveChildId(): string {
+export async function getActiveChildId(): Promise<string> {
+  const fromCookie = await childIdFromCookie();
+  if (fromCookie) return fromCookie;
   const id = process.env.DEV_CHILD_ID;
   if (!id || !id.trim()) {
     throw new Error(
-      "DEV_CHILD_ID is not set. Point it at a row in the `children` table (see supabase/schema.sql).",
+      "No child on this device and DEV_CHILD_ID is not set. Point it at a row in the `children` table (see supabase/schema.sql), or run onboarding.",
     );
   }
   return id.trim();
+}
+
+/** Whether a child exists at all for this request (onboarding done, or the dev fallback). */
+export async function hasActiveChild(): Promise<boolean> {
+  try {
+    await getActiveChildId();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function childIdFromCookie(): Promise<string | null> {
+  try {
+    const jar = await cookies();
+    const claims = await verifyToken(jar.get(CHILD_COOKIE)?.value, "child");
+    return claims?.child_id ?? null;
+  } catch {
+    // Outside a request (a build-time prerender): no cookie jar, no child.
+    return null;
+  }
 }
 
 export interface ActiveChild {
@@ -40,7 +70,7 @@ export interface ActiveChild {
  * "unspecified": the lesson must never be blocked on demographics.
  */
 export async function getActiveChild(): Promise<ActiveChild> {
-  const id = getActiveChildId();
+  const id = await getActiveChildId();
   try {
     const { data } = await supabaseAdmin.from("children").select("*").eq("id", id).maybeSingle();
     const gender =

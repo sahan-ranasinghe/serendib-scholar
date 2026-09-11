@@ -41,7 +41,8 @@ export function DesignPreview({ frameId }: { frameId: string }) {
       lenaState={frame.lena}
       pointerSide={frame.zara === "pointing" ? "right" : null}
       talking={Boolean(frame.talking)}
-      getAmplitude={() => 0.4}
+      // A quiet talking amplitude: the export's talking frames show the middle mouth (talk2).
+      getAmplitude={() => 0.1}
       conceptStops={stopsFor(frame.stop)}
       captionsOn={captionsOn}
       onToggleCaptions={noop}

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getActiveChildId } from "@/lib/activeChild";
+import { readChildExtras } from "@/lib/childStore";
+import { minutesTodayFor } from "@/lib/appData";
 import {
   DEVICE_COOKIE,
   DEVICE_TTL_SECONDS,
@@ -42,7 +44,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "This deployment is not configured yet." }, { status: 503 });
   }
 
-  const childId = getActiveChildId();
+  const childId = await getActiveChildId();
   const cookieHeader = request.headers.get("cookie");
   const body = await request.json().catch(() => ({}));
   const givenCode = typeof body.access_code === "string" ? body.access_code.trim() : "";
@@ -68,7 +70,11 @@ export async function POST(request: NextRequest) {
   const session = await mintToken({ child_id: childId, exp: now + SESSION_TTL_SECONDS, kind: "session" });
   const deviceGrant = await mintToken({ child_id: childId, exp: now + DEVICE_TTL_SECONDS, kind: "device" });
 
-  const response = NextResponse.json({ ok: true, expires_in: SESSION_TTL_SECONDS });
+  // What the lesson runtime needs to know about this child before the first
+  // beat: captions on or off (default on), sound, the daily limit the parent
+  // set, and how much of today it has already used.
+  const [extras, minutesToday] = await Promise.all([readChildExtras(childId), minutesTodayFor(childId).catch(() => 0)]);
+  const response = NextResponse.json({ ok: true, expires_in: SESSION_TTL_SECONDS, settings: extras.settings, minutes_today: minutesToday });
   response.headers.append(
     "Set-Cookie",
     `${SESSION_COOKIE}=${encodeURIComponent(session)}; ${cookieAttributes(SESSION_TTL_SECONDS, secure)}`,

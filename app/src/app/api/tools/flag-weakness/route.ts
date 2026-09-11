@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
 
   const { error } = await supabaseAdmin.from("child_weaknesses").insert({
     // See activeChild.ts — identity is resolved server-side, never client-supplied.
-    child_id: getActiveChildId(),
+    child_id: await getActiveChildId(),
     topic,
   });
 

@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
       : [];
     if (found.length === 0) return NextResponse.json({ ok: true, interests: [] });
 
-    const childId = getActiveChildId();
+    const childId = await getActiveChildId();
     const { data: profile } = await supabaseAdmin
       .from("child_profile")
       .select("interests")

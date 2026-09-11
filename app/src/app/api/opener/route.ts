@@ -70,7 +70,7 @@ function dayTypeFrom(date: string, weekday: number): DayType {
 
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => ({}));
-  const childId = getActiveChildId();
+  const childId = await getActiveChildId();
 
   if (Math.random() < SKIP_PROBABILITY) {
     return NextResponse.json({ ok: true, skip: true, goal: null, topic: null });

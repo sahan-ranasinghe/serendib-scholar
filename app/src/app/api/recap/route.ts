@@ -33,9 +33,35 @@ interface RecapCandidate {
   correct: number;
 }
 
+interface QuizFigure {
+  number: string | null;
+  /** The digit the question is about (a place-value row), when the item names one. */
+  digit: string | null;
+  field: string | null;
+  expansion: string | null;
+}
+
+function quizFigure(entry: NonNullable<ReturnType<typeof recapAskable>>): QuizFigure {
+  const props = (entry.item.component_props ?? {}) as { rows?: Array<Record<string, unknown>>; numeral?: unknown; content?: unknown };
+  const row = entry.blank ? props.rows?.[entry.blank.rowIndex] : undefined;
+  if (entry.item.component_type === "ExpansionExercise" && row && Array.isArray(row.parts)) {
+    const blankIndex = Number(String(entry.blank?.field ?? "").replace(/^part/u, ""));
+    const parts = (row.parts as unknown[]).map((p, i) => (i === blankIndex ? "▢" : p === null || p === undefined ? "▢" : String(p)));
+    return { number: null, digit: null, field: null, expansion: `${String(row.prompt ?? "")} = ${parts.join(" + ")}` };
+  }
+  if (row && row.number !== null && row.number !== undefined) {
+    return { number: String(row.number), digit: row.digit === null || row.digit === undefined ? null : String(row.digit), field: entry.blank?.field ?? null, expansion: null };
+  }
+  // A solution-only item (an abacus diagram, a worked example): the number it shows, asked for its name.
+  if (props.numeral !== undefined) return { number: String(props.numeral), digit: null, field: "numberName", expansion: null };
+  const content = Array.isArray(props.content) ? props.content.map(String).join(" ") : "";
+  const inText = /(\d{1,3}(?: \d{3})+|\d{4,6})/u.exec(content)?.[1] ?? null;
+  return { number: inText ? inText.replace(/\s/gu, "") : null, digit: null, field: inText ? "numberName" : null, expansion: null };
+}
+
 export async function POST(request: NextRequest) {
   const { exclude_session_id, concept_tags } = await request.json();
-  const childId = getActiveChildId();
+  const childId = await getActiveChildId();
 
   // Which concepts count as "last time": the most recent COMPLETED sitting
   // — one that reached its CLOSE_SESSION beat. An abandoned or crashed
@@ -99,7 +125,7 @@ export async function POST(request: NextRequest) {
 
   // Up to five verified, MCQ-askable items per chosen concept, in a
   // deterministic order per child so a repeat visit does not repeat.
-  const beats: Beat[] = [];
+  const beats: Array<Beat & { quiz: QuizFigure }> = [];
   for (const candidate of chosen) {
     const { data: items } = await supabaseAdmin
       .from("content_bank")
@@ -118,7 +144,10 @@ export async function POST(request: NextRequest) {
       const key = `${entry.answerMode}:${(entry.blank?.value ?? entry.solution ?? "").toString()}`;
       if (seen.has(key)) continue;
       seen.add(key);
-      beats.push(buildRecapAskBeat(entry));
+      // What the practice quiz draws for this item: the number the blank
+      // belongs to and which column is asked, or the expansion line with
+      // the blank as ▢ — so the quiz page never has to parse a beat's goal.
+      beats.push({ ...buildRecapAskBeat(entry), quiz: quizFigure(entry) });
       if (seen.size >= QUESTIONS_PER_CONCEPT) break;
     }
   }

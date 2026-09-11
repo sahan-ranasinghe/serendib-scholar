@@ -39,7 +39,14 @@ import { serializeStage, type ChatAnswer, type ChatContext } from "@/lib/chatCon
 import type { Target } from "@/components/board/events";
 import type { YourTurn } from "@/components/board/BoardStage";
 import type { ConceptStop } from "@/components/ProgressStrip";
-import type { SessionSummary } from "@/components/SessionSummaryCard";
+
+/** What the sitting did, from the mastery log — the summary route (/session/summary) draws it from session_log; this is the runtime's own tally. */
+export interface SessionSummary {
+  concepts: Array<{ tag: string; title: string; asked: number; correct: number; mastered: boolean }>;
+  asked: number;
+  correct: number;
+  minutes: number;
+}
 import {
   advance,
   beatSpec,
@@ -108,6 +115,13 @@ import {
  * watched, logged and reasoned about instead of a conversation that has to
  * be coaxed forward.
  */
+
+export interface ChildRuntimeSettings {
+  captions: boolean;
+  sound: boolean;
+  dailyLimitMinutes: number;
+  minutesToday: number;
+}
 
 export type RuntimeStatus =
   | "idle"
@@ -265,6 +279,17 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
   const chatRequestedRef = useRef(false);
   const repeatRequestedRef = useRef(false);
   const skipToCloseRef = useRef(false);
+  /**
+   * What /api/session-start says about this child: captions (default on),
+   * sound, the parent's daily limit and how much of today is already used.
+   * The limit is enforced here: when the sitting's clock crosses it the
+   * runtime jumps to the sitting's close, exactly as ⏹ does.
+   */
+  const settingsRef = useRef<ChildRuntimeSettings>({ captions: true, sound: true, dailyLimitMinutes: 15, minutesToday: 0 });
+  const [childSettings, setChildSettings] = useState<ChildRuntimeSettings | null>(null);
+  const limitEndedRef = useRef(false);
+  const [limitEnded, setLimitEnded] = useState(false);
+  const dailyLimitReached = () => settingsRef.current.minutesToday + (Date.now() - sessionStartedAtRef.current) / 60000 >= settingsRef.current.dailyLimitMinutes;
   const statusRef = useRef<RuntimeStatus>("idle");
   const debugEventsRef = useRef<string[]>([]);
 
@@ -1544,6 +1569,14 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
       }
       await runBeat(next, true);
       if (wasClose) break; // one sitting per visit
+      if (!skipToCloseRef.current && !limitEndedRef.current && dailyLimitReached()) {
+        // The parent's daily limit: finish this sitting properly (its close
+        // beat, so progress is saved) rather than cutting the child off.
+        limitEndedRef.current = true;
+        setLimitEnded(true);
+        logEvent(`daily limit reached (${settingsRef.current.dailyLimitMinutes} min) — closing the sitting`);
+        skipToCloseRef.current = true;
+      }
     }
     if (!stoppedRef.current) {
       await reportMetrics();
@@ -1640,7 +1673,19 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(accessCode ? { access_code: accessCode } : {}),
       });
-      if (response.ok) return "ok";
+      if (response.ok) {
+        const payload = await response.json().catch(() => null);
+        const raw = payload?.settings ?? {};
+        const next: ChildRuntimeSettings = {
+          captions: typeof raw.captions === "boolean" ? raw.captions : true,
+          sound: typeof raw.sound === "boolean" ? raw.sound : true,
+          dailyLimitMinutes: typeof raw.dailyLimitMinutes === "number" ? raw.dailyLimitMinutes : 15,
+          minutesToday: typeof payload?.minutes_today === "number" ? payload.minutes_today : 0,
+        };
+        settingsRef.current = next;
+        setChildSettings(next);
+        return "ok";
+      }
       if (response.status === 401) {
         const payload = await response.json().catch(() => ({}));
         if (payload?.error === "wrong_code") setError("කේතය වැරදියි. ආයෙ බලලා ලියන්න.");
@@ -1688,6 +1733,8 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
     recentAnswersRef.current = [];
     manualPauseRef.current = false;
     holdsRef.current = new Set();
+    limitEndedRef.current = false;
+    setLimitEnded(false);
 
     try {
       const scriptResponse = await fetch("/api/lesson-script", {
@@ -1919,6 +1966,10 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
     getOutputAmplitude,
     getDebugSnapshot,
     submitAccessCode,
+    /** Captions / sound / daily limit from /api/session-start (null until the session cookie is minted). */
+    childSettings,
+    /** The daily limit ended this sitting. */
+    limitEnded,
   };
 }
 

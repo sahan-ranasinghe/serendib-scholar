@@ -4,7 +4,9 @@
  * so neither needs a browser-automation framework.
  */
 import { spawn, type ChildProcess } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, mkdtempSync } from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import WebSocket from "ws";
 
 export const CHROME = ["/snap/bin/chromium", "/usr/bin/chromium-browser", "/usr/bin/chromium", "/usr/bin/google-chrome"];
@@ -16,10 +18,13 @@ export interface Cdp {
   close: () => void;
 }
 
-export async function launch(tag = "cdp"): Promise<{ browser: ChildProcess; wsUrl: string }> {
+export async function launch(tag = "cdp", extraArgs: string[] = [], attempts = 60): Promise<{ browser: ChildProcess; wsUrl: string }> {
   const binary = CHROME.find((candidate) => existsSync(candidate)) ?? CHROME[0]!;
   const port = 9222 + Math.floor(Math.random() * 500);
+  // Its own profile directory: a second Chromium beside a running one would otherwise attach to that instance and never open a debugging port.
   const browser = spawn(binary, [
+    `--user-data-dir=${mkdtempSync(path.join(os.tmpdir(), `${tag}-profile-`))}`,
+    ...extraArgs,
     "--headless=new",
     `--remote-debugging-port=${port}`,
     "--no-sandbox",
@@ -31,8 +36,12 @@ export async function launch(tag = "cdp"): Promise<{ browser: ChildProcess; wsUr
     "about:blank",
   ]);
   browser.on("error", (error) => console.error(`[${tag}] chromium: ${error.message}`));
+  let stderr = "";
+  browser.stderr?.on("data", (chunk) => {
+    stderr = (stderr + String(chunk)).slice(-2000);
+  });
 
-  for (let attempt = 0; attempt < 60; attempt += 1) {
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
     await new Promise((resolve) => setTimeout(resolve, 250));
     try {
       const response = await fetch(`http://127.0.0.1:${port}/json/version`);
@@ -42,7 +51,8 @@ export async function launch(tag = "cdp"): Promise<{ browser: ChildProcess; wsUr
       /* not up yet */
     }
   }
-  throw new Error("Chromium did not expose a debugging port.");
+  browser.kill();
+  throw new Error(`Chromium did not expose a debugging port. ${stderr.trim().split("\n").slice(-2).join(" | ").slice(0, 200)}`);
 }
 
 export async function connect(wsUrl: string, tag = "cdp"): Promise<Cdp> {

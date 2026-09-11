@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
 
   const { error } = await supabaseAdmin.from("teacher_review_flags").insert({
     // See activeChild.ts — identity is resolved server-side, never client-supplied.
-    child_id: getActiveChildId(),
+    child_id: await getActiveChildId(),
     reason,
   });
 

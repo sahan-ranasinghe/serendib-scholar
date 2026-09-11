@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
   // activeChild.ts), never trusted from the request body.
   const { error } = await supabaseAdmin.from("session_log").insert({
     session_id,
-    child_id: getActiveChildId(),
+    child_id: await getActiveChildId(),
     sequence,
     beat_id,
     beat_type,

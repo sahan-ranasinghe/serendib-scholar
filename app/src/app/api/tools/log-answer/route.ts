@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
   // Who this is about comes from the server's own notion of the active
   // child (see activeChild.ts) — never from the request body.
   const { error } = await supabaseAdmin.from("child_progress").insert({
-    child_id: getActiveChildId(),
+    child_id: await getActiveChildId(),
     topic,
     correct,
   });

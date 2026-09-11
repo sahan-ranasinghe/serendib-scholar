@@ -20,7 +20,7 @@ export async function POST() {
   const { data, error } = await supabaseAdmin
     .from("session_log")
     .select("beat_id, session_id, created_at")
-    .eq("child_id", getActiveChildId())
+    .eq("child_id", await getActiveChildId())
     .eq("beat_type", "CLOSE_SESSION")
     .order("created_at", { ascending: false })
     .limit(1)

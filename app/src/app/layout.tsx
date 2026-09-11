@@ -1,4 +1,5 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
+import { Pwa } from "@/components/app/Pwa";
 import { Abhaya_Libre, Gemunu_Libre, Inter, Yaldevi } from "next/font/google";
 import "./tokens.css";
 import "./fonts.css";
@@ -13,16 +14,29 @@ const inter = Inter({ variable: "--font-inter", weight: ["400", "600", "700"], s
 
 export const metadata: Metadata = {
   title: "Serendib Scholar",
-  description: "A voice-first AI study companion for the Grade 5 Scholarship Exam.",
+  description: "ඔයාගේම ගුරුතුමිය, ඔයාගේ ෆෝන් එකේ",
+  applicationName: "Serendib Scholar",
+  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "සෙරෙන්ඩිබ් ශිෂ්‍ය" },
+  icons: { icon: "/icons/icon-192.png", apple: "/icons/icon-192.png" },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0F4C5C",
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
-      lang="en"
+      lang="si"
       className={`${gemunu.variable} ${abhaya.variable} ${yaldevi.variable} ${inter.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <Pwa />
+        {children}
+      </body>
     </html>
   );
 }
