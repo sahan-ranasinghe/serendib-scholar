@@ -701,10 +701,14 @@ async function runAssertions(
   // "ඊළඟ එකට යන්න" is the imperative the live leak produced (an instruction
   // read at the child); her own "ඊළඟ එකට යමු" ("let's move on") is real
   // teacher speech and allowed — verbatim transcripts contain it.
-  const FORBIDDEN_IN_SPEECH = ["ඊළඟ එකට යන්න", "beat", "goal", "next", "instruction"];
+  // "{", "kind" and "permutation" are the shape of a predicate answer's JSON
+  // (the give-up reveal once spoke "kind permutation of digits…" — issue 12).
+  const FORBIDDEN_IN_SPEECH = ["ඊළඟ එකට යන්න", "beat", "goal", "next", "instruction", "{", "kind", "permutation"];
   for (const b of script.beats) {
-    for (const text of [b.spokenText, ...(b.sayCandidates ?? [])]) {
-      if (!text) continue;
+    for (const raw of [b.spokenText, ...(b.sayCandidates ?? [])]) {
+      if (!raw) continue;
+      // {address} is the one legitimate brace: the vocative filled at delivery.
+      const text = raw.replace(/\{address\}/gu, "");
       for (const bad of FORBIDDEN_IN_SPEECH) {
         assert.ok(
           !text.toLowerCase().includes(bad.toLowerCase()),

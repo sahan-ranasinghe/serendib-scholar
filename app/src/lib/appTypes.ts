@@ -48,9 +48,11 @@ export interface LessonDetailData {
   stars: number;
   starsTotal: number;
   concepts: string[];
-  sessions: Array<{ title: string; sub: string; min: string; kind: NodeKind }>;
+  sessions: Array<{ title: string; sub: string; min: string; kind: NodeKind; /** Any session_log row of this session exists (in progress or complete). */ started: boolean }>;
   /** The session the CTA starts (1-based), or null when the lesson is finished. */
   ctaSession: number | null;
+  /** The current session has rows behind it (in progress) — the CTA offers resume and restart. */
+  currentStarted: boolean;
 }
 
 export interface SummaryData {

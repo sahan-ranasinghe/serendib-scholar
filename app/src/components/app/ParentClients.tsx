@@ -50,13 +50,21 @@ export function SettingsClient({ settings: initial, source }: { settings: ChildS
   );
 }
 
-/** Set or change the PIN: the current one (when set), the new one, the new one again. */
-export function PinChangeClient({ pinSet }: { pinSet: boolean }) {
+/**
+ * Create, change or reset the PIN. `create`: the parent zone's first
+ * screen when no PIN exists (new + again; saving it unlocks the zone).
+ * Otherwise the current one, the new one, the new one again — and a
+ * reset path for a forgotten PIN: the device's access code clears it, and
+ * the zone asks to create one again.
+ */
+export function PinChangeClient({ pinSet, create = false }: { pinSet: boolean; create?: boolean }) {
   const router = useRouter();
   const [current, setCurrent] = useState("");
   const [pin, setPin] = useState("");
   const [again, setAgain] = useState("");
   const [state, setState] = useState<"idle" | "busy" | "saved" | "wrong" | "error">("idle");
+  const [resetOpen, setResetOpen] = useState(false);
+  const [accessCode, setAccessCode] = useState("");
   const ready = pin.length === 4 && again === pin && (!pinSet || current.length === 4);
   const submit = async () => {
     if (!ready) return;
@@ -64,13 +72,22 @@ export function PinChangeClient({ pinSet }: { pinSet: boolean }) {
     const r = await postJson<{ ok: boolean; error?: string }>("/api/parent/pin", { current, pin });
     if (r.ok) {
       setState("saved");
-      setTimeout(() => router.push("/parent"), 800);
+      setTimeout(() => (create ? router.refresh() : router.push("/parent")), 800);
     } else setState(r.json?.error === "wrong_pin" ? "wrong" : "error");
   };
+  const reset = async () => {
+    setState("busy");
+    const r = await postJson<{ ok: boolean; error?: string }>("/api/parent/pin", { reset: true, access_code: accessCode });
+    if (r.ok) {
+      setState("idle");
+      setResetOpen(false);
+      router.refresh();
+    } else setState(r.json?.error === "wrong_code" ? "wrong" : "error");
+  };
   return (
-    <Screen label="Change PIN" root={ROOT}>
-      <ParentHeader title={t("parent.row.pin")} back="/parent" sub={pinSet ? t("parent.pinSet") : undefined} />
-      <form onSubmit={(e) => { e.preventDefault(); void submit(); }} style={sx("display:grid;gap:14px;margin-top:16px")} data-testid="pin-change">
+    <Screen label={create ? "Create PIN" : "Change PIN"} root={ROOT}>
+      <ParentHeader title={create ? t("parent.title") : t("parent.row.pin")} back={create ? "/home" : "/parent"} sub={pinSet ? t("parent.pinSet") : undefined} />
+      <form onSubmit={(e) => { e.preventDefault(); void submit(); }} style={sx("display:grid;gap:14px;margin-top:16px")} data-testid={create ? "pin-create" : "pin-change"}>
         {pinSet && (
           <div style={sx("display:grid;gap:6px")}>
             <span style={sx(LABEL)}>PIN</span>
@@ -92,6 +109,21 @@ export function PinChangeClient({ pinSet }: { pinSet: boolean }) {
           {t("onb.next")}
         </button>
       </form>
+      {pinSet && !resetOpen && (
+        <button type="button" onClick={() => setResetOpen(true)} data-testid="pin-reset-open" style={sx("margin-top:12px;height:48px;border:0;border-radius:12px;background:transparent;color:var(--color-coral);font:600 16px/1.5 var(--font-body)")}>
+          {t("parent.row.pin")} · {t("gate.title")}
+        </button>
+      )}
+      {pinSet && resetOpen && (
+        <form onSubmit={(e) => { e.preventDefault(); void reset(); }} style={sx("display:grid;gap:10px;margin-top:16px;border-top:1px solid var(--color-ink-10);padding-top:14px")} data-testid="pin-reset">
+          <span style={sx(LABEL)}>{t("gate.title")}</span>
+          <span style={sx("font:400 16px/1.5 var(--font-body);color:var(--color-ink-70)")}>{t("gate.sub")}</span>
+          <input type="password" value={accessCode} onChange={(e) => setAccessCode(e.target.value)} data-testid="pin-reset-code" style={sx("height:56px;border:2px solid var(--color-ink-18);border-radius:12px;background:#fff;padding:0 14px;font:700 22px/1 var(--font-latin);letter-spacing:0.2em;color:var(--color-ink)", { boxSizing: "border-box" })} />
+          <button type="submit" disabled={!accessCode.trim() || state === "busy"} data-testid="pin-reset-submit" style={sx("height:52px;border:0;border-radius:12px;background:var(--color-coral);color:#fff;font:600 18px/1.5 var(--font-body)", { opacity: accessCode.trim() ? 1 : 0.45 })}>
+            {t("parent.row.pin")}
+          </button>
+        </form>
+      )}
     </Screen>
   );
 }

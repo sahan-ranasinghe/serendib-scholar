@@ -4,8 +4,8 @@ import { useRouter } from "next/navigation";
 import { PrimaryButton } from "./Screen";
 import { t } from "@/lib/appCopy";
 
-/** The splash's "පටන් ගමු": marks that the app has been opened once (the install prompt never shows on a first open) and goes home. */
-export function SplashStart() {
+/** The splash's "පටන් ගමු": marks that the app has been opened once (the install prompt never shows on a first open) and goes on — to onboarding on a device with no child, else home. */
+export function SplashStart({ href = "/home" }: { href?: string }) {
   const router = useRouter();
   return (
     <PrimaryButton
@@ -18,7 +18,7 @@ export function SplashStart() {
         } catch {
           /* private mode */
         }
-        router.push("/home");
+        router.push(href);
       }}
     >
       {t("common.start")}

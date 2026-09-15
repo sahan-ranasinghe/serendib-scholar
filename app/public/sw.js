@@ -11,18 +11,30 @@
  *  - EVERY OTHER /api/* response is never cached: those carry the child's
  *    own records (session log, progress, settings) and are always fetched.
  */
-const VERSION = "ss-v1";
+const VERSION = "ss-v2";
 const SHELL = `${VERSION}-shell`;
 const STATIC = `${VERSION}-static`;
 const CLIPS = `${VERSION}-clips`;
 const OFFLINE_URL = "/offline";
 const PRECACHE = [OFFLINE_URL, "/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png", "/icons/maskable-512.png"];
 
+// The offline page must render without the network on a device that has
+// barely used the app: its own script and style chunks are precached with it
+// (a fresh device that goes offline early otherwise hydrates it against
+// missing chunks and lands on the error state instead).
+async function precacheOfflineAssets() {
+  const html = await fetch(OFFLINE_URL).then((r) => (r.ok ? r.text() : ""));
+  const assets = [...new Set([...html.matchAll(/(?:src|href)="(\/_next\/static\/[^"]+)"/g)].map((m) => m[1]))];
+  const cache = await caches.open(STATIC);
+  await Promise.all(assets.map((url) => cache.add(url).catch(() => undefined)));
+}
+
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches
       .open(SHELL)
       .then((cache) => cache.addAll(PRECACHE))
+      .then(() => precacheOfflineAssets())
       .then(() => self.skipWaiting()),
   );
 });

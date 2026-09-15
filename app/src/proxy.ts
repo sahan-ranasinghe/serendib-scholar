@@ -110,7 +110,7 @@ export default async function proxy(request: NextRequest) {
   // device passed the ACCESS_CODE gate) is; the routes themselves then check
   // the parent's PIN cookie where one has been set. In development with no
   // ACCESS_CODE configured, session-start waives the gate — so do these.
-  if (path.startsWith("/api/parent/") || path.startsWith("/api/onboarding/")) {
+  if (path.startsWith("/api/parent/") || path.startsWith("/api/onboarding/") || path.startsWith("/api/child/")) {
     const device = await verifyToken(readCookie(cookieHeader, DEVICE_COOKIE), "device");
     const waived = !(process.env.ACCESS_CODE ?? "").trim() && process.env.NODE_ENV !== "production";
     if (device || waived) return NextResponse.next();

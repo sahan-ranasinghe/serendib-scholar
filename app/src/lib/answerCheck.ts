@@ -103,6 +103,25 @@ export function predicateMatches(predicate: AnswerPredicate, given: string | num
  */
 export function exampleAnswerFor(expected: string | number | undefined | null): string {
   const predicate = parseAnswerPredicate(expected);
-  if (predicate) return predicate.digits.join("");
+  if (predicate) return firstValidExample(predicate);
   return expected === undefined || expected === null ? "" : String(expected);
+}
+
+/**
+ * The first permutation that is a real number of the predicate's length:
+ * the digits in their given order, unless that starts with 0, in which
+ * case the first non-zero digit leads (0419 is not a four-digit number).
+ * This is what Zara REVEALS when the child gives up — a concrete answer,
+ * never the predicate's JSON (the "kind permutation of digits…" leak).
+ */
+export function firstValidExample(predicate: AnswerPredicate): string {
+  const digits = predicate.digits.slice(0, predicate.length).map(String);
+  if (digits.length && digits[0] === "0") {
+    const lead = digits.findIndex((d) => d !== "0");
+    if (lead > 0) {
+      const [first] = digits.splice(lead, 1);
+      digits.unshift(first!);
+    }
+  }
+  return digits.join("");
 }

@@ -27,6 +27,7 @@ import { AUTHORED_LINES } from "@/lib/authoredLines";
 export type { BeatType, DirectorContext };
 import type { PhraseRubric } from "@/lib/authoredScript";
 import type { AnswerMode } from "@/lib/answerMode";
+import { exampleAnswerFor } from "@/lib/answerCheck";
 import type { ChoiceSet } from "@/lib/distractors";
 export { BEAT_REGISTRY, beatSpec, estimateBeatSeconds };
 
@@ -509,7 +510,9 @@ export function buildOfferHelpBeat(asked: Beat): Beat {
  * mastery credit nor a miss) and logs it as not attempted.
  */
 export function buildGiveUpBeat(asked: Beat): Beat {
-  const value = asked.expectedAnswer ?? "";
+  // A predicate answer (a permutation puzzle) is revealed as one concrete
+  // valid example — the predicate's JSON must never be spoken or written.
+  const value = exampleAnswerFor(asked.expectedAnswer);
   return {
     ...asked,
     id: `${asked.id}:giveup`,

@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { LessonDetailScreen } from "@/components/app/screens/LessonDetail";
 import { StartLessonButton } from "@/components/app/StartLessonButton";
+import { SessionActions } from "@/components/app/SessionActions";
 import { PrimaryButton } from "@/components/app/Screen";
 import { hasActiveChild } from "@/lib/activeChild";
 import { lessonDetailData, loadChildState } from "@/lib/appData";
@@ -14,7 +15,9 @@ export default async function LessonDetailPage({ params }: { params: Promise<{ i
   const state = await loadChildState();
   const data = lessonDetailData(state, Number(id));
   if (!data) notFound();
-  const cta = data.ctaSession ? (
+  const cta = data.ctaSession && data.currentStarted ? (
+    <SessionActions lesson={data.lessonNumber} session={data.ctaSession - 1} label={t("common.sessionNth", { n: data.ctaSession })} />
+  ) : data.ctaSession ? (
     <StartLessonButton height={60} label={t("detail.cta", { n: data.ctaSession })} style={{ width: "100%" }} />
   ) : (
     <PrimaryButton height={60} href="/practice" style={{ width: "100%" }}>

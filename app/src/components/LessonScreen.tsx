@@ -200,6 +200,21 @@ export default function LessonScreen() {
     return () => clearInterval(timer);
   }, [debugOpen, getDebugSnapshot]);
   const [reportState, setReportState] = useState<"idle" | "sending" | "sent" | "failed">("idle");
+  // DEV_MODE only: wipe this child's rows (session_log, child_progress, child_profile) and start the lesson again — the laptop's reset:child, from the phone.
+  const [resetState, setResetState] = useState<"idle" | "busy" | "done" | "failed">("idle");
+  const resetThisChild = async () => {
+    setResetState("busy");
+    try {
+      const res = await fetch("/api/child/reset", { method: "POST" });
+      const json = await res.json();
+      if (!json?.ok) throw new Error(json?.error ?? "failed");
+      setResetState("done");
+      endSessionNow();
+      setTimeout(() => window.location.assign("/session"), 600);
+    } catch {
+      setResetState("failed");
+    }
+  };
   const sendDiagnostics = async () => {
     setReportState("sending");
     try {
@@ -348,6 +363,11 @@ export default function LessonScreen() {
           <button type="button" onClick={sendDiagnostics} style={{ marginTop: 4, width: "100%", borderRadius: 4, border: 0, background: "#34D399", padding: "4px 0", fontWeight: 700, color: "#000" }}>
             {reportState === "sending" ? "…" : reportState === "sent" ? "sent ✓" : reportState === "failed" ? "failed — retry" : "send diagnostics"}
           </button>
+          {childSettings?.devMode && (
+            <button type="button" data-testid="reset-this-child" onClick={() => void resetThisChild()} style={{ marginTop: 4, width: "100%", borderRadius: 4, border: 0, background: "#F59E0B", padding: "4px 0", fontWeight: 700, color: "#000" }}>
+              {resetState === "busy" ? "…" : resetState === "done" ? "reset ✓ — restarting" : resetState === "failed" ? "reset failed" : "reset this child (DEV_MODE)"}
+            </button>
+          )}
         </div>
       )}
 

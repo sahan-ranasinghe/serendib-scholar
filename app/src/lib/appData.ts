@@ -260,20 +260,19 @@ interface Resume {
 function resumePoint(state: ChildState): Resume | null {
   const lesson = state.lessons[0];
   if (!lesson) return null;
-  const closes = state.logs.filter((r) => r.beat_type === "CLOSE_SESSION");
-  const byId = new Map(lesson.script.beats.map((b, i) => [b.id, i]));
-  let done = 0;
-  let next = 0;
-  for (const close of closes) {
-    const index = byId.get(close.beat_id);
-    if (index === undefined) continue;
-    const session = lesson.script.sessions.findIndex((s) => index >= s.firstBeat && index <= s.lastBeat);
-    if (session >= 0) {
-      done = Math.max(done, session + 1);
-      next = Math.max(next, session + 1);
-    }
-  }
+  // The same rule as /api/resume-state (src/lib/sessionRows.ts): the first
+  // packed session whose CLOSE_SESSION beat was never logged is next, so a
+  // restarted session replays even when later ones were closed.
+  const closed = new Set(state.logs.filter((r) => r.beat_type === "CLOSE_SESSION").map((r) => r.beat_id));
   const total = lesson.script.sessions.length;
+  const isClosed = (i: number) => {
+    const s = lesson.script.sessions[i]!;
+    const close = lesson.script.beats.slice(s.firstBeat, s.lastBeat + 1).find((b) => b.type === "CLOSE_SESSION")?.id;
+    return Boolean(close && closed.has(close));
+  };
+  let next = 0;
+  while (next < total && isClosed(next)) next += 1;
+  const done = lesson.script.sessions.filter((_, i) => isClosed(i)).length;
   return { lesson, sessionIndex: Math.min(next, total - 1), done, lessonFinished: next >= total };
 }
 
@@ -348,10 +347,12 @@ export function lessonDetailData(state: ChildState, lessonNumber: number): Lesso
   const resume = resumePoint(state);
   const current = resume && resume.lesson.number === lesson.number ? resume.sessionIndex : 0;
   const finished = Boolean(resume && resume.lesson.number === lesson.number && resume.lessonFinished);
+  const logged = new Set(state.logs.map((r) => r.beat_id));
   const sessions = lesson.script.sessions.map((s, i) => {
     const tags = s.conceptTags.filter((c) => c !== "lessonOpening");
     const kind: NodeKind = finished || i < current ? "done" : i === current ? "current" : "locked";
-    return { title: t("common.sessionNth", { n: i + 1 }), sub: tags.map((c) => title(c, state.lessons)).join(" · "), min: t("common.minutesN", { n: Math.max(1, Math.round(s.estimatedSeconds / 60)) }), kind };
+    const started = lesson.script.beats.slice(s.firstBeat, s.lastBeat + 1).some((b) => logged.has(b.id));
+    return { title: t("common.sessionNth", { n: i + 1 }), sub: tags.map((c) => title(c, state.lessons)).join(" · "), min: t("common.minutesN", { n: Math.max(1, Math.round(s.estimatedSeconds / 60)) }), kind, started };
   });
   const tags = lesson.script.concepts.map((c) => c.conceptTag).filter((c) => c !== "lessonOpening");
   return {
@@ -364,6 +365,7 @@ export function lessonDetailData(state: ChildState, lessonNumber: number): Lesso
     concepts: tags.map((c) => title(c, state.lessons)),
     sessions,
     ctaSession: finished ? null : current + 1,
+    currentStarted: !finished && Boolean(sessions[current]?.started),
   };
 }
 

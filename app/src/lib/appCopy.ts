@@ -73,6 +73,8 @@ export const COPY = {
   "detail.kicker": { screen: "Lesson detail", si: "ගණිතය · පාඩම {lesson}", en: "Maths · Lesson {lesson}" },
   "detail.subtitle": { screen: "Lesson detail", si: "සැසි {sessions} · මිනිත්තු {minutes} · තරු {stars} / {total}", en: "Sessions {sessions} · Minutes {minutes} · Stars {stars} / {total}" },
   "detail.cta": { screen: "Lesson detail", si: "{n} වන සැසිය පටන් ගමු", en: "Start session {n}" },
+  "detail.resume": { screen: "Lesson detail", si: "ඉතුරු ටික කරමු", en: "Let's do the rest (resume) — from docs/qa/session1-triage.md" },
+  "detail.restart": { screen: "Lesson detail", si: "මුල ඉඳන් ආයෙත්", en: "Again from the start (restart, confirm once) — from docs/qa/session1-triage.md" },
 
   // --- session summary ---------------------------------------------------------------
   "summary.title": { screen: "Session summary", si: "නියමයි {name}!", en: "Great, {name}!" },

@@ -21,8 +21,11 @@
  */
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { readdir, readFile } from "node:fs/promises";
 import { connect, evaluate, launch, openPage, wait } from "./lib/cdp";
 import { sinhalaNumberName } from "../src/lib/sinhalaNumber";
+import { supabaseAdmin } from "../src/lib/supabaseAdmin";
+import { HOME_SESSION_JS, ONBOARD_VIA_API_JS } from "./lib/onboard";
 
 /** Sinhala number name → digits, for the questions that ask for a name. */
 const NAME_TO_NUMBER = new Map<string, number>();
@@ -153,6 +156,81 @@ async function main(): Promise<void> {
       `(() => { const el = document.querySelector('.lesson-screen'); const d = el ? el.dataset : {}; return { beatId: d.beatId ?? '—', beatType: d.beatType ?? '—', status: d.status ?? '—', yourTurn: d.yourTurn ?? null, pause: d.pause ?? null, character: d.character ?? null, stage: window.__stage ?? null, choreo: window.__choreo ?? null }; })()`,
     );
 
+  // ---- Cluster A: this browser is a fresh device — the app must take it through onboarding ----
+  // (docs/qa/session1-triage.md: splash → no child → /onboarding/1 → profile row → consent → home → session)
+  const pathTrace: string[] = [];
+  const clusterA: string[] = [];
+  const checkA = (name: string, ok: boolean, detail: string) => {
+    clusterA.push(`${ok ? "PASS" : "FAIL"}  ${name}: ${detail}`);
+  };
+  const setInput = (selector: string, value: string) => evaluate<boolean>(page, `(() => { const input = document.querySelector(${JSON.stringify(selector)}); if (!input) return false; const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set; setter.call(input, ${JSON.stringify(value)}); input.dispatchEvent(new Event("input", { bubbles: true })); return true; })()`);
+  const waitFor = async (js: string, ms = 10000): Promise<boolean> => {
+    for (let i = 0; i < ms / 200; i += 1) {
+      if (await evaluate<boolean>(page, js).catch(() => false)) return true;
+      await wait(200);
+    }
+    return false;
+  };
+  // The portrait screens are tapped in a portrait viewport (a phone onboards upright, then turns for the lesson); an element is scrolled into view before the tap.
+  const tapInView = async (selector: string): Promise<boolean> => {
+    const ok = await evaluate<boolean>(page, `(() => { const el = document.querySelector(${JSON.stringify(selector)}); if (!el) return false; el.scrollIntoView({ block: "center", inline: "center" }); return true; })()`).catch(() => false);
+    if (!ok) return false;
+    await wait(250);
+    return tapSelector(selector);
+  };
+  const where = () => evaluate<{ url: string; screen: string }>(page, `(() => { const app = document.querySelector('[data-app-screen]'); return { url: location.pathname, screen: app ? app.getAttribute('data-app-screen') : document.querySelector('.lesson-screen') ? 'Session' : document.querySelector('[data-testid="access-gate"]') ? 'device gate' : '' }; })()`);
+  const step = async (label: string) => {
+    const w = await where();
+    pathTrace.push(`${w.url.padEnd(16)} ${(w.screen || "?").padEnd(30)} ${label}`);
+    return w;
+  };
+  const gateIfShown = async (): Promise<boolean> => {
+    if (!(await waitFor(`!!document.querySelector('[data-testid="access-gate"] input[type="password"]')`, 3000))) return false;
+    if (!ACCESS_CODE) throw new Error("the device gate is up and ACCESS_CODE is not set");
+    await setInput('[data-testid="access-gate"] input[type="password"]', ACCESS_CODE);
+    await evaluate(page, `(() => { document.querySelector('[data-testid="access-gate"] form').requestSubmit(); return true; })()`);
+    await waitFor(`!document.querySelector('[data-testid="access-gate"]')`);
+    return true;
+  };
+  await page.send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
+  await page.send("Page.navigate", { url: `${BASE}/` });
+  await waitFor(`!!document.querySelector('[data-testid="splash-start"], [data-testid="child-chooser"]')`);
+  const splash = await step("splash (fresh device: no ss_child cookie)");
+  await tapInView('[data-testid="splash-start"]');
+  const toOnboarding = await waitFor(`location.pathname === '/onboarding/1' && !!document.querySelector('[data-testid="onb-next"]')`);
+  checkA("fresh device → onboarding", splash.screen === "Splash" && toOnboarding, `splash "පටන් ගමු" → ${(await where()).url}`);
+  const gated1 = await gateIfShown();
+  await step(`onboarding 1 · phone + OTP${gated1 ? " (device gate: access code entered)" : ""}`);
+  await setInput('[data-testid="onb-phone"]', "77 000 0002");
+  for (let i = 1; i <= 6; i += 1) await setInput(`input[aria-label="otp ${i}"]`, String(i));
+  await wait(200);
+  await tapInView('[data-testid="onb-next"]');
+  await waitFor(`location.pathname === '/onboarding/2'`);
+  await step("onboarding 2 · child profile");
+  await setInput('[data-testid="onb-name"]', "හසිනි");
+  await tapInView('[data-avatar="ලේනා"]');
+  await tapInView('[data-grade="5"]');
+  await wait(200);
+  await tapInView('[data-testid="onb-next"]');
+  const toConsent = await waitFor(`location.pathname === '/onboarding/3'`);
+  await step(`onboarding 3 · consent${toConsent ? "" : " (NOT REACHED)"}`);
+  await tapInView('[data-testid="onb-next"]');
+  await waitFor(`location.pathname === '/onboarding/4'`);
+  await step("onboarding 4 · subscription (stub) — skipped with පසුව තීරණය කරන්නම්");
+  await tapInView('a[href="/home"]');
+  const toHome = await waitFor(`location.pathname === '/home' && !!document.querySelector('[data-testid="start-lesson"]')`);
+  const homeSession = toHome ? await evaluate<{ lesson: number; session: number } | null>(page, HOME_SESSION_JS) : null;
+  await step(`home · continue card offers ${homeSession ? `session ${homeSession.session}` : "?"}`);
+  checkA("onboarding writes the child and lands home at session 1", toHome && homeSession?.session === 1, `home continue card: ${JSON.stringify(homeSession)}`);
+  await tapInView('[data-testid="start-lesson"]');
+  await waitFor(`location.pathname === '/session'`);
+  await step("session (\"පටන් ගමු\" on the continue card)");
+  await page.send("Emulation.setDeviceMetricsOverride", { width: VIEW_W, height: VIEW_H, deviceScaleFactor: 2, mobile: true });
+  // The child this run created — the DB is the ground truth for the assertions below.
+  const { data: createdRows } = await supabaseAdmin.from("children").select("id, display_name").eq("parent_contact", "+94770000002").order("created_at", { ascending: false }).limit(1);
+  const childA = createdRows?.[0]?.id ?? null;
+  console.log(`fresh device → onboarding → home → session:\n${pathTrace.map((l) => `  ${l}`).join("\n")}\nchild created: ${childA ?? "NOT FOUND"} (${createdRows?.[0]?.display_name ?? "?"})`);
+
   // A real child's first tap — the gesture-resume path.
   await tap(446, 206);
   // The page may still be arriving (a server just started): wait up to 12 s for the gate or the lesson.
@@ -213,6 +291,8 @@ async function main(): Promise<void> {
   })()`;
   type Audit = { overlap: number; portraitOverlap: number; cutOff: number; small: string[]; tinyText: string[]; running: number; runningNames: string[]; strip: Array<{ label: string | null; h: number; w: number }> } | null;
   const audits: Array<{ beatId: string; audit: Audit }> = [];
+  let captionReads = 0;
+  const seenCaptionCount = () => captionReads;
   const fpsSamples: Array<{ beatId: string; fps: number }> = [];
   const sampleFps = async (): Promise<number> =>
     evaluate<number>(page, `new Promise((resolve) => { let frames = 0; const start = performance.now(); const tick = () => { frames += 1; if (performance.now() - start < 2000) requestAnimationFrame(tick); else resolve(Math.round(frames / ((performance.now() - start) / 1000))); }; requestAnimationFrame(tick); })`);
@@ -247,6 +327,8 @@ async function main(): Promise<void> {
     console.log(`      ↳ answered ${entry.beatId.replace(/^authored:/u, "")} via ${entry.via}: ${entry.answer}`);
   };
   let lastBeat = "";
+  /** Cluster G: any caption carrying a predicate's JSON ("{", "kind", "permutation"). */
+  const captionLeaks: string[] = [];
   let lastTurnBeat = "";
   let turnClosed = true;
   const practiceSeen = new Set<string>();
@@ -593,6 +675,9 @@ async function main(): Promise<void> {
         fpsSamples.push({ beatId: snap.beatId, fps: await sampleFps() });
       }
       const short = snap.beatId.replace(/^authored:/u, "");
+      const captionNow = await evaluate<string>(page, `(document.querySelector('[data-testid="caption"]')?.textContent ?? '').trim()`).catch(() => "");
+      if (captionNow) captionReads += 1;
+      if (captionNow && /[{]|kind|permutation/iu.test(captionNow)) captionLeaks.push(`${short}: ${captionNow.slice(0, 80)}`);
       const flags = audit ? [audit.overlap ? `overlap ${audit.overlap}` : "", audit.portraitOverlap ? `PORTRAIT OVERLAP` : "", audit.cutOff ? `cut-off ${audit.cutOff}` : "", audit.small.length ? `small ${audit.small.length}` : "", audit.tinyText.length ? `tiny-text ${audit.tinyText.length}` : ""].filter(Boolean).join(" · ") : "";
       console.log(`  ${String(seq).padStart(3, "0")} ${short.padEnd(34)} ${snap.beatType.padEnd(12)} ${(snap.stage ?? "").slice(0, 48).padEnd(48)} ${flags}`);
       if (DRILLS) await drills(snap);
@@ -659,6 +744,59 @@ async function main(): Promise<void> {
   }
 
   const log = (await evaluate<ChoreoLogEntry[]>(page, `window.__choreoLog ?? []`)) ?? [];
+
+  // ---- Cluster A / G regression assertions (after the sitting) ---------------------
+  let restartTrace = "not run";
+  if (childA) {
+    // Two children on one device get separate resume points.
+    const second = await evaluate<{ ok: boolean; child_id?: string; step?: string; error?: string }>(page, ONBOARD_VIA_API_JS(ACCESS_CODE, "රවිඳු", childA));
+    const homeB = second.ok ? await evaluate<{ lesson: number; session: number } | null>(page, HOME_SESSION_JS) : null;
+    const back = await evaluate<{ ok: boolean }>(page, `fetch("/api/child/switch", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ child_id: ${JSON.stringify(childA)} }) }).then((r) => r.json())`);
+    const homeA = back.ok ? await evaluate<{ lesson: number; session: number } | null>(page, HOME_SESSION_JS) : null;
+    checkA("two children on one device get separate resume points", second.ok && homeB?.session === 1 && homeA?.session === (done ? 2 : 1), `second child ${second.ok ? second.child_id : `FAILED at ${second.step} (${second.error})`} → home session ${homeB?.session ?? "?"} · switch back → home session ${homeA?.session ?? "?"} (expected ${done ? 2 : 1})`);
+    // The parent zone with no PIN shows create-PIN first.
+    const parentHtml = await evaluate<string>(page, `fetch("/parent").then((r) => r.text())`);
+    checkA("parent zone with no PIN shows create-PIN", /data-testid="pin-create"/u.test(parentHtml) && !/data-testid="pin-gate"/u.test(parentHtml), /data-testid="pin-create"/u.test(parentHtml) ? "pin-create form rendered, no gate" : "create-PIN form NOT rendered");
+    // Restart lands on beat 0 with mastery intact.
+    const before = (await supabaseAdmin.from("child_progress").select("*", { count: "exact", head: true }).eq("child_id", childA)).count ?? 0;
+    const restart = await evaluate<{ ok: boolean; rows?: number; sittings?: number; first_beat?: string }>(page, `fetch("/api/session/restart", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ lesson: 1, session: 0 }) }).then((r) => r.json())`);
+    const after = (await supabaseAdmin.from("child_progress").select("*", { count: "exact", head: true }).eq("child_id", childA)).count ?? 0;
+    const logsLeft = (await supabaseAdmin.from("session_log").select("*", { count: "exact", head: true }).eq("child_id", childA)).count ?? 0;
+    await page.send("Page.navigate", { url: `${BASE}/session` });
+    await wait(2500);
+    await tap(446, 206);
+    let landed = "—";
+    for (let i = 0; i < 120; i += 1) {
+      const snap = await snapshot().catch(() => null);
+      if (snap && snap.beatId !== "—" && snap.status !== "preparing" && snap.status !== "idle") {
+        landed = snap.beatId;
+        break;
+      }
+      await wait(250);
+    }
+    const beat0 = script?.beats?.[0]?.id ?? "?";
+    restartTrace = `restart session 1: ${restart.ok ? `${restart.rows} session_log row(s) in ${restart.sittings} sitting(s) removed` : "FAILED"} · session_log rows left ${logsLeft} · child_progress ${before} → ${after} · /session landed on ${landed} (beat 0 = ${beat0})`;
+    checkA("restart lands on beat 0 with mastery intact", restart.ok && landed === beat0 && before === after && before > 0, restartTrace);
+    await evaluate(page, `(() => { const b = document.querySelector('[aria-label="අවසන් කරන්න"]'); b && b.click(); return true; })()`).catch(() => undefined);
+    await page.send("Page.navigate", { url: "about:blank" });
+  } else {
+    checkA("two children on one device get separate resume points", false, "no child was created by onboarding");
+    checkA("parent zone with no PIN shows create-PIN", false, "no child");
+    checkA("restart lands on beat 0 with mastery intact", false, "no child");
+  }
+  // The production build has no code path to DEV_CHILD_ID.
+  const serverDir = path.join(process.cwd(), ".next", "server");
+  const mentions: string[] = [];
+  const scan = async (dir: string) => {
+    for (const entry of await readdir(dir, { withFileTypes: true }).catch(() => [])) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) await scan(full);
+      else if (/\.(js|mjs|cjs)$/u.test(entry.name) && (await readFile(full, "utf8")).includes("DEV_CHILD_ID")) mentions.push(path.relative(process.cwd(), full));
+    }
+  };
+  await scan(serverDir);
+  checkA("production build has no code path to DEV_CHILD_ID", mentions.length === 0, mentions.length ? `mentioned in ${mentions.slice(0, 3).join(", ")}` : `.next/server scanned — no mention`);
+  checkA("no predicate JSON in any caption ({, kind, permutation)", captionLeaks.length === 0, captionLeaks.length ? captionLeaks.slice(0, 3).join(" · ") : `${seenCaptionCount()} caption reads clean`);
   const firstPaintMs = await measureFirstPaint();
   const seen = new Set(shots.map((s) => s.beatId));
   const outside = new Map<string, ChoreoLogEntry[]>();
@@ -752,12 +890,27 @@ async function main(): Promise<void> {
   console.log(`\nconsole errors: ${problems.length}`);
   for (const line of problems.slice(0, 15)) console.log(`  ${line}`);
 
+  console.log(`\ncluster A / G regression assertions (${clusterA.filter((r) => r.startsWith("PASS")).length}/${clusterA.length}):`);
+  for (const line of clusterA) console.log(`  ${line}`);
+  console.log(`restart trace: ${restartTrace}`);
+  // The children this run created (and every row keyed to them) are removed again.
+  if (childA) {
+    const { data: mine } = await supabaseAdmin.from("children").select("id").eq("parent_contact", "+94770000002");
+    for (const row of mine ?? []) {
+      for (const table of ["session_log", "child_progress", "child_weaknesses", "child_profile"] as const) await supabaseAdmin.from(table).delete().eq("child_id", row.id);
+      await supabaseAdmin.storage.from("child-extras").remove([`${row.id}.json`]).catch(() => undefined);
+      await supabaseAdmin.from("children").delete().eq("id", row.id);
+    }
+    console.log(`cleanup: ${mine?.length ?? 0} test child(ren) and their rows removed`);
+  }
+
   page.close();
   browser.kill();
   const layoutClean = flagged.filter((a) => a.audit!.portraitOverlap || a.audit!.cutOff || a.audit!.small.length).length === 0;
   const voiceClean = (apiCalls.get("hear") ?? 0) === 0 && (apiCalls.get("planner") ?? 0) === 0;
   const latencyClean = latencies.length === 0 || [...latencies].sort((a, b) => a - b)[Math.floor(latencies.length / 2)]! <= 200;
-  process.exit(done && layoutClean && voiceClean && latencyClean ? 0 : 1);
+  const clusterClean = clusterA.every((r) => r.startsWith("PASS"));
+  process.exit(done && layoutClean && voiceClean && latencyClean && clusterClean ? 0 : 1);
 }
 
 main().catch((error) => {

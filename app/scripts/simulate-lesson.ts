@@ -232,7 +232,9 @@ function assertTrace(script: LessonScript, trace: TraceEntry[], tally: Assertion
   // "ඊළඟ එකට යන්න" is the imperative the live leak produced (an instruction
   // read at the child); her own "ඊළඟ එකට යමු" ("let's move on") is real
   // teacher speech and allowed — verbatim transcripts contain it.
-  const FORBIDDEN_IN_SPEECH = ["ඊළඟ එකට යන්න", "beat", "goal", "next", "instruction"];
+  // "{", "kind" and "permutation" are the shape of a predicate answer's JSON
+  // (the give-up reveal once spoke "kind permutation of digits…" — issue 12).
+  const FORBIDDEN_IN_SPEECH = ["ඊළඟ එකට යන්න", "beat", "goal", "next", "instruction", "{", "kind", "permutation"];
   for (const entry of trace) {
     for (const text of [entry.beat.spokenText, ...(entry.beat.sayCandidates ?? [])]) {
       if (!text) continue;
@@ -253,9 +255,16 @@ function assertTrace(script: LessonScript, trace: TraceEntry[], tally: Assertion
         !visible.includes("[DIRECTOR]"),
         `leaked in: ${visible.slice(0, 80)}`,
       );
+      // 4c. Nothing the child sees (captions, board text) carries a predicate's JSON either.
+      tally.check(
+        "no predicate JSON in child-visible output ({, kind, permutation)",
+        !/[{]|kind|permutation/iu.test(visible),
+        `leaked in: ${visible.slice(0, 80)}`,
+      );
     }
   }
   tally.check("no [DIRECTOR] text in child-visible output", true);
+  tally.check("no predicate JSON in child-visible output ({, kind, permutation)", true);
 
   // 5. Every non-chat beat has board content (staged or inherited).
   let sessionIndex = -999;

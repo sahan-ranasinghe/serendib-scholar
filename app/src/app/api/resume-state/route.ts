@@ -1,38 +1,28 @@
-import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabaseClient";
+import { NextRequest, NextResponse } from "next/server";
 import { getActiveChildId } from "@/lib/activeChild";
+import { loadScript, resumeAnchor } from "@/lib/sessionRows";
 
 /**
- * Where the active child left off.
+ * Where the active child left off: the FIRST packed session whose
+ * CLOSE_SESSION beat is not in session_log (src/lib/sessionRows.ts). The
+ * anchor returned is the previous session's close beat; the client resumes
+ * at the beat after it. A restarted session (its rows removed) is therefore
+ * the one that replays, even when later sessions were closed.
  *
- * A child is "returning" ONLY if they have a completed sitting behind them —
- * a CLOSE_SESSION beat in session_log. The anchor returned is that close
- * beat's id; the client resumes at the beat after it (the next session's
- * opener). Merely having rows is NOT enough: a crashed or abandoned sitting
- * (or leftover test traffic) has rows but no close, and treating that as
- * "returning" is exactly how RECAP once fired in a child's very first
- * session. No completed close → start from the beginning.
- *
- * If the anchor id no longer exists in the current script, the client falls
- * back to the start — re-teaching is cheap, skipping is not.
+ * Merely having rows is NOT enough to count as returning: a crashed or
+ * abandoned sitting has rows but no close, and treating that as "returning"
+ * is exactly how RECAP once fired in a child's very first session.
  */
-export async function POST() {
-  const { data, error } = await supabaseAdmin
-    .from("session_log")
-    .select("beat_id, session_id, created_at")
-    .eq("child_id", await getActiveChildId())
-    .eq("beat_type", "CLOSE_SESSION")
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (error) {
-    console.error("[resume-state] Lookup failed:", error.message);
-    return NextResponse.json({ ok: true, last_beat_id: null });
+export async function POST(request: NextRequest) {
+  const body = await request.json().catch(() => ({}));
+  const childId = await getActiveChildId();
+  const script = await loadScript(typeof body.subject === "string" ? body.subject : "maths", Number.isInteger(body.grade) ? body.grade : 5, Number.isInteger(body.lesson) ? body.lesson : 1);
+  if (!script) return NextResponse.json({ ok: true, last_beat_id: null, session_index: 0 });
+  try {
+    const anchor = await resumeAnchor(script, childId);
+    return NextResponse.json({ ok: true, last_beat_id: anchor.lastBeatId, session_index: anchor.sessionIndex, finished: anchor.finished });
+  } catch (error) {
+    console.error("[resume-state] Lookup failed:", error);
+    return NextResponse.json({ ok: true, last_beat_id: null, session_index: 0 });
   }
-  return NextResponse.json({
-    ok: true,
-    last_beat_id: data?.beat_id ?? null,
-    last_session_id: data?.session_id ?? null,
-  });
 }

@@ -74,7 +74,7 @@ import {
   type OrchestratorState,
   type PlannerDecision,
 } from "@/lib/lessonOrchestrator";
-import { answersMatch } from "@/lib/answerCheck";
+import { answersMatch, exampleAnswerFor } from "@/lib/answerCheck";
 import { resolveBeatAddress, resolveAddress, type ChildGender } from "@/lib/addressToken";
 import type { BoardContent } from "@/lib/board";
 import { applyViewPatch, conceptsFromScript, type LessonConcept, type ViewPatch } from "@/lib/boardPatch";
@@ -121,6 +121,8 @@ export interface ChildRuntimeSettings {
   sound: boolean;
   dailyLimitMinutes: number;
   minutesToday: number;
+  /** DEV_MODE=on on the server: the debug overlay may reset this child. */
+  devMode: boolean;
 }
 
 export type RuntimeStatus =
@@ -285,7 +287,7 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
    * The limit is enforced here: when the sitting's clock crosses it the
    * runtime jumps to the sitting's close, exactly as ⏹ does.
    */
-  const settingsRef = useRef<ChildRuntimeSettings>({ captions: true, sound: true, dailyLimitMinutes: 15, minutesToday: 0 });
+  const settingsRef = useRef<ChildRuntimeSettings>({ captions: true, sound: true, dailyLimitMinutes: 15, minutesToday: 0, devMode: false });
   const [childSettings, setChildSettings] = useState<ChildRuntimeSettings | null>(null);
   const limitEndedRef = useRef(false);
   const [limitEnded, setLimitEnded] = useState(false);
@@ -1411,7 +1413,8 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
 
   /** The REVEAL: the answer on the board and in her voice, plus the rubric's one-line explanation when there is one. */
   const revealAnswer = async (beat: Beat): Promise<void> => {
-    const answer = (beat.expectedAnswer ?? "").replace(/[\s,]/g, "");
+    // A predicate answer reveals one concrete example (never its JSON).
+    const answer = exampleAnswerFor(beat.expectedAnswer).replace(/[\s,]/g, "");
     const answerValue = /^\d+$/.test(answer) ? Number(answer) : NaN;
     if (beat.rubric) {
       const explanation = renderNumberMarkers(beat.rubric.explainSi ?? "").spoken;
@@ -1675,12 +1678,18 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
       });
       if (response.ok) {
         const payload = await response.json().catch(() => null);
+        if (payload?.no_child) {
+          // No child bound to this device: onboarding first (the page normally redirects before this).
+          window.location.assign("/onboarding/1");
+          return "error";
+        }
         const raw = payload?.settings ?? {};
         const next: ChildRuntimeSettings = {
           captions: typeof raw.captions === "boolean" ? raw.captions : true,
           sound: typeof raw.sound === "boolean" ? raw.sound : true,
           dailyLimitMinutes: typeof raw.dailyLimitMinutes === "number" ? raw.dailyLimitMinutes : 15,
           minutesToday: typeof payload?.minutes_today === "number" ? payload.minutes_today : 0,
+          devMode: payload?.dev_mode === true,
         };
         settingsRef.current = next;
         setChildSettings(next);

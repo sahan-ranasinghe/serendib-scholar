@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getActiveChildId } from "@/lib/activeChild";
+import { NoChildError, getActiveChildId } from "@/lib/activeChild";
 import { readChildExtras } from "@/lib/childStore";
 import { minutesTodayFor } from "@/lib/appData";
 import {
@@ -44,7 +44,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "This deployment is not configured yet." }, { status: 503 });
   }
 
-  const childId = await getActiveChildId();
+  // A device with no child yet still needs the device grant (onboarding's
+  // routes are gated on it); the lesson's session cookie needs a child.
+  let childId: string | null = null;
+  try {
+    childId = await getActiveChildId();
+  } catch (error) {
+    if (!(error instanceof NoChildError)) throw error;
+  }
   const cookieHeader = request.headers.get("cookie");
   const body = await request.json().catch(() => ({}));
   const givenCode = typeof body.access_code === "string" ? body.access_code.trim() : "";
@@ -67,14 +74,21 @@ export async function POST(request: NextRequest) {
 
   const now = Math.floor(Date.now() / 1000);
   const secure = isProduction;
+  const devMode = (process.env.DEV_MODE ?? "").trim() === "on";
+  const deviceGrant = await mintToken({ child_id: childId ?? "device", exp: now + DEVICE_TTL_SECONDS, kind: "device" });
+  if (!childId) {
+    // No child on this device: the device grant only, and the caller goes to onboarding.
+    const response = NextResponse.json({ ok: true, no_child: true, dev_mode: devMode });
+    response.headers.append("Set-Cookie", `${DEVICE_COOKIE}=${encodeURIComponent(deviceGrant)}; ${cookieAttributes(DEVICE_TTL_SECONDS, secure)}`);
+    return response;
+  }
   const session = await mintToken({ child_id: childId, exp: now + SESSION_TTL_SECONDS, kind: "session" });
-  const deviceGrant = await mintToken({ child_id: childId, exp: now + DEVICE_TTL_SECONDS, kind: "device" });
 
   // What the lesson runtime needs to know about this child before the first
   // beat: captions on or off (default on), sound, the daily limit the parent
   // set, and how much of today it has already used.
   const [extras, minutesToday] = await Promise.all([readChildExtras(childId), minutesTodayFor(childId).catch(() => 0)]);
-  const response = NextResponse.json({ ok: true, expires_in: SESSION_TTL_SECONDS, settings: extras.settings, minutes_today: minutesToday });
+  const response = NextResponse.json({ ok: true, expires_in: SESSION_TTL_SECONDS, settings: extras.settings, minutes_today: minutesToday, dev_mode: devMode });
   response.headers.append(
     "Set-Cookie",
     `${SESSION_COOKIE}=${encodeURIComponent(session)}; ${cookieAttributes(SESSION_TTL_SECONDS, secure)}`,

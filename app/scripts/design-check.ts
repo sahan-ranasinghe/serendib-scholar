@@ -30,6 +30,7 @@ import { initialStage, reduceStage } from "../src/lib/choreography";
 import { ZARA_STATES } from "../src/components/ZaraCharacter";
 import { LENA_STATES } from "../src/components/LenaCharacter";
 import { APP_ROUTES } from "../src/lib/appRoutes";
+import { ONBOARD_VIA_API_JS } from "./lib/onboard";
 
 const BASE = process.argv.find((a) => a.startsWith("http")) ?? "http://localhost:3001";
 const ONLY = process.argv.find((a) => a.startsWith("--only="))?.slice(7) ?? null;
@@ -909,6 +910,13 @@ async function checkPwa(page: Cdp, root: Cdp): Promise<PwaRow[]> {
   });
   const env = await readFile(path.resolve(process.cwd(), ".env.local"), "utf8").catch(() => "");
   const accessCode = /^ACCESS_CODE=(.*)$/mu.exec(env)?.[1]?.trim().replace(/^["']|["']$/gu, "") ?? "";
+  // Identity is device-bound: this fresh browser onboards a child through the API before the lesson can start.
+  await page.send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
+  await page.send("Page.navigate", { url: `${BASE}/` });
+  await wait(1500);
+  type Onboarded = { ok: boolean; child_id?: string; step?: string; error?: string };
+  const onboarded: Onboarded = await evaluate<Onboarded>(page, ONBOARD_VIA_API_JS(accessCode, "පරීක්ෂා දරුවා")).catch(() => ({ ok: false, step: "evaluate" }));
+  add("a fresh browser onboards a child via the API before the lesson", "ok", onboarded.ok ? `child ${onboarded.child_id}` : `failed at ${onboarded.step} (${onboarded.error ?? "?"})`, onboarded.ok);
   await page.send("Emulation.setDeviceMetricsOverride", { width: 844, height: 390, deviceScaleFactor: 1, mobile: true });
   await page.send("Page.navigate", { url: `${BASE}/session` });
   await wait(3000);
@@ -930,8 +938,14 @@ async function checkPwa(page: Cdp, root: Cdp): Promise<PwaRow[]> {
     add("clip cache holds the played clip(s)", "≥ 1", cached.clips, cached.clips >= 1);
     add("no other /api/* response in any cache (child data never cached)", "none", cached.apiKeys.length ? cached.apiKeys.join(" ") : "none", cached.apiKeys.length === 0);
   }
-  // Stop the lesson: leave the page.
+  // Stop the lesson: leave the page; the drill's child and its rows are removed again.
   await page.send("Page.navigate", { url: "about:blank" });
+  if (onboarded.ok && onboarded.child_id) {
+    const { supabaseAdmin } = await import("../src/lib/supabaseAdmin");
+    for (const table of ["session_log", "child_progress", "child_weaknesses", "child_profile"] as const) await supabaseAdmin.from(table).delete().eq("child_id", onboarded.child_id);
+    await supabaseAdmin.storage.from("child-extras").remove([`${onboarded.child_id}.json`]).catch(() => undefined);
+    await supabaseAdmin.from("children").delete().eq("id", onboarded.child_id);
+  }
   await page.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
   return rows;
 }

@@ -1,5 +1,6 @@
 import ZaraCharacter from "@/components/ZaraCharacter";
 import { BackButton, Screen } from "../Screen";
+import { RestartRow } from "../RestartRow";
 import { sx } from "../sx";
 import { t } from "@/lib/appCopy";
 import type { LessonDetailData } from "@/lib/appTypes";
@@ -17,7 +18,7 @@ function rowStyle(kind: "done" | "current" | "locked") {
   };
 }
 
-/** Screens A · Lesson detail. `cta` is the caller's start button (60 px). */
+/** Screens A · Lesson detail. `cta` is the caller's start button (60 px); a done row can restart its own session. */
 export function LessonDetailScreen({ data, frame, cta }: { data: LessonDetailData; frame?: boolean; cta: React.ReactNode }) {
   return (
     <Screen label="Lesson detail" frame={frame} root="background:var(--color-board);display:flex;flex-direction:column">
@@ -41,16 +42,17 @@ export function LessonDetailScreen({ data, frame, cta }: { data: LessonDetailDat
           ))}
         </div>
         <div style={sx("display:grid;gap:10px")}>
-          {data.sessions.map((s) => {
+          {data.sessions.map((s, i) => {
             const r = rowStyle(s.kind);
             return (
-              <div key={s.title} data-kind={s.kind} style={sx(`background:${r.bg};border:${r.border};border-radius:16px;padding:8px 14px;display:flex;align-items:center;gap:12px;box-shadow:${r.sh};opacity:${r.op}`)}>
+              <div key={s.title} data-kind={s.kind} data-started={s.started || undefined} style={sx(`background:${r.bg};border:${r.border};border-radius:16px;padding:8px 14px;display:flex;align-items:center;gap:12px;box-shadow:${r.sh};opacity:${r.op}`, { flexWrap: "wrap" })}>
                 <span style={sx(`width:44px;height:44px;border-radius:50%;background:${r.iconBg};color:${r.iconFg};display:flex;align-items:center;justify-content:center;font:700 20px/1 var(--font-latin);flex:none`)}>{r.icon}</span>
                 <div style={sx("flex:1;display:grid;gap:2px")}>
                   <span style={sx("font:700 22px/1.4 var(--font-display);color:var(--color-ink)")}>{s.title}</span>
                   <span style={sx("font:600 20px/1.5 var(--font-label);color:var(--color-ink-70)")}>{s.sub}</span>
                 </div>
                 <span style={sx("font:600 20px/1.5 var(--font-label);color:var(--color-ink-70);white-space:nowrap")}>{s.min}</span>
+                {!frame && s.kind === "done" && s.started && <RestartRow lesson={data.lessonNumber} session={i} />}
               </div>
             );
           })}
