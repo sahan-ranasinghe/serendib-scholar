@@ -941,10 +941,19 @@ async function checkPwa(page: Cdp, root: Cdp): Promise<PwaRow[]> {
   // Stop the lesson: leave the page; the drill's child and its rows are removed again.
   await page.send("Page.navigate", { url: "about:blank" });
   if (onboarded.ok && onboarded.child_id) {
-    const { supabaseAdmin } = await import("../src/lib/supabaseAdmin");
-    for (const table of ["session_log", "child_progress", "child_weaknesses", "child_profile"] as const) await supabaseAdmin.from(table).delete().eq("child_id", onboarded.child_id);
-    await supabaseAdmin.storage.from("child-extras").remove([`${onboarded.child_id}.json`]).catch(() => undefined);
-    await supabaseAdmin.from("children").delete().eq("id", onboarded.child_id);
+    // The app's own delete (no PIN was set, so the device grant suffices) removes the child and every row keyed to it;
+    // the lesson keeps logging for a moment after the page goes, so the delete is retried until the child row can go.
+    await page.send("Page.navigate", { url: `${BASE}/` });
+    await wait(1500);
+    let removed = "";
+    for (let attempt = 0; attempt < 5 && !removed; attempt += 1) {
+      type Deleted = { ok: boolean; deleted?: Record<string, number | string>; error?: string };
+      const result: Deleted = await evaluate<Deleted>(page, `fetch("/api/parent/delete", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" }).then((r) => r.json()).catch((e) => ({ ok: false, error: String(e) }))`).catch(() => ({ ok: false }));
+      if (result.ok) removed = `child ${onboarded.child_id} and its rows removed (${JSON.stringify(result.deleted ?? {})})`;
+      else if (attempt === 4) removed = `NOT removed: ${JSON.stringify(result).slice(0, 120)}`;
+      else await wait(1500);
+    }
+    add("the drill's child is removed again", "removed", removed, removed.startsWith("child"));
   }
   await page.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
   return rows;
