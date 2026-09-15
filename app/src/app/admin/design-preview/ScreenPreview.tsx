@@ -84,7 +84,7 @@ function screenFor(label: string) {
         const f = FIXTURE_ONBOARDING;
         return (
           <OnboardingScreen frame step={(step + 1) as 1 | 2 | 3 | 4} cta={<OnboardingCta label={o.cta} />} skip={o.skip ? <OnboardingSkip label={o.skip} /> : undefined}>
-            {step === 0 && <PhoneStep phone={f.phone} otp={f.otp} otpActive={f.otpActive} resendSeconds={f.resendSeconds} />}
+            {step === 0 && <PhoneStep mode="provider" phone={f.phone} code={f.otp} codeActive={f.otpActive} sent secondsLeft={f.resendSeconds} resend="waiting" />}
             {step === 1 && <ProfileStep name={f.name} avatarIndex={f.avatarIndex} grade={f.grade} />}
             {step === 2 && <ConsentStep />}
             {step === 3 && <PayStep method="card" />}

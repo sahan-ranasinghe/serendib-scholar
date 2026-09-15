@@ -6,7 +6,7 @@ Every child-facing and parent-facing string outside the session, extracted from 
 - **drafted**: from the design export (Screens A/B/C) or the runtime — needs sign-off (README "Copy").
 - **missing**: the app needs the line and the export has no Sinhala for it; the screen leaves the spot empty or reuses an export string, and the English gloss says what is needed.
 
-Counts: fromScript 21 · drafted 208 · missing 16
+Counts: fromScript 21 · drafted 214 · missing 16
 
 Terms: ගණක රාමුව (never අබකසය) · සාරා · සෙරෙන්ඩිබ් ශිෂ්‍ය. `{name}`-style holes are filled at runtime.
 
@@ -59,6 +59,8 @@ Terms: ගණක රාමුව (never අබකසය) · සාරා · ස�
 | Lesson detail | `detail.kicker` | ගණිතය · පාඩම {lesson} | Maths · Lesson {lesson} | drafted |
 | Lesson detail | `detail.subtitle` | සැසි {sessions} · මිනිත්තු {minutes} · තරු {stars} / {total} | Sessions {sessions} · Minutes {minutes} · Stars {stars} / {total} | drafted |
 | Lesson detail | `detail.cta` | {n} වන සැසිය පටන් ගමු | Start session {n} | drafted |
+| Lesson detail | `detail.resume` | ඉතුරු ටික කරමු | Let's do the rest (resume) — from docs/qa/session1-triage.md | drafted |
+| Lesson detail | `detail.restart` | මුල ඉඳන් ආයෙත් | Again from the start (restart, confirm once) — from docs/qa/session1-triage.md | drafted |
 | Session summary | `summary.title` | නියමයි {name}! | Great, {name}! | drafted |
 | Session summary | `summary.today` | අද ඔයා… | Today you… | drafted |
 | Session summary | `summary.tomorrow` | හෙට ආයෙත් එන්න | Come back tomorrow | drafted |
@@ -129,7 +131,11 @@ Terms: ගණක රාමුව (never අබකසය) · සාරා · ස�
 | Onboarding 1 | `onb.1.title` | දුරකථන අංකය තහවුරු කරමු | Let's confirm your phone number | drafted |
 | Onboarding 1 | `onb.1.phone` | දුරකථන අංකය | Phone number | drafted |
 | Onboarding 1 | `onb.1.code` | SMS මගින් ලැබුණු කේතය | The code you got by SMS | drafted |
-| Onboarding 1 | `onb.1.resend` | කේතය ලැබුණේ නැද්ද? ආයෙත් එවන්න ({t}) | Didn't get the code? Send again ({t}) | drafted |
+| Onboarding 1 | `onb.1.resend` | කේතය ලැබුණේ නැද්ද? ආයෙත් එවන්න ({t}) | Didn't get the code? Send again ({t}) — counts down once from 0:30, never loops | drafted |
+| Onboarding 1 | `onb.1.resendNow` | ආයෙත් එවන්න | Send again (the one resend, after 30 s) — the export's own words | drafted |
+| Onboarding 1 | `onb.1.send` | කේතය එවන්න | Send the code (composed from the export's කේතය … එවන්න) | drafted |
+| Onboarding 1 | `onb.1.devNotice` | SMS තහවුරු කිරීම තවම සක්‍රීය නැහැ | SMS verification is not active yet (dev notice, wording from docs/qa) | drafted |
+| Onboarding 1 | `onb.1.devNoticeEn` | dev: any 4-digit code works | English half of the dev notice (a parent surface) | drafted |
 | Onboarding | `onb.next` | ඉදිරියට | Next | drafted |
 | Onboarding 2 | `onb.2.bubble` | දරුවාට මම කතා කරන්නේ මේ නමින්. | This is the name I'll call your child by. | drafted |
 | Onboarding 2 | `onb.2.title` | දරුවා ගැන කියන්න | Tell me about your child | drafted |

@@ -165,7 +165,7 @@ export const FIXTURE_PROFILES: ProfilesData = { children: [{ id: "fixture", name
 
 export const FIXTURE_ONBOARDING = {
   phone: "77 123 4567",
-  otp: ["4", "8", "2", "", "", ""],
+  otp: ["4", "8", "2", ""],
   otpActive: 3,
   name: "නිමාලි",
   avatarIndex: 2,

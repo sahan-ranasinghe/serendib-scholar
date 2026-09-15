@@ -49,6 +49,8 @@ const NO_WOBBLE = process.argv.includes("--no-wobble");
  * cannot be fetched) and report what the child would have seen.
  */
 const DRILLS = process.argv.includes("--drills");
+/** Only onboarding step 1's two states (no lesson): the dev notice, then the mocked gateway's send → code → one resend. */
+const OTP_ONLY = process.argv.includes("--otp-only");
 /** --wrong=readWrite4Digit:8 — answer that question wrongly every time it is asked, to walk the retry ladder. */
 const WRONG_BEAT = arg("wrong") ? `authored:${arg("wrong")!.replace(/^authored:/u, "")}` : null;
 const RUN_TAG = arg("tag") ?? `${VIEW_W}x${VIEW_H}-${SCHEME}${REDUCED_MOTION ? "-reduced" : ""}`;
@@ -197,16 +199,85 @@ async function main(): Promise<void> {
   await waitFor(`!!document.querySelector('[data-testid="splash-start"], [data-testid="child-chooser"]')`);
   const splash = await step("splash (fresh device: no ss_child cookie)");
   await tapInView('[data-testid="splash-start"]');
-  const toOnboarding = await waitFor(`location.pathname === '/onboarding/1' && !!document.querySelector('[data-testid="onb-next"]')`);
+  // The device gate may cover the step the moment it mounts (a fresh device has no device cookie): the route is the assertion, the gate is handled next.
+  const toOnboarding = await waitFor(`location.pathname === '/onboarding/1'`);
   checkA("fresh device → onboarding", splash.screen === "Splash" && toOnboarding, `splash "පටන් ගමු" → ${(await where()).url}`);
   const gated1 = await gateIfShown();
+  await waitFor(`!!document.querySelector('[data-testid="onb-next"]') && !!document.querySelector('[data-testid="onb-hydrated"]')`);
   await step(`onboarding 1 · phone + OTP${gated1 ? " (device gate: access code entered)" : ""}`);
+  const screenText = () => evaluate<string>(page, `(() => { const el = document.querySelector('[data-app-screen]'); return el ? el.innerText.replace(/\\n{2,}/g, "\\n").trim() : ""; })()`).catch(() => "");
+  const step1Texts: Array<{ state: string; text: string }> = [];
+  step1Texts.push({ state: "no SMS provider (dev notice)", text: await screenText() });
+  const devNotice = await evaluate<string>(page, `(document.querySelector('[data-testid="sms-dev-notice"]')?.textContent ?? '').trim()`).catch(() => "");
+  const noCountdown = !(await evaluate<boolean>(page, `!!document.querySelector('[data-testid="otp-countdown"], [data-testid="otp-send"], [data-testid="otp-resend"]')`).catch(() => true));
   await setInput('[data-testid="onb-phone"]', "77 000 0002");
-  for (let i = 1; i <= 6; i += 1) await setInput(`input[aria-label="otp ${i}"]`, String(i));
+  for (const [i, d] of ["7", "3", "1", "9"].entries()) await setInput(`input[aria-label="otp ${i + 1}"]`, d);
   await wait(200);
   await tapInView('[data-testid="onb-next"]');
-  await waitFor(`location.pathname === '/onboarding/2'`);
+  const toProfile = await waitFor(`location.pathname === '/onboarding/2'`);
+  checkA("step 1 with no SMS provider: dev notice shown, no countdown, any 4-digit code accepted", devNotice.includes("SMS තහවුරු කිරීම තවම සක්‍රීය නැහැ") && devNotice.includes("dev: any 4-digit code works") && noCountdown && toProfile, `notice "${devNotice.slice(0, 70)}" · countdown/send/resend controls absent ${noCountdown} · code 7319 → ${toProfile ? "/onboarding/2" : "stuck"}`);
+  // Step 1 with a (mocked) gateway: an explicit send, the code, one resend after 30 s that never loops.
+  const mockOtpDrill = async () => {
+    await page.send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
+    await page.send("Page.navigate", { url: `${BASE}/home` });
+    await wait(1500);
+    const mockOn = await evaluate<{ ok: boolean }>(page, `fetch("/api/onboarding/otp", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "mock", on: true }) }).then((r) => r.json())`).catch(() => ({ ok: false }));
+    await page.send("Page.navigate", { url: `${BASE}/onboarding/1` });
+    // Typing into a React-controlled field before hydration leaves its state empty: wait for the client to own the screen.
+    await waitFor(`!!document.querySelector('[data-testid="phone-step"][data-sms-mode="provider"]') && !!document.querySelector('[data-testid="onb-hydrated"]')`);
+    const before = await screenText();
+    // A phone of this run's own: the mock gateway's in-memory send count starts at 1 whatever ran before on this server.
+    const mockPhone = `77${String(Date.now()).slice(-7)}`;
+    await setInput('[data-testid="onb-phone"]', mockPhone);
+    await wait(200);
+    const codeBeforeSend = await evaluate<boolean>(page, `!!document.querySelector('[data-testid="onb-otp"]')`);
+    const sendState = await evaluate<{ disabled: boolean; phone: string }>(page, `(() => { const b = document.querySelector('[data-testid="otp-send"]'); const p = document.querySelector('[data-testid="onb-phone"]'); return { disabled: b ? b.disabled : true, phone: p ? p.value : "" }; })()`);
+    await tapInView('[data-testid="otp-send"]');
+    const sentOk = await waitFor(`!!document.querySelector('[data-testid="onb-otp"]') && !!document.querySelector('[data-testid="otp-countdown"]')`, 8000);
+    const sendError = await evaluate<string>(page, `(document.querySelector('[data-testid="onb-error"]')?.textContent ?? '')`);
+    const afterSend = await screenText();
+    const peek1 = await evaluate<{ code: string | null; sends: number }>(page, `fetch("/api/onboarding/otp?peek=" + ${JSON.stringify(mockPhone)}).then((r) => r.json())`);
+    const countdownA = await evaluate<string>(page, `(document.querySelector('[data-testid="otp-countdown"]')?.textContent ?? '')`);
+    await wait(2200);
+    const countdownB = await evaluate<string>(page, `(document.querySelector('[data-testid="otp-countdown"]')?.textContent ?? '')`);
+    const resendShown = await waitFor(`!!document.querySelector('[data-testid="otp-resend"]') && !document.querySelector('[data-testid="otp-countdown"]')`, 36000);
+    const shownAt = Math.round((Date.now()) / 1000);
+    await tapInView('[data-testid="otp-resend"]');
+    await wait(800);
+    const peek2 = await evaluate<{ code: string | null; sends: number }>(page, `fetch("/api/onboarding/otp?peek=" + ${JSON.stringify(mockPhone)}).then((r) => r.json())`);
+    const afterResend = await screenText();
+    const resendGone = await evaluate<boolean>(page, `!document.querySelector('[data-testid="otp-resend"]') && !document.querySelector('[data-testid="otp-countdown"]')`);
+    await wait(2500);
+    const stillGone = await evaluate<boolean>(page, `!document.querySelector('[data-testid="otp-resend"]') && !document.querySelector('[data-testid="otp-countdown"]')`);
+    for (const [i, d] of [...(peek2.code ?? "0000")].entries()) await setInput(`input[aria-label="otp ${i + 1}"]`, d);
+    await wait(200);
+    await tapInView('[data-testid="onb-next"]');
+    const verified = await waitFor(`location.pathname === '/onboarding/2'`, 8000);
+    await evaluate(page, `fetch("/api/onboarding/otp", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "mock", on: false }) }).then((r) => r.json())`).catch(() => undefined);
+    const secs = (t: string) => Number(/0:(\d\d)/u.exec(t)?.[1] ?? -1);
+    checkA("step 1 with a mocked SMS gateway: send → code → one resend after 30 s, no loop", mockOn.ok && !codeBeforeSend && sentOk && peek1.sends === 1 && secs(countdownA) > secs(countdownB) && resendShown && peek2.sends === 2 && peek2.code !== peek1.code && resendGone && stillGone && verified, `mock on ${mockOn.ok} · send button ${sendState.disabled ? "DISABLED" : "enabled"} with phone "+94 ${sendState.phone}"${sendError ? ` · error "${sendError}"` : ""} · code field before send ${codeBeforeSend} · after send: boxes + countdown ${sentOk} (${countdownA.trim()} → ${countdownB.trim()}) · sends ${peek1.sends} · resend offered after the countdown ${resendShown} · tapped → sends ${peek2.sends}, new code ${peek2.code !== peek1.code} · resend gone and stays gone ${resendGone && stillGone} · code verified → step 2 ${verified}`);
+    step1Texts.push({ state: "mocked provider · before send", text: before });
+    step1Texts.push({ state: "mocked provider · after send (countdown once)", text: afterSend });
+    step1Texts.push({ state: "mocked provider · after the one resend", text: afterResend });
+    void shownAt;
+    await page.send("Emulation.setDeviceMetricsOverride", { width: VIEW_W, height: VIEW_H, deviceScaleFactor: 2, mobile: true });
+  };
   await step("onboarding 2 · child profile");
+  if (OTP_ONLY) {
+    await mockOtpDrill();
+    console.log(`fresh device → onboarding (step 1 only):\n${pathTrace.map((l) => `  ${l}`).join("\n")}`);
+    console.log(`\nstep 1 assertions (${clusterA.filter((r) => r.startsWith("PASS")).length}/${clusterA.length}):`);
+    for (const line of clusterA) console.log(`  ${line}`);
+    console.log(`\nstep 1 screen text, both states:`);
+    for (const entry of step1Texts) console.log(`  [${entry.state}]\n${entry.text.split("\n").map((l) => `    ${l}`).join("\n")}`);
+    const { data: made } = await supabaseAdmin.from("children").select("id").eq("parent_contact", "+94770000002");
+    for (const row of made ?? []) {
+      for (const table of ["session_log", "child_progress", "child_weaknesses", "child_profile"] as const) await supabaseAdmin.from(table).delete().eq("child_id", row.id);
+      await supabaseAdmin.from("children").delete().eq("id", row.id);
+    }
+    browser.kill();
+    process.exit(clusterA.every((r) => r.startsWith("PASS")) ? 0 : 1);
+  }
   await setInput('[data-testid="onb-name"]', "හසිනි");
   await tapInView('[data-avatar="ලේනා"]');
   await tapInView('[data-grade="5"]');
@@ -784,6 +855,14 @@ async function main(): Promise<void> {
     checkA("parent zone with no PIN shows create-PIN", false, "no child");
     checkA("restart lands on beat 0 with mastery intact", false, "no child");
   }
+  // The phone from step 1 is on the parent record, unverified (no gateway).
+  if (childA) {
+    const { data: row } = await supabaseAdmin.from("children").select("parent_contact").eq("id", childA).maybeSingle();
+    const flag = await supabaseAdmin.from("children").select("parent_contact_verified").eq("id", childA).maybeSingle();
+    const verified: boolean | "column missing" = flag.error ? "column missing" : (flag.data as { parent_contact_verified?: boolean } | null)?.parent_contact_verified === true;
+    checkA("step 1 stores the phone on the parent record as unverified", row?.parent_contact === "+94770000002" && verified !== true, `parent_contact ${row?.parent_contact ?? "?"} · parent_contact_verified ${verified === "column missing" ? "column missing on this database (supabase/schema.sql ALTER pending) — unverified by construction" : String(verified)}`);
+  }
+  await mockOtpDrill();
   // The production build has no code path to DEV_CHILD_ID.
   const serverDir = path.join(process.cwd(), ".next", "server");
   const mentions: string[] = [];
@@ -893,6 +972,8 @@ async function main(): Promise<void> {
   console.log(`\ncluster A / G regression assertions (${clusterA.filter((r) => r.startsWith("PASS")).length}/${clusterA.length}):`);
   for (const line of clusterA) console.log(`  ${line}`);
   console.log(`restart trace: ${restartTrace}`);
+  console.log(`\nstep 1 screen text, both states:`);
+  for (const entry of step1Texts) console.log(`  [${entry.state}]\n${entry.text.split("\n").map((l) => `    ${l}`).join("\n")}`);
   // The children this run created (and every row keyed to them) are removed again.
   if (childA) {
     const { data: mine } = await supabaseAdmin.from("children").select("id").eq("parent_contact", "+94770000002");

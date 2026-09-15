@@ -1,27 +1,46 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { ConsentStep, OnboardingCta, OnboardingScreen, OnboardingSkip, PayStep, PhoneStep, ProfileStep } from "./screens/Onboarding";
 import { AccessCodeGate } from "./AccessCodeGate";
 import { sx } from "./sx";
 import { AVATARS, t } from "@/lib/appCopy";
 import { ensureSession, postJson } from "@/lib/clientSession";
 
+/** After a send, the one resend is offered once this many seconds later — and never again. */
+const RESEND_AFTER_S = 30;
+
+const subscribeNever = () => () => {};
+/** True once React has hydrated the screen (false during SSR and hydration) — the harness types only after this. */
+function useHydrated(): boolean {
+  return useSyncExternalStore(subscribeNever, () => true, () => false);
+}
+
 /**
- * Parent onboarding ×4. Step 1 (OTP) and step 4 (PayHere) are stubs behind
- * DEV_ONBOARDING=stub — labelled dev-only on the screen (English, a parent
- * surface) — and without the stub they say ළඟදීම. Step 2 writes the
- * children row; step 3 stamps consent.
+ * Parent onboarding ×4.
+ *
+ * Step 1 has two honest states (src/lib/sms.ts). No SMS gateway: a dev
+ * notice, any 4-digit code, plain ඉදිරියට, the phone stored unverified.
+ * A gateway: "කේතය එවන්න" is an explicit tap; the code boxes appear only
+ * after the gateway accepted the send; a countdown runs ONCE from 0:30 and
+ * then offers ONE resend. Nothing says "sent" unless a send succeeded.
+ *
+ * Step 4 (PayHere) is a stub behind DEV_ONBOARDING=stub, labelled dev-only.
+ * Step 2 writes the children row; step 3 stamps consent.
  */
-export function OnboardingClient({ step, stub, siblingOf }: { step: 1 | 2 | 3 | 4; stub: boolean; siblingOf?: string | null }) {
+export function OnboardingClient({ step, stub, smsMode = "dev", siblingOf }: { step: 1 | 2 | 3 | 4; stub: boolean; smsMode?: "dev" | "provider"; siblingOf?: string | null }) {
   const router = useRouter();
+  const hydrated = useHydrated();
   const [gate, setGate] = useState<{ wrong: boolean } | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [phone, setPhone] = useState("");
-  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
-  const [seconds, setSeconds] = useState(42);
+  const [otp, setOtp] = useState(["", "", "", ""]);
+  const [sent, setSent] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [secondsLeft, setSecondsLeft] = useState<number | null>(null);
+  const [resend, setResend] = useState<"waiting" | "available" | "used" | null>(null);
   const [name, setName] = useState("");
   const [avatar, setAvatar] = useState<number | null>(null);
   const [grade, setGrade] = useState<4 | 5>(5);
@@ -33,24 +52,52 @@ export function OnboardingClient({ step, stub, siblingOf }: { step: 1 | 2 | 3 | 
       if (r.status === "locked") setGate({ wrong: r.wrong });
     });
   }, []);
+  // The resend countdown: one run from 0:30 to 0:00 after a successful send; at 0:00 the single resend is offered (derived, below). It never restarts.
   useEffect(() => {
-    if (step !== 1) return;
-    const timer = setInterval(() => setSeconds((s) => (s > 0 ? s - 1 : 42)), 1000);
-    return () => clearInterval(timer);
-  }, [step]);
+    if (resend !== "waiting" || secondsLeft === null || secondsLeft <= 0) return;
+    const timer = setTimeout(() => setSecondsLeft((v) => (v === null ? null : v - 1)), 1000);
+    return () => clearTimeout(timer);
+  }, [resend, secondsLeft]);
+  const resendView: "waiting" | "available" | "used" | null = resend === "waiting" && secondsLeft !== null && secondsLeft <= 0 ? "available" : resend;
 
   const fail = (r: { status: number; json: unknown }) => {
     const json = r.json as { error?: string } | null;
     setError(json?.error === "not_available" ? t("common.soon") : t("session.connectFail"));
     setBusy(false);
   };
+  const sendCode = async (again = false) => {
+    if (sending) return;
+    setSending(true);
+    setError(null);
+    const r = await postJson<{ ok: boolean; sent?: boolean; error?: string }>("/api/onboarding/otp", { action: "send", phone });
+    setSending(false);
+    if (!r.ok || !r.json?.sent) {
+      // The gateway did not accept it: nothing pretends a code went out.
+      setError(t("session.connectFail"));
+      return;
+    }
+    if (again) setResend("used");
+    else {
+      setSent(true);
+      setSecondsLeft(RESEND_AFTER_S);
+      setResend("waiting");
+    }
+  };
   const next = async () => {
     if (busy) return;
     setBusy(true);
     setError(null);
     if (step === 1) {
-      const r = await postJson("/api/onboarding/otp", { phone, code: otp.join("") });
-      if (!r.ok) return fail(r);
+      const r = await postJson<{ ok: boolean; error?: string }>("/api/onboarding/otp", { action: "verify", phone, code: otp.join("") });
+      if (!r.ok) {
+        if (r.json?.error === "wrong_code") {
+          setError(t("parent.pinWrong"));
+          setOtp(["", "", "", ""]);
+          setBusy(false);
+          return;
+        }
+        return fail(r);
+      }
       router.push("/onboarding/2");
     } else if (step === 2) {
       const r = await postJson<{ ok: boolean; child_id: string }>("/api/onboarding/profile", { name, grade, avatar: avatar === null ? null : AVATARS[avatar], school, sibling_of: siblingOf ?? undefined });
@@ -66,9 +113,10 @@ export function OnboardingClient({ step, stub, siblingOf }: { step: 1 | 2 | 3 | 
     }
   };
 
-  const devLabel = stub && (step === 1 || step === 4) ? <span data-testid="dev-stub" style={sx("text-align:center;font:600 12px/1.5 var(--font-latin);color:var(--color-ink-40)")}>DEV ONLY — {step === 1 ? "OTP stub: any 6 digits continue" : "PayHere stub: no payment is taken"}</span> : null;
+  const devLabel = stub && step === 4 ? <span data-testid="dev-stub" style={sx("text-align:center;font:600 12px/1.5 var(--font-latin);color:var(--color-ink-40)")}>DEV ONLY — PayHere stub: no payment is taken</span> : null;
   const otpActive = otp.findIndex((v) => !v);
-  const canNext = step === 1 ? phone.replace(/\D/gu, "").length >= 9 && otp.every(Boolean) && stub : step === 2 ? name.trim().length > 0 : step === 3 ? true : stub;
+  const phoneOk = phone.replace(/\D/gu, "").length >= 9;
+  const canNext = step === 1 ? phoneOk && otp.every(Boolean) && (smsMode === "dev" || sent) : step === 2 ? name.trim().length > 0 : step === 3 ? true : stub;
   const cta = ONBOARDING_CTA[step - 1]!;
 
   if (gate) return <AccessCodeGate wrong={gate.wrong} onUnlocked={() => setGate(null)} />;
@@ -77,14 +125,30 @@ export function OnboardingClient({ step, stub, siblingOf }: { step: 1 | 2 | 3 | 
       step={step}
       cta={
         <>
+          {hydrated && <span data-testid="onb-hydrated" hidden />}
           {error && <span style={sx("text-align:center;font:400 16px/1.5 var(--font-body);color:var(--color-coral-text)")} data-testid="onb-error">{error}</span>}
           {devLabel}
-          <OnboardingCta label={stub || (step !== 1 && step !== 4) ? cta : `${cta} · ${t("common.soon")}`} onClick={() => void next()} disabled={!canNext || busy} testId="onb-next" />
+          <OnboardingCta label={stub || step !== 4 ? cta : `${cta} · ${t("common.soon")}`} onClick={() => void next()} disabled={!canNext || busy} testId="onb-next" />
         </>
       }
       skip={step === 4 ? <OnboardingSkip label={t("onb.4.skip")} href="/home" /> : undefined}
     >
-      {step === 1 && <PhoneStep phone={phone} otp={otp} otpActive={otpActive === -1 ? 5 : otpActive} resendSeconds={seconds} onPhone={setPhone} onOtp={(i, v) => setOtp((o) => o.map((x, j) => (j === i ? v : x)))} />}
+      {step === 1 && (
+        <PhoneStep
+          mode={smsMode}
+          phone={phone}
+          onPhone={setPhone}
+          code={otp}
+          codeActive={otpActive === -1 ? 3 : otpActive}
+          onCode={(i, v) => setOtp((o) => o.map((x, j) => (j === i ? v : x)))}
+          sent={sent}
+          sending={sending}
+          onSend={phoneOk ? () => void sendCode(false) : undefined}
+          secondsLeft={secondsLeft}
+          resend={resendView}
+          onResend={() => void sendCode(true)}
+        />
+      )}
       {step === 2 && <ProfileStep name={name} avatarIndex={avatar} grade={grade} school={school} onName={setName} onAvatar={setAvatar} onGrade={setGrade} onSchool={setSchool} />}
       {step === 3 && <ConsentStep />}
       {step === 4 && <PayStep method={method} onMethod={setMethod} />}

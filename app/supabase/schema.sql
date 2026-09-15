@@ -459,3 +459,9 @@ alter table children
   add column if not exists avatar text,
   add column if not exists parent_pin_hash text,
   add column if not exists settings jsonb not null default '{}'::jsonb;
+
+-- Onboarding step 1 stores the parent's phone as UNVERIFIED until an SMS
+-- gateway confirms it (src/lib/sms.ts); without a gateway the flag stays
+-- false and the step says so on screen.
+alter table children
+  add column if not exists parent_contact_verified boolean not null default false;

@@ -66,28 +66,69 @@ export function OnboardingSkip({ label, onClick, href }: { label: string; onClic
 
 // --- step 1: phone + OTP ---------------------------------------------------------------
 
-export function PhoneStep({ phone, otp, otpActive, resendSeconds, onPhone, onOtp }: { phone: string; otp: string[]; otpActive: number; resendSeconds: number; onPhone?: (v: string) => void; onOtp?: (i: number, v: string) => void }) {
+export interface PhoneStepProps {
+  /** "dev": no SMS gateway — the notice, any 4-digit code. "provider": send → code → one resend after 30 s. */
+  mode: "dev" | "provider";
+  phone: string;
+  onPhone?: (v: string) => void;
+  /** Four boxes. */
+  code: string[];
+  codeActive: number;
+  onCode?: (i: number, v: string) => void;
+  /** provider: a code has gone out (the gateway accepted it) — only then do the code boxes show. */
+  sent?: boolean;
+  sending?: boolean;
+  onSend?: () => void;
+  /** provider, after a send: seconds until the one resend is offered (counts down once). */
+  secondsLeft?: number | null;
+  /** provider: "waiting" (counting down) · "available" (the button, once) · "used" (gone) · null. */
+  resend?: "waiting" | "available" | "used" | null;
+  onResend?: () => void;
+}
+
+export function PhoneStep({ mode, phone, onPhone, code, codeActive, onCode, sent = false, sending = false, onSend, secondsLeft = null, resend = null, onResend }: PhoneStepProps) {
+  const showCode = mode === "dev" || sent;
   return (
-    <div style={sx("display:grid;gap:14px;margin-top:16px")}>
+    <div style={sx("display:grid;gap:14px;margin-top:16px")} data-testid="phone-step" data-sms-mode={mode}>
       <div style={sx("display:grid;gap:6px")}>
         <span style={sx(LABEL)}>{t("onb.1.phone")}</span>
         <label style={sx("height:56px;border:2px solid var(--color-teal);border-radius:12px;display:flex;align-items:center;padding:0 14px;gap:10px;font:500 22px/1 var(--font-latin);color:var(--color-ink);white-space:nowrap")}>
           <span style={sx("color:var(--color-ink-70)")}>+94</span>
-          {onPhone ? <input inputMode="tel" value={phone} onChange={(e) => onPhone(e.target.value)} data-testid="onb-phone" style={sx("border:0;background:transparent;font:500 22px/1 var(--font-latin);color:var(--color-ink);width:100%;padding:0")} /> : <span>{phone}</span>}
+          {onPhone ? <input inputMode="tel" value={phone} onChange={(e) => onPhone(e.target.value)} data-testid="onb-phone" disabled={sent} style={sx("border:0;background:transparent;font:500 22px/1 var(--font-latin);color:var(--color-ink);width:100%;padding:0")} /> : <span>{phone}</span>}
           {!onPhone && <span style={sx("width:2px;height:26px;background:var(--color-teal)")} />}
         </label>
       </div>
-      <div style={sx("display:grid;gap:6px")}>
-        <span style={sx(LABEL)}>{t("onb.1.code")}</span>
-        <div style={sx("display:grid;grid-template-columns:repeat(6,1fr);gap:8px")} data-testid="onb-otp">
-          {otp.map((v, i) => (
-            <div key={i} style={sx(`height:56px;border:2px solid ${i === otpActive ? "#0F4C5C" : "rgba(27,27,27,.18)"};border-radius:12px;background:${v ? "#EEF4F5" : "#fff"};display:flex;align-items:center;justify-content:center;font:600 24px/1 var(--font-latin);color:var(--color-ink)`)}>
-              {onOtp ? <input inputMode="numeric" maxLength={1} value={v} onChange={(e) => onOtp(i, e.target.value.replace(/\D/gu, "").slice(-1))} aria-label={`otp ${i + 1}`} style={sx("width:100%;height:100%;border:0;background:transparent;text-align:center;font:600 24px/1 var(--font-latin);color:var(--color-ink);padding:0")} /> : v}
-            </div>
-          ))}
+      {mode === "dev" && (
+        <div data-testid="sms-dev-notice" style={sx("border:2px dashed var(--color-ink-18);border-radius:12px;padding:10px 14px;display:grid;gap:2px")}>
+          <span style={sx("font:600 16px/1.5 var(--font-label);color:var(--color-ink-70)")}>{t("onb.1.devNotice")}</span>
+          <span style={sx("font:600 13px/1.5 var(--font-latin);color:var(--color-ink-40)")}>{t("onb.1.devNoticeEn")}</span>
         </div>
-      </div>
-      <span style={sx("font:400 16px/1.5 var(--font-body);color:var(--color-teal)")}>{t("onb.1.resend", { t: `0:${String(resendSeconds).padStart(2, "0")}` })}</span>
+      )}
+      {mode === "provider" && !sent && (
+        <button type="button" onClick={onSend} disabled={sending || !onSend} data-testid="otp-send" style={sx("height:52px;border:2px solid var(--color-teal);border-radius:12px;background:var(--color-card);color:var(--color-teal);font:600 18px/1.5 var(--font-label)", { opacity: sending ? 0.6 : 1 })}>
+          {t("onb.1.send")}
+        </button>
+      )}
+      {showCode && (
+        <div style={sx("display:grid;gap:6px")}>
+          <span style={sx(LABEL)}>{t("onb.1.code")}</span>
+          <div style={sx("display:grid;grid-template-columns:repeat(4,1fr);gap:8px")} data-testid="onb-otp">
+            {code.map((v, i) => (
+              <div key={i} style={sx(`height:56px;border:2px solid ${i === codeActive ? "#0F4C5C" : "rgba(27,27,27,.18)"};border-radius:12px;background:${v ? "#EEF4F5" : "#fff"};display:flex;align-items:center;justify-content:center;font:600 24px/1 var(--font-latin);color:var(--color-ink)`)}>
+                {onCode ? <input inputMode="numeric" maxLength={1} value={v} onChange={(e) => onCode(i, e.target.value.replace(/\D/gu, "").slice(-1))} aria-label={`otp ${i + 1}`} style={sx("width:100%;height:100%;border:0;background:transparent;text-align:center;font:600 24px/1 var(--font-latin);color:var(--color-ink);padding:0")} /> : v}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      {mode === "provider" && sent && resend === "waiting" && secondsLeft !== null && (
+        <span data-testid="otp-countdown" style={sx("font:400 16px/1.5 var(--font-body);color:var(--color-teal)")}>{t("onb.1.resend", { t: `0:${String(Math.max(0, secondsLeft)).padStart(2, "0")}` })}</span>
+      )}
+      {mode === "provider" && sent && resend === "available" && (
+        <button type="button" onClick={onResend} disabled={sending || !onResend} data-testid="otp-resend" style={sx("height:48px;border:0;border-radius:12px;background:transparent;color:var(--color-teal);font:600 16px/1.5 var(--font-body);text-align:left;padding:0")}>
+          {t("onb.1.resendNow")}
+        </button>
+      )}
     </div>
   );
 }

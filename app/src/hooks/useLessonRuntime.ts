@@ -484,11 +484,16 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
   const CLIP_CACHE_MAX = 12;
 
   /** One clip from /api/clip/<key> (302 → 10-min signed URL; fetch follows it). */
+  // A clip fetch that hangs (a signed storage URL that never answers) must
+  // become a failure, not a frozen lesson: the missing-clip path then reads
+  // the line on the board and runs its events on estimated spans.
+  const CLIP_META_TIMEOUT_MS = 10_000;
+  const CLIP_AUDIO_TIMEOUT_MS = 25_000;
   const loadClipByKey = async (key: string, text: string): Promise<{ text: string; audio: ArrayBuffer; meta: ClipMeta } | null> => {
-    const metaResponse = await fetch(`/api/clip/${key}?meta=1`);
+    const metaResponse = await fetch(`/api/clip/${key}?meta=1`, { signal: AbortSignal.timeout(CLIP_META_TIMEOUT_MS) });
     if (!metaResponse.ok) return null;
     const meta = (await metaResponse.json()) as ClipMeta;
-    const audioResponse = await fetch(`/api/clip/${key}`);
+    const audioResponse = await fetch(`/api/clip/${key}`, { signal: AbortSignal.timeout(CLIP_AUDIO_TIMEOUT_MS) });
     if (!audioResponse.ok) return null;
     return { text, audio: await audioResponse.arrayBuffer(), meta };
   };
