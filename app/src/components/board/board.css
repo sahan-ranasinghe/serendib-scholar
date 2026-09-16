@@ -5,7 +5,7 @@
  * sits under the 28 px strip and fills the screen.
  *
  *   frame: wood, surface inset 10 / 10 / 22 (tray), grid 32 px at 7 % teal
- *   content: left 94 · right 82 · top 22 · bottom 64 (124 with chips,
+ *   content: left 94 · right 82 · top 34 · bottom 64 (124 with chips,
  *            190 with a dock — and the content top-aligns)
  *   chips / docks: left 94 → right 130 (clear of the ✋ at right 12 / bottom 76)
  *   Zara 64 px at left 10 / bottom 6 · Lena 48 px at right 14 / bottom 16
@@ -145,14 +145,16 @@
 }
 
 /* content lives inside the inset; the foot changes with chips or a dock */
-/* the README's inset (L94 R82 T22 B64) is measured from the wood frame; the
+/* the README's inset (L94 R82 B64) is measured from the wood frame; the
    surface already sits 10 / 10 / 22 inside it, so the content's own offsets
-   are the difference */
+   are the difference. The top is 34 (not the README's 22) since the 15 Sep
+   device triage: the strip is 40 px and its controls' hit areas reach 56 px
+   down into the frame, so content starts below them. */
 .wb-content {
   position: absolute;
   left: 84px;
   right: 72px;
-  top: 12px;
+  top: 24px;
   bottom: 42px;
   display: flex;
   flex-direction: column;

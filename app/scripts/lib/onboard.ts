@@ -11,7 +11,8 @@ export const ONBOARD_VIA_API_JS = (accessCode: string, name: string, siblingOf: 
   const start = await post("/api/session-start", ${JSON.stringify(accessCode)} ? { access_code: ${JSON.stringify(accessCode)} } : {});
   if (!start.json || !start.json.ok) return { ok: false, step: "session-start", status: start.status, error: start.json && start.json.error };
   if (!${JSON.stringify(Boolean(siblingOf))}) {
-    const otp = await post("/api/onboarding/otp", { phone: "0770000001", code: "123456" });
+    // No SMS gateway is configured for the harness: step 1 takes any 4-digit code and stores the phone unverified.
+    const otp = await post("/api/onboarding/otp", { action: "verify", phone: "0770000001", code: "1234" });
     if (!otp.json || !otp.json.ok) return { ok: false, step: "otp", status: otp.status, error: otp.json && otp.json.error };
   }
   const profile = await post("/api/onboarding/profile", { name: ${JSON.stringify(name)}, grade: 5, avatar: "ලේනා", sibling_of: ${JSON.stringify(siblingOf)} });

@@ -11,7 +11,11 @@
  *  - EVERY OTHER /api/* response is never cached: those carry the child's
  *    own records (session log, progress, settings) and are always fetched.
  */
-const VERSION = "ss-v2";
+// One cache generation per build: the registration URL carries the build's
+// SHA (?v=…), so a new deploy installs a new worker with its own caches and
+// the old ones are dropped on activate.
+const BUILD = new URL(self.location.href).searchParams.get("v") || "dev";
+const VERSION = `ss-v3-${BUILD}`;
 const SHELL = `${VERSION}-shell`;
 const STATIC = `${VERSION}-static`;
 const CLIPS = `${VERSION}-clips`;
@@ -106,6 +110,10 @@ self.addEventListener("fetch", (event) => {
 });
 
 self.addEventListener("message", (event) => {
+  if (event.data === "ss:build") {
+    event.source?.postMessage({ type: "ss:build", build: BUILD });
+    return;
+  }
   if (event.data === "ss:stats") {
     Promise.all([caches.open(CLIPS).then((c) => c.keys()), caches.open(STATIC).then((c) => c.keys()), caches.open(SHELL).then((c) => c.keys())]).then(([clips, statics, shell]) => {
       event.source?.postMessage({ type: "ss:stats", clips: clips.length, statics: statics.length, shell: shell.length });

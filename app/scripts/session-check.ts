@@ -162,6 +162,22 @@ async function main(): Promise<void> {
   // (docs/qa/session1-triage.md: splash → no child → /onboarding/1 → profile row → consent → home → session)
   const pathTrace: string[] = [];
   const clusterA: string[] = [];
+  let deviceSequence = "not run";
+  let resumeTrace = "not run";
+  let replayTrace = "not run";
+  let restartControlTrace = "not run";
+  /** The first beat the child's newest sitting logged — the log is the ground truth for "it started again at beat 0" (a page poll can miss a short first beat). */
+  const firstBeatOfNewestSitting = async (childId: string, exclude: string[]): Promise<string | null> => {
+    for (let i = 0; i < 40; i += 1) {
+      const { data } = await supabaseAdmin.from("session_log").select("session_id, beat_id, created_at").eq("child_id", childId).order("created_at", { ascending: true }).limit(500);
+      const rows = (data ?? []) as Array<{ session_id: string; beat_id: string }>;
+      // Only real beats: the runtime also logs a "session-metrics" bookkeeping row.
+      const fresh = rows.find((r) => !exclude.includes(r.session_id) && r.beat_id.startsWith("authored:"));
+      if (fresh) return fresh.beat_id;
+      await wait(500);
+    }
+    return null;
+  };
   const checkA = (name: string, ok: boolean, detail: string) => {
     clusterA.push(`${ok ? "PASS" : "FAIL"}  ${name}: ${detail}`);
   };
@@ -300,6 +316,48 @@ async function main(): Promise<void> {
   // The child this run created — the DB is the ground truth for the assertions below.
   const { data: createdRows } = await supabaseAdmin.from("children").select("id, display_name").eq("parent_contact", "+94770000002").order("created_at", { ascending: false }).limit(1);
   const childA = createdRows?.[0]?.id ?? null;
+  // ---- Cluster A items 2/3 (docs/qa/session1-triage.md): the exact device
+  // sequence — play a few beats, tap ⏹, land on the lesson detail with BOTH
+  // ඉතුරු ටික කරමු and මුල ඉඳන් ආයෙත්, then resume to the beat left behind.
+  {
+    const beatNow = () => evaluate<string>(page, `document.querySelector('.lesson-screen')?.dataset.beatId ?? '—'`).catch(() => "—");
+    const seen: string[] = [];
+    for (let i = 0; i < 260 && seen.length < 3; i += 1) {
+      await wait(500);
+      const id = await beatNow();
+      if (id !== "—" && id !== seen[seen.length - 1]) seen.push(id);
+    }
+    const leftAt = await beatNow();
+    await tapSelector('[aria-label="නවත්වන්න"]');
+    const asked = await waitFor(`!!document.querySelector('[data-testid="confirm-sheet"][data-confirm="leave"]')`, 6000);
+    const askText = await evaluate<string>(page, `(document.querySelector('[data-testid="confirm-sheet"]')?.innerText ?? '').replace(/\\n+/g, " ").trim()`).catch(() => "");
+    await tapSelector('[data-testid="confirm-yes"]');
+    const onDetail = await waitFor(`location.pathname === '/lessons/1' && !!document.querySelector('[data-app-screen="Lesson detail"]')`, 12000);
+    // The lesson detail is a portrait screen: the phone comes back upright when the child leaves the lesson.
+    await page.send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
+    await wait(600);
+    const detail = await evaluate<{ resume: { w: number; h: number } | null; restart: { w: number; h: number } | null; started: boolean; current: string | null }>(
+      page,
+      `(() => { const box = (sel) => { const el = document.querySelector(sel); if (!el) return null; const r = el.getBoundingClientRect(); return { w: Math.round(r.width), h: Math.round(r.height) }; }; const row = document.querySelector('[data-kind="current"]'); return { resume: box('[data-testid="resume-session"]'), restart: box('[data-testid="restart-session"]'), started: !!(row && row.hasAttribute('data-started')), current: row ? row.textContent.replace(/\\s+/g, " ").trim().slice(0, 40) : null }; })()`,
+    );
+    const tappable = (b: { w: number; h: number } | null) => Boolean(b && b.w >= 56 && b.h >= 48);
+    deviceSequence = `⏹ at ${leftAt.replace(/^authored:/u, "")} after ${seen.length} beats → ${onDetail ? "/lessons/1" : "NOT the lesson detail"} · resume ${detail.resume ? `${detail.resume.w}×${detail.resume.h}` : "MISSING"} · restart ${detail.restart ? `${detail.restart.w}×${detail.restart.h}` : "MISSING"} · current row "${detail.current ?? "?"}" in progress ${detail.started}`;
+    checkA("⏹ mid-session lands on the lesson detail with resume and restart, session in progress", asked && onDetail && tappable(detail.resume) && tappable(detail.restart) && detail.started, `asked once ("${askText.slice(0, 44)}") · ${deviceSequence}`);
+    const closes = childA ? ((await supabaseAdmin.from("session_log").select("beat_id").eq("child_id", childA).eq("beat_type", "CLOSE_SESSION")).data ?? []).length : -1;
+    checkA("⏹ logs no CLOSE_SESSION row (leaving is not finishing)", closes === 0, `CLOSE_SESSION rows for this child: ${closes} (expected 0)`);
+    await tapInView('[data-testid="resume-session"]');
+    await waitFor(`location.pathname === '/session'`, 10000);
+    await page.send("Emulation.setDeviceMetricsOverride", { width: VIEW_W, height: VIEW_H, deviceScaleFactor: 2, mobile: true });
+    let resumedAt = "—";
+    for (let i = 0; i < 180; i += 1) {
+      await wait(500);
+      resumedAt = await beatNow();
+      if (resumedAt !== "—") break;
+    }
+    resumeTrace = `left at ${leftAt.replace(/^authored:/u, "")} → resumed at ${resumedAt.replace(/^authored:/u, "")}`;
+    checkA("resume comes back to the beat the child left", leftAt !== "—" && resumedAt === leftAt, resumeTrace);
+  }
+
   console.log(`fresh device → onboarding → home → session:\n${pathTrace.map((l) => `  ${l}`).join("\n")}\nchild created: ${childA ?? "NOT FOUND"} (${createdRows?.[0]?.display_name ?? "?"})`);
 
   // A real child's first tap — the gesture-resume path.
@@ -552,6 +610,30 @@ async function main(): Promise<void> {
       const status = (await snapshot()).status;
       drillNote("first ✋ asks for the microphone", before === 0 && micAsk.up && micAsk.portrait >= 150 && micAsk.dimmed && micAsk.buttons === 2 && gumBeforeAllow === 0 && after === 1 && sheet.up && sheet.portrait >= 150 && sheet.lines === 2 && sheet.dimmed && returned && status !== "chatting", `getUserMedia calls before ✋: ${before} · P1 sheet ${micAsk.up ? "up" : "MISSING"} (Zara ${micAsk.portrait} px, dimmed ${micAsk.dimmed ? "yes" : "NO"}, ${micAsk.buttons} buttons, "${micAsk.title.trim().slice(0, 30)}") · calls before හරි: ${gumBeforeAllow} · after: ${after}${explained ? ` · her explanation: "${explained.slice(0, 40)}"` : ""} · chat sheet over the dimmed board ${sheet.up ? "up" : "MISSING"} (Zara ${sheet.portrait} px, ${sheet.lines} transcript lines) · පාඩමට ආයෙත් ${returned ? "tapped" : "MISSING"} → ${status}`);
     }
+    // 3b. Three rapid taps on Zara replay the line ONCE; three rapid ↺ taps ask ONCE; cancel changes nothing.
+    if (short === "readWrite4Digit:12" && !drillDone.has("audio") && snap.status === "teaching") {
+      drillDone.add("audio");
+      const replaysBefore = await evaluate<number>(page, `window.__replays ?? 0`);
+      for (let i = 0; i < 3; i += 1) {
+        await tapSelector('[data-testid="zara-portrait"]');
+        await wait(90);
+      }
+      await wait(1500);
+      const replaysAfter = await evaluate<number>(page, `window.__replays ?? 0`);
+      const audio = await evaluate<{ active: number; peak: number }>(page, `window.__audio ?? { active: 0, peak: 0 }`);
+      for (let i = 0; i < 3; i += 1) {
+        await tapSelector('[aria-label="මුල ඉඳන් ආයෙත්"]');
+        await wait(90);
+      }
+      await wait(600);
+      const sheets = await evaluate<number>(page, `document.querySelectorAll('[data-testid="confirm-sheet"]').length`);
+      const beforeCancel = await evaluate<string>(page, `document.querySelector('.lesson-screen')?.dataset.beatId ?? '—'`);
+      await tapSelector('[data-testid="confirm-no"]');
+      await wait(900);
+      const afterCancel = await evaluate<{ beat: string; sheet: boolean; status: string }>(page, `(() => { const el = document.querySelector('.lesson-screen'); return { beat: el?.dataset.beatId ?? '—', sheet: !!document.querySelector('[data-testid="confirm-sheet"]'), status: el?.dataset.status ?? '—' }; })()`);
+      replayTrace = `3 portrait taps → replays ${replaysBefore} → ${replaysAfter} (Δ ${replaysAfter - replaysBefore}) · clips audible ${audio.active}, peak ${audio.peak} · 3 ↺ taps → ${sheets} confirm sheet(s) · cancel → beat ${afterCancel.beat === beforeCancel ? "unchanged" : `CHANGED to ${afterCancel.beat}`}, sheet ${afterCancel.sheet ? "STILL UP" : "gone"}, status ${afterCancel.status}`;
+      drillNote("three rapid taps are one replay; three ↺ taps are one question; cancel changes nothing", replaysAfter - replaysBefore === 1 && audio.peak <= 1 && sheets === 1 && afterCancel.beat === beforeCancel && !afterCancel.sheet, replayTrace);
+    }
     // 4. A clip that cannot be fetched: :6's line is read on the board and its events still run. The
     //    runtime preloads the next three clips, so the door is shut at :3b — :6 is the first beat whose
     //    clip is fetched behind it (:4, :5, :5a were already in hand).
@@ -731,6 +813,8 @@ async function main(): Promise<void> {
     note({ beatId: snap.beatId, via: wrong ? "number pad (WRONG on purpose)" : "number pad", answer: digits });
   };
 
+  const buildSeen = await evaluate<{ page: string; server: string }>(page, `(async () => ({ page: document.querySelector('meta[name="ss-build"]')?.getAttribute('content') ?? '?', server: await fetch("/api/build", { cache: "no-store" }).then((r) => r.json()).then((j) => j.sha).catch(() => "?") }))()`).catch(() => ({ page: "?", server: "?" }));
+  console.log(`build under test: page ${buildSeen.page} · server ${buildSeen.server}${buildSeen.page === buildSeen.server ? "" : " — MISMATCH (a stale page)"}`);
   console.log(`session-1 run: ${BASE} · mobile ${VIEW_W}×${VIEW_H} ${SCHEME} · up to ${MAX_MINUTES} min`);
   let done = false;
   while (Date.now() - started < MAX_MINUTES * 60_000) {
@@ -830,6 +914,7 @@ async function main(): Promise<void> {
     checkA("parent zone with no PIN shows create-PIN", /data-testid="pin-create"/u.test(parentHtml) && !/data-testid="pin-gate"/u.test(parentHtml), /data-testid="pin-create"/u.test(parentHtml) ? "pin-create form rendered, no gate" : "create-PIN form NOT rendered");
     // Restart lands on beat 0 with mastery intact.
     const before = (await supabaseAdmin.from("child_progress").select("*", { count: "exact", head: true }).eq("child_id", childA)).count ?? 0;
+    const sittingsBefore = [...new Set((((await supabaseAdmin.from("session_log").select("session_id").eq("child_id", childA)).data ?? []) as Array<{ session_id: string }>).map((r) => r.session_id))];
     const restart = await evaluate<{ ok: boolean; rows?: number; sittings?: number; first_beat?: string }>(page, `fetch("/api/session/restart", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ lesson: 1, session: 0 }) }).then((r) => r.json())`);
     const after = (await supabaseAdmin.from("child_progress").select("*", { count: "exact", head: true }).eq("child_id", childA)).count ?? 0;
     const logsLeft = (await supabaseAdmin.from("session_log").select("*", { count: "exact", head: true }).eq("child_id", childA)).count ?? 0;
@@ -846,8 +931,9 @@ async function main(): Promise<void> {
       await wait(250);
     }
     const beat0 = script?.beats?.[0]?.id ?? "?";
-    restartTrace = `restart session 1: ${restart.ok ? `${restart.rows} session_log row(s) in ${restart.sittings} sitting(s) removed` : "FAILED"} · session_log rows left ${logsLeft} · child_progress ${before} → ${after} · /session landed on ${landed} (beat 0 = ${beat0})`;
-    checkA("restart lands on beat 0 with mastery intact", restart.ok && landed === beat0 && before === after && before > 0, restartTrace);
+    const firstAfterRestart = await firstBeatOfNewestSitting(childA, sittingsBefore);
+    restartTrace = `restart session 1: ${restart.ok ? `${restart.rows} session_log row(s) in ${restart.sittings} sitting(s) removed` : "FAILED"} · session_log rows left ${logsLeft} · child_progress ${before} → ${after} · the new sitting starts at ${String(firstAfterRestart ?? "nothing logged").replace(/^authored:/u, "")} (beat 0 = ${beat0.replace(/^authored:/u, "")}) · page showed ${landed.replace(/^authored:/u, "")}`;
+    checkA("restart lands on beat 0 with mastery intact", restart.ok && firstAfterRestart === beat0 && before === after && before > 0, restartTrace);
     await evaluate(page, `(() => { const b = document.querySelector('[aria-label="අවසන් කරන්න"]'); b && b.click(); return true; })()`).catch(() => undefined);
     await page.send("Page.navigate", { url: "about:blank" });
   } else {
@@ -863,6 +949,42 @@ async function main(): Promise<void> {
     checkA("step 1 stores the phone on the parent record as unverified", row?.parent_contact === "+94770000002" && verified !== true, `parent_contact ${row?.parent_contact ?? "?"} · parent_contact_verified ${verified === "column missing" ? "column missing on this database (supabase/schema.sql ALTER pending) — unverified by construction" : String(verified)}`);
   }
   await mockOtpDrill();
+  // ↺ through the control itself: confirm → this session's rows go, the lesson
+  // starts again at beat 0, nothing carried over, mastery untouched.
+  if (childA) {
+    // The sittings this child has logged so far: a restart must remove exactly
+    // those (a row count would race with the reloaded lesson logging beat 0 again).
+    const beforeSittings = [...new Set((((await supabaseAdmin.from("session_log").select("session_id").eq("child_id", childA)).data ?? []) as Array<{ session_id: string }>).map((r) => r.session_id))];
+    const beforeMastery = (await supabaseAdmin.from("child_progress").select("*", { count: "exact", head: true }).eq("child_id", childA)).count ?? 0;
+    await page.send("Emulation.setDeviceMetricsOverride", { width: VIEW_W, height: VIEW_H, deviceScaleFactor: 2, mobile: true });
+    await page.send("Page.navigate", { url: `${BASE}/session` });
+    await wait(2500);
+    await tap(446, 206);
+    for (let i = 0; i < 160; i += 1) {
+      await wait(500);
+      const id = await evaluate<string>(page, `document.querySelector('.lesson-screen')?.dataset.beatId ?? '—'`).catch(() => "—");
+      if (id !== "—") break;
+    }
+    await tapSelector('[aria-label="මුල ඉඳන් ආයෙත්"]');
+    const askedRestart = await waitFor(`!!document.querySelector('[data-testid="confirm-sheet"][data-confirm="restart"]')`, 6000);
+    await wait(400);
+    const restartAsk = await evaluate<string>(page, `(document.querySelector('[data-testid="confirm-sheet"]')?.textContent ?? '').replace(/\s+/g, " ").trim()`).catch(() => "");
+    await tapSelector('[data-testid="confirm-yes"]');
+    let landed = "—";
+    for (let i = 0; i < 200; i += 1) {
+      await wait(500);
+      landed = await evaluate<string>(page, `document.querySelector('.lesson-screen')?.dataset.beatId ?? '—'`).catch(() => "—");
+      if (landed !== "—") break;
+    }
+    const audioAfter = await evaluate<{ active: number; peak: number }>(page, `window.__audio ?? { active: 0, peak: 0 }`).catch(() => ({ active: -1, peak: -1 }));
+    const firstLogged = await firstBeatOfNewestSitting(childA, beforeSittings);
+    const afterSittings = [...new Set((((await supabaseAdmin.from("session_log").select("session_id").eq("child_id", childA)).data ?? []) as Array<{ session_id: string }>).map((r) => r.session_id))];
+    const survivors = beforeSittings.filter((id) => afterSittings.includes(id));
+    const afterMastery = (await supabaseAdmin.from("child_progress").select("*", { count: "exact", head: true }).eq("child_id", childA)).count ?? 0;
+    const beat0 = script?.beats?.[0]?.id ?? "?";
+    restartControlTrace = `↺ asked ("${restartAsk.slice(0, 44)}") · sittings before ${beforeSittings.length} → ${survivors.length} of them left (${afterSittings.length} now, the replay's own) · the new sitting starts at ${String(firstLogged ?? "nothing logged").replace(/^authored:/u, "")} (beat 0 = ${String(beat0).replace(/^authored:/u, "")}) · page showed ${landed.replace(/^authored:/u, "")} · child_progress ${beforeMastery} → ${afterMastery} · clips audible at the restart ${audioAfter.active}`;
+    checkA("↺ confirm restarts this session at beat 0, mastery kept, nothing carried over", askedRestart && firstLogged === beat0 && survivors.length === 0 && afterMastery === beforeMastery && audioAfter.active <= 1, restartControlTrace);
+  }
   // The production build has no code path to DEV_CHILD_ID.
   const serverDir = path.join(process.cwd(), ".next", "server");
   const mentions: string[] = [];
@@ -972,6 +1094,14 @@ async function main(): Promise<void> {
   console.log(`\ncluster A / G regression assertions (${clusterA.filter((r) => r.startsWith("PASS")).length}/${clusterA.length}):`);
   for (const line of clusterA) console.log(`  ${line}`);
   console.log(`restart trace: ${restartTrace}`);
+  console.log(`device sequence (⏹ → lesson detail): ${deviceSequence}`);
+  console.log(`resume trace: ${resumeTrace}`);
+  console.log(`↺ control trace: ${restartControlTrace}`);
+  console.log(`replay / audio trace: ${replayTrace}`);
+  {
+    const audio = await evaluate<{ active: number; peak: number }>(page, `window.__audio ?? { active: 0, peak: 0 }`).catch(() => ({ active: -1, peak: -1 }));
+    console.log(`audio: the most clips audible at once over the run: ${audio.peak} (the contract is 1)`);
+  }
   console.log(`\nstep 1 screen text, both states:`);
   for (const entry of step1Texts) console.log(`  [${entry.state}]\n${entry.text.split("\n").map((l) => `    ${l}`).join("\n")}`);
   // The children this run created (and every row keyed to them) are removed again.

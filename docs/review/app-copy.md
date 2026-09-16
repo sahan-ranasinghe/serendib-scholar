@@ -6,7 +6,7 @@ Every child-facing and parent-facing string outside the session, extracted from 
 - **drafted**: from the design export (Screens A/B/C) or the runtime — needs sign-off (README "Copy").
 - **missing**: the app needs the line and the export has no Sinhala for it; the screen leaves the spot empty or reuses an export string, and the English gloss says what is needed.
 
-Counts: fromScript 21 · drafted 214 · missing 16
+Counts: fromScript 21 · drafted 219 · missing 16
 
 Terms: ගණක රාමුව (never අබකසය) · සාරා · සෙරෙන්ඩිබ් ශිෂ්‍ය. `{name}`-style holes are filled at runtime.
 
@@ -28,6 +28,7 @@ Terms: ගණක රාමුව (never අබකසය) · සාරා · ස�
 | all | `common.back` | ‹ | back (glyph) | drafted |
 | Edge | `common.retry` | ආයෙත් උත්සාහ කරන්න | Try again | drafted |
 | Progress | `common.notYet` | තාම නෑ | Not yet | drafted |
+| all | `app.updateReady` | අලුත් අනුවාදයක් — යාවත්කාලීන කරන්න | A new version — update (the update banner; wording from the device report) | drafted |
 | Splash | `splash.tagline` | ඔයාගේම ගුරුතුමිය, ඔයාගේ ෆෝන් එකේ | Your own teacher, on your phone | drafted |
 | Splash | `splash.language` | භාෂාව | Language | drafted |
 | Splash | `splash.sinhala` | සිංහල | Sinhala | drafted |
@@ -247,6 +248,10 @@ Terms: ගණක රාමුව (never අබකසය) · සාරා · ස�
 | Session | `gate.sub` | (දෙමාපියන් සඳහා — මේ උපකරණයේ එක වතාවක් පමණයි) | (for parents — once on this device) | drafted |
 | Session | `gate.enter` | ඇතුල් වෙන්න | Enter | drafted |
 | Session | `session.connectFail` | සම්බන්ධ වෙන්න බැරි වුණා. ආයෙ උත්සාහ කරන්න. | Couldn't connect. Try again. | drafted |
+| Session | `session.leaveAsk` | නවත්වමුද? | Shall we stop? (⏹ asks once — from the device triage) | drafted |
+| Session | `session.leaveBody` | ඉතුරු ටික පස්සේ කරන්න පුළුවන්. | You can do the rest later. | drafted |
+| Session | `session.restartAsk` | මුල ඉඳන්ම ආයෙත් පටන් ගමුද? | Shall we start again from the very beginning? (↺ asks once) | drafted |
+| Session | `session.replay` | ආයෙත් කියන්න | Say it again (a tap on Zara's portrait) | drafted |
 
 ## Missing — no Sinhala in the export (not rendered)
 

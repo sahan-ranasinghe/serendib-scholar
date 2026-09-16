@@ -17,7 +17,7 @@
  * TOUCH: tap a blank cell to answer it on the pad / from the word bank.
  */
 import { AnimatePresence, motion } from "framer-motion";
-import { useState } from "react";
+import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import { NumberPad } from "./NumberPad";
 import { WordBank } from "./WordBank";
 import { nameWordBank } from "@/lib/distractors";
@@ -57,7 +57,33 @@ const PLACE_TEMPLATE = "1.1fr .8fr 1.7fr 1fr 1.3fr";
 const NAME_TEMPLATE = "1fr 2fr";
 
 export function BlankTable({ columns, rows, filled = [], activeBlank = null, interactive = false, onAnswer, dockPad = false, sparkleAt = null }: BlankTableProps) {
-  const ref = useTargetRef("component:blankTable");
+  const registerTarget = useTargetRef<HTMLDivElement>("component:blankTable");
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const headRef = useRef<HTMLDivElement | null>(null);
+  const ref = useCallback(
+    (element: HTMLDivElement | null) => {
+      registerTarget(element);
+      rootRef.current = element;
+    },
+    [registerTarget],
+  );
+  // How much room the table actually has above the dock, and how tall its
+  // header wrapped to. On a short phone (800×360, strip 40) the place-value
+  // header takes two lines and only one row fits above the pad, so the
+  // active row has to scroll right up to the top — the child must be able to
+  // see the cell they are filling.
+  const [room, setRoom] = useState<{ height: number; head: number } | null>(null);
+  useLayoutEffect(() => {
+    // The room is the board's content inset, not the wrapper that hugs the table.
+    const box = rootRef.current?.closest(".wb-content") as HTMLElement | null;
+    if (!box || typeof ResizeObserver === "undefined") return;
+    const measure = () => setRoom({ height: box.clientHeight, head: headRef.current?.getBoundingClientRect().height ?? 0 });
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(box);
+    if (headRef.current) observer.observe(headRef.current);
+    return () => observer.disconnect();
+  }, [columns.length, rows.length]);
   const [tapped, setTapped] = useState<{ row: number; field: string } | null>(null);
   const [draft, setDraft] = useState("");
   const active = tapped ?? activeBlank;
@@ -65,11 +91,16 @@ export function BlankTable({ columns, rows, filled = [], activeBlank = null, int
   const rowHeight = nameSkin ? 34 : 30;
   const template = nameSkin ? NAME_TEMPLATE : columns.length === 5 ? PLACE_TEMPLATE : columns.map(() => "1fr").join(" ");
   const activeOpen = interactive && active && !filled.some((f) => f.row === active.row && f.field === active.field);
-  // While the pad or bank is docked the inset is 150 px tall: the place-value
-  // table shows four rows, the name table three, and the active row scrolls
-  // into view (M10, G5, G13).
+  // While the pad or bank is docked the table shows four rows (three for the
+  // name skin) and scrolls the active row into view (M10, G5, G13). "Into
+  // view" is measured, not assumed: whatever the room above the dock allows,
+  // the active row is the last one drawn in it.
   const windowRows = activeOpen && dockPad ? (nameSkin ? 3 : 4) : rows.length;
-  const firstRow = activeOpen && dockPad && active ? Math.max(0, Math.min(active.row < windowRows ? 0 : active.row - windowRows + 1, rows.length - windowRows)) : 0;
+  const visibleRows = room && room.height > 0 ? Math.max(1, Math.floor((room.height - room.head) / rowHeight)) : windowRows;
+  const firstRow =
+    activeOpen && dockPad && active
+      ? Math.max(0, Math.min(active.row - Math.min(windowRows, visibleRows) + 1, rows.length - windowRows))
+      : 0;
   const shownRows = rows.slice(firstRow, firstRow + windowRows);
   return (
     <div ref={ref} data-testid="blank-table" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, maxWidth: "100%", width: nameSkin ? undefined : "100%", overflowX: "auto" }}>
@@ -90,6 +121,7 @@ export function BlankTable({ columns, rows, filled = [], activeBlank = null, int
         {columns.map((column, index) => (
           <div
             key={column.key}
+            ref={index === 0 ? headRef : undefined}
             style={{
               padding: "2px 6px",
               background: BOARD.saffronSoft,

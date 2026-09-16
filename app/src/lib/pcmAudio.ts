@@ -77,6 +77,8 @@ export class PcmPlayer {
   private audioContext: AudioContext;
   private nextStartTime = 0;
   private activeSources = new Set<AudioBufferSourceNode>();
+  /** The most clips ever audible at once — 1 is the contract (never two). Read by the harness as window.__audio. */
+  private peakSources = 0;
   private onPlaybackStateChange?: (isPlaying: boolean) => void;
   /** Taps the output for per-frame amplitude (drives the character's mouth) — see getAmplitude. */
   private analyser: AnalyserNode;
@@ -164,6 +166,7 @@ export class PcmPlayer {
     this.nextStartTime = startAt + audioBuffer.duration;
     this.lastScheduledEnd = Math.max(this.lastScheduledEnd, this.nextStartTime);
     this.activeSources.add(source);
+    this.probe();
     this.setPlaying(true);
     this.startDrainPoller();
 
@@ -183,6 +186,8 @@ export class PcmPlayer {
         this.clipStoppers.delete(finish);
         for (const timer of timers) clearTimeout(timer);
         this.activeSources.delete(source);
+        this.probe();
+      this.probe();
         if (this.activeSources.size === 0) this.setPlaying(false);
         resolve();
       };
@@ -237,11 +242,13 @@ export class PcmPlayer {
     this.lastScheduledEnd = Math.max(this.lastScheduledEnd, this.nextStartTime);
 
     this.activeSources.add(source);
+    this.probe();
     this.setPlaying(true);
     this.startDrainPoller();
 
     source.onended = () => {
       this.activeSources.delete(source);
+      this.probe();
       if (this.activeSources.size === 0 && this.audioContext.currentTime >= this.lastScheduledEnd - 0.02) {
         this.lastDrainVia = "event";
         this.setPlaying(false);
@@ -274,6 +281,8 @@ export class PcmPlayer {
       if (this.audioContext.currentTime >= this.lastScheduledEnd + 0.05) {
         this.lastDrainVia = "poll";
         this.activeSources.clear();
+        this.probe();
+    this.probe();
         this.setPlaying(false);
       }
     }, 100);
@@ -285,13 +294,27 @@ export class PcmPlayer {
   }
 
   /** AudioContext state + drain timing, for the debug panel and stall diagnosis. */
-  getPlaybackDebug(): { contextState: string; currentTime: number; lastScheduledEnd: number; playing: boolean; lastDrainVia: string | null } {
+  /**
+   * How many clips are audible right now, and the most there have ever been.
+   * Published on `window.__audio` so an unattended run can assert the
+   * contract that two clips never overlap, from any control.
+   */
+  private probe(): void {
+    this.peakSources = Math.max(this.peakSources, this.activeSources.size);
+    if (typeof window !== "undefined") {
+      (window as unknown as { __audio?: { active: number; peak: number } }).__audio = { active: this.activeSources.size, peak: this.peakSources };
+    }
+  }
+
+  getPlaybackDebug(): { contextState: string; currentTime: number; lastScheduledEnd: number; playing: boolean; lastDrainVia: string | null; activeSources: number; peakSources: number } {
     return {
       contextState: this.audioContext.state,
       currentTime: this.audioContext.currentTime,
       lastScheduledEnd: this.lastScheduledEnd,
       playing: this.playing,
       lastDrainVia: this.lastDrainVia,
+      activeSources: this.activeSources.size,
+      peakSources: this.peakSources,
     };
   }
 
@@ -316,6 +339,7 @@ export class PcmPlayer {
       }
     }
     this.activeSources.clear();
+    this.probe();
     this.nextStartTime = this.audioContext.currentTime;
     this.lastScheduledEnd = this.audioContext.currentTime;
     this.setPlaying(false);

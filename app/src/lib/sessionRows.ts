@@ -35,18 +35,30 @@ export async function closedBeatIds(childId: string): Promise<Set<string>> {
 }
 
 /**
- * Where this child resumes: the first session with no logged close. Returns
- * the anchor the runtime starts AFTER (the previous session's close beat),
- * or null to start from the very beginning.
+ * Where this child resumes: the FIRST packed session with no logged close.
+ * Within it, the anchor is the last beat of that session the child actually
+ * finished — ⏹ leaves without closing anything and never logs the beat it
+ * interrupted, so the child comes back to the very beat they were on.
+ * With nothing logged in that session yet, the anchor is the previous
+ * session's close (or null: start from the very beginning).
+ *
+ * The runtime starts at the beat AFTER the anchor (useLessonRuntime).
  */
 export async function resumeAnchor(script: LessonScript, childId: string): Promise<{ sessionIndex: number; lastBeatId: string | null; finished: boolean }> {
   const closed = await closedBeatIds(childId);
   for (let i = 0; i < script.sessions.length; i += 1) {
     const close = sessionCloseBeatId(script, i);
-    if (!close || !closed.has(close)) {
-      const previous = i > 0 ? sessionCloseBeatId(script, i - 1) : null;
-      return { sessionIndex: i, lastBeatId: previous, finished: false };
-    }
+    if (close && closed.has(close)) continue;
+    const inSession = new Set(sessionBeatIds(script, i));
+    const { data } = await supabaseAdmin
+      .from("session_log")
+      .select("beat_id, created_at")
+      .eq("child_id", childId)
+      .order("created_at", { ascending: false })
+      .limit(500);
+    const lastInSession = (data ?? []).find((row) => inSession.has(row.beat_id as string))?.beat_id as string | undefined;
+    if (lastInSession) return { sessionIndex: i, lastBeatId: lastInSession, finished: false };
+    return { sessionIndex: i, lastBeatId: i > 0 ? sessionCloseBeatId(script, i - 1) : null, finished: false };
   }
   const last = script.sessions.length - 1;
   return { sessionIndex: last, lastBeatId: sessionCloseBeatId(script, last), finished: true };

@@ -43,6 +43,14 @@ const FRAME_W = 844;
 const FRAME_H = 390;
 /** Like-for-like renders (the export's own HTML in the same Chromium, same fonts, 1×) must reach this; a PNG fallback is judged the same way. */
 const SSIM_TARGET = 0.9;
+/**
+ * Every session frame carries this: the strip grew 28 → 40 px and the content
+ * inset 22 → 34 on 15 Sep (docs/qa/session1-triage.md item 4 — the controls
+ * were too small to hit on a real phone), so the whole board sits 12 px lower
+ * than the export drew it and the content 24 px lower. The export is no
+ * longer the authority on the strip's height; DESIGN.md records the change.
+ */
+const STRIP_NOTE = "the 40 px strip and the 34 px content top (15 Sep device triage) put the board 12 px and its content 24 px below where the export drew them";
 /** The export is served over http (support.js fetches its dc-imports); the app's font files are served beside it. */
 const EXPORT_PORT = 3009;
 const EXPORT_PAGES_SESSION = ["Session", "Session B", "Session Gaps", "Session Gaps B"];
@@ -581,6 +589,8 @@ const SCREEN_RULES_JS = `(() => {
   const allowed = ['rgb(27, 27, 27)', 'rgba(27, 27, 27, 0.7)', 'rgb(122, 90, 18)', 'rgb(47, 112, 72)', 'rgb(179, 74, 34)', 'rgb(47, 95, 166)', 'rgb(15, 76, 92)'];
   for (const el of root.querySelectorAll('*')) {
     if (!visible(el)) continue;
+    // The build stamp is a diagnostic (a git SHA in 10 px latin), not copy a child reads.
+    if (el.closest('[data-build-stamp]')) continue;
     const cs = getComputedStyle(el);
     const own = [...el.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent).join('').trim();
     if (own) {
@@ -644,10 +654,13 @@ async function checkCarryOver(page: Cdp, gotoFrame: (id: string) => Promise<void
   add("h expansion alone", "slot 80×56", "80×56", slot ? `${Math.round(slot.w)}×${Math.round(slot.h)}` : "missing", near(slot?.w, 80, 2) && near(slot?.h, 56, 2));
   add("h expansion alone", "the next blank glows (one glow)", "1 on a blank", slot ? `${slot.glows}${slot.glowOnBlank ? " on a blank" : ""}` : "missing", Boolean(slot?.glowOnBlank));
 
-  // Rule 3 — who wrote it: ✎ marker blue, ✓ success green (table with a worked row and a child cell).
+  // Rule 3 — who wrote it: ✎ marker blue on Zara's worked row (M10 shows it
+  // with the pad docked), ✓ success green on the child's cell.
+  await gotoFrame("M10");
+  const pen = await q<string | null>(`(() => { const s = [...document.querySelectorAll('[data-testid="blank-table"] span')].find((el) => el.textContent.trim() === '✎'); return s ? (getComputedStyle(s).backgroundColor || getComputedStyle(s).color) : null; })()`);
+  add("3 who wrote it", "✎ marker blue (M10, Zara's worked row)", "rgb(47, 95, 166)", pen, pen === "rgb(47, 95, 166)");
   await gotoFrame("placeValue:103–107");
   const badges = await q<{ pen: string | null; tick: string | null; rows: number; active: number; filled: number; pointer: boolean; window: number }>(`(() => { const spans = [...document.querySelectorAll('[data-testid="blank-table"] span')]; const pen = spans.find((s) => s.textContent.trim() === '✎'); const tick = spans.find((s) => s.textContent.trim() === '✓'); const grid = document.querySelector('[data-testid="blank-table-grid"]'); const cells = [...document.querySelectorAll('[data-testid^="cell-"]')]; const rowsSeen = new Set(cells.map((c) => c.getAttribute('data-testid').split('-')[1])); const gr = grid ? grid.getBoundingClientRect() : null; const visibleRows = new Set(cells.filter((c) => { const r = c.getBoundingClientRect(); return gr && r.top >= gr.top - 1 && r.bottom <= gr.bottom + 1; }).map((c) => c.getAttribute('data-testid').split('-')[1])); return { pen: pen ? getComputedStyle(pen).backgroundColor || getComputedStyle(pen).color : null, tick: tick ? getComputedStyle(tick).backgroundColor : null, rows: rowsSeen.size, active: cells.filter((c) => c.hasAttribute('data-active')).length, filled: cells.filter((c) => c.getAttribute('data-filled-by')).length, pointer: !!document.querySelector('[data-testid="pointer"]'), window: visibleRows.size }; })()`);
-  add("3 who wrote it", "✎ marker blue", "rgb(47, 95, 166)", badges.pen, badges.pen === "rgb(47, 95, 166)");
   add("3 who wrote it", "✓ success green", "rgb(60, 140, 90)", badges.tick, badges.tick === "rgb(60, 140, 90)");
   add("e table skin", "filled + active + pointer coexist", "filled ≥1 · active 1 · pointer", `filled ${badges.filled} · active ${badges.active} · pointer ${badges.pointer}`, badges.filled >= 1 && badges.active === 1 && badges.pointer);
   await gotoFrame("M10");
@@ -874,7 +887,7 @@ async function checkPwa(page: Cdp, root: Cdp): Promise<PwaRow[]> {
   };
   const installed = await boardHeight(390);
   const inChrome = await boardHeight(390 - 56);
-  add("board height on a phone: installed (844×390) vs inside Chrome-for-Android's 56 px landscape toolbar (viewport shrunk to emulate it)", "+56", `${installed} vs ${inChrome} (+${installed - inChrome})`, installed - inChrome === 56 && installed === 390 - 28);
+  add("board height on a phone: installed (844×390) vs inside Chrome-for-Android's 56 px landscape toolbar (viewport shrunk to emulate it)", "+56", `${installed} vs ${inChrome} (+${installed - inChrome})`, installed - inChrome === 56 && installed === 390 - 40);
 
   // Offline: a navigation with the network gone lands on the designed offline state.
   await page.send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
@@ -1057,6 +1070,9 @@ async function main(): Promise<void> {
           dock: inFrame(document.querySelector('.wb-dock[data-up]')),
           pad: (() => { const el = document.querySelector('[data-testid="number-pad"]'); if (!el) return null; const r = el.getBoundingClientRect(); return { l: r.left - mr.left, t: r.top - mr.top, r: mr.right - r.right, b: mr.bottom - r.bottom, w: r.width, h: r.height }; })(),
           ctrl: [...document.querySelectorAll('.strip-control')].map((el) => { const c = cssSize(el); return { w: c.w, h: c.h }; }),
+          ctrlHit: [...document.querySelectorAll('.strip-control')].map((el) => { const r = el.getBoundingClientRect(); const after = getComputedStyle(el, '::after'); return { w: Math.round(r.width), h: parseFloat(after.height) }; }),
+          ctrlFont: (() => { const el = document.querySelector('.strip-control'); return el ? getComputedStyle(el).fontSize : ''; })(),
+          ctrlColor: (() => { const el = document.querySelector('.strip-control'); return el ? getComputedStyle(el).color : ''; })(),
           titleFont: (() => { const el = document.querySelector('[data-testid="session-title"]'); return el ? getComputedStyle(el).fontSize + ' ' + getComputedStyle(el).fontFamily.split(',')[0] : ''; })(),
           captionFont: (() => { const el = document.querySelector('.wb-caption'); return el ? getComputedStyle(el).fontSize + ' ' + getComputedStyle(el).fontFamily.split(',')[0] : ''; })(),
           stops: document.querySelectorAll('[data-stop]').length,
@@ -1071,9 +1087,12 @@ async function main(): Promise<void> {
   };
   if (!SKIP_SESSION) {
     const plain = await measure("M1");
-    expect("strip height", plain.strip?.h, 28);
+    // The strip is 40 px since the 15 Sep device triage (28 px controls were
+    // too small to hit); the export drew 28, so every session frame sits
+    // 12 px lower than its reference — see STRIP_NOTE below.
+    expect("strip height", plain.strip?.h, 40);
     expect("strip title left", plain.title?.l, 14);
-    expect("frame top (under the strip)", plain.main?.t, 28);
+    expect("frame top (under the strip)", plain.main?.t, 40);
     expect("surface inset left", plain.surface?.l, 10);
     expect("surface inset right", plain.surface?.r, 10);
     expect("surface inset top", plain.surface?.t, 10);
@@ -1081,7 +1100,7 @@ async function main(): Promise<void> {
     expect("tray height", plain.tray?.h, 22);
     expect("content left", plain.content?.l, 94);
     expect("content right", plain.content?.r, 82);
-    expect("content top", plain.content?.t, 22);
+    expect("content top (34: clear of the 56 px strip hit areas)", plain.content?.t, 34);
     expect("content bottom (no foot)", plain.content?.b, 64);
     expect("Zara size", plain.zara?.w, 64);
     expect("Zara left", plain.zara?.l, 10);
@@ -1095,7 +1114,12 @@ async function main(): Promise<void> {
     expect("caption left", plain.caption?.l, 94);
     expect("caption right", plain.caption?.r, 82);
     expect("caption bottom", plain.caption?.b, 26);
-    expect("strip ⏸ ↺ ⏹ සි cells (28 px tall)", Math.min(...((plain.ctrl as unknown as Array<{ h: number }>) ?? []).map((c) => c.h)), 28);
+    expect("strip ⏸ ↺ ⏹ සි cells (40 px tall)", Math.min(...((plain.ctrl as unknown as Array<{ h: number }>) ?? []).map((c) => c.h)), 40);
+    expect("strip ⏸ ↺ ⏹ සි cells (56 px wide)", Math.min(...((plain.ctrl as unknown as Array<{ w: number }>) ?? []).map((c) => c.w)), 56);
+    numeric.push({ item: "strip icons drawn at 28 px", expected: "28px", actual: String(plain.ctrlFont), ok: String(plain.ctrlFont) === "28px" });
+    if (String(plain.ctrlFont) !== "28px") failures.push(`numeric: strip icons expected 28px got ${plain.ctrlFont}`);
+    numeric.push({ item: "strip icons white on the teal", expected: "rgb(255, 255, 255)", actual: String(plain.ctrlColor), ok: String(plain.ctrlColor) === "rgb(255, 255, 255)" });
+    if (String(plain.ctrlColor) !== "rgb(255, 255, 255)") failures.push(`numeric: strip icon colour expected white got ${plain.ctrlColor}`);
     numeric.push({ item: "strip title font", expected: "20px Yaldevi", actual: String(plain.titleFont), ok: /^20px/u.test(String(plain.titleFont)) });
     numeric.push({ item: "caption font", expected: "20px Gemunu Libre", actual: String(plain.captionFont), ok: /^20px/u.test(String(plain.captionFont)) });
     numeric.push({ item: "concept stops", expected: "8", actual: String(plain.stops), ok: plain.stops === (8 as unknown) });
@@ -1110,12 +1134,58 @@ async function main(): Promise<void> {
     expect("dock bottom", withDock.dock?.b, 64);
     expect("pad dock height, drawn (6 + 56 + 4 + 56)", withDock.pad?.h, 122, 2);
     const withRetry = await measure("S2");
+    expect("strip control hit areas reach 56 px", Math.min(...((plain.ctrlHit as unknown as Array<{ h: number }>) ?? []).map((c) => c.h)), 56);
     expect("retry note right", withRetry.retry?.r, 82);
     expect("retry note top", withRetry.retry?.t, 22);
     expect("retry note height", withRetry.retry?.h, 56);
     console.log(`\n== NUMBERS (README layout, ±1 px; sizes are CSS sizes — the export draws a bordered box 2 px larger each side) ==`);
     console.log(`${"item".padEnd(40)} ${"expected".padEnd(18)} ${"actual".padEnd(22)} ok`);
     for (const n of numeric) console.log(`${n.item.padEnd(40)} ${n.expected.padEnd(18)} ${n.actual.padEnd(22)} ${n.ok ? "✓" : "✗"}`);
+  }
+
+  // 2b. The fit at 800×360 — the smallest landscape phone this has to work on.
+  // The strip grew to 40 and the content top to 34 (15 Sep triage), so what
+  // matters is measured: the foot (chips, pad, word bank) sits wholly inside
+  // the frame, and whatever the child must touch or read next — the glowing
+  // target, the active table cell — is still above it. A tall primitive
+  // running behind the dock is the design's own behaviour (the export's M10
+  // draws the pad over the table); a target hidden behind it would not be.
+  if (!SKIP_SESSION) {
+    const FIT_W = 800;
+    const FIT_H = 360;
+    await page.send("Emulation.setDeviceMetricsOverride", { width: FIT_W, height: FIT_H, deviceScaleFactor: 1, mobile: true });
+    const fitRows: Array<{ frame: string; detail: string; ok: boolean }> = [];
+    for (const id of ["M10", "M3", "readWrite:18c–18g", "placeValue:96–101", "M7", "M1"]) {
+      await gotoFrame(id);
+      const fit = await evaluate<{ frame: number; outside: string[]; footTop: number | null; target: { what: string; top: number; bottom: number } | null }>(
+        page,
+        `(() => {
+          const main = document.querySelector('[data-testid="session-main"]');
+          const mr = main.getBoundingClientRect();
+          const outside = [];
+          let footTop = null;
+          for (const sel of ['.wb-footer', '.wb-dock[data-up]', '.wb-caption', '.wb-hand', '.wb-lena [data-testid="lena"]', '.wb-corner', '[data-testid="number-pad"]', '[data-testid="word-bank"]']) {
+            const el = document.querySelector(sel);
+            if (!el) continue;
+            const r = el.getBoundingClientRect();
+            if (r.height === 0) continue;
+            if (r.top < mr.top - 1 || r.bottom > mr.bottom + 1 || r.left < mr.left - 1 || r.right > mr.right + 1) outside.push(sel + " " + Math.round(r.top - mr.top) + "…" + Math.round(r.bottom - mr.bottom));
+            if (sel === '.wb-footer' || sel === '.wb-dock[data-up]') footTop = footTop === null ? Math.round(r.top - mr.top) : Math.min(footTop, Math.round(r.top - mr.top));
+          }
+          const targetEl = document.querySelector('[data-active], .wb-glow, [data-glow="true"], [data-testid="chalk-answer-slot"]');
+          const tr = targetEl ? targetEl.getBoundingClientRect() : null;
+          return { frame: Math.round(mr.height), outside, footTop, target: tr ? { what: (targetEl.getAttribute('data-testid') || targetEl.className || targetEl.tagName).toString().slice(0, 28), top: Math.round(tr.top - mr.top), bottom: Math.round(tr.bottom - mr.top) } : null };
+        })()`,
+      );
+      const clear = fit.target === null || fit.footTop === null || fit.target.bottom <= fit.footTop;
+      const ok = fit.outside.length === 0 && clear;
+      const detail = `frame ${fit.frame} · foot top ${fit.footTop ?? "none"} · ${fit.target ? `target "${fit.target.what}" ${fit.target.top}…${fit.target.bottom}${clear ? ` (clear by ${fit.footTop === null ? "—" : fit.footTop - fit.target.bottom})` : " — BEHIND THE FOOT"}` : "no target"}${fit.outside.length ? ` · outside the frame: ${fit.outside.join(", ")}` : ""}`;
+      fitRows.push({ frame: id, detail, ok });
+      if (!ok) failures.push(`fit at ${FIT_W}×${FIT_H}: ${id} — ${detail}`);
+    }
+    console.log(`\n== FIT AT 800×360 (the smallest landscape phone; strip 40, content top 34) ==`);
+    for (const r of fitRows) console.log(`${r.frame.padEnd(22)} ${r.detail.padEnd(96)} ${r.ok ? "✓" : "✗"}`);
+    await page.send("Emulation.setDeviceMetricsOverride", { width: FRAME_W, height: FRAME_H, deviceScaleFactor: 1, mobile: true });
   }
 
   // 3 + 5. the session frames
@@ -1205,7 +1275,7 @@ async function main(): Promise<void> {
       const b = best!;
       await writePng(b.refCrop, path.join(OUT, "session", `${safe(frame.id)}-ref.png`));
       await sideBySide(ours, b.refCrop, b.d.mask, path.join(OUT, "session", `${safe(frame.id)}-diff.png`));
-      ssimRows.push({ frame: frame.id, ssim: b.s, diff: b.d.share, top: b.d.regions.slice(0, 3).map((r) => `${r.name} ${Math.round(r.share * 100)} %`), gap: frame.knownGap, ref: source === "html" ? "export html" : refName.replace(/\n/gu, " ").slice(0, 50), source, split: boxes.length });
+      ssimRows.push({ frame: frame.id, ssim: b.s, diff: b.d.share, top: b.d.regions.slice(0, 3).map((r) => `${r.name} ${Math.round(r.share * 100)} %`), gap: frame.knownGap ? `${frame.knownGap}; and ${STRIP_NOTE}` : STRIP_NOTE, ref: source === "html" ? "export html" : refName.replace(/\n/gu, " ").slice(0, 50), source, split: boxes.length });
     }
     console.log(`\n== SESSION FRAMES (SSIM at 844×390, nothing masked, vs the export's own render (html) or its PNG (png); target ≥ ${SSIM_TARGET}) ==`);
     console.log(`${"frame".padEnd(32)} ${"SSIM".padEnd(7)} ${"source".padEnd(7)} ${"px diff".padEnd(8)} top differences`);

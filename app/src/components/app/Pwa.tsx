@@ -15,7 +15,7 @@ declare global {
   }
 }
 
-export function Pwa() {
+export function Pwa({ sha }: { sha?: string }) {
   useEffect(() => {
     const onPrompt = (event: Event) => {
       event.preventDefault();
@@ -24,9 +24,16 @@ export function Pwa() {
     };
     window.addEventListener("beforeinstallprompt", onPrompt);
     if ("serviceWorker" in navigator && process.env.NODE_ENV === "production") {
-      navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch((error) => console.warn("[pwa] service worker registration failed:", error));
+      // The build's SHA is in the worker's URL: a new build is a new worker,
+      // which installs, skips waiting and claims this page — and the banner
+      // (UpdateBanner) offers the reload.
+      const url = sha ? `/sw.js?v=${encodeURIComponent(sha)}` : "/sw.js";
+      navigator.serviceWorker
+        .register(url, { scope: "/" })
+        .then((registration) => registration.update().catch(() => undefined))
+        .catch((error) => console.warn("[pwa] service worker registration failed:", error));
     }
     return () => window.removeEventListener("beforeinstallprompt", onPrompt);
-  }, []);
+  }, [sha]);
   return null;
 }

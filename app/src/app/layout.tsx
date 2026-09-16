@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Pwa } from "@/components/app/Pwa";
+import { UpdateBanner } from "@/components/app/UpdateBanner";
+import { buildInfo } from "@/lib/buildInfo";
 import { Abhaya_Libre, Gemunu_Libre, Inter, Yaldevi } from "next/font/google";
 import "./tokens.css";
 import "./fonts.css";
@@ -28,13 +30,21 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
+  // The page's own build identity travels with the HTML: the update banner
+  // compares it against /api/build, and the debug overlay prints it.
+  const build = buildInfo();
   return (
     <html
       lang="si"
       className={`${gemunu.variable} ${abhaya.variable} ${yaldevi.variable} ${inter.variable} h-full antialiased`}
     >
+      <head>
+        <meta name="ss-build" content={build.sha} />
+        <meta name="ss-build-time" content={build.time} />
+      </head>
       <body className="min-h-full flex flex-col">
-        <Pwa />
+        <Pwa sha={build.sha} />
+        <UpdateBanner />
         {children}
       </body>
     </html>

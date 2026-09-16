@@ -4,8 +4,8 @@ import { Screen } from "../Screen";
 import { sx } from "../sx";
 import { t } from "@/lib/appCopy";
 
-/** Screens A · Splash & language. The button is the caller's (it navigates). */
-export function SplashScreen({ frame, start }: { frame?: boolean; start: React.ReactNode }) {
+/** Screens A · Splash & language. The button is the caller's (it navigates); `build` is the running build's stamp, printed small at the foot for diagnosis. */
+export function SplashScreen({ frame, start, build }: { frame?: boolean; start: React.ReactNode; build?: string }) {
   return (
     <Screen label="Splash" frame={frame} root="background:var(--color-teal);display:flex;flex-direction:column;align-items:center;padding:0 28px;color:#fff">
       <div style={sx("margin-top:96px;display:grid;justify-items:center;gap:8px")}>
@@ -28,6 +28,11 @@ export function SplashScreen({ frame, start }: { frame?: boolean; start: React.R
         </div>
         {start}
       </div>
+      {build && (
+        <span data-build-stamp data-testid="build-stamp" style={sx("position:absolute;left:0;right:0;bottom:6px;text-align:center;font:500 10px/1.4 var(--font-latin);color:rgba(255,255,255,.45)")}>
+          {build}
+        </span>
+      )}
     </Screen>
   );
 }

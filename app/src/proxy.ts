@@ -27,7 +27,9 @@ import { hasPortalAccess } from "@/lib/portalAuth";
  *    the outage, and every failure is logged loudly. Every 429 is logged.
  */
 
-const PUBLIC_API_ROUTES = new Set(["/api/session-start"]);
+// /api/build carries no child data — it is the running build's identity, and
+// the update banner must be able to ask for it before any session exists.
+const PUBLIC_API_ROUTES = new Set(["/api/session-start", "/api/build"]);
 const IP_LIMIT_PER_MINUTE = 60;
 const RATE_CHECK_TIMEOUT_MS = 400;
 

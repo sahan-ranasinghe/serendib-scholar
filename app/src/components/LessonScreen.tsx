@@ -26,11 +26,13 @@ import { useRouter } from "next/navigation";
 import { useLessonRuntime } from "@/hooks/useLessonRuntime";
 import { EdgeState } from "@/components/app/EdgeState";
 import { leaveLessonDisplay } from "@/components/app/StartLessonButton";
+import { pageBuildStamp } from "@/components/app/UpdateBanner";
+import { t } from "@/lib/appCopy";
 import type { BoardContent } from "@/lib/board";
 import TeachingBoard from "@/components/TeachingBoard";
 import type { ZaraState } from "@/components/ZaraCharacter";
 import type { LenaState } from "@/components/LenaCharacter";
-import { SessionShell, type SessionSheet } from "@/components/SessionShell";
+import { SessionShell, type SessionConfirm, type SessionSheet } from "@/components/SessionShell";
 
 /** Lena dozes after this long of Zara talking without a turn. */
 const LENA_DOZE_AFTER_MS = 20000;
@@ -58,8 +60,10 @@ export default function LessonScreen() {
     muted,
     paused,
     togglePause,
-    repeatLastBeat,
-    endSessionNow,
+    replayCurrentLine,
+    leaveSession,
+    restartThisSession,
+    lesson,
     chatting,
     requestChat,
     getDebugSnapshot,
@@ -166,13 +170,17 @@ export default function LessonScreen() {
     void fetch("/api/child-settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ captions: next }) }).catch(() => undefined);
   };
 
+  // ⏹ leaves (nothing is closed) and ↺ restarts this session — each asks once.
+  const [asking, setAsking] = useState<"leave" | "restart" | null>(null);
+  const [leaving, setLeaving] = useState(false);
+
   // The sitting's end: the summary screen (real lines from the log). The
   // moment on the board is given a beat so the celebration lands first.
   useEffect(() => {
-    if (status !== "done") return;
+    if (status !== "done" || leaving) return;
     const timer = setTimeout(() => router.replace(limitEnded ? "/session/summary?limit=1" : "/session/summary"), 900);
     return () => clearTimeout(timer);
-  }, [status, limitEnded, router]);
+  }, [status, limitEnded, leaving, router]);
 
   // Entering the lesson asked for fullscreen + landscape (StartLessonButton); leaving lets go of both.
   useEffect(() => {
@@ -209,7 +217,7 @@ export default function LessonScreen() {
       const json = await res.json();
       if (!json?.ok) throw new Error(json?.error ?? "failed");
       setResetState("done");
-      endSessionNow();
+      leaveSession();
       setTimeout(() => window.location.assign("/session"), 600);
     } catch {
       setResetState("failed");
@@ -229,6 +237,40 @@ export default function LessonScreen() {
       setReportState("failed");
     }
   };
+
+  const confirm: SessionConfirm | null =
+    asking === "leave"
+      ? {
+          id: "leave",
+          title: t("session.leaveAsk"),
+          body: t("session.leaveBody"),
+          confirmLabel: t("edge.paused.stop"),
+          cancelLabel: t("edge.paused.resume"),
+          onConfirm: () => {
+            setAsking(null);
+            setLeaving(true);
+            leaveSession();
+            router.push(`/lessons/${lesson}`);
+          },
+          onCancel: () => setAsking(null),
+        }
+      : asking === "restart"
+        ? {
+            id: "restart",
+            title: t("session.restartAsk"),
+            confirmLabel: t("detail.restart"),
+            cancelLabel: t("edge.paused.resume"),
+            onConfirm: () => {
+              setAsking(null);
+              setLeaving(true);
+              void restartThisSession().then(() => {
+                // A fresh mount starts the sitting again at beat 0 with nothing carried over.
+                window.location.assign("/session");
+              });
+            },
+            onCancel: () => setAsking(null),
+          }
+        : null;
 
   const inLesson = status !== "idle" && status !== "locked";
 
@@ -268,8 +310,10 @@ export default function LessonScreen() {
       chatting={chatting}
       onHand={requestChat}
       onPause={togglePause}
-      onRepeat={repeatLastBeat}
-      onEnd={endSessionNow}
+      onRepeat={() => setAsking("restart")}
+      onEnd={() => setAsking("leave")}
+      onPortraitTap={inLesson ? replayCurrentLine : undefined}
+      confirm={confirm}
       onAnswer={submitTypedAnswer}
       onTouch={onBoardTouch}
       onIdleTouch={noteIdleTouch}
@@ -299,7 +343,7 @@ export default function LessonScreen() {
       {/* ⏸ — the designed paused state over the dimmed board (the rotate card covers it in portrait) */}
       {paused && inLesson && !micAsk && status !== "chatting" && !portrait && (
         <div style={{ position: "absolute", inset: 0, zIndex: 24 }}>
-          <EdgeState kind="paused" onCta={togglePause} onAlt={endSessionNow} />
+          <EdgeState kind="paused" onCta={togglePause} onAlt={() => setAsking("leave")} />
         </div>
       )}
 
@@ -331,6 +375,7 @@ export default function LessonScreen() {
 
       {debugOpen && debug && (
         <div style={{ position: "absolute", right: 8, top: 8, zIndex: 40, width: 256, borderRadius: 8, background: "rgba(0,0,0,.8)", padding: 8, font: "10px/1.3 ui-monospace, monospace", color: "#A7F3D0" }}>
+          <div data-testid="debug-build">build: {pageBuildStamp()}</div>
           <div>beat: {debug.beatId}</div>
           <div>
             type: {debug.beatType} | state: {debug.status}

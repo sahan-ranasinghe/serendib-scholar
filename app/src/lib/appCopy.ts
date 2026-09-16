@@ -36,6 +36,7 @@ export const COPY = {
   "common.back": { screen: "all", si: "‹", en: "back (glyph)" },
   "common.retry": { screen: "Edge", si: "ආයෙත් උත්සාහ කරන්න", en: "Try again" },
   "common.notYet": { screen: "Progress", si: "තාම නෑ", en: "Not yet" },
+  "app.updateReady": { screen: "all", si: "අලුත් අනුවාදයක් — යාවත්කාලීන කරන්න", en: "A new version — update (the update banner; wording from the device report)" },
 
   // --- splash -------------------------------------------------------------------
   "splash.tagline": { screen: "Splash", si: "ඔයාගේම ගුරුතුමිය, ඔයාගේ ෆෝන් එකේ", en: "Your own teacher, on your phone" },
@@ -277,6 +278,10 @@ export const COPY = {
   "gate.sub": { screen: "Session", si: "(දෙමාපියන් සඳහා — මේ උපකරණයේ එක වතාවක් පමණයි)", en: "(for parents — once on this device)" },
   "gate.enter": { screen: "Session", si: "ඇතුල් වෙන්න", en: "Enter" },
   "session.connectFail": { screen: "Session", si: "සම්බන්ධ වෙන්න බැරි වුණා. ආයෙ උත්සාහ කරන්න.", en: "Couldn't connect. Try again." },
+  "session.leaveAsk": { screen: "Session", si: "නවත්වමුද?", en: "Shall we stop? (⏹ asks once — from the device triage)" },
+  "session.leaveBody": { screen: "Session", si: "ඉතුරු ටික පස්සේ කරන්න පුළුවන්.", en: "You can do the rest later." },
+  "session.restartAsk": { screen: "Session", si: "මුල ඉඳන්ම ආයෙත් පටන් ගමුද?", en: "Shall we start again from the very beginning? (↺ asks once)" },
+  "session.replay": { screen: "Session", si: "ආයෙත් කියන්න", en: "Say it again (a tap on Zara's portrait)" },
 } as const satisfies Record<string, CopyEntry>;
 
 export type CopyKey = keyof typeof COPY;

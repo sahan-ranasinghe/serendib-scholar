@@ -195,6 +195,7 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
   const [lessonConcepts, setLessonConcepts] = useState<LessonConcept[]>([]);
   const [currentConceptTag, setCurrentConceptTag] = useState<string | null>(null);
   const [currentSessionIndex, setCurrentSessionIndex] = useState(0);
+  const sessionIndexRef = useRef(0);
   const [sessionCount, setSessionCount] = useState(1);
   const [celebrateNonce, setCelebrateNonce] = useState(0);
   const [muted, setMuted] = useState(false);
@@ -279,7 +280,6 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
   const pausedRef = useRef(false);
   const mutedRef = useRef(false);
   const chatRequestedRef = useRef(false);
-  const repeatRequestedRef = useRef(false);
   const skipToCloseRef = useRef(false);
   /**
    * What /api/session-start says about this child: captions (default on),
@@ -580,7 +580,31 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
   };
 
   /** Speaks one beat and returns when the audio has finished. */
-  const speak = async (beat: Beat): Promise<void> => {
+  /**
+   * THE audio gate. Every path that starts a clip goes through here, so two
+   * clips can never be audible at once: acquiring stops and clears whatever
+   * is playing or queued, then waits for the previous holder to unwind. The
+   * newest request wins — a portrait replay silences the line it repeats, a
+   * new beat silences a replay — and nothing stacks (the ↺ pile-up).
+   */
+  const speechLockRef = useRef<Promise<void>>(Promise.resolve());
+  const withSpeech = async <T,>(fn: () => Promise<T>): Promise<T> => {
+    const previous = speechLockRef.current;
+    let release: () => void = () => undefined;
+    speechLockRef.current = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    playerRef.current?.clear();
+    await previous.catch(() => undefined);
+    try {
+      return await fn();
+    } finally {
+      release();
+    }
+  };
+
+  const speak = (beat: Beat): Promise<void> => withSpeech(() => speakNow(beat));
+  const speakNow = async (beat: Beat): Promise<void> => {
     const player = playerRef.current;
     if (!player || stoppedRef.current) return;
     const text = lineFor(beat);
@@ -984,7 +1008,8 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
    * any clip is missing: two voices spliced mid-sentence is worse than
    * silence, and the caller decides what the fallback is.
    */
-  const speakComposedNumber = async (value: number, frame?: NumberFrame): Promise<boolean> => {
+  const speakComposedNumber = (value: number, frame?: NumberFrame): Promise<boolean> => withSpeech(() => speakComposedNumberNow(value, frame));
+  const speakComposedNumberNow = async (value: number, frame?: NumberFrame): Promise<boolean> => {
     const player = playerRef.current;
     const config = audioConfigRef.current;
     if (!player || !config || stoppedRef.current) return false;
@@ -1031,6 +1056,7 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
     logEvent(`serve ${beat.type} ${beat.id.slice(0, 40)}`);
     if (beat.conceptTag !== FRAMING_CONCEPT) setCurrentConceptTag(beat.conceptTag);
     if (beat.sessionIndex >= 0) setCurrentSessionIndex(beat.sessionIndex);
+      sessionIndexRef.current = beat.sessionIndex;
     if (beat.type === "SESSION_START" || beat.id.endsWith("lesson-goals-0")) {
       sessionStatsRef.current = { concepts: new Set<string>(), correct: 0, asked: 0 };
     }
@@ -1112,12 +1138,6 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
       await speakComposedNumber(lastBuiltNumberRef.current);
     }
 
-    // ↺ (repeat): say the same beat again, advance nothing.
-    while (repeatRequestedRef.current && !stoppedRef.current) {
-      repeatRequestedRef.current = false;
-      await prepareBeat(beat);
-      await speak(beat);
-    }
     // ✋ chat, asked for while she was talking: hold the lesson here.
     if (chatRequestedRef.current && !stoppedRef.current) {
       chatRequestedRef.current = false;
@@ -1870,18 +1890,64 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
   }, []);
 
   /** ↺ — say the current beat again. */
-  const repeatLastBeat = useCallback(() => {
-    repeatRequestedRef.current = true;
-    recorderRef.current?.cancel();
-    playerRef.current?.clear();
+  /**
+   * A tap on Zara's portrait: say THIS beat's line again, once. It stops
+   * whatever is playing and every queued clip first (the speech lock), and
+   * further taps are ignored until the replay is done — three rapid taps
+   * are one replay, never three stacked clips.
+   */
+  const replayingRef = useRef(false);
+  const replayCountRef = useRef(0);
+  const replayCurrentLine = useCallback(() => {
+    if (replayingRef.current || stoppedRef.current) return;
+    const beat = activeBeatRef.current;
+    if (!beat) return;
+    replayingRef.current = true;
+    replayCountRef.current += 1;
+    if (typeof window !== "undefined") (window as unknown as { __replays?: number }).__replays = replayCountRef.current;
+    logEvent(`replay line of ${beat.id.slice(0, 40)}`);
+    void speak(beat).finally(() => {
+      replayingRef.current = false;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /** ⏹ — jump to this sitting's goodbye so progress is saved properly. */
-  const endSessionNow = useCallback(() => {
-    skipToCloseRef.current = true;
+  /**
+   * ⏹ — LEAVE the lesson. The sitting is not finished: no CLOSE_SESSION beat
+   * runs and no close row is logged, so the session stays in progress and
+   * resume comes back to the beat the child was on (the in-flight beat is
+   * never logged — see runBeat). Completion happens only when the runtime
+   * reaches the session's own CLOSE_SESSION beat.
+   */
+  const leaveSession = useCallback(() => {
     pendingBeatsRef.current = [];
-    recorderRef.current?.cancel();
+    stop();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /**
+   * ↺ — restart THIS session from its first beat: the sitting's rows go
+   * (child_progress, the mastery record, stays) and the lesson reloads at
+   * beat 0. Everything playing or queued is stopped before the restart.
+   */
+  const restartThisSession = useCallback(async (): Promise<boolean> => {
+    const index = activeBeatRef.current?.sessionIndex ?? sessionIndexRef.current;
+    pendingBeatsRef.current = [];
     playerRef.current?.clear();
+    recorderRef.current?.cancel();
+    stoppedRef.current = true;
+    try {
+      const response = await fetch("/api/session/restart", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lesson, session: Math.max(0, index) }),
+      });
+      const json = await response.json();
+      return json?.ok === true;
+    } catch {
+      return false;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   /** The P1 sheet's answer: "හරි, අවසර දෙන්න" (true) or "ටයිප් කරන්නම්" (false). */
@@ -1932,6 +1998,7 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
       events: debugEventsRef.current.slice(-5),
       stage: describeStage(stageRef.current),
       choreo: activeChoreoRef.current ? `${activeChoreoRef.current.fired}/${activeChoreoRef.current.beat.sentences.length}` : "—",
+      replays: replayCountRef.current,
     }),
     [chat],
   );
@@ -1972,8 +2039,14 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
     stop,
     togglePause,
     toggleMute,
-    repeatLastBeat,
-    endSessionNow,
+    /** A tap on Zara: say this beat's line again (once, never stacked). */
+    replayCurrentLine,
+    /** ⏹ — leave without finishing: nothing is closed, resume returns here. */
+    leaveSession,
+    /** ↺ — clear this session's rows and start it again at beat 0. */
+    restartThisSession,
+    /** Which lesson this runtime is teaching (the restart and the leave route need it). */
+    lesson,
     requestChat,
     submitTypedAnswer,
     resumeAudioOutput,
