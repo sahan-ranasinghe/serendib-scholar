@@ -1,6 +1,6 @@
 # Storyboard — Maths 5, Lesson 1, Session 1
 
-126 beats. Vocabulary: `docs/design/board-vocabulary.md`. Events are written `primitive.event {args}`; an event with no sentence index prefix lands on the sentence shown above it.
+158 beats. Vocabulary: `docs/design/board-vocabulary.md`. Events are written `primitive.event {args}`; an event with no sentence index prefix lands on the sentence shown above it; `@0.35` is where in the sentence it fires (cluster E: events on one sentence fire in sequence, never together).
 
 Rods: 0 = දා (දහසස්ථානය), 1 = සි, 2 = ද, 3 = එ.
 
@@ -56,7 +56,7 @@ Board at line start: title card "සංඛ්‍යා - 1"
 
 1. > මේ පාඩමෙන් අපි සියක් දහස දක්වා ලොකු සංඛ්‍යා කියවන්න, ලියන්න ඉගෙන ගන්නවා.
    - `textCard.show` `{"text":"100 000"}`
-   - `pointer.move_to` `{"target":{"number":100000}}`
+   - `pointer.move_to` `{"target":{"number":100000}}` @0.21
 
 _Sees:_ Card "100 000"; card "100 000".
 
@@ -66,8 +66,10 @@ Board at line start: card "100 000"
 
 1. > සංඛ්‍යාවක ඉලක්කම් තියෙන තැන අනුව ඒවායේ අගය හඳුනාගන්නත් අපි ඉගෙන ගන්නවා.
    - `textCard.show` `{"text":"ලොකු සංඛ්‍යා"}`
+   - `highlight.circle` `{"target":{"text":"ලොකු සංඛ්‍යා"}}`
+   - `pointer.move_to` `{"target":{"text":"ලොකු සංඛ්‍යා"}}`
 
-_Sees:_ Card "ලොකු සංඛ්‍යා"; card "ලොකු සංඛ්‍යා".
+_Sees:_ Card "ලොකු සංඛ්‍යා"; card "ලොකු සංඛ්‍යා"; a chalk ring around {"text":"ලොකු සංඛ්‍යා"}.
 
 ### `opening:6` · LESSON_GOALS · pause SOFT_CHECK
 
@@ -125,7 +127,7 @@ _Sees:_ Number cards 84 · 101 · 528 · 997 (ring on 84); a ring around 84 — 
 Board at line start: number cards 84 · 101 · 528 · 997 (ring on 84)
 
 1. > පළමු සංඛ්‍යාව අසූ හතරයි.
-   - `numberCards.highlight_ring` `{"value":84}`
+   - `numberCards.highlight_ring` `{"value":84}` @0.58
 
 _Sees:_ Number cards 84 · 101 · 528 · 997 (ring on 84); a ring around 84.
 
@@ -150,7 +152,7 @@ Board at line start: number cards 84 · 101 · 528 · 997 (ring on 101)
 
 1. > සංඛ්‍යාවක් වචනයෙන් කියන එකට කියන්නේ සංඛ්‍යා නාමය කියලා.
    - `turn.over` `{}`
-   - `chalkText.write` `{"text":"සංඛ්‍යා නාමය"}`
+   - `chalkText.write` `{"text":"සංඛ්‍යා නාමය"}` @0.65
 
 _Sees:_ Number cards 84 · 101 · 528 · 997 (ring on 101); "සංඛ්‍යා නාමය" is written.
 
@@ -163,24 +165,42 @@ Board at line start: number cards 84 · 101 · 528 · 997 (ring on 101)
 
 _Sees:_ Number cards 84 · 101 · 528 · 997 (ring on 101).
 
-### `readWrite4Digit:5` · SOFT_CHECK · pause SOFT_CHECK
+### `readWrite4Digit:4a` · ASK · pause ASK
 
 Board at line start: number cards 84 · 101 · 528 · 997 (ring on 101)
 
+1. > ඊළඟ සංඛ්‍යාවේ නම කියන්න බලන්න.
+   - `numberCards.highlight_ring` `{"value":528}`
+   - `turn.pause` `{"ms":3000,"cue":"mic","number":528}`
+   - `turn.your_turn` `{"answerMode":"readAloud","surface":"chips"}`
+   - `choiceChips.show` `{"options":["පන්සිය විසි අට","පන්සිය අසූ දෙක","දෙසිය පනස් අට"],"correctIndex":0}`
+   - `turn.read_back` `{"number":528}`
+
+Child: **answer** — 3 s to say it (🎤 cue, nothing recorded) → tap one of 3 name-chips → Zara reads it back · expects **පන්සිය විසි අට**
+
+_Sees:_ Number cards 84 · 101 · 528 · 997 (ring on 528); a ring around 528 — they answer via 3 s to say it (🎤 cue, nothing recorded) → tap one of 3 name-chips → Zara reads it back.
+
+### `readWrite4Digit:5` · ASK · pause ASK
+
+Board at line start: number cards 84 · 101 · 528 · 997 (ring on 528)
+
 1. > එහෙනම් පුතේ, පුවරුවේ තියෙන අන්තිම සංඛ්‍යාවත් මට කියවලා පෙන්නන්න පුළුවන්ද?
    - `numberCards.highlight_ring` `{"value":997}`
-   - `turn.pause` `{"ms":2000}`
+   - `turn.pause` `{"ms":3000,"cue":"mic","number":997}`
+   - `turn.your_turn` `{"answerMode":"readAloud","surface":"chips"}`
+   - `choiceChips.show` `{"options":["නවසිය හැත්තෑ නවය","නවසිය අනූ හත","නවදහස් අනූ හත"],"correctIndex":1}`
+   - `turn.read_back` `{"number":997}`
 
-Child: **soft check** — a 2 s pause while she reacts; a tap counts as engagement; no mic, no acknowledgement clip
+Child: **answer** — 3 s to say it (🎤 cue, nothing recorded) → tap one of 3 name-chips → Zara reads it back · expects **නවසිය අනූ හත**
 
-_Sees:_ Number cards 84 · 101 · 528 · 997 (ring on 997); a ring around 997 — a 2 s pause while she reacts; a tap counts as engagement; no mic, no acknowledgement clip.
+_Sees:_ Number cards 84 · 101 · 528 · 997 (ring on 997); a ring around 997 — they answer via 3 s to say it (🎤 cue, nothing recorded) → tap one of 3 name-chips → Zara reads it back.
 
 ### `readWrite4Digit:5a` · EXPLAIN
 
 Board at line start: number cards 84 · 101 · 528 · 997 (ring on 997)
 
 1. > අන්තිම එක නවසිය අනූ හතයි.
-   - `numberCards.highlight_ring` `{"value":997}`
+   - `numberCards.highlight_ring` `{"value":997}` @0.4
 
 _Sees:_ Number cards 84 · 101 · 528 · 997 (ring on 997); a ring around 997.
 
@@ -190,7 +210,7 @@ Board at line start: number cards 84 · 101 · 528 · 997 (ring on 997)
 
 1. > ඔන්න පුතේ, නවයට එකක් එකතු කළාම දහය හැදෙනවා නේද?
    - `chalkText.write` `{"text":"9 + 1 = 10"}`
-   - `pointer.move_to` `{"target":{"number":9}}`
+   - `pointer.move_to` `{"target":{"number":9}}` @0.23
 
 _Sees:_ Chalk "9 + 1 = 10"; "9 + 1 = 10" is written.
 
@@ -200,7 +220,7 @@ Board at line start: chalk "9 + 1 = 10"
 
 1. > ඒ වගේම අනූ නවයට එකක් එකතු කළාම සියය හැදෙනවා.
    - `chalkText.write` `{"text":"99 + 1 = 100"}`
-   - `pointer.move_to` `{"target":{"number":99}}`
+   - `pointer.move_to` `{"target":{"number":99}}` @0.16
 
 _Sees:_ Chalk "99 + 1 = 100"; "99 + 1 = 100" is written.
 
@@ -210,7 +230,7 @@ Board at line start: chalk "99 + 1 = 100"
 
 1. > එහෙනම් නවසිය අනූ නවයට එකක් එකතු කළාම කීයද එන්නේ?
    - `chalkText.write` `{"text":"999 + 1 = ?"}`
-   - `pointer.move_to` `{"target":{"number":999}}`
+   - `pointer.move_to` `{"target":{"number":999}}` @0.15
    - `turn.your_turn` `{"answerMode":"build","surface":"pad"}`
 
 Child: **answer** — the number pad · expects **1000**
@@ -297,7 +317,7 @@ Board at line start: card "3058"
 1. > ඒ සංඛ්‍යාව තුන්දහස් පනස් අටයි.
    - `turn.over` `{}`
    - `chalkText.write` `{"text":"3058 - තුන්දහස් පනස් අට","append":"- තුන්දහස් පනස් අට"}`
-   - `pointer.move_to` `{"target":{"number":3058}}`
+   - `pointer.move_to` `{"target":{"number":3058}}` @0.37
 
 _Sees:_ Card "3058" with chalk "3058 - තුන්දහස් පනස් අට"; "- තුන්දහස් පනස් අට" is written on, making "3058 - තුන්දහස් පනස් අට".
 
@@ -349,7 +369,6 @@ Board at line start: the numeral ↔ number-name table: 6 528 · දෙදහස
 1. > හයදහස් පන්සිය විසි අට — ඒ නම අපි වගුවේ ලියමු.
    - `turn.over` `{}`
    - `blankTable.cell_fill` `{"row":0,"field":"numberName","value":"හයදහස් පන්සිය විසි අට","by":"tutor"}`
-   - `pointer.move_to` `{"target":{"number":6528}}`
 
 _Sees:_ The numeral ↔ number-name table: 6 528 · දෙදහස් හාරසිය තිහ · තුන්දහස් එකසියය · 5 060 · එක්දහස් අට · 9 015; හයදහස් පන්සිය විසි අට written into row 0.
 
@@ -359,7 +378,7 @@ Board at line start: the numeral ↔ number-name table: 6 528 · දෙදහස
 
 1. > දෙවෙනි පේළියේ නම දෙදහස් හාරසිය තිහ.
    - `blankTable.row_activate` `{"row":1,"field":"number"}`
-   - `pointer.move_to` `{"target":{"number":2430}}`
+   - `pointer.move_to` `{"target":{"number":2430}}` @0.49
 2. > ඒ සංඛ්‍යාව ඉලක්කම් වලින් කීයද?
    - `turn.your_turn` `{"answerMode":"cell","surface":"cell"}`
 
@@ -374,9 +393,74 @@ Board at line start: the numeral ↔ number-name table: 6 528 · දෙදහස
 1. > දෙදහස් හාරසිය තිහ — ඉලක්කම් වලින් ලියන්නේ මෙහෙමයි.
    - `turn.over` `{}`
    - `blankTable.cell_fill` `{"row":1,"field":"number","value":"2430","by":"tutor"}`
-   - `pointer.move_to` `{"target":{"number":2430}}`
 
 _Sees:_ The numeral ↔ number-name table: 6 528 · දෙදහස් හාරසිය තිහ · තුන්දහස් එකසියය · 5 060 · එක්දහස් අට · 9 015; 2430 written into row 1.
+
+### `readWrite4Digit:18h` · EXPLAIN
+
+Board at line start: the numeral ↔ number-name table: 6 528 · දෙදහස් හාරසිය තිහ · තුන්දහස් එකසියය · 5 060 · එක්දහස් අට · 9 015
+
+1. > තුන්දහස් එකසියය — ඉලක්කම් වලින් ලියන්නේ මෙහෙමයි.
+   - `blankTable.cell_fill` `{"row":2,"field":"number","value":"3100","by":"tutor"}`
+
+_Sees:_ The numeral ↔ number-name table: 6 528 · දෙදහස් හාරසිය තිහ · තුන්දහස් එකසියය · 5 060 · එක්දහස් අට · 9 015; 3100 written into row 2.
+
+### `readWrite4Digit:18i` · ASK · pause ASK
+
+Board at line start: the numeral ↔ number-name table: 6 528 · දෙදහස් හාරසිය තිහ · තුන්දහස් එකසියය · 5 060 · එක්දහස් අට · 9 015
+
+1. > දැන් ඔයාගේ වාරයයි පුතේ.
+   - `blankTable.row_activate` `{"row":3,"field":"numberName"}`
+2. > මේ හිස්තැනට එන්නේ මොකක්ද කියන්න බලන්න.
+   - `pointer.move_to` `{"target":{"cell":{"row":3,"field":"numberName"}}}`
+   - `turn.your_turn` `{"answerMode":"cell","surface":"cell"}`
+
+Child: **answer** — the number pad into the active cell · expects **පන්දහස් හැට**
+
+_Sees:_ The numeral ↔ number-name table: 6 528 · දෙදහස් හාරසිය තිහ · තුන්දහස් එකසියය · 5 060 · එක්දහස් අට · 9 015; row 3's numberName cell is outlined — they answer via the number pad into the active cell.
+
+### `readWrite4Digit:18j` · EXPLAIN
+
+Board at line start: the numeral ↔ number-name table: 6 528 · දෙදහස් හාරසිය තිහ · තුන්දහස් එකසියය · 5 060 · එක්දහස් අට · 9 015
+
+1. > පන්දහස් හැට — ඒ නම අපි වගුවේ ලියමු.
+   - `turn.over` `{}`
+   - `blankTable.cell_fill` `{"row":3,"field":"numberName","value":"පන්දහස් හැට","by":"tutor"}`
+
+_Sees:_ The numeral ↔ number-name table: 6 528 · දෙදහස් හාරසිය තිහ · තුන්දහස් එකසියය · 5 060 · එක්දහස් අට · 9 015; පන්දහස් හැට written into row 3.
+
+### `readWrite4Digit:18k` · EXPLAIN
+
+Board at line start: the numeral ↔ number-name table: 6 528 · දෙදහස් හාරසිය තිහ · තුන්දහස් එකසියය · 5 060 · එක්දහස් අට · 9 015
+
+1. > එක්දහස් අට — ඉලක්කම් වලින් ලියන්නේ මෙහෙමයි.
+   - `blankTable.cell_fill` `{"row":4,"field":"number","value":"1008","by":"tutor"}`
+
+_Sees:_ The numeral ↔ number-name table: 6 528 · දෙදහස් හාරසිය තිහ · තුන්දහස් එකසියය · 5 060 · එක්දහස් අට · 9 015; 1008 written into row 4.
+
+### `readWrite4Digit:18l` · ASK · pause ASK
+
+Board at line start: the numeral ↔ number-name table: 6 528 · දෙදහස් හාරසිය තිහ · තුන්දහස් එකසියය · 5 060 · එක්දහස් අට · 9 015
+
+1. > දැන් ඔයාගේ වාරයයි පුතේ.
+   - `blankTable.row_activate` `{"row":5,"field":"numberName"}`
+2. > මේ හිස්තැනට එන්නේ මොකක්ද කියන්න බලන්න.
+   - `pointer.move_to` `{"target":{"cell":{"row":5,"field":"numberName"}}}`
+   - `turn.your_turn` `{"answerMode":"cell","surface":"cell"}`
+
+Child: **answer** — the number pad into the active cell · expects **නවදහස් පහළොව**
+
+_Sees:_ The numeral ↔ number-name table: 6 528 · දෙදහස් හාරසිය තිහ · තුන්දහස් එකසියය · 5 060 · එක්දහස් අට · 9 015; row 5's numberName cell is outlined — they answer via the number pad into the active cell.
+
+### `readWrite4Digit:18m` · EXPLAIN
+
+Board at line start: the numeral ↔ number-name table: 6 528 · දෙදහස් හාරසිය තිහ · තුන්දහස් එකසියය · 5 060 · එක්දහස් අට · 9 015
+
+1. > නවදහස් පහළොව — ඒ නම අපි වගුවේ ලියමු.
+   - `turn.over` `{}`
+   - `blankTable.cell_fill` `{"row":5,"field":"numberName","value":"නවදහස් පහළොව","by":"tutor"}`
+
+_Sees:_ The numeral ↔ number-name table: 6 528 · දෙදහස් හාරසිය තිහ · තුන්දහස් එකසියය · 5 060 · එක්දහස් අට · 9 015; නවදහස් පහළොව written into row 5.
 
 ### `readWrite4Digit:18b` · TRANSITION
 
@@ -401,7 +485,7 @@ _Sees:_ The digit picker 1 · 3 · 6 · 4.
 Board at line start: the digit picker 1 · 3 · 6 · 4
 
 1. > මෙතැන තියෙන්නේ එක, තුන, හය, හතර නේද?
-   - `pointer.move_to` `{"target":{"number":1}}`
+   - `pointer.move_to` `{"target":{"number":1}}` @0.42
    - `turn.pause` `{"ms":2000}`
 
 Child: **soft check** — a 2 s pause while she reacts; a tap counts as engagement; no mic, no acknowledgement clip
@@ -446,7 +530,7 @@ Board at line start: the digit picker 1 · 3 · 6 · 4
 
 1. > උදාහරණයක් විදිහට අපිට එක්දහස් තුන්සිය හැට හතර හදන්නත් පුළුවන්.
    - `digitPicker.built_number` `{"digits":"1364","name":"එක්දහස් තුන්සිය හැට හතර","by":"tutor"}`
-   - `pointer.move_to` `{"target":{"number":1364}}`
+   - `pointer.move_to` `{"target":{"number":1364}}` @0.35
 
 _Sees:_ The digit picker 1 · 3 · 6 · 4 showing 1 364; Zara's example 1364 and its name appear under the tiles.
 
@@ -517,6 +601,50 @@ Board at line start: the digit picker 1 · 3 · 6 · 4
 
 _Sees:_ The digit picker 1 · 3 · 6 · 4; their number and its name appear under the tiles.
 
+### `readWrite4Digit:30g` · ASK · pause ASK
+
+Board at line start: the digit picker 1 · 3 · 6 · 4
+
+1. > දැන් ඒකට වඩා වෙනස් සංඛ්‍යාවක් හදන්න පුළුවන්ද?
+   - `digitPicker.show` `{"pool":[1,3,6,4]}`
+   - `turn.your_turn` `{"answerMode":"build","surface":"picker"}`
+
+Child: **answer** — tap digits on the picker · expects **any arrangement of 1,3,6,4**
+
+_Sees:_ The digit picker 1 · 3 · 6 · 4; digit tiles 1 · 3 · 6 · 4 — they answer via tap digits on the picker.
+
+### `readWrite4Digit:30h` · EXPLAIN
+
+Board at line start: the digit picker 1 · 3 · 6 · 4
+
+1. > ඒ සංඛ්‍යාවේ නම බෝඩ් එකේ බලන්න.
+   - `turn.over` `{}`
+   - `digitPicker.built_number` `{"digits":"the child's number","name":"sinhalaNumberName(N)"}`
+
+_Sees:_ The digit picker 1 · 3 · 6 · 4; their number and its name appear under the tiles.
+
+### `readWrite4Digit:30i` · ASK · pause ASK
+
+Board at line start: the digit picker 1 · 3 · 6 · 4
+
+1. > දැන් ඒකට වඩා වෙනස් සංඛ්‍යාවක් හදන්න පුළුවන්ද?
+   - `digitPicker.show` `{"pool":[1,3,6,4]}`
+   - `turn.your_turn` `{"answerMode":"build","surface":"picker"}`
+
+Child: **answer** — tap digits on the picker · expects **any arrangement of 1,3,6,4**
+
+_Sees:_ The digit picker 1 · 3 · 6 · 4; digit tiles 1 · 3 · 6 · 4 — they answer via tap digits on the picker.
+
+### `readWrite4Digit:30j` · EXPLAIN
+
+Board at line start: the digit picker 1 · 3 · 6 · 4
+
+1. > ඒ සංඛ්‍යාවේ නම බෝඩ් එකේ බලන්න.
+   - `turn.over` `{}`
+   - `digitPicker.built_number` `{"digits":"the child's number","name":"sinhalaNumberName(N)"}`
+
+_Sees:_ The digit picker 1 · 3 · 6 · 4; their number and its name appear under the tiles.
+
 ### `readWrite4Digit:30e` · ASK · pause ASK
 
 Board at line start: the digit picker 1 · 3 · 6 · 4
@@ -545,7 +673,7 @@ Board at line start: the digit picker 1 · 3 · 6 · 4
 
 1. > ඔන්න පුතේ, මම අසූ හතර කියන සංඛ්‍යාව වෙන් කරලා ලිව්වා.
    - `chalkText.write` `{"text":"84 = 8 + 4"}`
-   - `pointer.move_to` `{"target":{"number":84}}`
+   - `pointer.move_to` `{"target":{"number":84}}` @0.26
 2. > ඒත් මගේ වැඩේ පොඩි වැරැද්දක් වුණා වගේ.
    - _(no event)_
 3. > මට උදව්වක් විදිහට ඒ වැරැද්ද හොයලා කියන්න හෝ තෝරන්න පුළුවන්ද?
@@ -563,9 +691,9 @@ Board at line start: the digit picker 1 · 3 · 6 · 4 with chalk "84 = 8 + 4"
 1. > වැරැද්ද තමයි අටට බිංදුවක් නොදැමීම.
    - `turn.over` `{}`
    - `chalkText.write` `{"text":"84 = 80 + 4"}`
-   - `pointer.move_to` `{"target":{"number":8}}`
+   - `pointer.move_to` `{"target":{"number":8}}` @0.38
 2. > ඒක අසූව විය යුතුයි — අසූ හතර කියන්නේ අසූවයි හතරයි.
-   - `pointer.move_to` `{"target":{"number":80}}`
+   - `pointer.move_to` `{"target":{"number":80}}` @0.06
 
 _Sees:_ The digit picker 1 · 3 · 6 · 4 with chalk "84 = 80 + 4"; "84 = 80 + 4" is written.
 
@@ -606,7 +734,7 @@ Board at line start: title card "ස්ථානීය අගය"
 
 1. > අද අපි ගණක රාමුවකින් අලුත් සංඛ්‍යාවක් හදන්නයි ලෑස්ති වෙන්නේ.
    - `abacus.show` `{"digits":[5,4,2,1],"startEmpty":true,"animate":false}`
-   - `chalkText.write` `{"text":"ගණක රාමුව"}`
+   - `chalkText.write` `{"text":"ගණක රාමුව"}` @0.12
 
 _Sees:_ The abacus, rods bare; bare rods appear; "ගණක රාමුව" is written.
 
@@ -615,21 +743,22 @@ _Sees:_ The abacus, rods bare; bare rods appear; "ගණක රාමුව" is 
 Board at line start: the abacus, rods bare
 
 1. > ගණක රාමුවේ දකුණු කෙළවරේම තියෙන කූර එකස්ථානය කියලයි අපි කියන්නේ.
-   - `abacus.rod_glow` `{"rod":3}`
+   - `abacus.rod_glow` `{"rod":3}` @0.56
    - `pointer.move_to` `{"target":{"text":"ගණක රාමුව"}}`
 
-_Sees:_ The abacus, rods bare; the එ rod glows.
+_Sees:_ The abacus, rods bare; the එ rod glows (as she names it).
 
 ### `placeValue4Digit:36` · EXPLAIN
 
 Board at line start: the abacus, rods bare
 
 1. > වමේ පැත්තට යද්දී දහයස්ථානය, සියයස්ථානය පිහිටනවා.
-   - `abacus.rod_glow` `{"rod":1,"rods":[1,2]}`
+   - `abacus.rod_glow` `{"rod":1}` @0.58
+   - `abacus.rod_glow` `{"rod":2}` @0.35
 2. > ඊට වම් පැත්තෙන්ම දහසස්ථානය තියෙනවා.
-   - `abacus.rod_glow` `{"rod":0}`
+   - `abacus.rod_glow` `{"rod":0}` @0.49
 
-_Sees:_ The abacus, rods bare; the සි and ද rods glow together; the දා rod glows.
+_Sees:_ The abacus, rods bare; the සි rod glows (as she names it); the ද rod glows (as she names it); the දා rod glows (as she names it).
 
 ### `placeValue4Digit:37` · SOFT_CHECK · pause SOFT_CHECK
 
@@ -648,7 +777,7 @@ Board at line start: the abacus, rods bare
 
 1. > ඔන්න අපි පන්දහස් හාරසිය විසි එක කියන ලස්සන සංඛ්‍යාව මේ රාමුවට දාමු.
    - `turn.over` `{}`
-   - `pointer.move_to` `{"target":{"number":5421}}`
+   - `pointer.move_to` `{"target":{"number":5421}}` @0.13
 
 _Sees:_ The abacus, rods bare.
 
@@ -658,30 +787,27 @@ Board at line start: the abacus, rods bare
 
 1. > දහසස්ථානයේ කූරට අපි පබළු එක, දෙක, තුන, හතර, පහක් දානවා.
    - `abacus.bead_add` `{"rod":0,"count":5}`
-   - `abacus.rod_glow` `{"rod":0}`
 
-_Sees:_ The abacus, දා 5; 5 bead(s) drop onto the දා rod; the දා rod glows.
+_Sees:_ The abacus, දා 5; 5 bead(s) drop onto the දා rod.
 
 ### `placeValue4Digit:40` · SHOW_BOARD
 
 Board at line start: the abacus, දා 5
 
 1. > ඊළඟ සියයස්ථානයට පබළු හතරක් දාමු.
-   - `abacus.bead_add` `{"rod":1,"count":4}`
-   - `abacus.rod_glow` `{"rod":1}`
+   - `abacus.bead_add` `{"rod":1,"count":4}` @0.13
 
-_Sees:_ The abacus, දා 5, සි 4; 4 bead(s) drop onto the සි rod; the සි rod glows.
+_Sees:_ The abacus, දා 5, සි 4; 4 bead(s) drop onto the සි rod.
 
 ### `placeValue4Digit:41` · SHOW_BOARD
 
 Board at line start: the abacus, දා 5, සි 4
 
 1. > දහයස්ථානයට පබළු දෙකකුත්, එකස්ථානයට එක පබළුවකුත් එකතු කරමු.
-   - `abacus.bead_add` `{"rod":2,"count":2}`
-   - `abacus.bead_add` `{"rod":3,"count":1}`
-   - `abacus.rod_glow` `{"rod":2,"rods":[2,3]}`
+   - `abacus.bead_add` `{"rod":2,"count":2}` @0.4
+   - `abacus.bead_add` `{"rod":3,"count":1}` @0.52
 
-_Sees:_ The abacus showing 5 421; 2 bead(s) drop onto the ද rod; 1 bead(s) drop onto the එ rod; the ද and එ rods glow together.
+_Sees:_ The abacus showing 5 421; 2 bead(s) drop onto the ද rod; 1 bead(s) drop onto the එ rod.
 
 ### `placeValue4Digit:42` · EXPLAIN
 
@@ -768,36 +894,35 @@ Board at line start: the abacus showing 5 421
 
 _Sees:_ The abacus showing 5 421; the දා rod glows.
 
-### `placeValue4Digit:52` · SHOW_BOARD
+### `placeValue4Digit:52` · EXPLAIN
 
 Board at line start: the abacus showing 5 421
 
 1. > මේ විදිහට හැම ඉලක්කමකටම තමන්ගේම ස්ථානීය අගයක් තියෙනවා.
-   - `blankTable.show` `{"item":"7b58e436"}`
-   - `chalkText.write` `{"text":"ස්ථානීය අගය"}`
+   - `chalkText.write` `{"text":"ස්ථානීය අගය"}` @0.59
 
-_Sees:_ The place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003; the place-value table; "ස්ථානීය අගය" is written.
+_Sees:_ The abacus showing 5 421; "ස්ථානීය අගය" is written.
 
 ### `placeValue4Digit:53` · SOFT_CHECK · pause SOFT_CHECK
 
-Board at line start: the place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003
+Board at line start: the abacus showing 5 421
 
 1. > ස්ථානය අනුව අගය වෙනස් වෙන හැටි පැහැදිලියි නේද පුතේ?
    - `turn.pause` `{"ms":2000}`
 
 Child: **soft check** — a 2 s pause while she reacts; a tap counts as engagement; no mic, no acknowledgement clip
 
-_Sees:_ The place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003 — a 2 s pause while she reacts; a tap counts as engagement; no mic, no acknowledgement clip.
+_Sees:_ The abacus showing 5 421 — a 2 s pause while she reacts; a tap counts as engagement; no mic, no acknowledgement clip.
 
 ### `placeValue4Digit:54` · TRANSITION
 
-Board at line start: the place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003
+Board at line start: the abacus showing 5 421
 
 1. > දැන් අපි ගණක රාමුවේ තියෙන සංඛ්‍යාව වචනයෙන් කියවන්න පුරුදු වෙමු.
-   - `abacus.show` `{"digits":[5,4,2,1],"startEmpty":false,"animate":false}`
+   - `turn.over` `{}`
    - `pointer.move_to` `{"target":{"text":"ගණක රාමුව"}}`
 
-_Sees:_ The abacus showing 5 421; the abacus shows 5 421.
+_Sees:_ The abacus showing 5 421.
 
 ### `placeValue4Digit:55` · EXPLAIN · pause RHETORICAL
 
@@ -823,11 +948,12 @@ _Sees:_ The abacus showing 5 421; the දා rod glows.
 Board at line start: the abacus showing 5 421
 
 1. > ඊළඟට සියයස්ථානයෙන් හාරසියයකුත් ලැබෙනවා.
-   - `abacus.rod_glow` `{"rod":1}`
+   - `abacus.rod_glow` `{"rod":1}` @0.13
 2. > දහයස්ථානයෙන් විස්සකුත්, එකස්ථානයෙන් එකකුත් ලැබෙනවා.
-   - `abacus.rod_glow` `{"rod":2,"rods":[2,3]}`
+   - `abacus.rod_glow` `{"rod":2}` @0.4
+   - `abacus.rod_glow` `{"rod":3}` @0.52
 
-_Sees:_ The abacus showing 5 421; the සි rod glows; the ද and එ rods glow together.
+_Sees:_ The abacus showing 5 421; the සි rod glows (as she names it); the ද rod glows (as she names it); the එ rod glows (as she names it).
 
 ### `placeValue4Digit:58` · ASK · pause ASK
 
@@ -852,7 +978,7 @@ Board at line start: the abacus showing 5 421
 1. > ඒ සංඛ්‍යාව පන්දහස් හාරසිය විසි එකයි.
    - `turn.over` `{}`
    - `chalkText.write` `{"text":"5 421 - පන්දහස් හාරසිය විසි එක"}`
-   - `pointer.move_to` `{"target":{"number":5421}}`
+   - `pointer.move_to` `{"target":{"number":5421}}` @0.31
 
 _Sees:_ The abacus showing 5 421 with chalk "5 421 - පන්දහස් හාරසිය විසි එක"; "5 421 - පන්දහස් හාරසිය විසි එක" is written.
 
@@ -861,7 +987,7 @@ _Sees:_ The abacus showing 5 421 with chalk "5 421 - පන්දහස් හ�
 Board at line start: the abacus showing 5 421 with chalk "5 421 - පන්දහස් හාරසිය විසි එක"
 
 1. > අපි මේ සංඛ්‍යාව අකුරෙන් ලියන්නේ පන්දහස් හාරසිය විසි එක කියලයි.
-   - `pointer.move_to` `{"target":{"number":5421}}`
+   - `pointer.move_to` `{"target":{"number":5421}}` @0.52
    - `turn.pause` `{"ms":2000}`
 
 Child: **soft check** — a 2 s pause while she reacts; a tap counts as engagement; no mic, no acknowledgement clip
@@ -900,7 +1026,7 @@ Board at line start: the abacus showing 6 831
 1. > ඒක හයදහස් අටසිය තිස් එක තමයි!
    - `turn.over` `{}`
    - `chalkText.write` `{"text":"6 831 - හයදහස් අටසිය තිස් එක"}`
-   - `pointer.move_to` `{"target":{"number":6831}}`
+   - `pointer.move_to` `{"target":{"number":6831}}` @0.1
 2. > දැන් ඔයා සංඛ්‍යා නාම කියවන්න හොඳටම දන්නවා.
    - _(no event)_
 
@@ -912,7 +1038,8 @@ Board at line start: the abacus showing 6 831 with chalk "6 831 - හයදහ�
 
 1. > දැන් අපි කලින් ගත්තු පන්දහස් හාරසිය විසි එක විහිදුවා ලියමු, පුතේ.
    - `abacus.show` `{"digits":[5,4,2,1],"startEmpty":false,"animate":false}`
-   - `chalkText.write` `{"text":"විහිදුවා"}`
+   - `chalkText.write` `{"text":"විහිදුවා"}` @0.68
+   - `pointer.move_to` `{"target":{"number":5421}}` @0.32
 
 _Sees:_ The abacus showing 5 421; the abacus shows 5 421; "විහිදුවා" is written.
 
@@ -921,10 +1048,10 @@ _Sees:_ The abacus showing 5 421; the abacus shows 5 421; "විහිදුව
 Board at line start: the abacus showing 5 421
 
 1. > බලන්න, දහසස්ථානයේ පබළු පහක් තියෙනවා නේද?
-   - `abacus.rod_glow` `{"rod":0}`
-   - `pointer.move_to` `{"target":{"rod":0}}`
+   - `abacus.rod_glow` `{"rod":0}` @0.18
+   - `pointer.move_to` `{"target":{"rod":0}}` @0.18
 
-_Sees:_ The abacus showing 5 421; the දා rod glows.
+_Sees:_ The abacus showing 5 421; the දා rod glows (as she names it).
 
 ### `placeValue4Digit:66` · ASK · pause ASK
 
@@ -945,11 +1072,11 @@ Board at line start: the abacus showing 5 421
 
 1. > ඒක පන්දහසයි.
    - `turn.over` `{}`
+   - `abacus.rod_glow` `{"rod":0}`
    - `expansion.show` `{"number":5421,"parts":[null,null,null,null]}`
-   - `expansion.part_fly` `{"fromRod":0,"index":0}`
    - `expansion.part_reveal` `{"index":0,"value":"5000"}`
 
-_Sees:_ The abacus showing 5 421 with its expansion beneath (5000 + ▢ + ▢ + ▢); 5 421 = ▢ + ▢ + ▢ + ▢; the value flies from rod දා into slot 0; 5000 is written into slot 0.
+_Sees:_ The abacus showing 5 421 with its expansion beneath (5000 + ▢ + ▢ + ▢); the දා rod glows; 5 421 = ▢ + ▢ + ▢ + ▢; 5000 is written into slot 0.
 
 ### `placeValue4Digit:68` · EXPLAIN
 
@@ -967,14 +1094,14 @@ _Sees:_ The abacus showing 5 421 with its expansion beneath (5000 + ▢ + ▢ + 
 Board at line start: the abacus showing 5 421 with its expansion beneath (5000 + ▢ + ▢ + ▢)
 
 1. > ඊළඟට දහයස්ථානයේ තියෙන දෙකෙන් ලැබෙන අගය කීයද?
-   - `abacus.rod_glow` `{"rod":2}`
-   - `pointer.move_to` `{"target":{"rod":2}}`
+   - `abacus.rod_glow` `{"rod":2}` @0.11
+   - `pointer.move_to` `{"target":{"rod":2}}` @0.11
    - `turn.your_turn` `{"answerMode":"valueOrPlace","surface":"rod"}`
    - `choiceChips.show` `{"options":["200","20","2"],"correctIndex":1}`
 
 Child: **answer** — tap the rod, or tap one of 3 chips · expects **විස්ස**
 
-_Sees:_ The abacus showing 5 421 with its expansion beneath (5000 + ▢ + ▢ + ▢); the ද rod glows — they answer via tap the rod, or tap one of 3 chips.
+_Sees:_ The abacus showing 5 421 with its expansion beneath (5000 + ▢ + ▢ + ▢); the ද rod glows (as she names it) — they answer via tap the rod, or tap one of 3 chips.
 
 ### `placeValue4Digit:71` · EXPLAIN
 
@@ -984,8 +1111,9 @@ Board at line start: the abacus showing 5 421 with its expansion beneath (5000 +
    - `turn.over` `{}`
    - `expansion.part_fly` `{"fromRod":2,"index":2}`
    - `expansion.part_reveal` `{"index":2,"value":"20"}`
+   - `pointer.move_to` `{"target":{"rod":2}}`
 
-_Sees:_ The abacus showing 5 421 with its expansion beneath (5000 + 400 + 20 + ▢); the value flies from rod ද into slot 2; 20 is written into slot 2; the ද rod glows.
+_Sees:_ The abacus showing 5 421 with its expansion beneath (5000 + 400 + 20 + ▢); the ද rod glows; the value flies from rod ද into slot 2; 20 is written into slot 2.
 
 ### `placeValue4Digit:72` · EXPLAIN
 
@@ -995,7 +1123,7 @@ Board at line start: the abacus showing 5 421 with its expansion beneath (5000 +
    - `expansion.part_fly` `{"fromRod":3,"index":3}`
    - `expansion.part_reveal` `{"index":3,"value":"1"}`
 
-_Sees:_ The abacus showing 5 421 with its expansion beneath (5000 + 400 + 20 + ▢); the value flies from rod එ into slot 3; 1 is written into slot 3; the එ rod glows.
+_Sees:_ The abacus showing 5 421 with its expansion beneath (5000 + 400 + 20 + ▢); the එ rod glows (as she names it); the value flies from rod එ into slot 3; 1 is written into slot 3.
 
 ### `placeValue4Digit:74` · SOFT_CHECK · pause SOFT_CHECK
 
@@ -1024,13 +1152,13 @@ _Sees:_ The abacus showing 7 062; the abacus shows 7 062.
 Board at line start: the abacus showing 7 062
 
 1. > මුලින්ම දහසස්ථානය දිහා බලන්න, එතන පබළු හතක් තියෙනවා නේද?
-   - `abacus.rod_glow` `{"rod":0}`
-   - `pointer.move_to` `{"target":{"rod":0}}`
+   - `abacus.rod_glow` `{"rod":0}` @0.14
+   - `pointer.move_to` `{"target":{"rod":0}}` @0.14
    - `turn.pause` `{"ms":2000}`
 
 Child: **soft check** — a 2 s pause while she reacts; a tap counts as engagement; no mic, no acknowledgement clip
 
-_Sees:_ The abacus showing 7 062; the දා rod glows — a 2 s pause while she reacts; a tap counts as engagement; no mic, no acknowledgement clip.
+_Sees:_ The abacus showing 7 062; the දා rod glows (as she names it) — a 2 s pause while she reacts; a tap counts as engagement; no mic, no acknowledgement clip.
 
 ### `placeValue4Digit:77` · EXPLAIN
 
@@ -1038,20 +1166,21 @@ Board at line start: the abacus showing 7 062
 
 1. > එක් පබළුවකින් දහසක් පෙන්වනවා නම්, පබළු හතක අගය හත්දහසයි.
    - `turn.over` `{}`
+   - `abacus.rod_glow` `{"rod":0}`
    - `expansion.show` `{"number":7062,"parts":[null,null,null,null]}`
-   - `expansion.part_fly` `{"fromRod":0,"index":0}`
    - `expansion.part_reveal` `{"index":0,"value":"7000"}`
+   - `pointer.move_to` `{"target":{"rod":0}}`
 
-_Sees:_ The abacus showing 7 062 with its expansion beneath (7000 + ▢ + ▢ + ▢); 7 062 = ▢ + ▢ + ▢ + ▢; the value flies from rod දා into slot 0; 7000 is written into slot 0.
+_Sees:_ The abacus showing 7 062 with its expansion beneath (7000 + ▢ + ▢ + ▢); the දා rod glows; 7 062 = ▢ + ▢ + ▢ + ▢; 7000 is written into slot 0.
 
 ### `placeValue4Digit:78` · EXPLAIN
 
 Board at line start: the abacus showing 7 062 with its expansion beneath (7000 + ▢ + ▢ + ▢)
 
 1. > ඊළඟට තියෙන සියයස්ථානයේ කූර දිහා හොඳින් බලන්නකෝ.
-   - `abacus.rod_glow` `{"rod":1}`
+   - `abacus.rod_glow` `{"rod":1}` @0.23
 
-_Sees:_ The abacus showing 7 062 with its expansion beneath (7000 + ▢ + ▢ + ▢); the සි rod glows.
+_Sees:_ The abacus showing 7 062 with its expansion beneath (7000 + ▢ + ▢ + ▢); the සි rod glows (as she names it).
 
 ### `placeValue4Digit:79` · ASK · pause ASK
 
@@ -1115,14 +1244,14 @@ Board at line start: the abacus showing 7 062 with its expansion beneath (7000 +
    - `expansion.part_fly` `{"fromRod":3,"index":3}`
    - `expansion.part_reveal` `{"index":3,"value":"2"}`
 
-_Sees:_ The abacus showing 7 062 with its expansion beneath (7000 + 0 + 60 + 2); the value flies from rod එ into slot 3; 2 is written into slot 3; the එ rod glows.
+_Sees:_ The abacus showing 7 062 with its expansion beneath (7000 + 0 + 60 + 2); the එ rod glows; the value flies from rod එ into slot 3; 2 is written into slot 3.
 
 ### `placeValue4Digit:84` · EXPLAIN · pause SOFT_CHECK
 
 Board at line start: the abacus showing 7 062 with its expansion beneath (7000 + 0 + 60 + 2)
 
 1. > එහෙනම් මේ මුළු සංඛ්‍යාව හත්දහස් හැට දෙකයි, අපි එය දිගහැරලා ලිව්වා නේද?
-   - `pointer.move_to` `{"target":{"number":7062}}`
+   - `pointer.move_to` `{"target":{"number":7062}}` @0.34
    - `turn.pause` `{"ms":2000}`
 
 Child: **soft check** — a 2 s pause while she reacts; a tap counts as engagement; no mic, no acknowledgement clip
@@ -1153,7 +1282,7 @@ Board at line start: number cards 1 · 3 · 8 · 6
 
 1. > අපි මුලින්ම හයදහස් අටසිය තිස් එක කියන සංඛ්‍යාව ලියලා බලමු.
    - `textCard.show` `{"text":"6 831"}`
-   - `pointer.move_to` `{"target":{"number":6831}}`
+   - `pointer.move_to` `{"target":{"number":6831}}` @0.21
 
 _Sees:_ Card "6 831"; card "6 831".
 
@@ -1177,7 +1306,7 @@ Board at line start: card "6 831"
 1. > ඒක හයදහසයි.
    - `turn.over` `{}`
    - `chalkText.write` `{"text":"6 831 = 6000 + 800 + 30 + 1","append":"= 6000 + 800 + 30 + 1"}`
-   - `pointer.move_to` `{"target":{"number":6000}}`
+   - `pointer.move_to` `{"target":{"number":6000}}` @0.27
 
 _Sees:_ Card "6 831" with chalk "6 831 = 6000 + 800 + 30 + 1"; "= 6000 + 800 + 30 + 1" is written on, making "6 831 = 6000 + 800 + 30 + 1".
 
@@ -1199,7 +1328,7 @@ Board at line start: card "6 831" with chalk "6 831 = 6000 + 800 + 30 + 1"
 
 1. > තව ක්‍රමයකට හැදුවොත් අපිට අටදහස් හයසිය දහතුන ලැබෙනවා.
    - `textCard.show` `{"text":"8 613"}`
-   - `pointer.move_to` `{"target":{"number":8613}}`
+   - `pointer.move_to` `{"target":{"number":8613}}` @0.49
 
 _Sees:_ Card "8 613"; card "8 613".
 
@@ -1208,7 +1337,7 @@ _Sees:_ Card "8 613"; card "8 613".
 Board at line start: card "8 613"
 
 1. > එහෙනම් අටදහස් හයසිය දහතුන දිගහරිද්දී මුලින්ම ලියවෙන්නේ මොන අගයද?
-   - `pointer.move_to` `{"target":{"number":8613}}`
+   - `pointer.move_to` `{"target":{"number":8613}}` @0.11
    - `turn.your_turn` `{"answerMode":"valueOrPlace","surface":"chips"}`
    - `choiceChips.show` `{"options":["800","8000","8"],"correctIndex":1}`
 
@@ -1223,9 +1352,9 @@ Board at line start: card "8 613"
 1. > මුලින්ම ලියවෙන්නේ අටදහසයි.
    - `turn.over` `{}`
    - `chalkText.write` `{"text":"8 613 = 8000 + 600 + 10 + 3","append":"= 8000 + 600 + 10 + 3"}`
-   - `pointer.move_to` `{"target":{"number":8000}}`
+   - `pointer.move_to` `{"target":{"number":8000}}` @0.69
 2. > ඊටපස්සේ හයසියයයි, දහයයි, තුනයි එකතු වෙනවා.
-   - `pointer.move_to` `{"target":{"number":600}}`
+   - `pointer.move_to` `{"target":{"number":600}}` @0.19
 
 _Sees:_ Card "8 613" with chalk "8 613 = 8000 + 600 + 10 + 3"; "= 8000 + 600 + 10 + 3" is written on, making "8 613 = 8000 + 600 + 10 + 3".
 
@@ -1235,7 +1364,7 @@ Board at line start: card "8 613" with chalk "8 613 = 8000 + 600 + 10 + 3"
 
 1. > අපි කලින් ගත්තු හත්දහස් හැට දෙක දිහා ආයෙත් බලමු.
    - `abacus.show` `{"digits":[7,0,6,2],"startEmpty":false,"animate":false}`
-   - `pointer.move_to` `{"target":{"number":7062}}`
+   - `pointer.move_to` `{"target":{"number":7062}}` @0.33
 2. > බිංදුවක් ආවොත් එතැනින් කිසිම අගයක් එකතු වෙන්නේ නෑ නේද පුතේ?
    - `turn.pause` `{"ms":2000}`
 
@@ -1266,7 +1395,7 @@ _Sees:_ 5 421 = ▢ + ▢ + ▢ + ▢; 5 421 = ▢ + ▢ + ▢ + ▢.
 Board at line start: 5 421 = ▢ + ▢ + ▢ + ▢
 
 1. > පළමුවැනි ගාණ විදිහට පන්දහස් හාරසිය විසි එක සංඛ්‍යාව දිගහැරලා ලියමු.
-   - `pointer.move_to` `{"target":{"number":5421}}`
+   - `pointer.move_to` `{"target":{"number":5421}}` @0.3
 
 _Sees:_ 5 421 = ▢ + ▢ + ▢ + ▢.
 
@@ -1321,13 +1450,49 @@ _Sees:_ 5 421 = 5000 + ▢ + ▢ + ▢; 5000 is written into slot 0.
 Board at line start: 5 421 = 5000 + ▢ + ▢ + ▢
 
 1. > දැන් මේ වගුවේ තියෙන කොටස් අපි එකට පුරවමු.
-   - `blankTable.show` `{"item":"7b58e436"}`
+   - `blankTable.show` `{"item":"7b58e436","demonstrateRow":0}`
 
-_Sees:_ The place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003; the place-value table.
+_Sees:_ The place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate; the place-value table, row 1 blank for her to fill.
+
+### `placeValue4Digit:102a` · EXPLAIN
+
+Board at line start: the place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate
+
+1. > දෙදහස් තුන්සිය හතළිස් අට කියන සංඛ්‍යාවේ මුල්ම ඉලක්කම දෙක.
+   - `blankTable.cell_fill` `{"row":0,"field":"digit","value":"2","by":"tutor"}`
+
+_Sees:_ The place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate; 2 written into row 0.
+
+### `placeValue4Digit:102b` · EXPLAIN
+
+Board at line start: the place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate
+
+1. > ඒ දෙක තියෙන්නේ දහසස්ථානයේ.
+   - `blankTable.cell_fill` `{"row":0,"field":"place","value":"දහසස්ථානය","by":"tutor"}`
+
+_Sees:_ The place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate; දහසස්ථානය written into row 0.
+
+### `placeValue4Digit:102c` · EXPLAIN
+
+Board at line start: the place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate
+
+1. > දහසස්ථානයේ අගය දහස.
+   - `blankTable.cell_fill` `{"row":0,"field":"placeValue","value":"1000","by":"tutor"}`
+
+_Sees:_ The place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate; 1000 written into row 0.
+
+### `placeValue4Digit:102d` · EXPLAIN
+
+Board at line start: the place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate
+
+1. > ඒ නිසා දෙකෙන් පෙන්වන අගය දෙදහස.
+   - `blankTable.cell_fill` `{"row":0,"field":"valueRepresented","value":"2000","by":"tutor"}`
+
+_Sees:_ The place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate; 2000 written into row 0.
 
 ### `placeValue4Digit:103` · ASK · pause ASK
 
-Board at line start: the place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003
+Board at line start: the place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate
 
 1. > හයදහස් පන්සිය හැත්තෑ දෙක කියන සංඛ්‍යාවේ හයෙන් පෙන්වන අගය කීයද?
    - `blankTable.row_activate` `{"row":1,"field":"valueRepresented"}`
@@ -1336,48 +1501,103 @@ Board at line start: the place-value table: 2 348 (worked) · 6 572 · 5 024 · 
 
 Child: **answer** — the number pad into the active cell · expects **6000**
 
-_Sees:_ The place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003; row 1's valueRepresented cell is outlined — they answer via the number pad into the active cell.
+_Sees:_ The place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate; row 1's valueRepresented cell is outlined — they answer via the number pad into the active cell.
+
+### `placeValue4Digit:103a` · ASK · pause ASK
+
+Board at line start: the place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate
+
+1. > දැන් ඔයාගේ වාරයයි පුතේ.
+   - `blankTable.row_activate` `{"row":1,"field":"place"}`
+2. > මේ හිස්තැනට එන්නේ මොකක්ද කියන්න බලන්න.
+   - `pointer.move_to` `{"target":{"cell":{"row":1,"field":"place"}}}`
+   - `turn.your_turn` `{"answerMode":"cell","surface":"cell"}`
+
+Child: **answer** — the number pad into the active cell · expects **දහසස්ථානය**
+
+_Sees:_ The place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate; row 1's place cell is outlined — they answer via the number pad into the active cell.
+
+### `placeValue4Digit:103b` · EXPLAIN
+
+Board at line start: the place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate
+
+1. > ඒ හය තියෙන්නේ දහසස්ථානයේ.
+   - `turn.over` `{}`
+   - `blankTable.cell_fill` `{"row":1,"field":"place","value":"දහසස්ථානය","by":"tutor"}`
+
+_Sees:_ The place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate; දහසස්ථානය written into row 1.
+
+### `placeValue4Digit:103c` · EXPLAIN
+
+Board at line start: the place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate
+
+1. > බලන්න, මෙතනට එන්නේ දහස.
+   - `blankTable.cell_fill` `{"row":1,"field":"placeValue","value":"1000","by":"tutor"}`
+2. > මම ලියන්නම්.
+   - _(no event)_
+
+_Sees:_ The place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate; 1000 written into row 1.
 
 ### `placeValue4Digit:104` · EXPLAIN
 
-Board at line start: the place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003
+Board at line start: the place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate
 
 1. > ඒක හයදහසයි.
-   - `turn.over` `{}`
-   - `pointer.move_to` `{"target":{"number":6000}}`
+   - `blankTable.cell_fill` `{"row":1,"field":"valueRepresented","value":"6000","by":"tutor"}`
 2. > ඒ හය තියෙන්නේ දහසස්ථානයේ.
-   - `pointer.move_to` `{"target":{"number":6}}`
+   - `pointer.move_to` `{"target":{"number":6}}` @0.08
 
-_Sees:_ The place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003.
+_Sees:_ The place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate; 6000 written into row 1.
 
-### `placeValue4Digit:105` · ASK · pause ASK
+### `placeValue4Digit:105` · EXPLAIN
 
-Board at line start: the place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003
+Board at line start: the place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate
 
-1. > එහෙනම් පන්දහස් විසි හතර කියන සංඛ්‍යාවේ හතරෙන් පෙන්වන අගය කීයද?
-   - `blankTable.row_activate` `{"row":2,"field":"valueRepresented"}`
-   - `pointer.move_to` `{"target":{"number":5024}}`
+1. > බලන්න, මෙතනට එන්නේ එකස්ථානය.
+   - `blankTable.cell_fill` `{"row":2,"field":"place","value":"එකස්ථානය","by":"tutor"}`
+2. > මම ලියන්නම්.
+   - _(no event)_
+
+_Sees:_ The place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate; එකස්ථානය written into row 2.
+
+### `placeValue4Digit:105a` · ASK · pause ASK
+
+Board at line start: the place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate
+
+1. > දැන් ඔයාගේ වාරයයි පුතේ.
+   - `blankTable.row_activate` `{"row":2,"field":"placeValue"}`
+2. > මේ හිස්තැනට එන්නේ මොකක්ද කියන්න බලන්න.
+   - `pointer.move_to` `{"target":{"cell":{"row":2,"field":"placeValue"}}}`
    - `turn.your_turn` `{"answerMode":"cell","surface":"cell"}`
 
-Child: **answer** — the number pad into the active cell · expects **4**
+Child: **answer** — the number pad into the active cell · expects **1**
 
-_Sees:_ The place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003; row 2's valueRepresented cell is outlined — they answer via the number pad into the active cell.
+_Sees:_ The place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate; row 2's placeValue cell is outlined — they answer via the number pad into the active cell.
+
+### `placeValue4Digit:105b` · EXPLAIN
+
+Board at line start: the place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate
+
+1. > ඒක එකයි.
+   - `turn.over` `{}`
+   - `blankTable.cell_fill` `{"row":2,"field":"placeValue","value":"1","by":"tutor"}`
+
+_Sees:_ The place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate; 1 written into row 2.
 
 ### `placeValue4Digit:106` · EXPLAIN
 
-Board at line start: the place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003
+Board at line start: the place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate
 
 1. > ඒක හතරයි.
-   - `turn.over` `{}`
-   - `pointer.move_to` `{"target":{"number":4}}`
+   - `blankTable.cell_fill` `{"row":2,"field":"valueRepresented","value":"4","by":"tutor"}`
 2. > හතර තියෙන්නේ එකස්ථානයේ.
    - `pointer.move_to` `{"target":{"number":4}}`
 
-_Sees:_ The place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003.
+_Sees:_ The place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate; 4 written into row 2.
 
 ### `placeValue4Digit:107` · ASK · pause ASK
 
-Board at line start: the place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003
+Board at line start: the place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate
 
 1. > අටදහස් හත්සියය කියන සංඛ්‍යාවේ හත්සියය අගය දෙන්නේ මොන ඉලක්කමද?
    - `blankTable.row_activate` `{"row":3,"field":"digit"}`
@@ -1386,28 +1606,168 @@ Board at line start: the place-value table: 2 348 (worked) · 6 572 · 5 024 · 
 
 Child: **answer** — the number pad into the active cell · expects **7**
 
-_Sees:_ The place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003; row 3's digit cell is outlined — they answer via the number pad into the active cell.
+_Sees:_ The place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate; row 3's digit cell is outlined — they answer via the number pad into the active cell.
 
 ### `placeValue4Digit:108` · EXPLAIN
 
-Board at line start: the place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003
+Board at line start: the place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate
 
 1. > ඒක හතයි.
    - `turn.over` `{}`
-   - `pointer.move_to` `{"target":{"number":7}}`
+   - `blankTable.cell_fill` `{"row":3,"field":"digit","value":"7","by":"tutor"}`
 2. > හත තියෙන්නේ සියයස්ථානයේ.
    - `pointer.move_to` `{"target":{"number":7}}`
 
-_Sees:_ The place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003.
+_Sees:_ The place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate; 7 written into row 3.
+
+### `placeValue4Digit:108a` · EXPLAIN
+
+Board at line start: the place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate
+
+1. > බලන්න, මෙතනට එන්නේ සියයස්ථානය.
+   - `blankTable.cell_fill` `{"row":3,"field":"place","value":"සියයස්ථානය","by":"tutor"}`
+2. > මම ලියන්නම්.
+   - _(no event)_
+
+_Sees:_ The place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate; සියයස්ථානය written into row 3.
+
+### `placeValue4Digit:108b` · ASK · pause ASK
+
+Board at line start: the place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate
+
+1. > දැන් ඔයාගේ වාරයයි පුතේ.
+   - `blankTable.row_activate` `{"row":3,"field":"placeValue"}`
+2. > මේ හිස්තැනට එන්නේ මොකක්ද කියන්න බලන්න.
+   - `pointer.move_to` `{"target":{"cell":{"row":3,"field":"placeValue"}}}`
+   - `turn.your_turn` `{"answerMode":"cell","surface":"cell"}`
+
+Child: **answer** — the number pad into the active cell · expects **100**
+
+_Sees:_ The place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate; row 3's placeValue cell is outlined — they answer via the number pad into the active cell.
+
+### `placeValue4Digit:108c` · EXPLAIN
+
+Board at line start: the place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate
+
+1. > ඒක සියයයි.
+   - `turn.over` `{}`
+   - `blankTable.cell_fill` `{"row":3,"field":"placeValue","value":"100","by":"tutor"}`
+
+_Sees:_ The place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate; 100 written into row 3.
+
+### `placeValue4Digit:108d` · EXPLAIN
+
+Board at line start: the place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate
+
+1. > බලන්න, මෙතනට එන්නේ බිංදුව.
+   - `blankTable.cell_fill` `{"row":4,"field":"digit","value":"0","by":"tutor"}`
+2. > මම ලියන්නම්.
+   - _(no event)_
+
+_Sees:_ The place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate; 0 written into row 4.
+
+### `placeValue4Digit:108e` · ASK · pause ASK
+
+Board at line start: the place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate
+
+1. > දැන් ඔයාගේ වාරයයි පුතේ.
+   - `blankTable.row_activate` `{"row":4,"field":"placeValue"}`
+2. > මේ හිස්තැනට එන්නේ මොකක්ද කියන්න බලන්න.
+   - `pointer.move_to` `{"target":{"cell":{"row":4,"field":"placeValue"}}}`
+   - `turn.your_turn` `{"answerMode":"cell","surface":"cell"}`
+
+Child: **answer** — the number pad into the active cell · expects **10**
+
+_Sees:_ The place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate; row 4's placeValue cell is outlined — they answer via the number pad into the active cell.
+
+### `placeValue4Digit:108f` · EXPLAIN
+
+Board at line start: the place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate
+
+1. > ඒක දහයයි.
+   - `turn.over` `{}`
+   - `blankTable.cell_fill` `{"row":4,"field":"placeValue","value":"10","by":"tutor"}`
+
+_Sees:_ The place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate; 10 written into row 4.
+
+### `placeValue4Digit:108g` · EXPLAIN
+
+Board at line start: the place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate
+
+1. > බලන්න, මෙතනට එන්නේ බිංදුව.
+   - `blankTable.cell_fill` `{"row":4,"field":"valueRepresented","value":"0","by":"tutor"}`
+2. > මම ලියන්නම්.
+   - _(no event)_
+
+_Sees:_ The place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate; 0 written into row 4.
+
+### `placeValue4Digit:108h` · ASK · pause ASK
+
+Board at line start: the place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate
+
+1. > දැන් ඔයාගේ වාරයයි පුතේ.
+   - `blankTable.row_activate` `{"row":5,"field":"digit"}`
+2. > මේ හිස්තැනට එන්නේ මොකක්ද කියන්න බලන්න.
+   - `pointer.move_to` `{"target":{"cell":{"row":5,"field":"digit"}}}`
+   - `turn.your_turn` `{"answerMode":"cell","surface":"cell"}`
+
+Child: **answer** — the number pad into the active cell · expects **0**
+
+_Sees:_ The place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate; row 5's digit cell is outlined — they answer via the number pad into the active cell.
+
+### `placeValue4Digit:108i` · EXPLAIN
+
+Board at line start: the place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate
+
+1. > ඒක බිංදුවයි.
+   - `turn.over` `{}`
+   - `blankTable.cell_fill` `{"row":5,"field":"digit","value":"0","by":"tutor"}`
+
+_Sees:_ The place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate; 0 written into row 5.
+
+### `placeValue4Digit:108j` · EXPLAIN
+
+Board at line start: the place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate
+
+1. > බලන්න, මෙතනට එන්නේ සියය.
+   - `blankTable.cell_fill` `{"row":5,"field":"placeValue","value":"100","by":"tutor"}`
+2. > මම ලියන්නම්.
+   - _(no event)_
+
+_Sees:_ The place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate; 100 written into row 5.
+
+### `placeValue4Digit:108k` · ASK · pause ASK
+
+Board at line start: the place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate
+
+1. > දැන් ඔයාගේ වාරයයි පුතේ.
+   - `blankTable.row_activate` `{"row":5,"field":"valueRepresented"}`
+2. > මේ හිස්තැනට එන්නේ මොකක්ද කියන්න බලන්න.
+   - `pointer.move_to` `{"target":{"cell":{"row":5,"field":"valueRepresented"}}}`
+   - `turn.your_turn` `{"answerMode":"cell","surface":"cell"}`
+
+Child: **answer** — the number pad into the active cell · expects **0**
+
+_Sees:_ The place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate; row 5's valueRepresented cell is outlined — they answer via the number pad into the active cell.
+
+### `placeValue4Digit:108l` · EXPLAIN
+
+Board at line start: the place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate
+
+1. > ඒක බිංදුවයි.
+   - `turn.over` `{}`
+   - `blankTable.cell_fill` `{"row":5,"field":"valueRepresented","value":"0","by":"tutor"}`
+
+_Sees:_ The place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate; 0 written into row 5.
 
 ### `placeValue4Digit:109` · EXPLAIN
 
-Board at line start: the place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003
+Board at line start: the place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate
 
 1. > අද ඔයා හොඳට වැඩ කළා.
    - _(no event)_
 2. > ස්ථානීය අගය මොකක්ද කියලා දැන් ඔයා දන්නවා.
    - `pointer.move_to` `{"target":{"text":"ස්ථානීය අගය"}}`
 
-_Sees:_ The place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003.
+_Sees:_ The place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate.
 

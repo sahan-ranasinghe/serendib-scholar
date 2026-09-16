@@ -687,7 +687,13 @@ async function checkCarryOver(page: Cdp, gotoFrame: (id: string) => Promise<void
   add("5 glow", "siblings veiled to 38 %", "0.38", [...new Set(veil.veiled)].join(","), veil.veiled.length > 0 && veil.veiled.every((o) => Math.abs(Number(o) - 0.38) < 0.01));
   await gotoFrame("placeValue:41");
   const group = await q<{ glows: number; groups: number }>(`(() => { const glows = [...document.querySelectorAll('[data-glow="true"], .wb-glow')]; const groups = new Set(glows.map((g) => g.closest('[data-testid="abacus"]') || g)); return { glows: glows.length, groups: groups.size }; })()`);
-  add("f glow group", "two rods, one group", "2 glows · 1 group", `${group.glows} glows · ${group.groups} group`, group.glows === 2 && group.groups === 1);
+  // Rule f (revised 16 Sep, triage cluster E): rods named in one sentence glow IN SEQUENCE — the frame shows one rod lit
+  // (the last gesture), and the storyboard carries two abacus gestures on that sentence at two distinct timestamps.
+  const storyboardFile = JSON.parse(await readFile(path.resolve(process.cwd(), "src/data/storyboard/maths-5-1-session-1.json"), "utf8")) as { beats: Array<{ id: string; events: Array<{ sentenceIndex: number; primitive: string; event: string; at?: number }> }> };
+  const beat41 = storyboardFile.beats.find((b) => b.id === "authored:placeValue4Digit:41");
+  const gestures41 = (beat41?.events ?? []).filter((e) => e.primitive === "abacus" && (e.event === "rod_glow" || e.event === "bead_add"));
+  const stamps41 = new Set(gestures41.map((e) => `${e.sentenceIndex}@${e.at ?? 0}`));
+  add("f glow in sequence", "two rods named in one sentence: one lit at a time, two gestures at two timestamps", "1 glow · 1 group · 2 gestures · 2 timestamps", `${group.glows} glow · ${group.groups} group · ${gestures41.length} gestures · ${stamps41.size} timestamps`, group.glows === 1 && group.groups === 1 && gestures41.length === 2 && stamps41.size === 2);
 
   // Rule 6 — lift and touch: a card lifted on tap (the gallery's Number cards cell), beads 36×14 with a 48 px hit ring, rod columns 48.
   await page.send("Emulation.setDeviceMetricsOverride", { width: 1400, height: 1000, deviceScaleFactor: 1, mobile: false });

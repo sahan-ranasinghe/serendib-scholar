@@ -46,7 +46,21 @@ export async function stageBeatBoard(action: BeatBoardAction): Promise<StagedBoa
     case "stage_item": {
       const response = await post("/api/tools/find-teaching-content", { item_id: action.itemId });
       const board = response.board as BoardContent | undefined;
-      return board ? { board } : {};
+      if (!board) return {};
+      // A demonstration row: its worked cells are blanked here (the number
+      // stays) so Zara's reveal beats fill them one by one — the row is
+      // worked in front of the child, not shown finished.
+      if (action.demonstrateRow !== undefined && board.type === "lesson_content") {
+        const components = (board.components as Array<{ type: string; props: Record<string, unknown> }>).map((component) => {
+          if (component.type !== "PlaceValueTable" || !Array.isArray(component.props.rows)) return component;
+          const rows = (component.props.rows as Array<Record<string, unknown>>).map((row, index) =>
+            index === action.demonstrateRow ? Object.fromEntries(Object.entries(row).map(([key, value]) => [key, key === "number" ? value : null])) : row,
+          );
+          return { ...component, props: { ...component.props, rows } };
+        });
+        return { board: { ...board, components } as BoardContent };
+      }
+      return { board };
     }
     case "reveal_part": {
       // A synthetic expansion (see authoredScript.expansionItemId) has no

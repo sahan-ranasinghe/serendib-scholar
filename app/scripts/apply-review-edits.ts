@@ -82,6 +82,8 @@ interface BeatRewrite {
   expectedAnswer?: string;
   dropExpectedAnswer?: boolean;
   board?: AuthoredBoardIntent;
+  /** The guide step the beat serves (the coverage round regroups the closing exercise under one step). */
+  guideStep?: string;
   why?: string;
 }
 
@@ -126,6 +128,12 @@ interface CorrectionsFile {
   phraseRubrics: Record<string, (PhraseRubric & { why?: string }) | string>;
   /** Chip-primary questions no longer ask the child to SAY it — "කියන්න හෝ තෝරන්න" / "හරි එක තෝරන්න". */
   chipWording?: Record<string, string>;
+  /**
+   * Coverage round (triage cluster C): every number of the list, every blank
+   * of every table, all five builds; the place-value table as one atomic
+   * exercise. Applied last — it overrides every earlier round it touches.
+   */
+  coverage?: { rewrite: Record<string, BeatRewrite & { remove?: boolean }>; insert: InsertedBeat[] };
 }
 
 interface DecisionsFile {
@@ -354,6 +362,8 @@ async function main(): Promise<void> {
     ...Object.keys(corrections.ending.rewrite).filter((id) => id.startsWith("authored:")),
     ...Object.keys(corrections.visualContinuity.rewrite).filter((id) => id.startsWith("authored:")),
     ...Object.keys(corrections.storyboard.rewrite).filter((id) => id.startsWith("authored:")),
+    // The coverage round re-types :5 back to an ASK (the list is asked in full); round 3's softening stands aside.
+    ...Object.keys(corrections.coverage?.rewrite ?? {}).filter((id) => id.startsWith("authored:")),
   ]);
 
   const apply = (id: string, sourceText: string, source: string): void => {
@@ -478,6 +488,10 @@ async function main(): Promise<void> {
       delete beat.expectedAnswer;
       changes.push("expects dropped");
     }
+    if (rewrite.guideStep !== undefined && beat.guideStep !== rewrite.guideStep) {
+      beat.guideStep = rewrite.guideStep;
+      changes.push("guide step");
+    }
     if (rewrite.board) {
       beat.boardIntent = rewrite.board;
       changes.push("board");
@@ -546,6 +560,7 @@ async function main(): Promise<void> {
           type: addition.beat.type,
           pause: addition.beat.pause,
           board: addition.beat.board,
+          ...(addition.beat.guideStep !== undefined ? { guideStep: addition.beat.guideStep } : {}),
           ...(addition.beat.expectedAnswer !== undefined
             ? { expectedAnswer: addition.beat.expectedAnswer }
             : { dropExpectedAnswer: true }),
@@ -662,6 +677,19 @@ async function main(): Promise<void> {
 
   // ---- ROUND 10: the textbook table the session skipped, and phrase rubrics
   for (const addition of corrections.textbookTable?.insert ?? []) insertBeat(addition, "textbook table");
+  // ---- COVERAGE ROUND: every number, every blank, every build (triage cluster C)
+  for (const [id, rewrite] of Object.entries(corrections.coverage?.rewrite ?? {})) {
+    if (!id.startsWith("authored:")) continue;
+    if (rewrite.remove) {
+      const before = file.beats.length;
+      file.beats = file.beats.filter((beat) => beat.id !== id);
+      if (file.beats.length < before) structural.push({ id, what: "REMOVED", why: rewrite.why ?? "coverage" });
+      byId.delete(id);
+      continue;
+    }
+    applyRewrite(id, rewrite, rewrite.why ?? "coverage");
+  }
+  for (const addition of corrections.coverage?.insert ?? []) insertBeat(addition, "coverage");
   for (const [id, text] of Object.entries(corrections.chipWording ?? {})) {
     if (id === "$comment") continue;
     applyRewrite(id, { text }, "chip wording: the answer is tapped or said, never only said");

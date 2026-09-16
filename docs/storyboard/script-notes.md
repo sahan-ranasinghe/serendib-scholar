@@ -8,7 +8,7 @@ Where the spoken line and the visual plan do not fit, in beat order. The script 
 
 **Current line:** ඒක පන්දහසයි.
 
-**Problem:** 3 things to show in one sentence (expansion.show, expansion.part_fly, abacus.rod_glow දා) — only two fit
+**Problem:** 3 things to show in one sentence (abacus rod_glow දා, expansion.show, expansion.part_fly) — only two fit
 
 **Suggested line:** _(pending)_
 
@@ -16,7 +16,7 @@ Where the spoken line and the visual plan do not fit, in beat order. The script 
 
 **Current line:** එක් පබළුවකින් දහසක් පෙන්වනවා නම්, පබළු හතක අගය හත්දහසයි.
 
-**Problem:** 3 things to show in one sentence (expansion.show, expansion.part_fly, abacus.rod_glow දා) — only two fit
+**Problem:** 3 things to show in one sentence (abacus rod_glow දා, expansion.show, expansion.part_fly) — only two fit
 
 **Suggested line:** _(pending)_
 

@@ -108,6 +108,11 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // CLIP_RENDER=off: a harness (or a pilot with no render budget) never
+    // reaches the voice model — an unrecorded line is read on the board
+    // instead (the runtime's no-clip path), and nothing is billed.
+    if (process.env.CLIP_RENDER === "off") return NextResponse.json({ ok: false, error: "Rendering is off; the line has no clip yet." }, { status: 503 });
+
     // Only an actual render (a voice-model call) spends the budget — cache
     // hits above are free. 20 per session; a healthy session renders 0-2
     // (RETEACH lines and unusual CONFIRM values).

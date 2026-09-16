@@ -693,9 +693,9 @@ async function main(): Promise<void> {
       drillNote("three ↺ taps are one question; cancel changes nothing", sheets === 1 && afterCancel.beat === beforeCancel && !afterCancel.sheet, `3 ↺ taps → ${sheets} confirm sheet(s) · cancel → beat ${afterCancel.beat === beforeCancel ? "unchanged" : `CHANGED to ${afterCancel.beat}`}, sheet ${afterCancel.sheet ? "STILL UP" : "gone"}, status ${afterCancel.status}`);
     }
     // 4. A clip that cannot be fetched: :6's line is read on the board and its events still run. The
-    //    runtime preloads the next three clips, so the door is shut at :3b — :6 is the first beat whose
-    //    clip is fetched behind it (:4, :5, :5a were already in hand).
-    if (short === "readWrite4Digit:3b" && !drillDone.has("clip")) {
+    //    runtime preloads the next three clips, so the door is shut at :4 — :6 is the first beat whose
+    //    clip is fetched behind it (:4a, :5, :5a were already in hand).
+    if (short === "readWrite4Digit:4" && !drillDone.has("clip")) {
       drillDone.add("clip");
       await page.send("Network.enable");
       await page.send("Network.setBlockedURLs", { urls: ["*/api/clip/*", "*/api/speak-line*"] });

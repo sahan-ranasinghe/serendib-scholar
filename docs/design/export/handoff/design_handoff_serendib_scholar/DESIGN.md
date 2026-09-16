@@ -49,7 +49,7 @@ d. **Ten-card row** — numberCards with 10 values uses 56 px cards in one row; 
 e0. **Number pad** — two rows of six 56×56 keys (1–5 ⌫ / 6–0 ✓), docked at the foot; content inset bottom becomes 190 px while docked.
 e1. **Word bank** — name cells are answered from a per-row bank of 4 correct words + 2 distractors (56 px tiles, tapped in order, used tiles veil). Sinhala number names are fused forms (හයදහස්, පහළොව, එකසියය), so no morpheme pad can compose them.
 e. **Table skins** — the place-value table (5 columns) and the numeral ↔ name table (2 columns) share one skin. A name cell docks the word bank (e1) instead of the digit pad; while any dock is present the table shows 3–4 rows and scrolls the active row into view. Filled (✓/✎), active (glow + caret) and pointer states may coexist in one table.
-f. **Glow group (confirmed)** — rods named in the same sentence glow together as one gesture; never two unrelated things.
+f. **Glow in sequence (revised 16 Sep, triage cluster E)** — rods named in one sentence glow IN SEQUENCE, each as she names it (events on one sentence fire by estimated word position, never together); a glow holds until the next begins. Beads landing on two rods in one breath land one rod after the other. Still never two unrelated things at once. (Superseded: "glow group — rods named together glow together", which lit දහයස්ථානය and සියයස්ථානය at once at :36 and dropped beads on two rods at :41.)
 g. **Ring an abacus** — highlight.circle on a number the abacus shows rings the whole frame.
 h. **Expansion alone** — on the worksheet card the expansion stands without the abacus; slots are 80×56, the next blank glows.
 

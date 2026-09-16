@@ -60,7 +60,7 @@ const SUGGESTIONS_PATH = path.join(OUT_DIR, "script-note-suggestions.json");
 // The script stages these by id; their contents live in the database. They
 // are pinned here so the storyboard can be produced offline and so a
 // reviewer can see what is on the board without a query.
-const KNOWN_ITEMS: Record<string, { primitive: "digitPicker" | "blankTable"; summary: string; pool?: number[]; numbers?: number[] }> = {
+const KNOWN_ITEMS: Record<string, { primitive: "digitPicker" | "blankTable"; summary: string; pool?: number[]; numbers?: number[]; workedRow?: number[] }> = {
   "7daf0141": {
     primitive: "digitPicker",
     summary: "the textbook's digit-card puzzle (make five four-digit numbers from the printed digits)",
@@ -68,7 +68,9 @@ const KNOWN_ITEMS: Record<string, { primitive: "digitPicker" | "blankTable"; sum
   "7b58e436": {
     primitive: "blankTable",
     summary: "the place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003",
-    numbers: [2348, 2, 1000, 2000, 6572, 6, 5024, 4, 8700, 700, 9605, 7003],
+    numbers: [2348, 6572, 6, 5024, 4, 8700, 700, 9605, 7003],
+    // The worked row's cells: printed unless the row is staged blank for her demonstration (coverage round).
+    workedRow: [2, 1000, 2000],
   },
   "4c2aa078": {
     primitive: "blankTable",
@@ -87,6 +89,13 @@ interface Event {
   primitive: Primitive;
   event: string;
   args?: Record<string, unknown>;
+  /**
+   * Where in the sentence the event fires, 0–1 by the estimated position of
+   * the word it answers to (cluster E). Events on one sentence fire IN
+   * SEQUENCE, never together: a glow holds until the next begins. Absent
+   * (or 0) = as the sentence starts.
+   */
+  at?: number;
 }
 
 /** Rod index by place name — the runtime's abacus_add numbering (0 = දා … 3 = එ). */
@@ -128,10 +137,12 @@ interface BoardState {
   focus: string | null; // what the pointer would rest on
   /** The expansion beneath the abacus (design M8/M9): its four parts, null while blank. */
   expansion: Array<string | null> | null;
+  /** The text card up, if the base is one — a sentence that says its words rings it (issue 9). */
+  cardText: string | null;
 }
 
 function emptyState(): BoardState {
-  return { primitive: null, description: "nothing", visible: new Set(), digits: null, terms: new Set(), interactive: false, pool: null, cards: null, ringed: null, chalk: null, shown: null, abacusLost: null, reanimated: false, focus: null, turnOpen: false, expansion: null };
+  return { primitive: null, description: "nothing", visible: new Set(), digits: null, terms: new Set(), interactive: false, pool: null, cards: null, ringed: null, chalk: null, shown: null, abacusLost: null, reanimated: false, focus: null, turnOpen: false, expansion: null, cardText: null };
 }
 
 function derive(digits: number[]): Set<string> {
@@ -275,6 +286,7 @@ function applyIntent(state: BoardState, intent: AuthoredBoardIntent): Event[] {
         return events;
       }
       state.primitive = intent.text.length <= 14 && !/[=+]/u.test(intent.text) ? "textCard" : "chalkText";
+      state.cardText = state.primitive === "textCard" ? intent.text : null;
       state.description = `${state.primitive === "textCard" ? "card" : "chalk"} "${intent.text.replace(/\n/g, " / ")}"`;
       state.focus = intent.highlight ?? intent.text;
       // The same chalk re-staged is not rewritten; a longer line that
@@ -344,14 +356,15 @@ function applyIntent(state: BoardState, intent: AuthoredBoardIntent): Event[] {
     case "exercise": {
       const known = KNOWN_ITEMS[intent.itemId.slice(0, 8)];
       Object.assign(state, emptyState(), { terms: state.terms });
-      // The numbers printed on the item are on the board from here on.
+      // The numbers printed on the item are on the board from here on — the worked row's too, unless it is staged blank for her to fill.
       for (const n of known?.numbers ?? []) state.visible.add(String(n));
+      if (intent.demonstrateRow === undefined) for (const n of known?.workedRow ?? []) state.visible.add(String(n));
       state.primitive = known?.primitive ?? "blankTable";
       state.interactive = true;
-      state.description = known?.summary ?? `exercise ${intent.itemId.slice(0, 8)}`;
+      state.description = (known?.summary ?? `exercise ${intent.itemId.slice(0, 8)}`) + (intent.demonstrateRow === undefined ? "" : `, row ${intent.demonstrateRow + 1} blank for her to demonstrate`);
       // (the numbers printed on the item were added above, from KNOWN_ITEMS)
       state.focus = state.primitive;
-      return [at0(state.primitive, "show", state.primitive === "digitPicker" ? { pool: "as printed", item: intent.itemId.slice(0, 8) } : { item: intent.itemId.slice(0, 8) })];
+      return [at0(state.primitive, "show", state.primitive === "digitPicker" ? { pool: "as printed", item: intent.itemId.slice(0, 8) } : intent.demonstrateRow === undefined ? { item: intent.itemId.slice(0, 8) } : { item: intent.itemId.slice(0, 8), demonstrateRow: intent.demonstrateRow })];
     }
     case "blank":
       state.interactive = true;
@@ -401,15 +414,78 @@ interface SentenceFacts {
   deictic: string | null;
   looks: boolean;
   boardAct: boolean;
+  /** Where each named rod / number / term sits in the sentence (0–1 by character position — the estimated word position). */
+  rodAt: Map<number, number>;
+  numberAt: Map<number, number>;
+  termAt: Map<string, number>;
+}
+
+/** A word's position in the sentence as a fraction of it, capped so nothing waits for the very last syllable. */
+function positionIn(spoken: string, index: number): number {
+  if (index < 0 || spoken.length === 0) return 0;
+  return Math.round(Math.min(0.85, index / spoken.length) * 100) / 100;
 }
 
 function analyse(sourceSentence: string, index: number): SentenceFacts {
   const { spoken, numbers } = renderNumberMarkers(resolveAddress(sourceSentence, "unspecified"));
   const rods: number[] = [];
-  for (const [pattern, rod] of PLACE_TO_ROD) if (pattern.test(spoken) && rod >= 0 && !rods.includes(rod)) rods.push(rod);
+  const rodAt = new Map<number, number>();
+  for (const [pattern, rod] of PLACE_TO_ROD) {
+    const match = pattern.exec(spoken);
+    if (match && rod >= 0 && !rods.includes(rod)) {
+      rods.push(rod);
+      rodAt.set(rod, positionIn(spoken, match.index));
+    }
+  }
+  const numberAt = new Map<number, number>();
+  for (const n of numbers) if (!numberAt.has(n)) numberAt.set(n, positionIn(spoken, spoken.indexOf(sinhalaNumberName(n))));
   const terms = TERMS.filter((t) => spoken.includes(t));
+  const termAt = new Map(terms.map((t) => [t, positionIn(spoken, spoken.indexOf(t))] as const));
   const deictic = DEICTIC.exec(spoken)?.[2] ?? null;
-  return { index, spoken, numbers, rods, terms, deictic, looks: LOOK.test(spoken), boardAct: BOARD_ACT.test(spoken) };
+  return { index, spoken, numbers, rods, terms, deictic, looks: LOOK.test(spoken), boardAct: BOARD_ACT.test(spoken), rodAt, numberAt, termAt };
+}
+
+/**
+ * Cluster E: events on one sentence fire in sequence, by the estimated
+ * position of the word each answers to. Fills `at` from the sentence's
+ * facts, drops a rod's glow when its beads land in the same sentence (the
+ * landing lights the rod), and spaces every abacus glow / landing so no two
+ * ever share a timestamp — a glow holds until the next begins.
+ */
+function sequence(mine: Event[], f: SentenceFacts): Event[] {
+  const position = (e: Event): number | undefined => {
+    const a = e.args ?? {};
+    if (e.primitive === "abacus" && (e.event === "rod_glow" || e.event === "bead_add")) return f.rodAt.get(Number(a.rod));
+    if (e.primitive === "numberCards" && e.event === "highlight_ring") return f.numberAt.get(Number(a.value));
+    if (e.primitive === "chalkText" && e.event === "write" && typeof a.text === "string") return f.termAt.get(a.text);
+    const target = a.target as Record<string, unknown> | undefined;
+    if (e.primitive === "highlight" && target && typeof target.number === "number") return f.numberAt.get(target.number);
+    if (e.primitive === "highlight" && target && typeof target.text === "string") { const i = f.spoken.indexOf(target.text); return i >= 0 ? positionIn(f.spoken, i) : undefined; }
+    if (e.primitive === "pointer" && target) {
+      if (typeof target.rod === "number") return f.rodAt.get(target.rod);
+      if (typeof target.number === "number") return f.numberAt.get(target.number);
+    }
+    return undefined;
+  };
+  const beadRods = new Set(mine.filter((e) => e.primitive === "abacus" && e.event === "bead_add").map((e) => Number(e.args?.rod)));
+  // A cell she fills carries the pointer with it (the reducer parks it on the cell): the row's number named in the same breath does not pull it away.
+  const fills = mine.some((e) => e.primitive === "blankTable" && e.event === "cell_fill");
+  const kept = mine.filter((e) => !(e.primitive === "abacus" && e.event === "rod_glow" && beadRods.has(Number(e.args?.rod))) && !(fills && e.primitive === "pointer" && e.event === "move_to"));
+  for (const e of kept) if (e.at === undefined) { const at = position(e); if (at !== undefined && at > 0) e.at = at; }
+  // The abacus gestures of this sentence, one after another.
+  const gestures = kept.filter((e) => e.primitive === "abacus" && (e.event === "rod_glow" || e.event === "bead_add"));
+  if (gestures.length > 1) {
+    const unplaced = gestures.filter((e) => e.at === undefined);
+    // Nothing in the words to hang them on: spread them across the sentence in the order they were planned.
+    unplaced.forEach((e, i) => { e.at = Math.round(((i + 1) / (unplaced.length + 1)) * 0.8 * 100) / 100; });
+    gestures.sort((a, b) => (a.at ?? 0) - (b.at ?? 0));
+    for (let i = 1; i < gestures.length; i += 1) {
+      const previous = gestures[i - 1]!.at ?? 0;
+      if ((gestures[i]!.at ?? 0) < previous + 0.12) gestures[i]!.at = Math.round((previous + 0.12) * 100) / 100;
+    }
+    for (const g of gestures) if (g.at === 0) delete g.at;
+  }
+  return kept;
 }
 
 /** The title cards' emoji: 🔢 and 🏏 are the design's (M1, M2); the rest follow the same idea. */
@@ -463,7 +539,7 @@ function exampleOnPicker(text: string, pool: number[]): number | null {
   return [...String(number)].map(Number).sort().join() === digits.join() ? number : null;
 }
 
-function planBeat(beat: AuthoredBeat, state: BoardState, upcoming: AuthoredBoardIntent[], answer: { mode: AnswerMode; choices: ChoiceSet | null } | null = null): { plan: StoryboardBeat; notes: NoteCandidate[] } {
+function planBeat(beat: AuthoredBeat, state: BoardState, upcoming: AuthoredBoardIntent[], answer: { mode: AnswerMode; choices: ChoiceSet | null } | null = null, previousLine = ""): { plan: StoryboardBeat; notes: NoteCandidate[] } {
   const boardAtStart = state.description;
   /** Will the board acquire this number within the next few beats? Announcing a number before building it is how a demonstration starts. */
   const arrivesSoon = (n: number): boolean =>
@@ -590,39 +666,52 @@ function planBeat(beat: AuthoredBeat, state: BoardState, upcoming: AuthoredBoard
       }
     }
 
+    // Issue 9: a sentence that says the words on the text card rings the
+    // card and points at it — the card is brought forward as she says it.
+    // A card shown by THIS beat whose words she says here, or has just said
+    // (opening:5's "ලොකු සංඛ්‍යා", said in :4, appears in :5), is ringed as it lands.
+    const cardShown = f.index === 0 ? (intentEvents.find((e) => e.primitive === "textCard" && e.event === "show")?.args?.text as string | undefined) : undefined;
+    const cardText = state.cardText;
+    const saidHere = cardText !== null && f.spoken.includes(cardText);
+    const landsSaid = cardShown !== undefined && cardShown === cardText && (spokenLine.includes(cardShown) || previousLine.includes(cardShown));
+    if (cardText && (saidHere || landsSaid) && !mine.some((e) => e.primitive === "highlight")) {
+      const at = saidHere ? positionIn(f.spoken, f.spoken.indexOf(cardText)) : 0;
+      mine.push({ sentenceIndex: f.index, primitive: "highlight", event: "circle", args: { target: { text: cardText } }, ...(at > 0 ? { at } : {}) });
+      if (!pointed) {
+        mine.push({ sentenceIndex: f.index, primitive: "pointer", event: "move_to", args: { target: { text: cardText } }, ...(at > 0 ? { at } : {}) });
+        pointed = true;
+      }
+    }
+
     // Rule 3: at most two. The same event twice is one; the pointer is
     // elastic and is the first to go, so only REAL animations count
     // against the cap.
     const seen = new Set<string>();
-    const unique = mine.filter((e) => {
-      const key = `${e.primitive}.${e.event}.${JSON.stringify(e.args ?? {})}`;
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
-    // A glow on a rod whose beads land in the same sentence is the same
-    // thing as the beads — it is kept, and it does not count against the cap.
-    const beadRods = new Set(unique.filter((e) => e.event === "bead_add").map((e) => e.args?.rod));
+    const unique = sequence(
+      mine.filter((e) => {
+        const key = `${e.primitive}.${e.event}.${JSON.stringify(e.args ?? {})}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      }),
+      f,
+    );
     const animations = unique.filter((e) => e.primitive !== "pointer");
-    // Rods named in the same sentence glow together: one grouped rod_glow
-    // (rods: [...]) in place of several — one animation for the cap, one
-    // glow group on the board; otherwise the single glow stands.
-    const glows = animations.filter((e) => e.event === "rod_glow");
-    if (glows.length > 1) {
-      const rods = [...new Set(glows.map((e) => e.args?.rod as number))].sort((a, b) => a - b);
-      const grouped: Event = { sentenceIndex: f.index, primitive: "abacus", event: "rod_glow", args: { rod: rods[0]!, rods } };
-      const firstIndex = animations.indexOf(glows[0]!);
-      for (const g of glows.slice(1)) animations.splice(animations.indexOf(g), 1);
-      animations[firstIndex] = grouped;
-    }
+    // Cluster E: rods named in one sentence glow (or fill) IN SEQUENCE — one
+    // gesture for the cap, however many rods it walks. (Rule f, DESIGN.md.)
+    const gestures = animations.filter((e) => e.primitive === "abacus" && (e.event === "rod_glow" || e.event === "bead_add"));
+    const rest = animations.filter((e) => !gestures.includes(e));
     // A part's reveal after its flight is the flight landing, not a second animation.
     const flownParts = new Set(unique.filter((e) => e.primitive === "expansion" && e.event === "part_fly").map((e) => e.args?.index));
-    const counted = animations.filter((e) => !(e.event === "rod_glow" && (beadRods.has(e.args?.rod) || (Array.isArray(e.args?.rods) && (e.args!.rods as number[]).every((r) => beadRods.has(r))))) && !(e.primitive === "expansion" && e.event === "part_reveal" && flownParts.has(e.args?.index)));
+    const counted = rest.filter((e) => !(e.primitive === "expansion" && e.event === "part_reveal" && flownParts.has(e.args?.index)));
+    const countedN = counted.length + (gestures.length > 0 ? 1 : 0);
     const pointers = unique.filter((e) => e.primitive === "pointer");
-    if (counted.length > 2) {
-      notes.push({ beatId: beat.id, kind: "too-much-to-show", sentenceIndex: f.index, line: f.spoken, problem: `${counted.length} things to show in one sentence (${counted.map((e) => `${e.primitive}.${e.event}${e.args && "rod" in e.args ? ` ${ROD_LABELS[e.args.rod as number]}` : ""}`).join(", ")}) — only two fit` });
+    if (countedN > 2) {
+      notes.push({ beatId: beat.id, kind: "too-much-to-show", sentenceIndex: f.index, line: f.spoken, problem: `${countedN} things to show in one sentence (${[...(gestures.length ? [`abacus ${gestures.map((e) => `${e.event} ${ROD_LABELS[e.args?.rod as number]}`).join(" → ")}`] : []), ...counted.map((e) => `${e.primitive}.${e.event}`)].join(", ")}) — only two fit` });
     }
-    const kept = [...animations, ...pointers].slice(0, 2 + (animations.length - counted.length));
+    const roomForRest = Math.max(0, 2 - (gestures.length > 0 ? 1 : 0));
+    const keptRest = rest.filter((e) => !counted.includes(e) || counted.indexOf(e) < roomForRest);
+    const kept = [...gestures, ...keptRest, ...pointers];
     events.push(...kept);
 
     const coveredByBoardNote = notes.some((n) => n.beatId === beat.id && n.sentenceIndex === f.index && n.kind.startsWith("board-"));
@@ -730,7 +819,7 @@ function describeEvent(e: Event): string {
   switch (`${e.primitive}.${e.event}`) {
     case "abacus.show": return (a.startEmpty ? "bare rods appear" : `the abacus shows ${textbook(Number((a.digits as number[]).join("")))}`) + (a.animate ? " (beads landing on their own)" : "");
     case "abacus.bead_add": return `${a.count} bead(s) drop onto the ${ROD_LABELS[a.rod as number]} rod`;
-    case "abacus.rod_glow": return Array.isArray(a.rods) && (a.rods as number[]).length > 1 ? `the ${(a.rods as number[]).map((r) => ROD_LABELS[r]).join(" and ")} rods glow together` : `the ${ROD_LABELS[a.rod as number]} rod glows`;
+    case "abacus.rod_glow": return `the ${ROD_LABELS[a.rod as number]} rod glows${e.at ? ` (as she names it)` : ""}`;
     case "numberCards.show": return `cards ${((a.values as number[]) ?? []).join(" · ")} deal in`;
     case "numberCards.highlight_ring": return `a ring around ${a.value}`;
     case "chalkText.write": return a.append ? `"${a.append}" is written on, making "${String(a.text).replace(/\n/g, " / ")}"` : `"${String(a.text).replace(/\n/g, " / ")}" is written`;
@@ -744,7 +833,7 @@ function describeEvent(e: Event): string {
     case "expansion.show": return `${textbook(a.number as number)} = ▢ + ▢ + ▢ + ▢`;
     case "expansion.part_reveal": return `${a.value} is written into slot ${a.index}`;
     case "expansion.part_fly": return `the value flies from rod ${ROD_LABELS[Number(a.fromRod)]} into slot ${a.index}`;
-    case "blankTable.show": return "the place-value table";
+    case "blankTable.show": return a.demonstrateRow === undefined ? "the place-value table" : `the place-value table, row ${Number(a.demonstrateRow) + 1} blank for her to fill`;
     case "blankTable.row_activate": return `row ${a.row}'s ${a.field} cell is outlined`;
     case "blankTable.cell_fill": return `${a.value} written into row ${a.row}`;
     case "choiceChips.show": return `3 chips deal in: ${((a.options as string[]) ?? []).join(" · ")}`;
@@ -785,7 +874,16 @@ async function main(): Promise<void> {
     const index = file.beats.indexOf(beat);
     const upcoming = file.beats.slice(index + 1, index + 4).filter((b) => b.conceptTag === beat.conceptTag).map((b) => b.boardIntent);
     const mode = answerModes.get(beat.id) ?? null;
-    const { plan, notes: beatNotes } = planBeat(beat, state, upcoming, mode ? { mode, choices: choicesForBeat(beat, mode) ?? null } : null);
+    const previousLine = index > 0 ? renderNumberMarkers(resolveAddress(file.beats[index - 1]!.sourceText, "unspecified")).spoken : "";
+    const { plan, notes: beatNotes } = planBeat(beat, state, upcoming, mode ? { mode, choices: choicesForBeat(beat, mode) ?? null } : null, previousLine);
+    // Cluster E's contract: no two abacus gestures (a glow, a landing) on one sentence share a timestamp.
+    const stamps = new Set<string>();
+    for (const e of plan.events) {
+      if (e.primitive !== "abacus" || (e.event !== "rod_glow" && e.event !== "bead_add")) continue;
+      const stamp = `${e.sentenceIndex}@${e.at ?? 0}`;
+      if (stamps.has(stamp)) throw new Error(`${beat.id}: two abacus gestures share the timestamp ${stamp}`);
+      stamps.add(stamp);
+    }
     plans.push(plan);
     notes.push(...beatNotes);
   }
@@ -800,7 +898,7 @@ async function main(): Promise<void> {
   // Markdown.
   const md: string[] = [];
   md.push("# Storyboard — Maths 5, Lesson 1, Session 1", "");
-  md.push(`${plans.length} beats. Vocabulary: \`docs/design/board-vocabulary.md\`. Events are written \`primitive.event {args}\`; an event with no sentence index prefix lands on the sentence shown above it.`, "");
+  md.push(`${plans.length} beats. Vocabulary: \`docs/design/board-vocabulary.md\`. Events are written \`primitive.event {args}\`; an event with no sentence index prefix lands on the sentence shown above it; \`@0.35\` is where in the sentence it fires (cluster E: events on one sentence fire in sequence, never together).`, "");
   md.push("Rods: 0 = දා (දහසස්ථානය), 1 = සි, 2 = ද, 3 = එ.", "");
   let current: string | null = null;
   for (const p of plans) {
@@ -814,7 +912,7 @@ async function main(): Promise<void> {
       md.push(`${i + 1}. > ${s}`);
       const evs = p.events.filter((e) => e.sentenceIndex === i);
       if (evs.length === 0) md.push("   - _(no event)_");
-      for (const e of evs) md.push(`   - \`${e.primitive}.${e.event}\`${e.args ? ` \`${JSON.stringify(e.args)}\`` : ""}`);
+      for (const e of evs) md.push(`   - \`${e.primitive}.${e.event}\`${e.args ? ` \`${JSON.stringify(e.args)}\`` : ""}${e.at ? ` @${e.at}` : ""}`);
     });
     if (p.child) md.push("", `Child: **${p.child.kind}** — ${p.child.via}${p.child.expects ? ` · expects **${p.child.expects}**` : ""}`);
     md.push("", `_Sees:_ ${p.sees}`, "");

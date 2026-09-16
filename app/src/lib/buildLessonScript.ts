@@ -25,7 +25,7 @@ import type { LessonBlueprintOverride, LessonScript } from "@/lib/lessonOrchestr
  *     with its case ending bound (නවයට, not "නවය ට") — so every cached
  *     script and every clip key derived from those words is stale.
  */
-const SCRIPT_FORMAT_VERSION = "13";
+const SCRIPT_FORMAT_VERSION = "15"; // 14: exercise-atomic packing, the close card names finished/next, sessions carry their exercises
 
 /**
  * A fingerprint of the verified rows a script was built from, salted with

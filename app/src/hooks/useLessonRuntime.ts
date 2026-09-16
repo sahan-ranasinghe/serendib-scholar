@@ -398,30 +398,62 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
    */
   const fireSentence = (choreo: ActiveChoreo, index: number, spans: AlignedSpans, clipMs: number) => {
     const span = spans.list[index] ?? { startMs: 0, endMs: clipMs };
+    const fireOne = (event: ActiveChoreo["beat"]["events"][number]) => {
+      const known = isKnownEvent(event);
+      if (known) dispatchStage(event, { legacy: choreo.legacy ?? undefined, lastBuilt: lastBuiltNumberRef.current });
+      else logEvent(`choreography: no primitive for ${eventKey(event)}`);
+      const at = positionMs();
+      choreoLogRef.current.push({
+        beatId: choreo.beat.id,
+        sentenceIndex: index,
+        event: eventKey(event),
+        firedAtMs: at,
+        spanStartMs: span.startMs,
+        spanEndMs: span.endMs,
+        clipMs,
+        estimated: spans.estimated,
+        outside: at < span.startMs - 250 || at > clipMs + 250,
+        known,
+      });
+    };
+    const mine = choreo.beat.events.filter((e) => e.sentenceIndex === index);
+    // Cluster E: an event placed inside the sentence (`at`, 0–1 by the word
+    // it answers to) waits for the audio to reach that word; the rest fire
+    // as the sentence starts. Same-sentence events never fire together.
+    const immediate = mine.filter((e) => !(typeof e.at === "number" && e.at > 0));
+    const deferred = mine.filter((e) => typeof e.at === "number" && e.at > 0).sort((a, b) => (a.at ?? 0) - (b.at ?? 0));
     const run = () => {
-      for (const event of choreo.beat.events.filter((e) => e.sentenceIndex === index)) {
-        const known = isKnownEvent(event);
-        if (known) dispatchStage(event, { legacy: choreo.legacy ?? undefined, lastBuilt: lastBuiltNumberRef.current });
-        else logEvent(`choreography: no primitive for ${eventKey(event)}`);
-        const at = positionMs();
-        choreoLogRef.current.push({
-          beatId: choreo.beat.id,
-          sentenceIndex: index,
-          event: eventKey(event),
-          firedAtMs: at,
-          spanStartMs: span.startMs,
-          spanEndMs: span.endMs,
-          clipMs,
-          estimated: spans.estimated,
-          outside: at < span.startMs - 250 || at > clipMs + 250,
-          known,
-        });
-      }
+      for (const event of immediate) fireOne(event);
       choreo.fired = Math.max(choreo.fired, index + 1);
       publishChoreo();
     };
     if (pausedRef.current) frozenRef.current.push({ run, startMs: span.startMs });
     else run();
+    for (const event of deferred) {
+      const targetMs = span.startMs + (event.at ?? 0) * Math.max(0, span.endMs - span.startMs);
+      atClipPosition(choreo, targetMs, () => {
+        fireOne(event);
+        publishChoreo();
+      });
+    }
+  };
+
+  /**
+   * Runs `fn` when the clip's audio clock reaches `targetMs` — the clock a
+   * pause suspends, so a pause holds the event with the word it belongs to
+   * and nothing queued fires while paused. Dropped when the beat has moved on.
+   */
+  const atClipPosition = (choreo: ActiveChoreo, targetMs: number, fn: () => void) => {
+    const tick = () => {
+      if (stoppedRef.current || activeChoreoRef.current?.beat.id !== choreo.beat.id) return;
+      if (pausedRef.current) {
+        setTimeout(tick, 120);
+        return;
+      }
+      if (positionMs() >= targetMs) fn();
+      else setTimeout(tick, Math.min(120, Math.max(30, targetMs - positionMs())));
+    };
+    tick();
   };
 
   /** The strip's stops: every concept of the lesson, the current one filling as beats pass. */
@@ -670,9 +702,10 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
         if (text) recentLinesRef.current.push(text);
         clipStartRef.current = player.getPlaybackDebug().currentTime;
         fireSentence(silent, 0, spans, durationMs);
+        // Later sentences on the audio clock (which a pause suspends), not wall time.
         for (let index = 1; index < spans.list.length; index += 1) {
-          const at = spans.list[index]!.startMs;
-          setTimeout(() => fireSentence(silent, index, spans, durationMs), at);
+          const startMs = spans.list[index]!.startMs;
+          atClipPosition(silent, startMs, () => fireSentence(silent, index, spans, durationMs));
         }
         await lessonWait(durationMs + MIC_TAIL_MS);
         setNoClipCaption(null);
@@ -1176,7 +1209,9 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
         setBoardContent(staged.board);
         const base = stageFromLegacy(staged.board);
         if (storyboarded && activeChoreoRef.current) activeChoreoRef.current.legacy = base;
-        else setStage({ ...stageRef.current, base, notes: [], highlight: null, pointer: null, seq: stageRef.current.seq + 1 });
+        // A beat outside the storyboard (a framing beat: the close, a recap) starts from a clean turn — no chips, no
+        // pause, no read-aloud step cards left over from the question before it.
+        else setStage({ ...stageRef.current, base, notes: [], highlight: null, pointer: null, turn: null, chips: null, pause: null, retry: false, practice: null, seq: stageRef.current.seq + 1 });
       } else if (staged.viewPatch) {
         const patched = applyViewPatch(boardContentRef.current, staged.viewPatch as ViewPatch);
         boardContentRef.current = patched;

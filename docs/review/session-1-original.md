@@ -1,8 +1,8 @@
 # Session 1 — Zara's original script (for review)
 
-Generated 2026-09-07 00:40 with gemini-flash-latest. 126 beats across readWrite4Digit, placeValue4Digit.
+Generated 2026-09-07 00:40 with gemini-flash-latest. 158 beats across readWrite4Digit, placeValue4Digit.
 
-99 of the 126 beats carry `humanEdited: true` — a native-speaker review rewrote them (docs/review/session-1-edits.json, then docs/review/gemini-review-decisions.json). Each is marked **· human-edited** below.
+132 of the 158 beats carry `humanEdited: true` — a native-speaker review rewrote them (docs/review/session-1-edits.json, then docs/review/gemini-review-decisions.json). Each is marked **· human-edited** below.
 
 **Status: APPROVED.** These are the words a child hears. Editing the JSON invalidates the cached script automatically; set `"approved": false` to take it back off the air.
 
@@ -139,9 +139,17 @@ Source: `එහි දසස්ථානයේ {number:0} තියෙන නි
 
 Board shows: "84   101   528   997" (ringing 101)
 
+### `authored:readWrite4Digit:4a`
+
+**ASK** · pause: ASK · guide: Display a row of numbers with up to 3 digits and have students read each number's name aloud. · expects **පන්සිය විසි අට** · max-sim J 0.00 · **human-edited**
+
+> ඊළඟ සංඛ්‍යාවේ නම කියන්න බලන්න.
+
+Board shows: "84   101   528   997" (ringing 528)
+
 ### `authored:readWrite4Digit:5`
 
-**SOFT_CHECK** · pause: SOFT_CHECK · guide: Display a row of numbers with up to 3 digits and have students read each number's name aloud. · expects **නවසිය අනූ හත** · max-sim J 0.12 / C 0.72 · **human-edited**
+**ASK** · pause: ASK · guide: Display a row of numbers with up to 3 digits and have students read each number's name aloud. · expects **නවසිය අනූ හත** · max-sim J 0.12 / C 0.72 · **human-edited**
 
 > එහෙනම් {address}, පුවරුවේ තියෙන අන්තිම සංඛ්‍යාවත් මට කියවලා පෙන්නන්න පුළුවන්ද?
 
@@ -317,6 +325,62 @@ Source: `{number:2430} — ඉලක්කම් වලින් ලියන්
 
 Board shows: the staged exercise, row 1's number blank and active, plus "2430" written into row 1's number
 
+### `authored:readWrite4Digit:18h`
+
+**EXPLAIN** · pause: — · guide: textbook step 2: numeral ↔ number-name table (guide activity 1 step 2) · max-sim J 0.15 · **human-edited**
+
+> තුන්දහස් එකසියය — ඉලක්කම් වලින් ලියන්නේ මෙහෙමයි.
+
+Source: `{number:3100} — ඉලක්කම් වලින් ලියන්නේ මෙහෙමයි.`
+
+Board shows: the staged exercise, row 1's number blank and active, plus "3100" written into row 2's number
+
+### `authored:readWrite4Digit:18i`
+
+**ASK** · pause: ASK · guide: textbook step 2: numeral ↔ number-name table (guide activity 1 step 2) · expects **පන්දහස් හැට** · max-sim J 0.00 · **human-edited**
+
+> දැන් ඔයාගේ වාරයයි {address}. මේ හිස්තැනට එන්නේ මොකක්ද කියන්න බලන්න.
+
+Board shows: the staged exercise, row 3's numberName blank and active
+
+### `authored:readWrite4Digit:18j`
+
+**EXPLAIN** · pause: — · guide: textbook step 2: numeral ↔ number-name table (guide activity 1 step 2) · max-sim J 0.13 · **human-edited**
+
+> පන්දහස් හැට — ඒ නම අපි වගුවේ ලියමු.
+
+Source: `{number:5060} — ඒ නම අපි වගුවේ ලියමු.`
+
+Board shows: the staged exercise, row 3's numberName blank and active, plus "පන්දහස් හැට" written into row 3's numberName
+
+### `authored:readWrite4Digit:18k`
+
+**EXPLAIN** · pause: — · guide: textbook step 2: numeral ↔ number-name table (guide activity 1 step 2) · max-sim J 0.15 · **human-edited**
+
+> එක්දහස් අට — ඉලක්කම් වලින් ලියන්නේ මෙහෙමයි.
+
+Source: `{number:1008} — ඉලක්කම් වලින් ලියන්නේ මෙහෙමයි.`
+
+Board shows: the staged exercise, row 3's numberName blank and active, plus "1008" written into row 4's number
+
+### `authored:readWrite4Digit:18l`
+
+**ASK** · pause: ASK · guide: textbook step 2: numeral ↔ number-name table (guide activity 1 step 2) · expects **නවදහස් පහළොව** · max-sim J 0.00 · **human-edited**
+
+> දැන් ඔයාගේ වාරයයි {address}. මේ හිස්තැනට එන්නේ මොකක්ද කියන්න බලන්න.
+
+Board shows: the staged exercise, row 5's numberName blank and active
+
+### `authored:readWrite4Digit:18m`
+
+**EXPLAIN** · pause: — · guide: textbook step 2: numeral ↔ number-name table (guide activity 1 step 2) · max-sim J 0.13 · **human-edited**
+
+> නවදහස් පහළොව — ඒ නම අපි වගුවේ ලියමු.
+
+Source: `{number:9015} — ඒ නම අපි වගුවේ ලියමු.`
+
+Board shows: the staged exercise, row 5's numberName blank and active, plus "නවදහස් පහළොව" written into row 5's numberName
+
 ### `authored:readWrite4Digit:18b`
 
 **TRANSITION** · pause: — · guide: Give groups a worksheet with a circle containing digits 1, 3, 6, 4. · max-sim J 0.19 · **human-edited**
@@ -418,6 +482,38 @@ Board shows: the digit picker: 1, 3, 6, 4, plus the number the child just built,
 Board shows: the digit picker: 1, 3, 6, 4
 
 ### `authored:readWrite4Digit:30d`
+
+**EXPLAIN** · pause: — · guide: Instruct students to form 5 four-digit numbers using the digits in the circle and write the number name of each. · max-sim J 0.00 · **human-edited**
+
+> ඒ සංඛ්‍යාවේ නම බෝඩ් එකේ බලන්න.
+
+Board shows: the digit picker: 1, 3, 6, 4, plus the number the child just built, with its name
+
+### `authored:readWrite4Digit:30g`
+
+**ASK** · pause: ASK · guide: Instruct students to form 5 four-digit numbers using the digits in the circle and write the number name of each. · expects **{"kind": "permutationOf", "digits": [1, 3, 6, 4], "length": 4}** · max-sim J 0.17 · **human-edited**
+
+> දැන් ඒකට වඩා වෙනස් සංඛ්‍යාවක් හදන්න පුළුවන්ද?
+
+Board shows: the digit picker: 1, 3, 6, 4
+
+### `authored:readWrite4Digit:30h`
+
+**EXPLAIN** · pause: — · guide: Instruct students to form 5 four-digit numbers using the digits in the circle and write the number name of each. · max-sim J 0.00 · **human-edited**
+
+> ඒ සංඛ්‍යාවේ නම බෝඩ් එකේ බලන්න.
+
+Board shows: the digit picker: 1, 3, 6, 4, plus the number the child just built, with its name
+
+### `authored:readWrite4Digit:30i`
+
+**ASK** · pause: ASK · guide: Instruct students to form 5 four-digit numbers using the digits in the circle and write the number name of each. · expects **{"kind": "permutationOf", "digits": [1, 3, 6, 4], "length": 4}** · max-sim J 0.17 · **human-edited**
+
+> දැන් ඒකට වඩා වෙනස් සංඛ්‍යාවක් හදන්න පුළුවන්ද?
+
+Board shows: the digit picker: 1, 3, 6, 4
+
+### `authored:readWrite4Digit:30j`
 
 **EXPLAIN** · pause: — · guide: Instruct students to form 5 four-digit numbers using the digits in the circle and write the number name of each. · max-sim J 0.00 · **human-edited**
 
@@ -640,11 +736,11 @@ Board shows: the abacus [5, 4, 2, 1] — inherited
 
 ### `authored:placeValue4Digit:52`
 
-**SHOW_BOARD** · pause: — · guide: guide step 2 of 7: Ask the class about the digit shown by the beads at each place, the place value at each place, and the value represented by the digit at each place. · max-sim J 0.17 / C 0.85
+**EXPLAIN** · pause: — · guide: guide step 2 of 7: Ask the class about the digit shown by the beads at each place, the place value at each place, and the value represented by the digit at each place. · max-sim J 0.17 / C 0.85 · **human-edited**
 
 > මේ විදිහට හැම ඉලක්කමකටම තමන්ගේම ස්ථානීය අගයක් තියෙනවා.
 
-Board shows: the exercise 7b58e436 as its content_bank row defines it
+Board shows: the abacus [5, 4, 2, 1] — inherited
 
 ### `authored:placeValue4Digit:53`
 
@@ -652,7 +748,7 @@ Board shows: the exercise 7b58e436 as its content_bank row defines it
 
 > ස්ථානය අනුව අගය වෙනස් වෙන හැටි පැහැදිලියි නේද {address}?
 
-Board shows: the exercise 7b58e436 as its content_bank row defines it — inherited
+Board shows: the abacus [5, 4, 2, 1] — inherited
 
 ### `authored:placeValue4Digit:54`
 
@@ -1092,15 +1188,55 @@ Board shows: 5 421 = ▢ + ▢ + ▢ + ▢, plus "5000" written into row 0's par
 
 ### `authored:placeValue4Digit:102`
 
-**SHOW_BOARD** · pause: — · guide: guide step 7 of 7: Give students a worksheet of further expansion exercises to do alone. · max-sim J 0.12 · **human-edited**
+**SHOW_BOARD** · pause: — · guide: guide step 7 of 7: the closing exercise — the textbook's place-value table, worked as one exercise (demonstration row, then MODE 2 alternation) · max-sim J 0.12 · **human-edited**
 
 > දැන් මේ වගුවේ තියෙන කොටස් අපි එකට පුරවමු.
 
 Board shows: the exercise 7b58e436 as its content_bank row defines it
 
+### `authored:placeValue4Digit:102a`
+
+**EXPLAIN** · pause: — · guide: guide step 7 of 7: the closing exercise — the textbook's place-value table, worked as one exercise (demonstration row, then MODE 2 alternation) · max-sim J 0.00 · **human-edited**
+
+> දෙදහස් තුන්සිය හතළිස් අට කියන සංඛ්‍යාවේ මුල්ම ඉලක්කම දෙක.
+
+Source: `{number:2348} කියන සංඛ්‍යාවේ මුල්ම ඉලක්කම {number:2}.`
+
+Board shows: the exercise 7b58e436 as its content_bank row defines it, plus "2" written into row 0's digit
+
+### `authored:placeValue4Digit:102b`
+
+**EXPLAIN** · pause: — · guide: guide step 7 of 7: the closing exercise — the textbook's place-value table, worked as one exercise (demonstration row, then MODE 2 alternation) · max-sim J 0.00 · **human-edited**
+
+> ඒ දෙක තියෙන්නේ දහසස්ථානයේ.
+
+Source: `ඒ {number:2} තියෙන්නේ දහසස්ථානයේ.`
+
+Board shows: the exercise 7b58e436 as its content_bank row defines it, plus "දහසස්ථානය" written into row 0's place
+
+### `authored:placeValue4Digit:102c`
+
+**EXPLAIN** · pause: — · guide: guide step 7 of 7: the closing exercise — the textbook's place-value table, worked as one exercise (demonstration row, then MODE 2 alternation) · max-sim J 0.00 · **human-edited**
+
+> දහසස්ථානයේ අගය දහස.
+
+Source: `දහසස්ථානයේ අගය {number:1000}.`
+
+Board shows: the exercise 7b58e436 as its content_bank row defines it, plus "1000" written into row 0's placeValue
+
+### `authored:placeValue4Digit:102d`
+
+**EXPLAIN** · pause: — · guide: guide step 7 of 7: the closing exercise — the textbook's place-value table, worked as one exercise (demonstration row, then MODE 2 alternation) · max-sim J 0.00 · **human-edited**
+
+> ඒ නිසා දෙකෙන් පෙන්වන අගය දෙදහස.
+
+Source: `ඒ නිසා {number:2}ෙන් පෙන්වන අගය {number:2000}.`
+
+Board shows: the exercise 7b58e436 as its content_bank row defines it, plus "2000" written into row 0's valueRepresented
+
 ### `authored:placeValue4Digit:103`
 
-**ASK** · pause: ASK · guide: guide step 7 of 7: Give students a worksheet of further expansion exercises to do alone. · expects **6000** · max-sim J 0.00 · **human-edited**
+**ASK** · pause: ASK · guide: guide step 7 of 7: the closing exercise — the textbook's place-value table, worked as one exercise (demonstration row, then MODE 2 alternation) · expects **6000** · max-sim J 0.00 · **human-edited**
 
 > හයදහස් පන්සිය හැත්තෑ දෙක කියන සංඛ්‍යාවේ හයෙන් පෙන්වන අගය කීයද?
 
@@ -1108,39 +1244,83 @@ Source: `{number:6572} කියන සංඛ්‍යාවේ {number:6}ෙන
 
 Board shows: the staged exercise, row 1's valueRepresented blank and active
 
+### `authored:placeValue4Digit:103a`
+
+**ASK** · pause: ASK · guide: guide step 7 of 7: the closing exercise — the textbook's place-value table, worked as one exercise (demonstration row, then MODE 2 alternation) · expects **දහසස්ථානය** · max-sim J 0.00 · **human-edited**
+
+> දැන් ඔයාගේ වාරයයි {address}. මේ හිස්තැනට එන්නේ මොකක්ද කියන්න බලන්න.
+
+Board shows: the staged exercise, row 1's place blank and active
+
+### `authored:placeValue4Digit:103b`
+
+**EXPLAIN** · pause: — · guide: guide step 7 of 7: the closing exercise — the textbook's place-value table, worked as one exercise (demonstration row, then MODE 2 alternation) · max-sim J 0.00 · **human-edited**
+
+> ඒ හය තියෙන්නේ දහසස්ථානයේ.
+
+Source: `ඒ {number:6} තියෙන්නේ දහසස්ථානයේ.`
+
+Board shows: the staged exercise, row 1's place blank and active, plus "දහසස්ථානය" written into row 1's place
+
+### `authored:placeValue4Digit:103c`
+
+**EXPLAIN** · pause: — · guide: guide step 7 of 7: the closing exercise — the textbook's place-value table, worked as one exercise (demonstration row, then MODE 2 alternation) · max-sim J 0.00 · **human-edited**
+
+> බලන්න, මෙතනට එන්නේ දහස. මම ලියන්නම්.
+
+Source: `බලන්න, මෙතනට එන්නේ {number:1000}. මම ලියන්නම්.`
+
+Board shows: the staged exercise, row 1's place blank and active, plus "1000" written into row 1's placeValue
+
 ### `authored:placeValue4Digit:104`
 
-**EXPLAIN** · pause: — · guide: guide step 7 of 7: Give students a worksheet of further expansion exercises to do alone. · max-sim J 0.00 · **human-edited**
+**EXPLAIN** · pause: — · guide: guide step 7 of 7: the closing exercise — the textbook's place-value table, worked as one exercise (demonstration row, then MODE 2 alternation) · max-sim J 0.00 · **human-edited**
 
 > ඒක හයදහසයි. ඒ හය තියෙන්නේ දහසස්ථානයේ.
 
 Source: `ඒක {number:6000}යි. ඒ {number:6} තියෙන්නේ දහසස්ථානයේ.`
 
-Board shows: the staged exercise, row 1's valueRepresented blank and active — inherited
+Board shows: the staged exercise, row 1's place blank and active, plus "6000" written into row 1's valueRepresented
 
 ### `authored:placeValue4Digit:105`
 
-**ASK** · pause: ASK · guide: guide step 7 of 7: Give students a worksheet of further expansion exercises to do alone. · expects **4** · max-sim J 0.22 · **human-edited**
+**EXPLAIN** · pause: — · guide: guide step 7 of 7: the closing exercise — the textbook's place-value table, worked as one exercise (demonstration row, then MODE 2 alternation) · max-sim J 0.17 · **human-edited**
 
-> එහෙනම් පන්දහස් විසි හතර කියන සංඛ්‍යාවේ හතරෙන් පෙන්වන අගය කීයද?
+> බලන්න, මෙතනට එන්නේ එකස්ථානය. මම ලියන්නම්.
 
-Source: `එහෙනම් {number:5024} කියන සංඛ්‍යාවේ {number:4}ෙන් පෙන්වන අගය කීයද?`
+Board shows: the staged exercise, row 1's place blank and active, plus "එකස්ථානය" written into row 2's place
 
-Board shows: the staged exercise, row 2's valueRepresented blank and active
+### `authored:placeValue4Digit:105a`
+
+**ASK** · pause: ASK · guide: guide step 7 of 7: the closing exercise — the textbook's place-value table, worked as one exercise (demonstration row, then MODE 2 alternation) · expects **1** · max-sim J 0.00 · **human-edited**
+
+> දැන් ඔයාගේ වාරයයි {address}. මේ හිස්තැනට එන්නේ මොකක්ද කියන්න බලන්න.
+
+Board shows: the staged exercise, row 2's placeValue blank and active
+
+### `authored:placeValue4Digit:105b`
+
+**EXPLAIN** · pause: — · guide: guide step 7 of 7: the closing exercise — the textbook's place-value table, worked as one exercise (demonstration row, then MODE 2 alternation) · max-sim J 0.00 · **human-edited**
+
+> ඒක එකයි.
+
+Source: `ඒක {number:1}යි.`
+
+Board shows: the staged exercise, row 2's placeValue blank and active, plus "1" written into row 2's placeValue
 
 ### `authored:placeValue4Digit:106`
 
-**EXPLAIN** · pause: — · guide: guide step 7 of 7: Give students a worksheet of further expansion exercises to do alone. · max-sim J 0.00 · **human-edited**
+**EXPLAIN** · pause: — · guide: guide step 7 of 7: the closing exercise — the textbook's place-value table, worked as one exercise (demonstration row, then MODE 2 alternation) · max-sim J 0.00 · **human-edited**
 
 > ඒක හතරයි. හතර තියෙන්නේ එකස්ථානයේ.
 
 Source: `ඒක {number:4}යි. {number:4} තියෙන්නේ එකස්ථානයේ.`
 
-Board shows: the staged exercise, row 2's valueRepresented blank and active — inherited
+Board shows: the staged exercise, row 2's placeValue blank and active, plus "4" written into row 2's valueRepresented
 
 ### `authored:placeValue4Digit:107`
 
-**ASK** · pause: ASK · guide: guide step 7 of 7: Give students a worksheet of further expansion exercises to do alone. · expects **7** · max-sim J 0.14 · **human-edited**
+**ASK** · pause: ASK · guide: guide step 7 of 7: the closing exercise — the textbook's place-value table, worked as one exercise (demonstration row, then MODE 2 alternation) · expects **7** · max-sim J 0.14 · **human-edited**
 
 > අටදහස් හත්සියය කියන සංඛ්‍යාවේ හත්සියය අගය දෙන්නේ මොන ඉලක්කමද?
 
@@ -1150,13 +1330,123 @@ Board shows: the staged exercise, row 3's digit blank and active
 
 ### `authored:placeValue4Digit:108`
 
-**EXPLAIN** · pause: — · guide: guide step 7 of 7: Give students a worksheet of further expansion exercises to do alone. · max-sim J 0.00 · **human-edited**
+**EXPLAIN** · pause: — · guide: guide step 7 of 7: the closing exercise — the textbook's place-value table, worked as one exercise (demonstration row, then MODE 2 alternation) · max-sim J 0.00 · **human-edited**
 
 > ඒක හතයි. හත තියෙන්නේ සියයස්ථානයේ.
 
 Source: `ඒක {number:7}යි. {number:7} තියෙන්නේ සියයස්ථානයේ.`
 
-Board shows: the staged exercise, row 3's digit blank and active — inherited
+Board shows: the staged exercise, row 3's digit blank and active, plus "7" written into row 3's digit
+
+### `authored:placeValue4Digit:108a`
+
+**EXPLAIN** · pause: — · guide: guide step 7 of 7: the closing exercise — the textbook's place-value table, worked as one exercise (demonstration row, then MODE 2 alternation) · max-sim J 0.17 · **human-edited**
+
+> බලන්න, මෙතනට එන්නේ සියයස්ථානය. මම ලියන්නම්.
+
+Board shows: the staged exercise, row 3's digit blank and active, plus "සියයස්ථානය" written into row 3's place
+
+### `authored:placeValue4Digit:108b`
+
+**ASK** · pause: ASK · guide: guide step 7 of 7: the closing exercise — the textbook's place-value table, worked as one exercise (demonstration row, then MODE 2 alternation) · expects **100** · max-sim J 0.00 · **human-edited**
+
+> දැන් ඔයාගේ වාරයයි {address}. මේ හිස්තැනට එන්නේ මොකක්ද කියන්න බලන්න.
+
+Board shows: the staged exercise, row 3's placeValue blank and active
+
+### `authored:placeValue4Digit:108c`
+
+**EXPLAIN** · pause: — · guide: guide step 7 of 7: the closing exercise — the textbook's place-value table, worked as one exercise (demonstration row, then MODE 2 alternation) · max-sim J 0.00 · **human-edited**
+
+> ඒක සියයයි.
+
+Source: `ඒක {number:100}යි.`
+
+Board shows: the staged exercise, row 3's placeValue blank and active, plus "100" written into row 3's placeValue
+
+### `authored:placeValue4Digit:108d`
+
+**EXPLAIN** · pause: — · guide: guide step 7 of 7: the closing exercise — the textbook's place-value table, worked as one exercise (demonstration row, then MODE 2 alternation) · max-sim J 0.00 · **human-edited**
+
+> බලන්න, මෙතනට එන්නේ බිංදුව. මම ලියන්නම්.
+
+Source: `බලන්න, මෙතනට එන්නේ {number:0}. මම ලියන්නම්.`
+
+Board shows: the staged exercise, row 3's placeValue blank and active, plus "0" written into row 4's digit
+
+### `authored:placeValue4Digit:108e`
+
+**ASK** · pause: ASK · guide: guide step 7 of 7: the closing exercise — the textbook's place-value table, worked as one exercise (demonstration row, then MODE 2 alternation) · expects **10** · max-sim J 0.00 · **human-edited**
+
+> දැන් ඔයාගේ වාරයයි {address}. මේ හිස්තැනට එන්නේ මොකක්ද කියන්න බලන්න.
+
+Board shows: the staged exercise, row 4's placeValue blank and active
+
+### `authored:placeValue4Digit:108f`
+
+**EXPLAIN** · pause: — · guide: guide step 7 of 7: the closing exercise — the textbook's place-value table, worked as one exercise (demonstration row, then MODE 2 alternation) · max-sim J 0.00 · **human-edited**
+
+> ඒක දහයයි.
+
+Source: `ඒක {number:10}යි.`
+
+Board shows: the staged exercise, row 4's placeValue blank and active, plus "10" written into row 4's placeValue
+
+### `authored:placeValue4Digit:108g`
+
+**EXPLAIN** · pause: — · guide: guide step 7 of 7: the closing exercise — the textbook's place-value table, worked as one exercise (demonstration row, then MODE 2 alternation) · max-sim J 0.00 · **human-edited**
+
+> බලන්න, මෙතනට එන්නේ බිංදුව. මම ලියන්නම්.
+
+Source: `බලන්න, මෙතනට එන්නේ {number:0}. මම ලියන්නම්.`
+
+Board shows: the staged exercise, row 4's placeValue blank and active, plus "0" written into row 4's valueRepresented
+
+### `authored:placeValue4Digit:108h`
+
+**ASK** · pause: ASK · guide: guide step 7 of 7: the closing exercise — the textbook's place-value table, worked as one exercise (demonstration row, then MODE 2 alternation) · expects **0** · max-sim J 0.00 · **human-edited**
+
+> දැන් ඔයාගේ වාරයයි {address}. මේ හිස්තැනට එන්නේ මොකක්ද කියන්න බලන්න.
+
+Board shows: the staged exercise, row 5's digit blank and active
+
+### `authored:placeValue4Digit:108i`
+
+**EXPLAIN** · pause: — · guide: guide step 7 of 7: the closing exercise — the textbook's place-value table, worked as one exercise (demonstration row, then MODE 2 alternation) · max-sim J 0.00 · **human-edited**
+
+> ඒක බිංදුවයි.
+
+Source: `ඒක {number:0}යි.`
+
+Board shows: the staged exercise, row 5's digit blank and active, plus "0" written into row 5's digit
+
+### `authored:placeValue4Digit:108j`
+
+**EXPLAIN** · pause: — · guide: guide step 7 of 7: the closing exercise — the textbook's place-value table, worked as one exercise (demonstration row, then MODE 2 alternation) · max-sim J 0.00 · **human-edited**
+
+> බලන්න, මෙතනට එන්නේ සියය. මම ලියන්නම්.
+
+Source: `බලන්න, මෙතනට එන්නේ {number:100}. මම ලියන්නම්.`
+
+Board shows: the staged exercise, row 5's digit blank and active, plus "100" written into row 5's placeValue
+
+### `authored:placeValue4Digit:108k`
+
+**ASK** · pause: ASK · guide: guide step 7 of 7: the closing exercise — the textbook's place-value table, worked as one exercise (demonstration row, then MODE 2 alternation) · expects **0** · max-sim J 0.00 · **human-edited**
+
+> දැන් ඔයාගේ වාරයයි {address}. මේ හිස්තැනට එන්නේ මොකක්ද කියන්න බලන්න.
+
+Board shows: the staged exercise, row 5's valueRepresented blank and active
+
+### `authored:placeValue4Digit:108l`
+
+**EXPLAIN** · pause: — · guide: guide step 7 of 7: the closing exercise — the textbook's place-value table, worked as one exercise (demonstration row, then MODE 2 alternation) · max-sim J 0.00 · **human-edited**
+
+> ඒක බිංදුවයි.
+
+Source: `ඒක {number:0}යි.`
+
+Board shows: the staged exercise, row 5's valueRepresented blank and active, plus "0" written into row 5's valueRepresented
 
 ### `authored:placeValue4Digit:109`
 
@@ -1164,5 +1454,5 @@ Board shows: the staged exercise, row 3's digit blank and active — inherited
 
 > අද ඔයා හොඳට වැඩ කළා. ස්ථානීය අගය මොකක්ද කියලා දැන් ඔයා දන්නවා.
 
-Board shows: the staged exercise, row 3's digit blank and active — inherited
+Board shows: the staged exercise, row 5's valueRepresented blank and active — inherited
 

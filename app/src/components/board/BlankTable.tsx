@@ -20,7 +20,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import { NumberPad } from "./NumberPad";
 import { WordBank } from "./WordBank";
-import { nameWordBank } from "@/lib/distractors";
+import { nameWordBank, PLACE_NAMES } from "@/lib/distractors";
 import { useTargetRef } from "./targets";
 import type { Filler } from "./events";
 import { BOARD, FONT_LABEL, FONT_LATIN, formatNumber } from "./tokens";
@@ -185,7 +185,13 @@ export function BlankTable({ columns, rows, filled = [], activeBlank = null, int
             // A number's NAME is written from its word bank, not typed: the
             // row's number gives the words (and two distractors).
             const rowNumber = Number(rows[active.row]?.number);
-            const bank = active.field === "numberName" && Number.isFinite(rowNumber) ? nameWordBank(rowNumber, `${rowNumber}:${active.row}`) : null;
+            // A place-name cell is picked from the place names (one tile is the answer), never typed.
+            const bank =
+              active.field === "numberName" && Number.isFinite(rowNumber)
+                ? nameWordBank(rowNumber, `${rowNumber}:${active.row}`)
+                : active.field === "place"
+                  ? { tiles: PLACE_NAMES.slice(0, Math.max(4, String(Number.isFinite(rowNumber) ? rowNumber : 0).length)) as unknown as string[] }
+                  : null;
             return bank ? (
               <WordBank key={`${active.row}:${active.field}`} tiles={bank.tiles} label={label} docked={dockPad} onCommit={commit} onChange={setDraft} onCancel={() => setTapped(null)} />
             ) : (

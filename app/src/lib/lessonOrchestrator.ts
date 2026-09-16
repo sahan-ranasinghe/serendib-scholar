@@ -39,7 +39,7 @@ export const FRAMING_CONCEPT = "";
 
 /** What the app does to the board before the model speaks this beat. */
 export type BeatBoardAction =
-  | { kind: "stage_item"; itemId: string }
+  | { kind: "stage_item"; itemId: string; /** Blank this row's worked cells (its number stays) — Zara fills them as a demonstration. */ demonstrateRow?: number }
   | { kind: "reveal_part"; itemId: string; rowIndex: number; field: string; value: string }
   | { kind: "set_active_blank"; itemId: string; rowIndex: number; field: string }
   // A big friendly card (see board.ts) — used so no non-chat beat ever
@@ -78,6 +78,8 @@ export interface Beat {
   mode: TeachingMode | null;
   /** Which content_bank item drives this beat, if any. */
   itemId: string | null;
+  /** The guide step an authored beat serves — the packer keeps a staged exercise's beats (one guide step) together. */
+  guideStep?: string;
   /**
    * Groups the beats of one worked item, so jumps can find "the next item
    * at this mode". -1 for everything that isn't an item segment.
@@ -130,6 +132,8 @@ export interface SessionPlan {
   estimatedSeconds: number;
   /** The real concepts worked in this sitting, in order. */
   conceptTags: string[];
+  /** The textbook exercises (content_bank ids) staged and worked in this sitting, in order — named on the close card and the lesson detail. */
+  exercises?: string[];
 }
 
 /** Where one concept's beats live in the flat list — the jump table for reteach/another_example/simplify. */

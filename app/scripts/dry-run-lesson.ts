@@ -9,7 +9,11 @@
  *      src/data/lessons/blueprints/<subject>-<grade>-<lesson>.json to
  *      hand-edit a concept's shape),
  *   3. the full beat list for one session (default: session 1),
- *   4. a simulated run against a scripted child.
+ *   4. a simulated run against a scripted child,
+ *   5. the ITEM LEDGER — every textbook item of the authored concepts and
+ *      every blank within it: asked, demonstrated, or deferred to a named
+ *      session (0 uncovered is the gate) — with the exercise units the
+ *      packer keeps whole and the same-sentence event timelines.
  *
  *   npm run dry-run:lesson                    # session 1, child answers correctly
  *   npm run dry-run:lesson -- --session 2     # a later session's beat list
@@ -20,7 +24,8 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import assert from "node:assert/strict";
 import { supabaseAdmin } from "../src/lib/supabaseAdmin";
-import { buildScriptFromRows, type BankRow } from "../src/lib/lessonScriptBuilder";
+import { buildScriptFromRows, exerciseUnits, insideExerciseUnit, type BankRow } from "../src/lib/lessonScriptBuilder";
+import { blanksForItem } from "../src/lib/lessonBlanks";
 import { LESSON_1_NUMBERS_STEPS, LESSON_1_NUMBERS_TITLE } from "../src/data/lessons/lesson1-numbers";
 import {
   advance,
@@ -46,7 +51,7 @@ import { judgePhraseLocally } from "../src/lib/phraseJudge";
 import { isNumberWord } from "../src/lib/sinhalaNumber";
 import { listAuthoredLines } from "../src/lib/authoredLines";
 import { parseAuthoredScript, type AuthoredScriptFile } from "../src/lib/authoredScript";
-import { describeStage, eventKey, initialStage, isKnownEvent, reduceStage, rodsNamedIn, type Storyboard } from "../src/lib/choreography";
+import { describeStage, eventKey, initialStage, isKnownEvent, reduceStage, rodsNamedIn, rowOfCards, type Storyboard } from "../src/lib/choreography";
 import { sentencesOf } from "../src/lib/scriptDistance";
 import { checkSpeechRules, formatSpeechFindings } from "../src/lib/speechRules";
 import { formatCoverage, voiceCoverage } from "../src/lib/voiceCoverage";
@@ -637,6 +642,150 @@ async function runAssertions(
     `  PASS  storyboard ↔ script: ${storyboard.beats.length} beats matched, ${reduced} events reduce onto the board (ends on ${describeStage(stage).slice(0, 60)})`,
   );
 
+  // 6e. ITEM LEDGER — the coverage gate (triage cluster C, issue 25). Every
+  //     textbook item of the authored concepts, and every blank within it,
+  //     is asked of the child, demonstrated by Zara, or explicitly deferred
+  //     to a named later session. Zero "NOT COVERED" is the gate.
+  console.log(`\n${"=".repeat(78)}\nITEM LEDGER — every textbook item and every blank (authored concepts)\n${"=".repeat(78)}`);
+  const short = (id: string) => id.replace(/^authored:/u, "");
+  const sessionOf = (beatIndex: number): number => script.sessions.findIndex((s) => beatIndex >= s.firstBeat && beatIndex <= s.lastBeat) + 1;
+  const authoredTags = new Set<string>(authoredScript?.concepts ?? []);
+  const conceptStartSession = (tag: string): number => {
+    const concept = script.concepts.find((c) => c.conceptTag === tag);
+    return concept ? sessionOf(concept.firstBeat) : 0;
+  };
+  const indexed = script.beats.map((beat, index) => ({ beat, index }));
+  const boardOf = (beat: Beat) => beat.board as { kind: string; itemId?: string; rowIndex?: number; field?: string; demonstrateRow?: number };
+  interface LedgerRow { item: string; blank: string; status: string; ok: boolean }
+  const ledger: LedgerRow[] = [];
+  const workStream = indexed.filter(({ beat }) => beat.conceptTag !== FRAMING_CONCEPT);
+  const workUnits = exerciseUnits(workStream.map(({ beat }) => beat)).map((u) => ({ ...u, startIndex: workStream[u.start]!.index, endIndex: workStream[u.end]!.index }));
+  const deferral = (tag: string, at: number): string => {
+    const home = conceptStartSession(tag);
+    return sessionOf(at) > home ? ` — deferred from session ${home} to session ${sessionOf(at)}` : "";
+  };
+  // The textbook's items are the design's (6a above): the bank's other rows for these concepts are the recorded teacher's own examples, worked verbally.
+  const textbookIds = new Set(design.concepts.filter((c) => authoredTags.has(c.conceptTag)).flatMap((c) => c.textbookContent.flatMap((t) => t.contentBankIds)));
+  for (const row of rows.filter((r) => textbookIds.has(r.id) && r.component_type !== "ExampleBox" && r.component_type !== "AbacusDiagram")) {
+    const label = `${row.component_type} ${row.id.slice(0, 8)}`;
+    const stages = indexed.filter(({ beat }) => beat.board.kind === "stage_item" && boardOf(beat).itemId === row.id);
+    if (row.component_type === "DigitPickerPuzzle") {
+      // Five builds: the picker questions of the exercise's unit.
+      const unit = workUnits.find((u) => stages.some((s) => s.index === u.startIndex));
+      const builds = unit ? indexed.slice(unit.startIndex, unit.endIndex + 1).filter(({ beat }) => beat.type === "ASK" && beat.board.kind === "show_components") : [];
+      for (let n = 1; n <= 5; n += 1) {
+        const build = builds[n - 1];
+        ledger.push({ item: label, blank: `build ${n} of 5`, status: build ? `asked at ${short(build.beat.id)} (session ${sessionOf(build.index)})${deferral(row.concept_tag, build.index)}` : "NOT COVERED", ok: Boolean(build) });
+      }
+      continue;
+    }
+    // The demonstration row (staged blank for Zara to fill): every cell she writes is a demonstration.
+    const demo = stages.find(({ beat }) => boardOf(beat).demonstrateRow !== undefined);
+    const props = (row.component_props ?? {}) as { rows?: Array<Record<string, unknown>> };
+    if (demo) {
+      const demoRow = boardOf(demo.beat).demonstrateRow!;
+      for (const [field, value] of Object.entries(props.rows?.[demoRow] ?? {})) {
+        if (field === "number" || value === null || value === undefined) continue;
+        const revealed = indexed.find(({ beat }) => beat.board.kind === "reveal_part" && boardOf(beat).itemId === row.id && boardOf(beat).rowIndex === demoRow && boardOf(beat).field === field);
+        ledger.push({ item: label, blank: `row ${demoRow + 1} ${field} (worked example)`, status: revealed ? `demonstrated by Zara at ${short(revealed.beat.id)} (session ${sessionOf(revealed.index)})${deferral(row.concept_tag, revealed.index)}` : "NOT COVERED — the worked row is staged blank but never filled", ok: Boolean(revealed) });
+      }
+    }
+    for (const blank of blanksForItem(row.component_type, row.component_props, row.answer)) {
+      const asked = indexed.find(({ beat }) => beat.type === "ASK" && beat.board.kind === "set_active_blank" && boardOf(beat).itemId === row.id && boardOf(beat).rowIndex === blank.rowIndex && boardOf(beat).field === blank.field);
+      const revealed = indexed.find(({ beat }) => beat.board.kind === "reveal_part" && boardOf(beat).itemId === row.id && boardOf(beat).rowIndex === blank.rowIndex && boardOf(beat).field === blank.field);
+      const where = asked ?? revealed;
+      const status = asked
+        ? `asked at ${short(asked.beat.id)} (session ${sessionOf(asked.index)}${revealed ? ", confirmed" : ""})`
+        : revealed
+          ? `Zara fills it at ${short(revealed.beat.id)} (session ${sessionOf(revealed.index)})`
+          : "NOT COVERED";
+      ledger.push({ item: label, blank: `row ${blank.rowIndex + 1} ${blank.field}`, status: where ? status + deferral(row.concept_tag, where.index) : status, ok: Boolean(where) });
+    }
+  }
+  // The guide's warm-up list is a text card, not a content_bank row: every number on it is read aloud (issue 6c).
+  const cardRows = new Map<string, Array<{ beat: Beat; index: number }>>();
+  for (const entry of indexed) {
+    if (!authoredTags.has(entry.beat.conceptTag) || entry.beat.board.kind !== "text_card") continue;
+    const cards = rowOfCards(entry.beat.board.text);
+    if (cards && cards.length >= 3) cardRows.set(entry.beat.board.text, [...(cardRows.get(entry.beat.board.text) ?? []), entry]);
+  }
+  for (const [text, entries] of cardRows) {
+    // A row that is READ (one of its cards is asked about with the ring on it) must be read in full; the card game's 0–9 and the chosen digits are not reading lists.
+    if (!entries.some(({ beat }) => beat.type === "ASK" && beat.board.kind === "text_card" && beat.board.highlight)) continue;
+    for (const value of rowOfCards(text) ?? []) {
+      const asked = entries.find(({ beat }) => beat.type === "ASK" && beat.board.kind === "text_card" && beat.board.highlight === String(value));
+      ledger.push({ item: `number list ${text.replace(/\s+/gu, " · ")}`, blank: String(value), status: asked ? `asked at ${short(asked.beat.id)} (read-aloud, session ${sessionOf(asked.index)})` : "NOT COVERED", ok: Boolean(asked) });
+    }
+  }
+  let currentItem = "";
+  for (const row of ledger) {
+    if (row.item !== currentItem) {
+      currentItem = row.item;
+      console.log(`  ${currentItem}`);
+    }
+    console.log(`    ${row.ok ? "✓" : "✗"} ${row.blank.padEnd(34)} ${row.status}`);
+  }
+  const uncovered = ledger.filter((row) => !row.ok);
+  console.log(`  ledger: ${ledger.length} blanks · ${ledger.filter((r) => r.status.startsWith("asked")).length} asked · ${ledger.filter((r) => /^(Zara fills|demonstrated)/u.test(r.status)).length} demonstrated · ${ledger.filter((r) => r.status.includes("deferred")).length} deferred to a named session · ${uncovered.length} NOT COVERED`);
+  assert.deepStrictEqual(uncovered.map((r) => `${r.item}: ${r.blank}`), [], "textbook blanks nobody asks, demonstrates or defers");
+  console.log(`  PASS  every textbook item and every blank of the authored concepts is asked, demonstrated, or deferred to a named session (0 uncovered)`);
+
+  // 6f. EXERCISE ATOMICITY (issue 22): a staged exercise and every beat that
+  //     works it are one unit — never split across sittings, its first
+  //     question within 6 beats of the staging, its demonstration adjacent
+  //     to its practice.
+  const split = workUnits.filter((u) => sessionOf(u.startIndex) !== sessionOf(u.endIndex)).map((u) => `${short(script.beats[u.startIndex]!.id)}…${short(script.beats[u.endIndex]!.id)} (sessions ${sessionOf(u.startIndex)}→${sessionOf(u.endIndex)})`);
+  assert.deepStrictEqual(split, [], `exercises cut by a session boundary: ${split.join("; ")}`);
+  const lateAsks: string[] = [];
+  const nonAdjacent: string[] = [];
+  const unitLines: string[] = [];
+  for (const unit of workUnits) {
+    const beatsOf = indexed.slice(unit.startIndex, unit.endIndex + 1);
+    const firstAsk = beatsOf.findIndex(({ beat }) => beat.type === "ASK");
+    const asks = beatsOf.filter(({ beat }) => beat.type === "ASK").length;
+    if (firstAsk === -1) continue;
+    if (firstAsk > 6) lateAsks.push(`${short(beatsOf[0]!.beat.id)}: first ASK ${firstAsk} beats after the staging`);
+    const demos = beatsOf.slice(0, firstAsk).map((e, k) => ({ ...e, k })).filter(({ beat }) => beat.board.kind === "reveal_part");
+    if (demos.length > 0 && demos[demos.length - 1]!.k + 1 !== firstAsk) nonAdjacent.push(`${short(beatsOf[0]!.beat.id)}: the demonstration ends ${firstAsk - demos[demos.length - 1]!.k - 1} beat(s) before the practice`);
+    unitLines.push(`    ${short(beatsOf[0]!.beat.id).padEnd(22)} → ${short(beatsOf[beatsOf.length - 1]!.beat.id).padEnd(22)} ${String(beatsOf.length).padStart(2)} beats · ${asks} ASK(s) · first ASK after ${firstAsk} beat(s) · ${demos.length} demonstration cell(s) · session ${sessionOf(unit.startIndex)}`);
+  }
+  console.log(`  exercise units (${workUnits.length}):\n${unitLines.join("\n")}`);
+  assert.deepStrictEqual(lateAsks, [], `staged exercises whose first question comes late: ${lateAsks.join("; ")}`);
+  assert.deepStrictEqual(nonAdjacent, [], `demonstrations not adjacent to their practice: ${nonAdjacent.join("; ")}`);
+  console.log(`  PASS  no exercise spans a session boundary; every staged exercise's first ASK is within 6 beats; every demonstration is adjacent to its practice`);
+
+  // 6g. SAME-SENTENCE EVENTS (triage cluster E): events on one sentence fire
+  //     in sequence — no two abacus gestures share a timestamp — and a text
+  //     card is ringed when she says its words (opening:5, "ලොකු සංඛ්‍යා").
+  const shared: string[] = [];
+  for (const sb of storyboard.beats) {
+    const stamps = new Set<string>();
+    for (const e of sb.events) {
+      if (e.primitive !== "abacus" || (e.event !== "rod_glow" && e.event !== "bead_add")) continue;
+      const stamp = `s${e.sentenceIndex}@${e.at ?? 0}`;
+      if (stamps.has(stamp)) shared.push(`${short(sb.id)} ${stamp}`);
+      stamps.add(stamp);
+    }
+  }
+  assert.deepStrictEqual(shared, [], `abacus gestures sharing a timestamp: ${shared.join(", ")}`);
+  const opening5 = storyboard.beats.find((sb) => sb.id === "authored:opening:5");
+  assert.ok(opening5?.events.some((e) => e.primitive === "highlight" && e.event === "circle" && (e.args?.target as { text?: string } | undefined)?.text === "ලොකු සංඛ්‍යා"), "opening:5 has no highlight on the ලොකු සංඛ්‍යා card");
+  assert.ok(opening5?.events.some((e) => e.primitive === "pointer"), "opening:5 has no pointer on the card");
+  console.log(`  PASS  no two rod_glow / bead_add events share a timestamp; opening:5 rings and points at "ලොකු සංඛ්‍යා"`);
+  const timeline = (id: string): void => {
+    const sb = storyboard.beats.find((b) => b.id === `authored:${id}`);
+    if (!sb) return;
+    console.log(`  timeline ${id}:`);
+    sb.sentences.forEach((sentence, i) => {
+      console.log(`    s${i} "${sentence}"`);
+      const ordered = sb.events.filter((e) => e.sentenceIndex === i).sort((a, b) => (a.at ?? 0) - (b.at ?? 0));
+      for (const e of ordered) console.log(`       @${(e.at ?? 0).toFixed(2)}  ${eventKey(e)}${e.args ? ` ${JSON.stringify(e.args)}` : ""}`);
+    });
+  };
+  timeline("placeValue4Digit:36");
+  timeline("placeValue4Digit:41");
+  timeline("opening:5");
+
   // 7. Session 1's turn-taking shape: at most SESSION_ASK_LIMIT real ASK
   //    waits, zero mandatory yes/no questions, rhetoric stays inline as
   //    pause markers. The packer now enforces the same ceiling while it
@@ -666,8 +815,17 @@ async function runAssertions(
     let asks = 0;
     let seconds = 0;
     let missed: string | null = null;
-    for (const beat of slice) {
-      if (asks >= ASK_CEILING && seconds >= FLOOR_SECONDS && isCut(beat.type) && !missed) {
+    const sliceUnits = exerciseUnits(slice);
+    // The packer also refuses a cut that would leave only a stub (less than a
+    // minimum sitting of work) after it — the tail joins the sitting instead.
+    const laterWorkSeconds = script.beats
+      .slice(session.lastBeat + 1)
+      .filter((beat) => beat.conceptTag !== FRAMING_CONCEPT)
+      .reduce((sum, beat) => sum + estimateBeatSeconds(beat), 0);
+    for (const [k, beat] of slice.entries()) {
+      const tailSeconds = laterWorkSeconds + slice.slice(k).reduce((sum, b) => sum + estimateBeatSeconds(b), 0);
+      // A cut point inside a staged exercise is not a cut point (issue 22: exercises are atomic), nor is one that leaves a stub.
+      if (asks >= ASK_CEILING && seconds >= FLOOR_SECONDS && isCut(beat.type) && !insideExerciseUnit(sliceUnits, k) && tailSeconds >= FLOOR_SECONDS && !missed) {
         missed = `${beat.id} (${beat.type})`;
       }
       seconds += estimateBeatSeconds(beat);

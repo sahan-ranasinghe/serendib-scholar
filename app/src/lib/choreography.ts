@@ -35,6 +35,8 @@ export interface StoryboardEvent {
   primitive: string;
   event: string;
   args: Record<string, unknown> | null;
+  /** Where in the sentence it fires, 0–1 (cluster E: same-sentence events fire in sequence, by estimated word position). Absent = as the sentence starts. */
+  at?: number;
 }
 
 export interface StoryboardBeat {
@@ -491,7 +493,9 @@ export function reduceStage(state: StageState, event: Pick<StoryboardEvent, "pri
       const filled = [...state.base.filled.filter((f) => !(f.row === fill.row && f.field === fill.field)), fill];
       // Filling the outlined cell closes it; a fill elsewhere (her worked row) leaves the child's cell outlined.
       const activeBlank = state.base.activeBlank && state.base.activeBlank.row === fill.row && state.base.activeBlank.field === fill.field ? null : state.base.activeBlank;
-      return { ...state, base: { ...state.base, filled, activeBlank }, pointer: { cell: { row: fill.row, field: state.base.columns[0]?.key ?? fill.field } }, seq };
+      // Her own fill (a demonstration, a neutral confirmation) is pointed at where it lands; the child's keeps the pointer on the row's number (M10).
+      const pointer = fill.by === "tutor" ? { cell: { row: fill.row, field: fill.field } } : { cell: { row: fill.row, field: state.base.columns[0]?.key ?? fill.field } };
+      return { ...state, base: { ...state.base, filled, activeBlank }, pointer, seq };
     }
     case "choiceChips.show": {
       const options = Array.isArray(args.options) ? (args.options as unknown[]).map(String) : [];
@@ -738,8 +742,26 @@ export const CONCEPT_TITLES: Record<string, string> = {
   orderNumbers: "පිළිවෙළට තබමු",
   numberNames: "සංඛ්‍යා නාම",
   fiveDigit: "ඉලක්කම් පහේ සංඛ්‍යා",
+  // The design's remaining concept tags (docs/design/maths-5-1.json), so a child's board never shows a raw tag.
+  expandedForm4Digit: "විහිදුවා ලිවීම",
+  beyond9999: "9 999ට එහා",
+  digitGroupingRule: "ඉලක්කම් කණ්ඩායම්",
+  tenThousandsPlace: "දසදහසස්ථානය",
+  placeValueTable5Digit: "ස්ථානීය අගය · ඉලක්කම් පහ",
+  expandedForm5Digit: "විහිදුවා ලිවීම · ඉලක්කම් පහ",
 };
 
 export function conceptTitle(tag: string, fallback?: string | null): string {
   return CONCEPT_TITLES[tag] ?? fallback ?? tag;
+}
+
+/** The textbook exercises a session works, by content_bank id prefix — named on the session's close card and the lesson detail. */
+export const ITEM_TITLES: Record<string, string> = {
+  "7b58e436": "ස්ථානීය අගය වගුව",
+  "4c2aa078": "සංඛ්‍යා නාම වගුව",
+  "7daf0141": "ඉලක්කම් කාඩ්පත් ප්‍රහේලිකාව",
+};
+
+export function itemTitle(itemId: string): string | null {
+  return ITEM_TITLES[itemId.slice(0, 8)] ?? null;
 }

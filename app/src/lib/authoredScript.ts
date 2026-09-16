@@ -51,7 +51,13 @@ export type AuthoredBoardIntent =
    * එකස්ථානයට එකකුත්". Rods already carrying beads are left alone.
    */
   | { kind: "abacus_add"; rod: number; count: number; adds?: Array<{ rod: number; count: number }> }
-  | { kind: "exercise"; itemId: string }
+  /**
+   * A textbook exercise staged whole. `demonstrateRow` blanks that row's
+   * worked cells too (its number stays), so Zara can fill them one per
+   * sentence before the child's rows — the row is a demonstration, not a
+   * picture the child is told to look at.
+   */
+  | { kind: "exercise"; itemId: string; demonstrateRow?: number }
   /**
    * One blank of a staged exercise, made active so the child answers it
    * through the board's own number pad. The closing questions use this:
@@ -211,7 +217,7 @@ function boardFor(intent: AuthoredBoardIntent, lessonTitle: string): BeatBoardAc
     case "abacus_add":
       return { kind: "abacus_add_bead", rod: intent.rod, count: intent.count, adds: intent.adds };
     case "exercise":
-      return { kind: "stage_item", itemId: intent.itemId };
+      return intent.demonstrateRow === undefined ? { kind: "stage_item", itemId: intent.itemId } : { kind: "stage_item", itemId: intent.itemId, demonstrateRow: intent.demonstrateRow };
     case "blank":
       return { kind: "set_active_blank", itemId: intent.itemId, rowIndex: intent.rowIndex, field: intent.field };
     case "clear":
@@ -265,7 +271,7 @@ function describeBoard(intent: AuthoredBoardIntent): string {
         ? `beads landing on rods ${intent.adds.map((a) => `${a.rod} (+${a.count})`).join(", ")}`
         : `beads landing on rod ${intent.rod}`;
     case "exercise":
-      return "a textbook exercise";
+      return intent.demonstrateRow === undefined ? "a textbook exercise" : `a textbook exercise, row ${intent.demonstrateRow + 1} blank for her to demonstrate`;
     case "blank":
       return `the exercise with row ${intent.rowIndex}'s ${intent.field} waiting to be filled in`;
     case "digitPicker":
@@ -304,6 +310,7 @@ export function toRuntimeBeats(file: AuthoredScriptFile, lessonTitle: string): B
         ? authored.boardIntent.itemId
         : null,
       segmentIndex: index,
+      guideStep: authored.guideStep,
       goal:
         authored.type === "CHECK_MY_WORK"
           ? `Zara worked this with a deliberate error (${authored.errorPlanted ?? "planted"}); the child must find it.`

@@ -3,7 +3,7 @@ import { blanksForItem, workedStepsForItem, solutionForItem, describeItem, type 
 import { parseBoardContent, blockToBoardAction, parseAbacusStep, type BoardBlock } from "@/lib/boardContentParser";
 import { estimateBeatSeconds } from "@/lib/beatRegistry";
 import { AUTHORED_LINES } from "@/lib/authoredLines";
-import { toRuntimeBeats, type AuthoredScriptFile } from "@/lib/authoredScript";
+import { AUTHORED_OPENING_CONCEPT, toRuntimeBeats, type AuthoredScriptFile } from "@/lib/authoredScript";
 import { DESIGN_CONCEPTS } from "@/lib/lessonDesign";
 import type {
   Beat,
@@ -16,6 +16,7 @@ import type {
   TeachingMode,
 } from "@/lib/lessonOrchestrator";
 import { FRAMING_CONCEPT } from "@/lib/lessonOrchestrator";
+import { conceptTitle, itemTitle } from "@/lib/choreography";
 
 /**
  * Turns the content bank into a session-partitioned lesson script — the
@@ -610,6 +611,51 @@ function isBoundary(beat: Beat | undefined): boolean {
 }
 
 /**
+ * Exercise atomicity (docs/qa/session1-triage.md, issue 22). A staged
+ * exercise and every beat that works it are ONE unit: the packer never cuts
+ * a sitting inside it and never drops the break inside it. A unit runs from
+ * the beat that stages the item (or any SHOW_BOARD) to the last beat of the
+ * same concept that touches it — a cell of the item, a reveal into it, or a
+ * beat of the same guide step (the digit puzzle's five builds each re-stage
+ * their own picker, so the guide step is what holds them together).
+ */
+export interface ExerciseUnit {
+  /** Inclusive indices into the list the units were computed on. */
+  start: number;
+  end: number;
+  itemId: string | null;
+}
+
+export function exerciseUnits(beats: Beat[]): ExerciseUnit[] {
+  const units: ExerciseUnit[] = [];
+  const itemOf = (beat: Beat): string | null => beat.itemId ?? ("itemId" in beat.board ? (beat.board as { itemId: string }).itemId : null);
+  for (let i = 0; i < beats.length; i += 1) {
+    const beat = beats[i]!;
+    if (beat.board.kind !== "stage_item" && beat.type !== "SHOW_BOARD") continue;
+    const itemId = beat.board.kind === "stage_item" ? itemOf(beat) : null;
+    const step = beat.guideStep ?? null;
+    let end = i;
+    for (let j = i + 1; j < beats.length; j += 1) {
+      const other = beats[j]!;
+      if (other.conceptTag !== beat.conceptTag) break;
+      if (other.board.kind === "stage_item" && itemOf(other) !== itemId) break;
+      if (other.board.kind === "clear" || other.board.kind === "title_card") break;
+      const sameItem = itemId !== null && itemOf(other) === itemId;
+      const sameStep = step !== null && other.guideStep === step;
+      if (sameItem || sameStep) end = j;
+    }
+    if (end > i) units.push({ start: i, end, itemId });
+    i = end;
+  }
+  return units;
+}
+
+/** Whether index `i` sits INSIDE a unit (after its first beat) — no cut, no break there. */
+export function insideExerciseUnit(units: ExerciseUnit[], i: number): boolean {
+  return units.some((u) => u.start < i && i <= u.end);
+}
+
+/**
  * The first sitting opens with her COMPLETE recorded opening (segment 0,
  * 00:00-03:00), not an excerpt: it is how the real teacher starts the
  * lesson — the welcome, why grade 5 matters, what they'll do — and a
@@ -679,17 +725,30 @@ function assembleSessions(
   let current: Beat[] = [];
   let currentSeconds = 0;
   let currentAsks = 0;
+  const units = exerciseUnits(work);
   for (let i = 0; i < work.length; i += 1) {
     const beat = work[i];
     const estimate = estimateBeatSeconds(beat);
+    // An exercise is atomic: at its first beat the WHOLE exercise is weighed
+    // — if it will not fit, the cut lands before it and it moves whole to
+    // the next sitting; inside it there is no cut at all.
+    const unit = units.find((u) => u.start === i);
+    const ahead = unit ? work.slice(unit.start, unit.end + 1) : [beat];
+    const aheadSeconds = unit ? ahead.reduce((sum, b) => sum + estimateBeatSeconds(b), 0) : estimate;
+    const aheadAsks = ahead.filter((b) => b.type === "ASK").length;
     // Two budgets that bind together: whichever upper bound is reached
     // first ends the sitting at the next safe boundary — but the minimum
     // length applies to both, so a question-dense stretch runs on and
     // carries an extra ASK rather than closing a five-minute stub.
-    const outOfTime = currentSeconds + estimate > SESSION_TEACHING_TARGET_SECONDS;
-    const outOfAsks = currentAsks >= SESSION_ASK_LIMIT;
+    const outOfTime = currentSeconds + aheadSeconds > SESSION_TEACHING_TARGET_SECONDS;
+    const outOfAsks = currentAsks >= SESSION_ASK_LIMIT || (unit !== undefined && currentAsks + aheadAsks > SESSION_ASK_LIMIT);
     const longEnough = currentSeconds >= SESSION_TEACHING_MIN_SECONDS;
-    if ((outOfTime || outOfAsks) && longEnough && isBoundary(beat)) {
+    // A cut that would leave only a stub behind it (everything after this
+    // point shorter than a minimum sitting) is not made: the tail joins this
+    // sitting rather than becoming a three-minute session of its own.
+    const tailSeconds = work.slice(i).reduce((sum, b) => sum + estimateBeatSeconds(b), 0);
+    const stubTail = tailSeconds < SESSION_TEACHING_MIN_SECONDS;
+    if ((outOfTime || outOfAsks) && longEnough && isBoundary(beat) && !insideExerciseUnit(units, i) && !stubTail) {
       slices.push(current);
       current = [];
       currentSeconds = 0;
@@ -745,14 +804,16 @@ function assembleSessions(
       });
     }
 
-    // Work, with the break dropped in after ~12 minutes of teaching.
+    // Work, with the break dropped in after ~12 minutes of teaching — never inside an exercise.
     let teachingSeconds = 0;
     let breakPlaced = false;
+    const sliceUnits = exerciseUnits(slice);
     slice.forEach((beat, indexInSlice) => {
       if (
         !breakPlaced &&
         teachingSeconds >= BREAK_AFTER_TEACHING_SECONDS &&
         isBoundary(beat) &&
+        !insideExerciseUnit(sliceUnits, indexInSlice) &&
         indexInSlice < slice.length - 1
       ) {
         // An OFFER, not a chat: she asks whether they'd like a little
@@ -780,12 +841,28 @@ function assembleSessions(
     const preview = nextConcept
       ? (descriptions.get(nextConcept) ?? nextConcept)
       : "how far they've come through the whole lesson";
+    // The close names what finished and what the next sitting covers (issue
+    // 22: the session boundary was invisible — a child who never reached the
+    // big table thought it was missing). Her recorded line is fixed; the
+    // board carries the names: concept titles and the exercises staged.
+    const exercisesOf = (beatsOfSlice: Beat[]): string[] => [...new Set(beatsOfSlice.flatMap((b) => (b.board.kind === "stage_item" ? [b.board.itemId] : [])))];
+    const exercises = exercisesOf(slice);
+    // The card names concepts (the lesson's opening is not one); the exercises are named on the lesson detail, where there is room.
+    const taught = (tags: string[]): string[] => [...new Set(tags.filter((t) => t !== FRAMING_CONCEPT && t !== AUTHORED_OPENING_CONCEPT).map((tag) => conceptTitle(tag, descriptions.get(tag))))];
+    const finishedTitles = taught(conceptTags);
+    const nextTags = nextSlice ? nextSlice.map((b) => b.conceptTag) : [];
+    const nextTitles = taught(nextTags);
+    const nextExercises = nextSlice ? exercisesOf(nextSlice).map(itemTitle).filter((t): t is string => t !== null) : [];
+    const closeCard = `අද ✓ ${finishedTitles.join(" · ")}\n${nextSlice ? `ඊළඟ පාර: ${nextTitles.join(" · ")}` : "පාඩම ඉවරයි 🌟"}`;
     beats.push({
-      ...framingBeat(sessionIndex, "close", "CLOSE_SESSION", `Next time: ${preview}.`, "pausing", {
-        kind: "title_card",
-        title: lessonTitle,
-        emoji: "🌟",
-      }),
+      ...framingBeat(
+        sessionIndex,
+        "close",
+        "CLOSE_SESSION",
+        `Finished today: ${finishedTitles.join(", ")}. Next time: ${nextSlice ? [...nextTitles, ...nextExercises].join(", ") : preview}.`,
+        "pausing",
+        { kind: "text_card", text: closeCard },
+      ),
       spokenText: AUTHORED_LINES.closeSession,
     });
 
@@ -796,6 +873,7 @@ function assembleSessions(
       lastBeat,
       estimatedSeconds: beats.slice(firstBeat, lastBeat + 1).reduce((sum, b) => sum + estimateBeatSeconds(b), 0),
       conceptTags,
+      exercises,
     });
   });
 

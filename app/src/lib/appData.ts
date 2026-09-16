@@ -2,7 +2,7 @@ import "server-only";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { getActiveChild, getActiveChildId } from "@/lib/activeChild";
 import { readChildExtras, type ChildExtras } from "@/lib/childStore";
-import { conceptTitle } from "@/lib/choreography";
+import { conceptTitle, itemTitle } from "@/lib/choreography";
 import { DAY_LETTERS, LESSON_NAMES, OUTFITS, STICKERS, STICKER_SLOTS, t } from "@/lib/appCopy";
 import type { CertificateData, HomeData, LessonDetailData, LessonMapData, MapNode, NodeKind, ParentZoneData, PracticeData, ProfilesData, ProgressData, ReportData, RewardsData, SummaryData } from "@/lib/appTypes";
 import type { LessonScript } from "@/lib/lessonOrchestrator";
@@ -352,7 +352,13 @@ export function lessonDetailData(state: ChildState, lessonNumber: number): Lesso
     const tags = s.conceptTags.filter((c) => c !== "lessonOpening");
     const kind: NodeKind = finished || i < current ? "done" : i === current ? "current" : "locked";
     const started = lesson.script.beats.slice(s.firstBeat, s.lastBeat + 1).some((b) => logged.has(b.id));
-    return { title: t("common.sessionNth", { n: i + 1 }), sub: tags.map((c) => title(c, state.lessons)).join(" · "), min: t("common.minutesN", { n: Math.max(1, Math.round(s.estimatedSeconds / 60)) }), kind, started };
+    // Each session names its concepts AND the textbook exercises it works, so the big table reads as "next", never as missing (issue 22).
+    const names = tags.map((c) => title(c, state.lessons));
+    for (const item of s.exercises ?? []) {
+      const name = itemTitle(item);
+      if (name && !names.includes(name)) names.push(name);
+    }
+    return { title: t("common.sessionNth", { n: i + 1 }), sub: names.join(" · "), min: t("common.minutesN", { n: Math.max(1, Math.round(s.estimatedSeconds / 60)) }), kind, started };
   });
   const tags = lesson.script.concepts.map((c) => c.conceptTag).filter((c) => c !== "lessonOpening");
   return {
