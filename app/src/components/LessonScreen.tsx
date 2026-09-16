@@ -54,6 +54,8 @@ export default function LessonScreen() {
     answerMicAsk,
     holdFor,
     noteIdleTouch,
+    noteActivity,
+    noteInput,
     chatTranscript,
     start,
     submitTypedAnswer,
@@ -275,6 +277,10 @@ export default function LessonScreen() {
 
   const handShown = inLesson && status !== "error" && status !== "done";
   const onBoardTouch = useCallback(() => submitTypedAnswer("(tapped)"), [submitTypedAnswer]);
+  const onRootPointerDown = useCallback(() => {
+    resumeAudioOutput();
+    noteActivity();
+  }, [resumeAudioOutput, noteActivity]);
   const renderLegacy = useCallback((content: BoardContent) => <TeachingBoard content={content} onSubmitTypedAnswer={submitTypedAnswer} />, [submitTypedAnswer]);
 
   // The caption line: the spoken clip's own text on request (සි), and a
@@ -315,13 +321,15 @@ export default function LessonScreen() {
       onAnswer={submitTypedAnswer}
       onTouch={onBoardTouch}
       onIdleTouch={noteIdleTouch}
+      onInput={noteInput}
       onPointerSide={onPointerSide}
       renderLegacy={renderLegacy}
       onTitleTap={onTitleTap}
       // Any tap resumes the output AudioContext — mobile browsers keep a
       // context created outside a user gesture suspended, which silently
       // breaks playback AND drain detection (the mobile stall). Idempotent.
-      onRootPointerDown={resumeAudioOutput}
+      // The same tap is child activity: the inactivity ladder counts from it.
+      onRootPointerDown={onRootPointerDown}
       data={{
         "data-beat-id": snapshot.beatId,
         "data-beat-type": snapshot.beatType,

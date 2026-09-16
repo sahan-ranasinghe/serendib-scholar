@@ -1155,7 +1155,7 @@ async function main(): Promise<void> {
     const FIT_H = 360;
     await page.send("Emulation.setDeviceMetricsOverride", { width: FIT_W, height: FIT_H, deviceScaleFactor: 1, mobile: true });
     const fitRows: Array<{ frame: string; detail: string; ok: boolean }> = [];
-    for (const id of ["M10", "M3", "readWrite:18c–18g", "placeValue:96–101", "M7", "M1"]) {
+    for (const id of ["M10", "M3", "readWrite:18c–18g", "placeValue:96–101", "M7", "M1", "R1", "R2"]) {
       await gotoFrame(id);
       const fit = await evaluate<{ frame: number; outside: string[]; footTop: number | null; target: { what: string; top: number; bottom: number } | null }>(
         page,
@@ -1172,7 +1172,13 @@ async function main(): Promise<void> {
             if (r.top < mr.top - 1 || r.bottom > mr.bottom + 1 || r.left < mr.left - 1 || r.right > mr.right + 1) outside.push(sel + " " + Math.round(r.top - mr.top) + "…" + Math.round(r.bottom - mr.bottom));
             if (sel === '.wb-footer' || sel === '.wb-dock[data-up]') footTop = footTop === null ? Math.round(r.top - mr.top) : Math.min(footTop, Math.round(r.top - mr.top));
           }
-          const targetEl = document.querySelector('[data-active], .wb-glow, [data-glow="true"], [data-testid="chalk-answer-slot"]');
+          // What the child must see above the foot: the glowing/active target — unless that target IS the foot (the chips, a docked pad) — else the lowest thing in the content (R1's step cards).
+          let targetEl = [...document.querySelectorAll('[data-active], .wb-glow, [data-glow="true"], [data-testid="chalk-answer-slot"]')].find((el) => !el.closest('.wb-footer, .wb-dock')) || null;
+          if (!targetEl) {
+            const content = document.querySelector('.wb-content');
+            const kids = content ? [...content.querySelectorAll('[data-testid]')].filter((k) => k.getBoundingClientRect().height > 0) : [];
+            targetEl = kids.sort((a, b) => b.getBoundingClientRect().bottom - a.getBoundingClientRect().bottom)[0] || null;
+          }
           const tr = targetEl ? targetEl.getBoundingClientRect() : null;
           return { frame: Math.round(mr.height), outside, footTop, target: tr ? { what: (targetEl.getAttribute('data-testid') || targetEl.className || targetEl.tagName).toString().slice(0, 28), top: Math.round(tr.top - mr.top), bottom: Math.round(tr.bottom - mr.top) } : null };
         })()`,

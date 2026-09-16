@@ -461,6 +461,42 @@ async function main(): Promise<void> {
   let lastTurnBeat = "";
   let turnClosed = true;
   const practiceSeen = new Set<string>();
+  interface PracticeRecord {
+    inviteAt: number;
+    cue: boolean;
+    rowAtInvite: boolean;
+    ringAtInvite: boolean;
+    leakAtInvite: boolean;
+    stepAtInvite: number | null;
+    chipsAt: number | null;
+    rowAtChips: boolean;
+    leakAtChips: boolean;
+    stepAtChips: number | null;
+    readBackAt: number | null;
+    readBack: string;
+    nameInCard: string;
+  }
+  const practice = new Map<string, PracticeRecord>();
+  /** What the board shows during reading practice: the cue, the primitive being read (the number row, the abacus, a card) and its ring, the step, and whether the expected name is visible anywhere but the chips. */
+  const practiceLook = (expectedName: string) =>
+    evaluate<{ cue: boolean; row: boolean; ring: boolean; step: number | null; leak: boolean }>(
+      page,
+      `(() => {
+        const board = document.querySelector('[data-testid="lesson-board"]');
+        const inBoard = (el) => { if (!el || !board) return false; const r = el.getBoundingClientRect(); const b = board.getBoundingClientRect(); return r.width > 0 && r.top >= b.top && r.bottom <= b.bottom; };
+        const steps = document.querySelector('[data-testid="read-aloud-steps"]');
+        const caption = (document.querySelector('[data-testid="caption"]')?.textContent ?? '');
+        const name = ${JSON.stringify(expectedName)}.replace(/\\s+/g, '');
+        const squash = (t) => (t || '').replace(/\\s+/g, '');
+        return {
+          cue: !!document.querySelector('[data-testid="pause-cue"]'),
+          row: ['[data-testid="number-cards"]', '[data-testid="abacus"]', '[data-testid="text-card"]', '[data-testid="digit-picker"]'].some((sel) => inBoard(document.querySelector(sel))),
+          ring: !!document.querySelector('[data-ringed], [data-testid="highlight-circle"]'),
+          step: steps ? Number(steps.getAttribute('data-step')) : null,
+          leak: name.length > 0 && (squash(steps ? steps.textContent : '').includes(name) || squash(caption).includes(name)),
+        };
+      })()`,
+    );
   let retryTaps = 0;
   const practiceLog: string[] = [];
   /** Tap-to-feedback latencies, from the page's own clock (submitTypedAnswer → fireFeedback). */
@@ -505,6 +541,24 @@ async function main(): Promise<void> {
   const choreoCount = () => evaluate<number>(page, `(window.__choreoLog ?? []).length`);
   const drills = async (snap: Snapshot) => {
     const short = snap.beatId.replace(/^authored:/u, "");
+    // 0. Cluster B, issue 7: ⏸ at the 5th, 40th and 80th beat — the beat holds, nothing fires while paused, and resume picks up the same beat.
+    const ordinal = audits.length;
+    if ([5, 40, 80].includes(ordinal) && !drillDone.has(`pause-${ordinal}`)) {
+      drillDone.add(`pause-${ordinal}`);
+      const eventsBefore = await choreoCount();
+      await tapSelector('[aria-label="විරාමය"]');
+      await wait(400);
+      const pausedNow = await isPaused();
+      const eventsAtPause = await choreoCount();
+      const beatAtPause = await evaluate<string>(page, `document.querySelector('.lesson-screen')?.dataset.beatId ?? '—'`);
+      await wait(4000);
+      const during = { paused: await isPaused(), events: await choreoCount(), beat: await evaluate<string>(page, `document.querySelector('.lesson-screen')?.dataset.beatId ?? '—'`) };
+      await tapSelector('[aria-label="දිගටම"]');
+      await wait(300);
+      const after = { paused: await isPaused(), beat: await evaluate<string>(page, `document.querySelector('.lesson-screen')?.dataset.beatId ?? '—'`) };
+      const ok = pausedNow && during.paused && during.events === eventsAtPause && during.beat === beatAtPause && !after.paused && after.beat === beatAtPause;
+      drillNote(`pause at beat ${ordinal}`, ok, `${short} · paused ${pausedNow ? "yes" : "NO"} · 4 s later: beat ${during.beat === beatAtPause ? "unchanged" : `CHANGED to ${during.beat}`}, events while paused ${during.events - eventsAtPause} (${eventsBefore} → ${eventsAtPause} at the pause) · resumed ${after.paused ? "NO" : "yes"} on ${after.beat === beatAtPause ? "the same beat" : `a DIFFERENT beat (${after.beat})`}`);
+    }
     // 1. A tap on the board while she is talking: a hint, not an answer.
     if (short === "readWrite4Digit:1" && !drillDone.has("touch") && snap.status === "teaching") {
       drillDone.add("touch");
@@ -856,27 +910,102 @@ async function main(): Promise<void> {
       await tapSelector('[data-soft-tap]');
       note({ beatId: snap.beatId, via: "tap on the board (soft pause)", answer: "(tapped)" });
     }
+    // Reading practice, step 1 — the invitation. Cluster D: the number row (and its ring) must
+    // still be on the board, and the answer must appear nowhere yet (not in the step cards, not
+    // in the caption). The chips and her read-back are recorded at the turn, below.
     if (snap.status === "pausing" && snap.pause === "mic" && !practiceSeen.has(snap.beatId)) {
       practiceSeen.add(snap.beatId);
-      const cue = await evaluate<boolean>(page, `!!document.querySelector('[data-testid="pause-cue"]')`);
-      const t0 = Date.now();
-      // Wait the pause out, then catch the read-back (a composed clip, or the line on the board) before the chips.
-      let readBack = "";
-      for (let i = 0; i < 40 && !readBack; i += 1) {
-        await wait(150);
-        readBack = await evaluate<string>(page, `(document.querySelector('[data-testid="caption"]')?.textContent ?? '').trim()`);
-      }
-      const pauseMs = Date.now() - t0;
-      await shoot(snap.beatId, "-reading-practice");
-      practiceLog.push(`${snap.beatId.replace(/^authored:/u, "")}: 🎤 cue ${cue ? "shown" : "MISSING"} · read-back ${readBack ? `"${readBack.slice(0, 40)}"` : "not seen"} after ~${(pauseMs / 1000).toFixed(1)} s`);
-      console.log(`      📖 reading practice ${practiceLog[practiceLog.length - 1]}`);
+      const expectedName = expectedById.get(snap.beatId)?.expectedAnswer ?? "";
+      const look = await practiceLook(expectedName);
+      practice.set(snap.beatId, { inviteAt: Date.now(), cue: look.cue, rowAtInvite: look.row, ringAtInvite: look.ring, leakAtInvite: look.leak, stepAtInvite: look.step, chipsAt: null, rowAtChips: false, leakAtChips: false, stepAtChips: null, readBackAt: null, readBack: "", nameInCard: "" });
+      await shoot(snap.beatId, "-reading-practice-invite");
     }
     if (snap.status === "turn" && snap.yourTurn && (snap.beatId !== lastTurnBeat || turnClosed)) {
       lastTurnBeat = snap.beatId;
       turnClosed = false;
       await wait(700);
       await shoot(snap.beatId, "-your-turn");
-      await answer(snap);
+      const shortTurn = snap.beatId.replace(/^authored:/u, "");
+      const record = practice.get(snap.beatId);
+      if (record && record.chipsAt === null) {
+        // Step 2 — the chips are up, the row is still there, and the answer is nowhere but the chips.
+        const look = await practiceLook(expectedById.get(snap.beatId)?.expectedAnswer ?? "");
+        record.chipsAt = Date.now();
+        record.rowAtChips = look.row;
+        record.leakAtChips = look.leak;
+        record.stepAtChips = look.step;
+      }
+      if (DRILLS && shortTurn === "readWrite4Digit:8" && !drillDone.has("slow")) {
+        // Cluster B, issue 16: a child who starts late — one digit at 11 s, another at 23 s — is never cut off.
+        drillDone.add("slow");
+        await tapSelector('[data-testid="turn-pad-toggle"]');
+        await wait(400);
+        const padUp = () => evaluate<{ pad: boolean; value: string; status: string; beat: string }>(page, `(() => { const el = document.querySelector('.lesson-screen'); return { pad: !!document.querySelector('[data-testid="number-pad"]'), value: (document.querySelector('[data-testid="number-pad-value"]')?.textContent ?? ''), status: el?.dataset.status ?? '—', beat: el?.dataset.beatId ?? '—' }; })()`);
+        const key = (digit: string) => evaluate(page, `(() => { const k = [...document.querySelectorAll('[data-testid="number-pad"] button')].find((el) => el.getAttribute('aria-label') === ${JSON.stringify(digit)}); k && k.click(); return true; })()`);
+        await wait(11_000);
+        const at11 = await padUp();
+        await key("1");
+        await wait(12_000);
+        const at23 = await padUp();
+        await key("0");
+        await wait(1500);
+        const at24 = await padUp();
+        const ok = at11.pad && at11.status === "turn" && at23.pad && at23.status === "turn" && at23.beat === snap.beatId && at23.value === "1" && at24.pad && at24.status === "turn" && at24.value === "10";
+        drillNote("type at 11 s and 23 s: no auto-close, no demonstrate", ok, `pad at 11 s ${at11.pad ? "open" : "CLOSED"} (${at11.status}) · typed 1 · at 23 s ${at23.pad ? "open" : "CLOSED"} (${at23.status}, value "${at23.value}", beat ${at23.beat === snap.beatId ? "unchanged" : "CHANGED"}) · typed 0 · at 24.5 s ${at24.pad ? "open" : "CLOSED"} (value "${at24.value}")`);
+        for (const digit of ["0", "0"]) {
+          await key(digit);
+          await wait(80);
+        }
+        await evaluate(page, `(() => { const k = document.querySelector('[data-testid="number-pad"] button[aria-label="done"]'); k && k.click(); return true; })()`);
+        note({ beatId: snap.beatId, via: "number pad (one digit at 11 s, one at 23 s, then the rest)", answer: "1000" });
+      } else if (DRILLS && shortTurn === "readWrite4Digit:18f" && !drillDone.has("five")) {
+        // Cluster B, issue 14: five digits on a four-digit answer are accepted and judged wrong normally.
+        drillDone.add("five");
+        await tapSelector('[data-testid^="cell-"][data-active]');
+        await wait(400);
+        for (const digit of ["1", "0", "0", "0", "0"]) {
+          await evaluate(page, `(() => { const k = [...document.querySelectorAll('[data-testid="number-pad"] button')].find((el) => el.getAttribute('aria-label') === ${JSON.stringify(digit)}); k && k.click(); return true; })()`);
+          await wait(80);
+        }
+        const typed = await evaluate<string>(page, `(document.querySelector('[data-testid="number-pad-value"]')?.textContent ?? '')`);
+        await evaluate(page, `(() => { const k = document.querySelector('[data-testid="number-pad"] button[aria-label="done"]'); k && k.click(); return true; })()`);
+        note({ beatId: snap.beatId, via: "table cell + pad (10000 on a 4-digit answer — WRONG on purpose)", answer: "10000" });
+        let judged = "";
+        for (let i = 0; i < 60 && !judged; i += 1) {
+          await wait(250);
+          judged = await evaluate<string>(page, `(() => { const el = document.querySelector('.lesson-screen'); const id = el?.dataset.beatId ?? ''; if (/:(feedback|miss)$/.test(id)) return id; if (document.querySelector('[data-testid="turn-retry"]')) return 'retry note'; return ''; })()`);
+        }
+        drillNote("10000 on a 4-digit answer: all five digits accepted, judged wrong normally", typed === "10000" && judged !== "", `pad value "${typed}" · after ✓: ${judged ? judged.replace(/^authored:/u, "") : "no judgement seen in 15 s"}`);
+      } else {
+        await answer(snap);
+      }
+      if (record && record.readBackAt === null) {
+        // Step 3 — her read-back, only after the judge: its text reaches the caption as it plays.
+        const name = expectedById.get(snap.beatId)?.expectedAnswer ?? "";
+        for (let i = 0; i < 60 && record.readBackAt === null; i += 1) {
+          await wait(150);
+          const seen = await evaluate<{ caption: string; card: string }>(page, `({ caption: (document.querySelector('[data-testid="caption"]')?.textContent ?? '').trim(), card: document.querySelector('[data-testid="read-aloud-steps"][data-step="3"]') ? 'step 3' : '' })`).catch(() => ({ caption: "", card: "" }));
+          if (seen.caption.includes("මම කියන්නම්") || (name && seen.caption.replace(/\s+/gu, "").includes(name.replace(/\s+/gu, ""))) || seen.card) {
+            // The card names the number the instant her read-back starts; the caption follows as the composed clip begins.
+            record.readBackAt = Date.now();
+            record.nameInCard = seen.card;
+            let caption = seen.caption;
+            // Up to 3 s: the composed clip for a four-digit name takes longer to assemble than a two-digit one.
+            for (let j = 0; j < 20 && !(caption.includes("මම කියන්නම්") || (name && caption.replace(/\s+/gu, "").includes(name.replace(/\s+/gu, "")))); j += 1) {
+              await wait(150);
+              caption = await evaluate<string>(page, `(document.querySelector('[data-testid="caption"]')?.textContent ?? '').trim()`).catch(() => caption);
+            }
+            record.readBack = caption;
+          }
+        }
+        await shoot(snap.beatId, "-reading-practice-readback");
+        const r = record;
+        const order = r.chipsAt !== null && r.readBackAt !== null && r.inviteAt < r.chipsAt && r.chipsAt < r.readBackAt;
+        const line = `${shortTurn}: invite@0 s (🎤 ${r.cue ? "cue" : "NO CUE"}, row ${r.rowAtInvite ? "on screen" : "MISSING"}, ring ${r.ringAtInvite ? "yes" : "no"}, step ${r.stepAtInvite}, answer ${r.leakAtInvite ? "VISIBLE" : "hidden"}) → chips@${r.chipsAt ? ((r.chipsAt - r.inviteAt) / 1000).toFixed(1) : "?"} s (row ${r.rowAtChips ? "on screen" : "MISSING"}, step ${r.stepAtChips}, answer ${r.leakAtChips ? "VISIBLE" : "hidden"}) → readBack@${r.readBackAt ? ((r.readBackAt - r.inviteAt) / 1000).toFixed(1) : "?"} s ("${r.readBack.slice(0, 36)}", cards at ${r.nameInCard || "step ?"})`;
+        practiceLog.push(line);
+        console.log(`      📖 reading practice ${line}`);
+        if (DRILLS) drillNote(`reading practice ${shortTurn}: row on screen · answer hidden until judged · invite → chips → read-back`, order && r.cue && r.rowAtInvite && r.rowAtChips && !r.leakAtInvite && !r.leakAtChips, line);
+      }
       for (let i = 0; i < 20; i += 1) {
         const ms = await evaluate<number | null>(page, `(() => { const t = window.__lastTapAt, f = window.__lastFeedbackAt; return t && f && f >= t ? Math.round(f - t) : null; })()`);
         if (ms !== null) {
@@ -1020,7 +1149,7 @@ async function main(): Promise<void> {
   if (DRILLS) {
     console.log(`\nfailure-mode drills (${drillResults.filter((r) => r.startsWith("PASS")).length}/${drillResults.length} handled visibly):`);
     for (const line of drillResults) console.log(`  ${line}`);
-    for (const name of ["touch during playback", "rotation mid-beat", "backgrounded tab", "missing clip", "first ✋ asks for the microphone", "Zara's portrait is not a control", "three ↺ taps are one question"]) if (!drillResults.some((r) => r.includes(name))) console.log(`  SKIP  ${name}: its beat was not reached`);
+    for (const name of ["touch during playback", "rotation mid-beat", "backgrounded tab", "missing clip", "first ✋ asks for the microphone", "Zara's portrait is not a control", "three ↺ taps are one question", "pause at beat 5", "pause at beat 40", "pause at beat 80", "type at 11 s and 23 s", "10000 on a 4-digit answer", "reading practice readWrite4Digit:2"]) if (!drillResults.some((r) => r.includes(name))) console.log(`  SKIP  ${name}: its beat was not reached`);
   }
   if (fpsSamples.length) console.log(`fps while animating${CPU_THROTTLE > 1 ? ` at cpu×${CPU_THROTTLE}` : ""}: ${fpsSamples.map((s) => `${s.beatId.replace(/^authored:/u, "")} ${s.fps}`).join(", ")}`);
   const flagged = audits.filter((a) => a.audit && (a.audit.overlap || a.audit.portraitOverlap || a.audit.cutOff || a.audit.small.length || a.audit.tinyText.length));
@@ -1060,6 +1189,10 @@ async function main(): Promise<void> {
     const median = sorted.length ? sorted[Math.floor(sorted.length / 2)]! : null;
     console.log(`\nvoice on the lesson path: /api/hear calls ${hear} · /api/planner calls ${planner} · getUserMedia calls ${gum} (${DRILLS ? "1 expected, from the ✋ drill" : "0 expected"})`);
     console.log(`tap → feedback latency: median ${median === null ? "n/a" : `${median} ms`} over ${latencies.length} judged answers${sorted.length ? ` (min ${sorted[0]}, max ${sorted[sorted.length - 1]})` : ""}`);
+    {
+      const r1 = practiceLog.find((l) => l.startsWith("readWrite4Digit:2:"));
+      console.log(`R1 trace (readWrite4Digit:2, the first read-aloud): ${r1 ?? "not reached"}`);
+    }
     console.log(`reading practice seen on ${practiceLog.length} beat(s):`);
     for (const line of practiceLog) console.log(`  ${line}`);
     if (hear > 0 || planner > 0) console.log(`FAIL  the lesson path called ${hear ? "/api/hear" : "/api/planner"} — the answer path is touch-only`);
@@ -1125,7 +1258,8 @@ async function main(): Promise<void> {
   const voiceClean = (apiCalls.get("hear") ?? 0) === 0 && (apiCalls.get("planner") ?? 0) === 0;
   const latencyClean = latencies.length === 0 || [...latencies].sort((a, b) => a - b)[Math.floor(latencies.length / 2)]! <= 200;
   const clusterClean = clusterA.every((r) => r.startsWith("PASS"));
-  process.exit(done && layoutClean && voiceClean && latencyClean && clusterClean ? 0 : 1);
+  const drillsClean = !DRILLS || drillResults.every((r) => r.startsWith("PASS"));
+  process.exit(done && layoutClean && voiceClean && latencyClean && clusterClean && drillsClean ? 0 : 1);
 }
 
 main().catch((error) => {

@@ -164,7 +164,8 @@
   box-sizing: border-box;
 }
 .wb-frame[data-foot="chips"] .wb-content {
-  bottom: 102px; /* 124 from the frame */
+  /* 124 from the frame with the design's 56 px chips; taller chips (long names wrapping inside their pills) push the inset up with them */
+  bottom: max(102px, calc(var(--wb-foot, 60px) + 42px));
 }
 .wb-frame[data-foot="dock"] .wb-content {
   bottom: 168px; /* 190 from the frame */

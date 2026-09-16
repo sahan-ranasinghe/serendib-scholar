@@ -660,19 +660,20 @@ function planBeat(beat: AuthoredBeat, state: BoardState, upcoming: AuthoredBoard
       : mode === "cell" ? "the number pad into the active cell"
       : mode === "valueOrPlace" ? `${rodPick ? "tap the rod, or " : ""}tap one of 3 chips`
       : mode === "why" ? "tap one of 3 findings"
-      : "3 s to say it (🎤 cue, nothing recorded) → Zara reads it → tap one of 3 name-chips";
+      : "3 s to say it (🎤 cue, nothing recorded) → tap one of 3 name-chips → Zara reads it back";
     child = { kind: beat.type === "CHECK_MY_WORK" ? "find the mistake" : "answer", via, expects: predicate ? `any arrangement of ${predicate.digits.join(",")}` : expects, answerMode: mode, surface };
+    const readAloudValue = mode === "readAloud" ? valueOfAnswer(expects ?? null) : null;
     if (mode === "readAloud") {
-      // Reading practice first: the pause, then her read-back, then the chips.
-      const value = valueOfAnswer(expects ?? null);
-      events.push({ sentenceIndex: lastSentence, primitive: "turn", event: "pause", args: value !== null ? { ms: READ_ALOUD_PAUSE_MS, cue: "mic", number: value } : { ms: READ_ALOUD_PAUSE_MS, cue: "mic" } });
-      if (value !== null) events.push({ sentenceIndex: lastSentence, primitive: "turn", event: "read_back", args: { number: value } });
+      // Reading practice: the invitation first (the pause), then the chips — the judged step — then her read-back.
+      events.push({ sentenceIndex: lastSentence, primitive: "turn", event: "pause", args: readAloudValue !== null ? { ms: READ_ALOUD_PAUSE_MS, cue: "mic", number: readAloudValue } : { ms: READ_ALOUD_PAUSE_MS, cue: "mic" } });
     }
     events.push({ sentenceIndex: lastSentence, primitive: "turn", event: "your_turn", args: { answerMode: mode, surface } });
-    // The chips deal as she finishes asking — except after reading practice, where the runtime deals them at the judged step.
+    // The chips deal as she finishes asking — after reading practice's invitation, at the judged step.
     if (chips && (mode === "why" || mode === "readAloud" || mode === "valueOrPlace")) {
       events.push({ sentenceIndex: lastSentence, primitive: "choiceChips", event: "show", args: { options: chips.options, correctIndex: chips.correctIndex } });
     }
+    // Her read-back confirms a right answer — the runtime plays it after the judge; the storyboard records the order.
+    if (readAloudValue !== null) events.push({ sentenceIndex: lastSentence, primitive: "turn", event: "read_back", args: { number: readAloudValue } });
   } else if (beat.type === "SOFT_CHECK" || beat.pauseType === "SOFT_CHECK") {
     child = { kind: "soft check", via: "a 2 s pause while she reacts; a tap counts as engagement; no mic, no acknowledgement clip", answerMode: answer?.mode ?? undefined, surface: "pause" };
     events.push({ sentenceIndex: lastSentence, primitive: "turn", event: "pause", args: { ms: SOFT_CHECK_PAUSE_MS } });
@@ -751,7 +752,7 @@ function describeEvent(e: Event): string {
     case "turn.your_turn": return `the child's turn: ${a.answerMode} — ${TOUCH_SURFACE[a.answerMode as AnswerMode] ?? a.surface}${a.surface === "rod" ? " (the rods glow)" : a.surface === "chips" ? " (the chips glow)" : a.surface === "picker" ? " (the picker glows)" : ""}`;
     case "turn.over": return "the turn ends";
     case "turn.pause": return a.cue === "mic" ? `${Number(a.ms) / 1000} s to say it — the portrait perks up, a faint 🎤 cue, nothing recorded` : `a ${Number(a.ms) / 1000} s pause while she reacts (a tap counts as engagement)`;
-    case "turn.read_back": return `Zara reads ${textbook(Number(a.number))} herself ("මම කියන්නම් —" + the composed number)`;
+    case "turn.read_back": return `after the judged chip, Zara reads ${textbook(Number(a.number))} back ("මම කියන්නම් —" + the composed number)`;
     default: return `${e.primitive}.${e.event}`;
   }
 }

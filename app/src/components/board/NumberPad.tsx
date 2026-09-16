@@ -17,7 +17,6 @@ export interface NumberPadProps {
   mode: "digit" | "number";
   onCommit: (value: string) => void;
   onCancel?: () => void;
-  maxLength?: number;
   label?: string;
   /** Docked at the foot (the board's footer). */
   docked?: boolean;
@@ -25,24 +24,35 @@ export interface NumberPadProps {
   onChange?: (value: string) => void;
 }
 
+/**
+ * The pad takes up to six digits whatever the answer's length: a child who
+ * types 10000 for a four-digit answer is judged wrong like anyone else, never
+ * blocked at the fourth key (which would also give the length away). ⌫
+ * always works.
+ */
+const MAX_DIGITS = 6;
+
 const TOP = ["1", "2", "3", "4", "5", "⌫"] as const;
 const BOTTOM = ["6", "7", "8", "9", "0", "✓"] as const;
 
-export function NumberPad({ mode, onCommit, onCancel, maxLength = 6, label, docked = false, onChange }: NumberPadProps) {
+export function NumberPad({ mode, onCommit, onCancel, label, docked = false, onChange }: NumberPadProps) {
   const [value, setValueState] = useState("");
+  const board = useBoard();
   const setValue = (next: string | ((v: string) => string)) => {
     setValueState((v) => {
       const out = typeof next === "function" ? next(v) : next;
       onChange?.(out);
+      board.noteInput("pad", out.length > 0);
       return out;
     });
   };
-  const board = useBoard();
   useEffect(() => {
     if (!docked) return;
     board.noteDock(1);
     return () => board.noteDock(-1);
   }, [docked, board]);
+  // The pad leaving (committed, cancelled, the turn over) clears its input claim.
+  useEffect(() => () => board.noteInput("pad", false), [board]);
   const press = (key: string) => {
     if (key === "⌫") {
       setValue((v) => v.slice(0, -1));
@@ -58,7 +68,7 @@ export function NumberPad({ mode, onCommit, onCancel, maxLength = 6, label, dock
       onCommit(key);
       return;
     }
-    setValue((v) => (v.length >= maxLength ? v : v + key));
+    setValue((v) => (v.length >= MAX_DIGITS ? v : v + key));
   };
   const keys = [...TOP, ...BOTTOM];
   const pad = (

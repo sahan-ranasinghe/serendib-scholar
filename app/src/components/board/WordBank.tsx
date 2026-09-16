@@ -35,10 +35,12 @@ export function WordBank({ tiles, label, onCommit, onCancel, docked = false, onC
     board.noteDock(1);
     return () => board.noteDock(-1);
   }, [docked, board]);
+  useEffect(() => () => board.noteInput("bank", false), [board]);
   const line = picked.map((i) => tiles[i]).join(" ");
   const update = (next: number[]) => {
     setPicked(next);
     onChange?.(next.map((i) => tiles[i]).join(" "));
+    board.noteInput("bank", next.length > 0);
   };
   const bank = (
     <motion.div

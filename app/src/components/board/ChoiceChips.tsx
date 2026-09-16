@@ -2,7 +2,7 @@
 
 /**
  * choiceChips, from the design (rule 8): two to four paper pills along the
- * foot of the board, 56 px tall, padding 0 22, radius pill, 2 px border,
+ * foot of the board, 56 px tall (taller when a long name wraps inside), padding 0 22, radius pill, 2 px border,
  * Gemunu 700 24 ink, a hard 2 px shadow, 10 px apart, dealt in left to
  * right. States: idle · pressed (sinks 2 px, no shadow, #F1ECE0) ·
  * selected (saffron border on saffron-soft) · correct (green border on
@@ -42,7 +42,7 @@ function look(state: ChipState) {
 export function ChoiceChips({ options, interactive = false, onPick, glow = false, states = {} }: ChoiceChipsProps) {
   const ref = useTargetRef<HTMLDivElement>(["component:choiceChips", "text:chips"]);
   return (
-    <div ref={ref} data-testid="choice-chips" className={glow ? "wb-glow" : undefined} style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap", maxWidth: "100%", borderRadius: 999, padding: glow ? 2 : 0 }}>
+    <div ref={ref} data-testid="choice-chips" className={glow ? "wb-glow" : undefined} style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "nowrap", maxWidth: "100%", borderRadius: 999, padding: glow ? 2 : 0 }}>
       <AnimatePresence initial={true}>
         {options.map((option, index) => {
           const state = states[index] ?? "idle";
@@ -68,19 +68,23 @@ export function ChoiceChips({ options, interactive = false, onPick, glow = false
               transition={{ duration: 0.4, ease: [...EASE_SPRING], delay: index * 0.09 }}
               style={{
                 boxSizing: "content-box",
-                height: 56,
+                // 56 tall; a long name (a four-digit number's) wraps inside its pill and the pill grows — three chips always share ONE row, and the board's content inset follows the foot's measured height
+                minHeight: 56,
+                minWidth: 0,
+                flex: "0 1 auto",
                 padding: "0 22px",
                 border: `2px solid ${l.border}`,
                 borderRadius: 999,
                 background: l.background,
                 display: "flex",
                 alignItems: "center",
+                justifyContent: "center",
+                textAlign: "center",
                 gap: 8,
                 font: `700 24px/1.5 ${FONT_SINHALA}`,
                 color: BOARD.ink,
                 boxShadow: l.boxShadow,
                 transform: l.transform,
-                whiteSpace: "nowrap",
                 cursor: interactive ? "pointer" : "default",
               }}
             >

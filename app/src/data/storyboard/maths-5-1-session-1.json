@@ -274,14 +274,6 @@
         {
           "sentenceIndex": 0,
           "primitive": "turn",
-          "event": "read_back",
-          "args": {
-            "number": 84
-          }
-        },
-        {
-          "sentenceIndex": 0,
-          "primitive": "turn",
           "event": "your_turn",
           "args": {
             "answerMode": "readAloud",
@@ -300,16 +292,24 @@
             ],
             "correctIndex": 1
           }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "read_back",
+          "args": {
+            "number": 84
+          }
         }
       ],
       "child": {
         "kind": "answer",
-        "via": "3 s to say it (🎤 cue, nothing recorded) → Zara reads it → tap one of 3 name-chips",
+        "via": "3 s to say it (🎤 cue, nothing recorded) → tap one of 3 name-chips → Zara reads it back",
         "expects": "අසූ හතර",
         "answerMode": "readAloud",
         "surface": "chips"
       },
-      "sees": "Number cards 84 · 101 · 528 · 997 (ring on 84); a ring around 84 — they answer via 3 s to say it (🎤 cue, nothing recorded) → Zara reads it → tap one of 3 name-chips."
+      "sees": "Number cards 84 · 101 · 528 · 997 (ring on 84); a ring around 84 — they answer via 3 s to say it (🎤 cue, nothing recorded) → tap one of 3 name-chips → Zara reads it back."
     },
     {
       "id": "authored:readWrite4Digit:3",
@@ -366,14 +366,6 @@
         {
           "sentenceIndex": 0,
           "primitive": "turn",
-          "event": "read_back",
-          "args": {
-            "number": 101
-          }
-        },
-        {
-          "sentenceIndex": 0,
-          "primitive": "turn",
           "event": "your_turn",
           "args": {
             "answerMode": "readAloud",
@@ -392,16 +384,24 @@
             ],
             "correctIndex": 1
           }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "read_back",
+          "args": {
+            "number": 101
+          }
         }
       ],
       "child": {
         "kind": "answer",
-        "via": "3 s to say it (🎤 cue, nothing recorded) → Zara reads it → tap one of 3 name-chips",
+        "via": "3 s to say it (🎤 cue, nothing recorded) → tap one of 3 name-chips → Zara reads it back",
         "expects": "එකසිය එක",
         "answerMode": "readAloud",
         "surface": "chips"
       },
-      "sees": "Number cards 84 · 101 · 528 · 997 (ring on 101); a ring around 101 — they answer via 3 s to say it (🎤 cue, nothing recorded) → Zara reads it → tap one of 3 name-chips."
+      "sees": "Number cards 84 · 101 · 528 · 997 (ring on 101); a ring around 101 — they answer via 3 s to say it (🎤 cue, nothing recorded) → tap one of 3 name-chips → Zara reads it back."
     },
     {
       "id": "authored:readWrite4Digit:3b",
@@ -840,14 +840,6 @@
         {
           "sentenceIndex": 0,
           "primitive": "turn",
-          "event": "read_back",
-          "args": {
-            "number": 3058
-          }
-        },
-        {
-          "sentenceIndex": 0,
-          "primitive": "turn",
           "event": "your_turn",
           "args": {
             "answerMode": "readAloud",
@@ -866,16 +858,24 @@
             ],
             "correctIndex": 1
           }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "read_back",
+          "args": {
+            "number": 3058
+          }
         }
       ],
       "child": {
         "kind": "answer",
-        "via": "3 s to say it (🎤 cue, nothing recorded) → Zara reads it → tap one of 3 name-chips",
+        "via": "3 s to say it (🎤 cue, nothing recorded) → tap one of 3 name-chips → Zara reads it back",
         "expects": "තුන්දහස් පනස් අට",
         "answerMode": "readAloud",
         "surface": "chips"
       },
-      "sees": "Card \"3058\" — they answer via 3 s to say it (🎤 cue, nothing recorded) → Zara reads it → tap one of 3 name-chips."
+      "sees": "Card \"3058\" — they answer via 3 s to say it (🎤 cue, nothing recorded) → tap one of 3 name-chips → Zara reads it back."
     },
     {
       "id": "authored:readWrite4Digit:16",
@@ -2646,14 +2646,6 @@
         {
           "sentenceIndex": 0,
           "primitive": "turn",
-          "event": "read_back",
-          "args": {
-            "number": 5421
-          }
-        },
-        {
-          "sentenceIndex": 0,
-          "primitive": "turn",
           "event": "your_turn",
           "args": {
             "answerMode": "readAloud",
@@ -2672,16 +2664,24 @@
             ],
             "correctIndex": 0
           }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "read_back",
+          "args": {
+            "number": 5421
+          }
         }
       ],
       "child": {
         "kind": "answer",
-        "via": "3 s to say it (🎤 cue, nothing recorded) → Zara reads it → tap one of 3 name-chips",
+        "via": "3 s to say it (🎤 cue, nothing recorded) → tap one of 3 name-chips → Zara reads it back",
         "expects": "පන්දහස් හාරසිය විසි එක",
         "answerMode": "readAloud",
         "surface": "chips"
       },
-      "sees": "The abacus showing 5 421; a chalk ring around 5 421 — they answer via 3 s to say it (🎤 cue, nothing recorded) → Zara reads it → tap one of 3 name-chips."
+      "sees": "The abacus showing 5 421; a chalk ring around 5 421 — they answer via 3 s to say it (🎤 cue, nothing recorded) → tap one of 3 name-chips → Zara reads it back."
     },
     {
       "id": "authored:placeValue4Digit:59",
@@ -2834,14 +2834,6 @@
         {
           "sentenceIndex": 0,
           "primitive": "turn",
-          "event": "read_back",
-          "args": {
-            "number": 6831
-          }
-        },
-        {
-          "sentenceIndex": 0,
-          "primitive": "turn",
           "event": "your_turn",
           "args": {
             "answerMode": "readAloud",
@@ -2860,16 +2852,24 @@
             ],
             "correctIndex": 1
           }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "read_back",
+          "args": {
+            "number": 6831
+          }
         }
       ],
       "child": {
         "kind": "answer",
-        "via": "3 s to say it (🎤 cue, nothing recorded) → Zara reads it → tap one of 3 name-chips",
+        "via": "3 s to say it (🎤 cue, nothing recorded) → tap one of 3 name-chips → Zara reads it back",
         "expects": "හයදහස් අටසිය තිස් එක",
         "answerMode": "readAloud",
         "surface": "chips"
       },
-      "sees": "The abacus showing 6 831 — they answer via 3 s to say it (🎤 cue, nothing recorded) → Zara reads it → tap one of 3 name-chips."
+      "sees": "The abacus showing 6 831 — they answer via 3 s to say it (🎤 cue, nothing recorded) → tap one of 3 name-chips → Zara reads it back."
     },
     {
       "id": "authored:placeValue4Digit:63",

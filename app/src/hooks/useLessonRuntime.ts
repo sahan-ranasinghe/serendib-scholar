@@ -278,6 +278,45 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
   const lastBuiltNumberRef = useRef<number | null>(null);
   const stoppedRef = useRef(false);
   const pausedRef = useRef(false);
+  /**
+   * The lesson's own clock: wall time minus every paused stretch. Every timer
+   * that paces the lesson — the inactivity ladder, the reading pause, the
+   * tails after a clip — runs on it, so ⏸ freezes all of them at once and
+   * nothing that would have fired during a pause fires on resume
+   * (docs/qa/session1-triage.md, cluster B: "pausing a few times makes the
+   * session jump to the end").
+   */
+  const pausedAtRef = useRef<number | null>(null);
+  const pausedTotalRef = useRef(0);
+  const lessonNow = () => Date.now() - pausedTotalRef.current - (pausedAtRef.current === null ? 0 : Date.now() - pausedAtRef.current);
+  /** `ms` of UNPAUSED time; a pause mid-wait just lengthens it. */
+  const lessonWait = (ms: number): Promise<void> =>
+    new Promise((resolve) => {
+      const end = lessonNow() + ms;
+      const tick = () => {
+        if (stoppedRef.current) return resolve();
+        const left = end - lessonNow();
+        if (left <= 0 && !pausedRef.current) return resolve();
+        setTimeout(tick, Math.min(Math.max(left, 40), 250));
+      };
+      tick();
+    });
+  /**
+   * The inactivity ladder counts from the child's LAST interaction, not from
+   * when the window opened: any tap, drag, key or chip press on the lesson
+   * screen resets it (noteActivity), and a surface with input in it — digits
+   * on the pad, tiles placed, a word picked — never times out at all
+   * (noteInput). Cluster B, issues 16 and 17.
+   */
+  const lastActivityRef = useRef(0);
+  const hasInputRef = useRef(false);
+  const noteActivity = useCallback(() => {
+    lastActivityRef.current = lessonNow();
+  }, []);
+  const noteInput = useCallback((hasInput: boolean) => {
+    hasInputRef.current = hasInput;
+    if (hasInput) lastActivityRef.current = lessonNow();
+  }, []);
   const mutedRef = useRef(false);
   const chatRequestedRef = useRef(false);
   const skipToCloseRef = useRef(false);
@@ -635,7 +674,7 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
           const at = spans.list[index]!.startMs;
           setTimeout(() => fireSentence(silent, index, spans, durationMs), at);
         }
-        await wait(durationMs + MIC_TAIL_MS);
+        await lessonWait(durationMs + MIC_TAIL_MS);
         setNoClipCaption(null);
       } else {
         // A beat written at runtime (RETEACH) with no line to show: the
@@ -669,7 +708,7 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
     });
     // The echo guard the mic path relied on before: never start listening
     // over the tail of her own voice.
-    await wait(MIC_TAIL_MS);
+    await lessonWait(MIC_TAIL_MS);
   };
 
   // -----------------------------------------------------------------
@@ -756,24 +795,49 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
   };
 
   const closeTurn = () => {
+    hasInputRef.current = false;
     setAnswerPad(null);
     setYourTurn(null);
     setStage({ ...reduceStage(stageRef.current, { primitive: "turn", event: "over", args: {} }), parked: false });
   };
 
   /** Resolves with the tapped answer, or null when the window runs out. The mailbox is padAnswerRef. */
+  /**
+   * The answer window: resolves with the committed answer, or with null once
+   * `ms` of unpaused time has passed since the child last did anything —
+   * and never while the surface holds input. Polled on the lesson clock
+   * (≤ 500 ms granularity is plenty for a 12 s / 25 s ladder).
+   */
   const awaitTap = (ms: number): Promise<string | null> =>
     new Promise((resolve) => {
       if (padAnswerRef.current) {
         resolve(padAnswerRef.current);
         return;
       }
-      const timer = setTimeout(() => {
-        tapResolveRef.current = null;
-        resolve(padAnswerRef.current);
-      }, ms);
+      const openedAt = lessonNow();
+      let timer: ReturnType<typeof setTimeout> | null = null;
+      const arm = () => {
+        if (stoppedRef.current) {
+          tapResolveRef.current = null;
+          resolve(padAnswerRef.current);
+          return;
+        }
+        if (pausedRef.current || hasInputRef.current) {
+          timer = setTimeout(arm, 250);
+          return;
+        }
+        const since = Math.max(openedAt, lastActivityRef.current);
+        const left = since + ms - lessonNow();
+        if (left <= 0) {
+          tapResolveRef.current = null;
+          resolve(padAnswerRef.current);
+          return;
+        }
+        timer = setTimeout(arm, Math.min(left, 500));
+      };
+      arm();
       tapResolveRef.current = () => {
-        clearTimeout(timer);
+        if (timer) clearTimeout(timer);
         tapResolveRef.current = null;
         resolve(padAnswerRef.current);
       };
@@ -795,12 +859,12 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
     if (clip) {
       beatAudioMsRef.current += clip.meta.durationMs;
       await player.playClip(clip.audio, { sentences: clip.meta.sentences });
-      await wait(MIC_TAIL_MS);
+      await lessonWait(MIC_TAIL_MS);
       return true;
     }
     logEvent(`no clip yet for "${text.slice(0, 24)}…" — shown on the board`);
     setNoClipCaption(text);
-    await wait(1800);
+    await lessonWait(1800);
     setNoClipCaption(null);
     return false;
   };
@@ -833,12 +897,15 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
   };
 
   /**
-   * Reading practice, unjudged: "කියන්න බලන්න" — three seconds for the
-   * child to say the number (the portrait perks up, a faint 🎤 cue, nothing
-   * recorded unless the reading assessment is on), then Zara reads it
-   * herself: the recorded frame "මම කියන්නම් —" and the composed number.
+   * Reading practice, step 1 — the invitation: "කියන්න බලන්න", three seconds
+   * (on the lesson clock) for the child to say the number — the portrait
+   * perks up, a faint 🎤 cue, nothing recorded unless the reading assessment
+   * is on. The chips (the judged step) come next; her own reading of the
+   * number comes only AFTER the answer is judged (readBackNumber), so
+   * nothing on the board or in her voice gives the name away first
+   * (docs/qa/session1-triage.md, cluster D).
    */
-  const readAloudPractice = async (beat: Beat): Promise<void> => {
+  const readAloudInvite = async (beat: Beat): Promise<void> => {
     const value = valueOfAnswer(beat.expectedAnswer);
     if (value === null || stoppedRef.current) return;
     setRuntimeStatus("pausing");
@@ -848,16 +915,27 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
       const heard = await listenForAnswerVoice(beat, READ_ALOUD_PAUSE_MS, { transcribe: true });
       if (heard) logEvent(`reading assessment heard "${heard.transcript.slice(0, 30)}" — logged, never judged`);
     } else {
-      await wait(READ_ALOUD_PAUSE_MS);
+      await lessonWait(READ_ALOUD_PAUSE_MS);
     }
     if (stoppedRef.current) return;
-    dispatchStage({ primitive: "turn", event: "read_back", args: { number: value } });
     setRuntimeStatus("teaching");
+  };
+
+  /**
+   * Reading practice, step 3 — the confirmation: after the child's chip was
+   * judged right, Zara reads the number herself (the recorded frame
+   * "මම කියන්නම් —" and the composed number). Its text reaches the board
+   * only as it plays.
+   */
+  const readBackNumber = async (beat: Beat): Promise<void> => {
+    const value = valueOfAnswer(beat.expectedAnswer);
+    if (value === null || stoppedRef.current) return;
+    dispatchStage({ primitive: "turn", event: "read_back", args: { number: value } });
     const readBack: Beat = {
       ...beat,
       id: `${beat.id}:readback`,
       type: "EXPLAIN",
-      goal: "Reading practice: she reads the number herself (verbatim frame + composed number).",
+      goal: "Reading practice: she reads the number herself (verbatim frame + composed number), confirming the answer.",
       spokenText: `${AUTHORED_LINES.readBack} ${sinhalaNumberName(value)}`,
       sayCandidates: undefined,
       board: { kind: "none" },
@@ -873,7 +951,7 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
       logEvent("read-back clips not recorded yet — shown on the board");
       setCaption(readBack.spokenText!);
       setNoClipCaption(readBack.spokenText!);
-      await wait(2000);
+      await lessonWait(2000);
       setNoClipCaption(null);
     }
     await finishBeatLog(readBack, null);
@@ -1043,7 +1121,7 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
     await player.playClip(audio.buffer.slice(audio.byteOffset, audio.byteOffset + audio.byteLength) as ArrayBuffer, {
       sentences: [{ startMs: 0, endMs: durationMs }],
     });
-    await wait(MIC_TAIL_MS);
+    await lessonWait(MIC_TAIL_MS);
     return true;
   };
 
@@ -1225,7 +1303,7 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
    * reteach spiral).
    */
   const runQuestion = async (beat: Beat, scripted: boolean, options: { retry?: boolean } = {}): Promise<void> => {
-    if (beat.answerMode === "readAloud" && !options.retry) await readAloudPractice(beat);
+    if (beat.answerMode === "readAloud" && !options.retry) await readAloudInvite(beat);
     if (stoppedRef.current) return;
     const tapped = await answerByTouch(beat);
     if (stoppedRef.current) return;
@@ -1262,6 +1340,10 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
     const understood = beat.rubric ? judgePhraseLocally(tapped, beat.rubric).accepted : Boolean(beat.expectedAnswer && answersMatch(beat.expectedAnswer, tapped));
     fireFeedback(understood ? "correct" : "wrong", answerTargetRef.current);
     setCharacterMood(understood ? "celebrate" : "encourage");
+    // Reading practice: a right chip earns her reading of the number back — the
+    // confirmation. A wrong one gets the ladder as usual; reading the name out
+    // then would hand the retry its answer.
+    if (understood && beat.answerMode === "readAloud") await readBackNumber(beat);
     const decision: PlannerDecision = { understood, next: "advance", reason: understood ? "touch: matches the expected answer" : "touch: does not match the expected answer" };
     await settleAnswer(beat, scripted, tapped, decision, { feedbackFired: true });
   };
@@ -1767,6 +1849,10 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
     recentAnswersRef.current = [];
     manualPauseRef.current = false;
     holdsRef.current = new Set();
+    pausedAtRef.current = null;
+    pausedTotalRef.current = 0;
+    lastActivityRef.current = 0;
+    hasInputRef.current = false;
     limitEndedRef.current = false;
     setLimitEnded(false);
 
@@ -1853,9 +1939,12 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
     pausedRef.current = next;
     setPaused(next);
     if (next) {
+      pausedAtRef.current = Date.now();
       recorderRef.current?.cancel();
       void playerRef.current?.suspend();
     } else {
+      if (pausedAtRef.current !== null) pausedTotalRef.current += Date.now() - pausedAtRef.current;
+      pausedAtRef.current = null;
       void playerRef.current?.resume();
       const frozen = frozenRef.current.splice(0);
       for (const entry of frozen) setTimeout(entry.run, Math.max(0, entry.startMs - positionMs()));
@@ -1945,6 +2034,8 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
 
   /** A tapped answer (number pad / choice) — the same path as a spoken one. */
   const submitTypedAnswer = useCallback((text: string) => {
+    lastActivityRef.current = lessonNow();
+    hasInputRef.current = false;
     padAnswerRef.current = text;
     (window as unknown as { __lastTapAt?: number }).__lastTapAt = performance.now();
     tapResolveRef.current?.();
@@ -2005,6 +2096,10 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
     answerMicAsk,
     holdFor,
     noteIdleTouch,
+    /** Any child interaction on the lesson screen: the inactivity ladder counts from here. */
+    noteActivity,
+    /** A surface holds input (digits, tiles, a word) — it never times out while it does. */
+    noteInput,
     /** The opt-in reading assessment's voice path (VOICE_ASSESSMENT=on): nothing on the lesson path calls it while the flag is off. */
     voiceAssessment: { listen: listenForAnswerVoice, judge: judgeSpokenAnswer, enabled: () => voiceAssessmentRef.current },
     muted,

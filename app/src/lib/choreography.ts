@@ -210,7 +210,7 @@ export interface StageState {
   pause: { ms: number; cue: "mic" | null } | null;
   /** A wrong answer's visible way back: the "ආයෙත් උත්සාහ කරන්න" paper button, top-right (turn.retry). */
   retry: boolean;
-  /** Read-aloud practice on the board (the design's R1 step cards): 1 = the child's 3 s to say it, 2 = Zara reads it, 3 = choose the name from the chips. */
+  /** Read-aloud practice on the board (the design's R1 step cards, reordered 16 Sep): 1 = the child's 3 s to say it, 2 = choose the name from the chips (judged), 3 = Zara reads it back. */
   practice: { step: 1 | 2 | 3; number: number | null } | null;
   /** The puzzle ledgers, by hand of digits (sorted): what the child built from each, so a hand dealt again finds its ledger. */
   pickerLedgers: Record<string, string[]>;
@@ -502,8 +502,8 @@ export function reduceStage(state: StageState, event: Pick<StoryboardEvent, "pri
       return state.chips ? { ...state, chips: null, seq } : state;
     case "turn.your_turn": {
       const answerMode = String(args.answerMode) as AnswerMode;
-      // The practice's third step: the name is chosen from the chips.
-      const practice = state.practice && answerMode === "readAloud" ? { ...state.practice, step: 3 as const } : null;
+      // The practice's second step: the name is chosen from the chips (the judged step).
+      const practice = state.practice && answerMode === "readAloud" ? { ...state.practice, step: 2 as const } : null;
       // The child's turn: her term labels beside the surface step aside (M7, S2 show the abacus without "ගණක රාමුව"); a sum stays.
       const notes = state.notes.filter((n) => /\d/u.test(n.text));
       return { ...state, turn: { answerMode, surface: String(args.surface) as TurnSurface }, pause: null, retry: false, practice, notes, seq };
@@ -519,8 +519,8 @@ export function reduceStage(state: StageState, event: Pick<StoryboardEvent, "pri
       return { ...state, pause: { ms: Number(args.ms ?? 0), cue }, turn: null, chips: null, practice: cue === "mic" ? { step: 1, number } : null, seq };
     }
     case "turn.read_back":
-      // Zara reads the number herself (composed audio); the step cards move to her.
-      return { ...state, pause: null, practice: { step: 2, number: typeof args.number === "number" ? args.number : (state.practice?.number ?? null) }, seq };
+      // After the judged chip: Zara reads the number herself (composed audio) — the third step; the name reaches the card only now.
+      return { ...state, pause: null, practice: { step: 3, number: typeof args.number === "number" ? args.number : (state.practice?.number ?? null) }, seq };
     default:
       return state;
   }

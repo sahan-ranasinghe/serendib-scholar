@@ -81,6 +81,8 @@ export interface SessionShellProps {
   onTouch: () => void;
   onIdleTouch?: () => void;
   onPointerSide?: (side: "left" | "right" | null) => void;
+  /** A surface holds input the child is still making. */
+  onInput?: (hasInput: boolean) => void;
   renderLegacy?: (content: BoardContent) => ReactNode;
   onTitleTap?: () => void;
   onRootPointerDown?: () => void;
@@ -92,7 +94,7 @@ export interface SessionShellProps {
   confirm?: SessionConfirm | null;
 }
 
-export function SessionShell({ stage, yourTurn, zaraState, lenaState, pointerSide, talking, getAmplitude, zaraDimmed = false, paused = false, conceptStops, captionsOn, onToggleCaptions, caption, hint, sheet, charactersShown, handShown, chatting = false, onHand, onPause, onRepeat, onEnd, onAnswer, onTouch, onIdleTouch, onPointerSide, renderLegacy, onTitleTap, onRootPointerDown, data, children, confirm = null }: SessionShellProps) {
+export function SessionShell({ stage, yourTurn, zaraState, lenaState, pointerSide, talking, getAmplitude, zaraDimmed = false, paused = false, conceptStops, captionsOn, onToggleCaptions, caption, hint, sheet, charactersShown, handShown, chatting = false, onHand, onPause, onRepeat, onEnd, onAnswer, onTouch, onIdleTouch, onPointerSide, onInput, renderLegacy, onTitleTap, onRootPointerDown, data, children, confirm = null }: SessionShellProps) {
   const [pressed, setPressed] = useState<string | null>(null);
   // Zara in the frame's corner. The mouth's amplitude is the portrait's
   // own state (ZaraPortrait polls it), so her talking never re-renders the
@@ -149,6 +151,7 @@ export function SessionShell({ stage, yourTurn, zaraState, lenaState, pointerSid
           onTouch={onTouch}
           onIdleTouch={onIdleTouch}
           onPointerSide={onPointerSide}
+          onInput={onInput}
           renderLegacy={renderLegacy}
           cornerSlot={charactersShown ? portrait : undefined}
           lenaSlot={lenaSlot}

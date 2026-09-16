@@ -112,13 +112,13 @@ Board at line start: number cards 84 · 101 · 528 · 997
 1. > මෙන්න මේ පුවරුවේ තියෙන මුල්ම සංඛ්‍යාව මොකක්ද කියලා මට කියන්න බලන්න.
    - `numberCards.highlight_ring` `{"value":84}`
    - `turn.pause` `{"ms":3000,"cue":"mic","number":84}`
-   - `turn.read_back` `{"number":84}`
    - `turn.your_turn` `{"answerMode":"readAloud","surface":"chips"}`
    - `choiceChips.show` `{"options":["හතළිස් අට","අසූ හතර","අටසිය හතර"],"correctIndex":1}`
+   - `turn.read_back` `{"number":84}`
 
-Child: **answer** — 3 s to say it (🎤 cue, nothing recorded) → Zara reads it → tap one of 3 name-chips · expects **අසූ හතර**
+Child: **answer** — 3 s to say it (🎤 cue, nothing recorded) → tap one of 3 name-chips → Zara reads it back · expects **අසූ හතර**
 
-_Sees:_ Number cards 84 · 101 · 528 · 997 (ring on 84); a ring around 84 — they answer via 3 s to say it (🎤 cue, nothing recorded) → Zara reads it → tap one of 3 name-chips.
+_Sees:_ Number cards 84 · 101 · 528 · 997 (ring on 84); a ring around 84 — they answer via 3 s to say it (🎤 cue, nothing recorded) → tap one of 3 name-chips → Zara reads it back.
 
 ### `readWrite4Digit:3` · EXPLAIN
 
@@ -136,13 +136,13 @@ Board at line start: number cards 84 · 101 · 528 · 997 (ring on 84)
 1. > ඊළඟ සංඛ්‍යාවේ නම කියන්න බලන්න.
    - `numberCards.highlight_ring` `{"value":101}`
    - `turn.pause` `{"ms":3000,"cue":"mic","number":101}`
-   - `turn.read_back` `{"number":101}`
    - `turn.your_turn` `{"answerMode":"readAloud","surface":"chips"}`
    - `choiceChips.show` `{"options":["එකොළහ","එකසිය එක","එකසිය දහය"],"correctIndex":1}`
+   - `turn.read_back` `{"number":101}`
 
-Child: **answer** — 3 s to say it (🎤 cue, nothing recorded) → Zara reads it → tap one of 3 name-chips · expects **එකසිය එක**
+Child: **answer** — 3 s to say it (🎤 cue, nothing recorded) → tap one of 3 name-chips → Zara reads it back · expects **එකසිය එක**
 
-_Sees:_ Number cards 84 · 101 · 528 · 997 (ring on 101); a ring around 101 — they answer via 3 s to say it (🎤 cue, nothing recorded) → Zara reads it → tap one of 3 name-chips.
+_Sees:_ Number cards 84 · 101 · 528 · 997 (ring on 101); a ring around 101 — they answer via 3 s to say it (🎤 cue, nothing recorded) → tap one of 3 name-chips → Zara reads it back.
 
 ### `readWrite4Digit:3b` · EXPLAIN
 
@@ -282,13 +282,13 @@ Board at line start: card "3058"
 1. > ඔයාට පුළුවන්ද මේ හැදුණු සංඛ්‍යාව කියවලා මට කියන්න?
    - `pointer.move_to` `{"target":{"text":"3058"}}`
    - `turn.pause` `{"ms":3000,"cue":"mic","number":3058}`
-   - `turn.read_back` `{"number":3058}`
    - `turn.your_turn` `{"answerMode":"readAloud","surface":"chips"}`
    - `choiceChips.show` `{"options":["තුන්දහස් අසූ පහ","තුන්දහස් පනස් අට","තුන්දහස් පන්සිය අට"],"correctIndex":1}`
+   - `turn.read_back` `{"number":3058}`
 
-Child: **answer** — 3 s to say it (🎤 cue, nothing recorded) → Zara reads it → tap one of 3 name-chips · expects **තුන්දහස් පනස් අට**
+Child: **answer** — 3 s to say it (🎤 cue, nothing recorded) → tap one of 3 name-chips → Zara reads it back · expects **තුන්දහස් පනස් අට**
 
-_Sees:_ Card "3058" — they answer via 3 s to say it (🎤 cue, nothing recorded) → Zara reads it → tap one of 3 name-chips.
+_Sees:_ Card "3058" — they answer via 3 s to say it (🎤 cue, nothing recorded) → tap one of 3 name-chips → Zara reads it back.
 
 ### `readWrite4Digit:16` · EXPLAIN
 
@@ -837,13 +837,13 @@ Board at line start: the abacus showing 5 421
    - `highlight.circle` `{"target":{"number":5421}}`
    - `pointer.move_to` `{"target":{"text":"abacus"}}`
    - `turn.pause` `{"ms":3000,"cue":"mic","number":5421}`
-   - `turn.read_back` `{"number":5421}`
    - `turn.your_turn` `{"answerMode":"readAloud","surface":"chips"}`
    - `choiceChips.show` `{"options":["පන්දහස් හාරසිය විසි එක","පන්දහස් දෙසිය හතළිස් එක","පන්දහස් හාරසිය දොළහ"],"correctIndex":0}`
+   - `turn.read_back` `{"number":5421}`
 
-Child: **answer** — 3 s to say it (🎤 cue, nothing recorded) → Zara reads it → tap one of 3 name-chips · expects **පන්දහස් හාරසිය විසි එක**
+Child: **answer** — 3 s to say it (🎤 cue, nothing recorded) → tap one of 3 name-chips → Zara reads it back · expects **පන්දහස් හාරසිය විසි එක**
 
-_Sees:_ The abacus showing 5 421; a chalk ring around 5 421 — they answer via 3 s to say it (🎤 cue, nothing recorded) → Zara reads it → tap one of 3 name-chips.
+_Sees:_ The abacus showing 5 421; a chalk ring around 5 421 — they answer via 3 s to say it (🎤 cue, nothing recorded) → tap one of 3 name-chips → Zara reads it back.
 
 ### `placeValue4Digit:59` · EXPLAIN
 
@@ -885,13 +885,13 @@ Board at line start: the abacus showing 6 831
 1. > මෙතන තියෙන සංඛ්‍යාවත් වචනයෙන් කියන්න පුළුවන්ද පුතේ?
    - `pointer.move_to` `{"target":{"text":"abacus"}}`
    - `turn.pause` `{"ms":3000,"cue":"mic","number":6831}`
-   - `turn.read_back` `{"number":6831}`
    - `turn.your_turn` `{"answerMode":"readAloud","surface":"chips"}`
    - `choiceChips.show` `{"options":["හයදහස් තුන්සිය අසූ එක","හයදහස් අටසිය තිස් එක","හයදහස් අටසිය දහතුන"],"correctIndex":1}`
+   - `turn.read_back` `{"number":6831}`
 
-Child: **answer** — 3 s to say it (🎤 cue, nothing recorded) → Zara reads it → tap one of 3 name-chips · expects **හයදහස් අටසිය තිස් එක**
+Child: **answer** — 3 s to say it (🎤 cue, nothing recorded) → tap one of 3 name-chips → Zara reads it back · expects **හයදහස් අටසිය තිස් එක**
 
-_Sees:_ The abacus showing 6 831 — they answer via 3 s to say it (🎤 cue, nothing recorded) → Zara reads it → tap one of 3 name-chips.
+_Sees:_ The abacus showing 6 831 — they answer via 3 s to say it (🎤 cue, nothing recorded) → tap one of 3 name-chips → Zara reads it back.
 
 ### `placeValue4Digit:63` · EXPLAIN
 

@@ -24,7 +24,6 @@ import type { BoardContent } from "@/lib/board";
 import type { StageState, AnswerSurface } from "@/lib/choreography";
 import type { AnswerMode } from "@/lib/answerMode";
 import type { ChoiceSet } from "@/lib/distractors";
-import { sinhalaNumberName } from "@/lib/sinhalaNumber";
 import { ChoiceChips, type ChipState } from "./ChoiceChips";
 import { Whiteboard, type WhiteboardProps } from "./Whiteboard";
 import { Abacus } from "./Abacus";
@@ -40,7 +39,7 @@ import { Pointer } from "./Pointer";
 import { Highlight } from "./Highlight";
 import { FeedbackFX } from "./FeedbackFX";
 import { NumberPad } from "./NumberPad";
-import { BOARD, FONT_SINHALA, FONT_LABEL, SPRING } from "./tokens";
+import { BOARD, FONT_SINHALA, SPRING } from "./tokens";
 import { playSound } from "./sound";
 
 export interface YourTurn {
@@ -87,6 +86,8 @@ export interface BoardStageProps {
   caption?: ReactNode;
   /** A sheet over the dimmed board (the ✋ chat, the first-time mic explanation). */
   sheet?: WhiteboardProps["sheet"];
+  /** Whether a surface holds input the child is still making (the ladder never closes it then). */
+  onInput?: (hasInput: boolean) => void;
   /** A short hint in the tap-hint pill (top-right of the inset). */
   hint?: string | null;
   /** Zara is mid-sentence: the chalk cursor waits at the end of the newest line. */
@@ -100,7 +101,7 @@ export const DENSE_BELOW_PX = 300;
 /** The chalk stack: up to three lines, the newest at 100 %, older at 60 % (rule a). */
 export const CHALK_STACK = 3;
 
-export const BoardStage = memo(function BoardStage({ stage, yourTurn, onAnswer, onTouch, onIdleTouch, onPointerSide, renderLegacy, cornerSlot, lenaSlot, handSlot, caption, sheet, hint = null, writing = false }: BoardStageProps) {
+export const BoardStage = memo(function BoardStage({ stage, yourTurn, onAnswer, onTouch, onIdleTouch, onPointerSide, renderLegacy, cornerSlot, lenaSlot, handSlot, caption, sheet, hint = null, writing = false, onInput }: BoardStageProps) {
   const base = stage.base;
   const active = yourTurn !== null;
   const soft = yourTurn?.kind === "soft";
@@ -111,8 +112,14 @@ export const BoardStage = memo(function BoardStage({ stage, yourTurn, onAnswer, 
   const [drafts, setDrafts] = useState<{ turn: YourTurn | null; beads: number[] | null; tiles: number[]; padOpen: boolean; picked: number | null; pad: string }>({ turn: null, beads: null, tiles: [], padOpen: false, picked: null, pad: "" });
   const draft = drafts.turn === yourTurn ? drafts : { turn: yourTurn, beads: null, tiles: [], padOpen: Boolean(yourTurn?.padFirst), picked: null, pad: "" };
   const { beads, tiles, padOpen, pad: padDraft } = draft;
-  const setBeads = (next: number[]) => setDrafts({ ...draft, turn: yourTurn, beads: next });
-  const setTiles = (next: number[]) => setDrafts({ ...draft, turn: yourTurn, tiles: next });
+  const setBeads = (next: number[]) => {
+    setDrafts({ ...draft, turn: yourTurn, beads: next });
+    onInput?.(next.some((n) => n > 0) || tiles.length > 0);
+  };
+  const setTiles = (next: number[]) => {
+    setDrafts({ ...draft, turn: yourTurn, tiles: next });
+    onInput?.(next.length > 0);
+  };
   const setPadOpen = (next: boolean) => setDrafts({ ...draft, turn: yourTurn, padOpen: next });
   const setPadDraft = (next: string) => setDrafts({ ...draft, turn: yourTurn, pad: next });
 
@@ -123,6 +130,7 @@ export const BoardStage = memo(function BoardStage({ stage, yourTurn, onAnswer, 
 
   const submit = (text: string) => {
     playSound("beadClick");
+    onInput?.(false);
     onAnswer(text);
   };
 
@@ -144,7 +152,11 @@ export const BoardStage = memo(function BoardStage({ stage, yourTurn, onAnswer, 
   const rodPicking = active && !soft && yourTurn?.rodPick !== undefined && yourTurn?.surface === "abacus";
   // The chips glow when they are the only surface; on a rod question the rod glows and the chips stand quiet (one glow at a time).
   const ringed = !!stage.highlight || (base?.kind === "numberCards" && base.ringed !== null);
-  const practising = stage.practice !== null && stage.practice.step < 3;
+  // The invitation (step 1) has no chips; at step 2 the chips ARE the surface and lead.
+  const practising = stage.practice !== null && stage.practice.step === 1;
+  // Reading practice on the board: the step cards dock beneath the base for all three steps — beside it, stacked, when the base is an abacus.
+  const practiceUp = stage.practice !== null;
+  const stepsBeside = practiceUp && base?.kind === "abacus";
   const chipsLead = active && !soft && !!chipSet && !rodPicking && base?.kind !== "expansion" && !ringed && !practising && (yourTurn?.answerMode === "why" || yourTurn?.answerMode === "valueOrPlace" || yourTurn?.answerMode === "readAloud" || (yourTurn?.chips !== undefined && !touchable));
   // A base the chips answer about (M5: the picker at 38 % while the mistake is judged) veils.
   const baseVeiled = !!chipSet && stage.notes.length > 0 && !touchable;
@@ -153,16 +165,16 @@ export const BoardStage = memo(function BoardStage({ stage, yourTurn, onAnswer, 
   const padDocked = active && !soft && !!yourTurn?.numeric && !touchable && !chipSet && !rodPicking;
   const sumBeneath = stage.notes.some((n) => /\d/u.test(n.text));
   // With chips at the foot the inset is 216 px tall: an abacus over its expansion drops to 200 so both fit above the chips.
-  const abacusWidth = base?.kind === "abacus" ? (base.expansion ? (chipSet ? 200 : 240) : sumBeneath ? 220 : padDocked ? 200 : 280) : 280;
+  // Under the read-aloud step cards it takes the M7 width (200, the abacus with something docked beneath it): with chips at the foot the inset is 194 px tall at 800×360, and 280 + a readout + the cards would run behind the chips.
+  const abacusWidth = base?.kind === "abacus" ? (practiceUp ? 200 : base.expansion ? (chipSet ? 200 : 240) : sumBeneath ? 220 : padDocked ? 200 : 280) : 280;
   // Where the chalk stack sits: beside a card, the picker or the title (G1, G4, M5), beside an abacus when it is only a label (G8), beneath an abacus when a sum is written (G10).
-  const notesBeside = stage.notes.length > 0 && (base?.kind === "textCard" || base?.kind === "digitPicker" || base?.kind === "titleCard" || (base?.kind === "abacus" && stage.notes.every((n) => !/\d/u.test(n.text))));
+  // The stack stands down while the step cards are up, so the base + cards always stack as a column.
+  const notesBeside = !practiceUp && stage.notes.length > 0 && (base?.kind === "textCard" || base?.kind === "digitPicker" || base?.kind === "titleCard" || (base?.kind === "abacus" && stage.notes.every((n) => !/\d/u.test(n.text))));
   // The chalk sum the child answers on the pad: its "?" is the answer slot (G2).
   const padAnswersChalk = active && !soft && !!yourTurn?.numeric && !touchable && !chipSet;
 
   let content: ReactNode = null;
-  if (stage.practice) {
-    content = <ReadAloudSteps step={stage.practice.step} number={stage.practice.number} />;
-  } else if (base) {
+  if (base) {
     switch (base.kind) {
       case "abacus": {
         const picking = rodPicking;
@@ -372,7 +384,7 @@ export const BoardStage = memo(function BoardStage({ stage, yourTurn, onAnswer, 
   );
 
   return (
-    <Whiteboard viewport="stretch" wipeKey={stage.wipe} testId="lesson-board" cornerSlot={sheet ? undefined : cornerSlot} lenaSlot={lenaSlot} handSlot={sheet ? undefined : handSlot} footer={footer} caption={caption} sheet={sheet} frameSlot={frameSlot}>
+    <Whiteboard viewport="stretch" wipeKey={stage.wipe} testId="lesson-board" cornerSlot={sheet ? undefined : cornerSlot} lenaSlot={lenaSlot} handSlot={sheet ? undefined : handSlot} footer={footer} caption={caption} sheet={sheet} frameSlot={frameSlot} onInput={onInput}>
       <div
         className={active && soft ? "wb-your-turn-soft" : undefined}
         data-soft-tap={soft ? "true" : undefined}
@@ -380,9 +392,11 @@ export const BoardStage = memo(function BoardStage({ stage, yourTurn, onAnswer, 
         data-answer-mode={yourTurn?.answerMode ?? stage.turn?.answerMode ?? undefined}
         data-turn-surface={stage.turn?.surface ?? undefined}
         onPointerDown={soft ? onTouch : active ? undefined : onIdleTouch}
-        style={{ display: "flex", flexDirection: notesBeside ? "row" : "column", alignItems: "center", justifyContent: "center", gap: notesBeside ? (base?.kind === "digitPicker" ? 44 : base?.kind === "abacus" ? 40 : 22) : 10, maxWidth: "100%", width: "100%" }}
+        style={{ display: "flex", flexDirection: notesBeside || stepsBeside ? "row" : "column", alignItems: "center", justifyContent: "center", gap: stepsBeside ? 22 : notesBeside ? (base?.kind === "digitPicker" ? 44 : base?.kind === "abacus" ? 40 : 22) : 10, maxWidth: "100%", width: "100%" }}
       >
         {content}
+        {/* reading practice: the step cards dock beneath the board's own row (which stays, ring and all) — never in its place; beside an abacus they stack (G8's side position), since abacus + cards + chips do not fit as a column on a 360 px phone */}
+        {stage.practice && <ReadAloudSteps step={stage.practice.step} number={stage.practice.number} layout={stepsBeside ? "stack" : "row"} />}
         {/* the chalk stack beside the base: newest at 100 %, older at 60 %, three at most; beside a card, a line that repeats the card's number writes only its tail (G4) */}
         {!stage.practice && stage.notes.length > 0 && (
           <ChalkStack
@@ -416,53 +430,39 @@ function ChalkStack({ lines, size, writing, answerSlot = null }: { lines: Array<
 }
 
 /**
- * Read-aloud practice as three step cards (the design's R1): the child's
- * three seconds to say it (saffron, dots, nothing recorded), Zara reading
- * the name herself, then the chips. The step in progress stands at 100 %;
- * the others at 70 %.
+ * Read-aloud practice as three step cards (the design's R1, reordered on
+ * 16 Sep — docs/qa/session1-triage.md, cluster D): 1 · the child's 3 s to
+ * say the number (🎤, nothing recorded) → 2 · choose its name from the
+ * chips (the judged step) → 3 · Zara reads it back. The cards dock BENEATH
+ * the board's number row, which stays with its ring. One line a card, at
+ * the design's 20 px / 1.5: two-line cards cannot clear the chips beneath
+ * an 84 px row on an 800×360 phone. The number's name is never printed in
+ * a card — it reaches the caption as her read-back plays, and not before.
  */
-function ReadAloudSteps({ step, number }: { step: 1 | 2 | 3; number: number | null }) {
-  let name = "";
-  if (number !== null) {
-    try {
-      name = sinhalaNumberName(number);
-    } catch {
-      name = "";
-    }
-  }
+function ReadAloudSteps({ step, layout }: { step: 1 | 2 | 3; number: number | null; layout: "row" | "stack" }) {
+  // Stacked beside an abacus the three cards must clear 76 px chips at 800×360 (a 156 px room): 3 × 42 + 2 × 6 = 138.
   const card = (on: boolean, tinted: boolean): CSSProperties => ({
-    display: "grid",
-    gap: 6,
-    justifyItems: "center",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
     background: tinted ? BOARD.saffronSoft : BOARD.paper,
     border: `2px solid ${tinted ? BOARD.chalkYellow : BOARD.ink18}`,
     borderRadius: 14,
-    padding: "8px 10px",
+    padding: layout === "stack" ? "4px 10px" : "6px 8px",
     opacity: on ? 1 : 0.7,
     transition: "opacity 300ms",
+    font: `700 20px/1.5 ${FONT_SINHALA}`,
+    color: BOARD.ink,
+    whiteSpace: "nowrap",
   });
-  const label: CSSProperties = { font: `600 20px/1.3 ${FONT_LABEL}`, color: BOARD.inkSoft };
   return (
-    <div data-testid="read-aloud-steps" data-step={step} style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, width: "100%" }}>
-      <div style={card(step === 1, true)}>
-        <span style={label}>1 · ඔයා</span>
-        <div data-testid="pause-cue" style={{ font: `700 24px/1.4 ${FONT_SINHALA}`, color: BOARD.ink, whiteSpace: "nowrap" }}>🎤 කියන්න බලන්න</div>
-        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-          <span style={{ width: 10, height: 10, borderRadius: "50%", background: BOARD.chalkYellow }} />
-          <span style={{ width: 10, height: 10, borderRadius: "50%", background: BOARD.chalkYellow, opacity: 0.6 }} />
-          <span style={{ width: 10, height: 10, borderRadius: "50%", background: BOARD.chalkYellow, opacity: 0.3 }} />
-          <span style={label}>තත්පර 3</span>
-        </div>
+    <div data-testid="read-aloud-steps" data-step={step} style={{ display: "grid", gridTemplateColumns: layout === "stack" ? "1fr" : "repeat(3, 1fr)", gap: layout === "stack" ? 6 : 12, width: layout === "stack" ? "auto" : "100%", flex: layout === "stack" ? "none" : undefined }}>
+      <div style={card(step === 1, step === 1)} data-testid={step === 1 ? "pause-cue" : undefined}>
+        🎤 1 · ඔයා · කියන්න
       </div>
-      <div style={card(step === 2, false)}>
-        <span style={label}>2 · සාරා</span>
-        <div style={{ font: `700 24px/1.4 ${FONT_SINHALA}`, color: BOARD.markerBlue, whiteSpace: "nowrap" }}>{name || "…"}</div>
-        <span style={label}>මමත් කියන්නම්</span>
-      </div>
-      <div style={card(step === 3, false)}>
-        <span style={label}>3 · තෝරන්න</span>
-        <div style={{ font: `700 24px/1.4 ${FONT_SINHALA}`, color: BOARD.ink, whiteSpace: "nowrap" }}>නම මොකක්ද?</div>
-        <span style={label}>පහළ චිප් වලින්</span>
+      <div style={card(step === 2, step === 2)}>2 · තෝරන්න</div>
+      <div style={card(step === 3, step === 3)} data-testid={step === 3 ? "read-back-step" : undefined}>
+        3 · සාරා · කියන්නම්
       </div>
     </div>
   );

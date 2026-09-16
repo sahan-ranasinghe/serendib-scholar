@@ -61,6 +61,12 @@ export interface BoardRegistry {
   dock: HTMLElement | null;
   /** A docked input announces itself (+1 on mount, −1 on unmount) so the content inset makes room (bottom 190). */
   noteDock: (delta: number) => void;
+  /**
+   * A surface says whether it holds input the child is still making (digits on
+   * the pad, tiles placed, a word picked). While any does, the inactivity
+   * ladder never closes the turn (docs/qa/session1-triage.md, cluster B).
+   */
+  noteInput: (source: string, hasInput: boolean) => void;
   /** Bumped whenever something registers, so overlays re-measure. */
   version: number;
 }
@@ -75,6 +81,7 @@ const NO_BOARD: BoardRegistry = {
   overlay: null,
   dock: null,
   noteDock: () => {},
+  noteInput: () => {},
   version: 0,
 };
 
@@ -84,7 +91,7 @@ export function useBoard(): BoardRegistry {
 }
 
 /** The registry a Whiteboard provides. */
-export function useBoardRegistry(surface: HTMLElement | null, overlay: HTMLElement | null, dock: HTMLElement | null = null, noteDock: (delta: number) => void = () => {}, layout = 0): BoardRegistry {
+export function useBoardRegistry(surface: HTMLElement | null, overlay: HTMLElement | null, dock: HTMLElement | null = null, noteDock: (delta: number) => void = () => {}, layout = 0, noteInput: (source: string, hasInput: boolean) => void = () => {}): BoardRegistry {
   const entries = useRef(new Map<string, Element[]>());
   const [version, setVersion] = useState(0);
   const register = useCallback((keys: string[], element: Element) => {
@@ -128,8 +135,8 @@ export function useBoardRegistry(surface: HTMLElement | null, overlay: HTMLEleme
   );
   return useMemo(
     // `layout` (the dock opening or closing) moves everything on the surface: overlays re-measure as if something had registered.
-    () => ({ register, resolve, measure, surface, overlay, dock, noteDock, version: version + layout * 100000 }),
-    [register, resolve, measure, surface, overlay, dock, noteDock, version, layout],
+    () => ({ register, resolve, measure, surface, overlay, dock, noteDock, noteInput, version: version + layout * 100000 }),
+    [register, resolve, measure, surface, overlay, dock, noteDock, noteInput, version, layout],
   );
 }
 
@@ -168,9 +175,19 @@ export function useTargetRect(target: Target | null, settleMs = 650): Rect | nul
   useEffect(() => {
     if (!target || !key) return;
     let cancelled = false;
+    let observed: Element | null = null;
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(() => update());
     const update = () => {
       if (cancelled) return;
       const element = board.resolve(target);
+      // Follow the target itself as well as the surface: a primitive that
+      // changes size in place (the abacus taking the M7 width when the
+      // read-aloud cards dock beneath it) moves its ring with it.
+      if (observer && element && element !== observed) {
+        if (observed) observer.unobserve(observed);
+        observer.observe(element);
+        observed = element;
+      }
       const rect = element ? board.measure(element) : null;
       setMeasured(rect ? { key, rect } : null);
     };
@@ -178,7 +195,6 @@ export function useTargetRect(target: Target | null, settleMs = 650): Rect | nul
     // pointer is told to move, and again once it has settled.
     const first = requestAnimationFrame(update);
     const again = setTimeout(update, settleMs);
-    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(update);
     if (board.surface && observer) observer.observe(board.surface);
     window.addEventListener("resize", update);
     return () => {

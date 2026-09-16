@@ -17,7 +17,7 @@
  */
 import "./board.css";
 import { AnimatePresence, MotionConfig, motion } from "framer-motion";
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { BoardContext, useBoardRegistry, type BoardRegistry } from "./targets";
 import { BOARD, SPRING } from "./tokens";
 import { playSound, setMuted, useMuted } from "./sound";
@@ -48,20 +48,49 @@ export interface WhiteboardProps {
   sheet?: { zara: ReactNode; content: ReactNode; kind?: "chat" | "mic"; testId?: string } | null;
   /** Things positioned against the frame itself (the retry note, the tap hint). */
   frameSlot?: ReactNode;
+  /** Whether any surface on the board holds input the child is still making. */
+  onInput?: (hasInput: boolean) => void;
 }
 
 const WIPE_MS = 200;
 
-export function Whiteboard({ viewport = "fill", children, wipeKey, showTray = true, className, testId, cornerSlot, footer, footKind, lenaSlot, handSlot, caption, sheet, frameSlot }: WhiteboardProps) {
+export function Whiteboard({ viewport = "fill", children, wipeKey, showTray = true, className, testId, cornerSlot, footer, footKind, lenaSlot, handSlot, caption, sheet, frameSlot, onInput }: WhiteboardProps) {
   const [surface, setSurface] = useState<HTMLElement | null>(null);
   const [overlay, setOverlay] = useState<HTMLElement | null>(null);
   const [dock, setDock] = useState<HTMLElement | null>(null);
   // Docked inputs (a pad, a word bank) count themselves in; while one is
   // up the content inset's bottom is 190 and the chips row stands down.
   const [docked, setDocked] = useState(0);
+  // The foot's real height: chips with long names wrap inside their pills and
+  // stand taller than the design's 56 (+ 2 px borders), so the content inset above them follows
+  // the measured foot (`--wb-foot`), never the nominal one.
+  const [footEl, setFootEl] = useState<HTMLDivElement | null>(null);
+  const [footH, setFootH] = useState(60);
+  useEffect(() => {
+    if (!footEl) return;
+    const measure = () => setFootH(Math.round(footEl.getBoundingClientRect().height));
+    measure();
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(footEl);
+    return () => observer.disconnect();
+  }, [footEl]);
   const noteDock = useCallback((delta: number) => setDocked((n) => Math.max(0, n + delta)), []);
   const dockUp = docked > 0;
-  const registry = useBoardRegistry(surface, overlay, dock, noteDock, dockUp ? 1 : 0);
+  // Surfaces with input in them, by name: the board reports "something is being typed" as one boolean.
+  const inputs = useRef(new Set<string>());
+  const onInputRef = useRef(onInput);
+  useEffect(() => {
+    onInputRef.current = onInput;
+  }, [onInput]);
+  const noteInput = useCallback((source: string, hasInput: boolean) => {
+    const before = inputs.current.size > 0;
+    if (hasInput) inputs.current.add(source);
+    else inputs.current.delete(source);
+    const after = inputs.current.size > 0;
+    if (before !== after) onInputRef.current?.(after);
+  }, []);
+  const registry = useBoardRegistry(surface, overlay, dock, noteDock, dockUp ? 1 : 0, noteInput);
   const foot = dockUp || footKind === "dock" || footKind === "bank" ? "dock" : footer ? "chips" : undefined;
   // QA hook: board-check asks the surface what a target resolves to, so
   // its expectations are the registry's answers, not a DOM guess.
@@ -96,6 +125,7 @@ export function Whiteboard({ viewport = "fill", children, wipeKey, showTray = tr
           data-corner={cornerSlot ? "true" : undefined}
           data-footer={footer && !dockUp ? "true" : undefined}
           data-foot={foot}
+          style={{ "--wb-foot": `${footH}px` } as CSSProperties}
         >
           <div className="wb-surface" ref={attachSurface} data-testid="board-surface">
             <div className="wb-content" data-testid="board-content" style={{ opacity: wiping ? 0 : 1, transition: `opacity ${WIPE_MS * 0.6}ms ease-out` }}>
@@ -115,7 +145,7 @@ export function Whiteboard({ viewport = "fill", children, wipeKey, showTray = tr
             </AnimatePresence>
           </div>
           {footer && !dockUp && (
-            <div className="wb-footer" data-testid="board-footer" data-kind={footKind ?? "chips"}>
+            <div className="wb-footer" data-testid="board-footer" data-kind={footKind ?? "chips"} ref={setFootEl}>
               {footer}
             </div>
           )}

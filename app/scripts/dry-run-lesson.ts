@@ -552,7 +552,7 @@ async function runAssertions(
   console.log(`  speech-primary share: ${speechPrimary}/${judged.length} judged questions (${Math.round((100 * speechPrimary) / judged.length)}%) · ${speechPrimaryAll}/${questions.length} counting soft checks (${Math.round((100 * speechPrimaryAll) / questions.length)}%)`);
   assert.equal(speechPrimary, 0, "a judged question leads with speech — the answer path is touch-only");
   const practice = judged.filter((b) => READING_PRACTICE[b.answerMode!]).length;
-  console.log(`  reading practice (unjudged, before the chips): ${practice} question(s)`);
+  console.log(`  reading practice (an unjudged invitation before the chips; her read-back after a right answer): ${practice} question(s)`);
   console.log("\n  every judged question, its mode and its options:");
   const optionProblems: string[] = [];
   for (const beat of judged) {
