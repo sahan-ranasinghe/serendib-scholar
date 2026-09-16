@@ -60,7 +60,6 @@ export default function LessonScreen() {
     muted,
     paused,
     togglePause,
-    replayCurrentLine,
     leaveSession,
     restartThisSession,
     lesson,
@@ -312,7 +311,6 @@ export default function LessonScreen() {
       onPause={togglePause}
       onRepeat={() => setAsking("restart")}
       onEnd={() => setAsking("leave")}
-      onPortraitTap={inLesson ? replayCurrentLine : undefined}
       confirm={confirm}
       onAnswer={submitTypedAnswer}
       onTouch={onBoardTouch}

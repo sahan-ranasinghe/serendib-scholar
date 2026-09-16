@@ -84,8 +84,6 @@ export interface SessionShellProps {
   renderLegacy?: (content: BoardContent) => ReactNode;
   onTitleTap?: () => void;
   onRootPointerDown?: () => void;
-  /** A tap on Zara's corner portrait: say this beat's line again. */
-  onPortraitTap?: () => void;
   /** The harness's data attributes on the root. */
   data?: Record<string, string | undefined>;
   /** Overlays over the board (the device gate, an error, the summary card). */
@@ -94,18 +92,13 @@ export interface SessionShellProps {
   confirm?: SessionConfirm | null;
 }
 
-export function SessionShell({ stage, yourTurn, zaraState, lenaState, pointerSide, talking, getAmplitude, zaraDimmed = false, paused = false, conceptStops, captionsOn, onToggleCaptions, caption, hint, sheet, charactersShown, handShown, chatting = false, onHand, onPause, onRepeat, onEnd, onAnswer, onTouch, onIdleTouch, onPointerSide, renderLegacy, onTitleTap, onRootPointerDown, onPortraitTap, data, children, confirm = null }: SessionShellProps) {
+export function SessionShell({ stage, yourTurn, zaraState, lenaState, pointerSide, talking, getAmplitude, zaraDimmed = false, paused = false, conceptStops, captionsOn, onToggleCaptions, caption, hint, sheet, charactersShown, handShown, chatting = false, onHand, onPause, onRepeat, onEnd, onAnswer, onTouch, onIdleTouch, onPointerSide, renderLegacy, onTitleTap, onRootPointerDown, data, children, confirm = null }: SessionShellProps) {
   const [pressed, setPressed] = useState<string | null>(null);
   // Zara in the frame's corner. The mouth's amplitude is the portrait's
   // own state (ZaraPortrait polls it), so her talking never re-renders the
   // board — and the board's props are stable, so BoardStage (memoised)
   // redraws only when the stage changes.
-  const portrait = useMemo(
-    () => (
-      <ZaraPortrait state={zaraState} side={pointerSide} talking={talking} getAmplitude={getAmplitude} dimmed={zaraDimmed} onTap={onPortraitTap} />
-    ),
-    [zaraState, pointerSide, talking, getAmplitude, zaraDimmed, onPortraitTap],
-  );
+  const portrait = useMemo(() => <ZaraPortrait state={zaraState} side={pointerSide} talking={talking} getAmplitude={getAmplitude} dimmed={zaraDimmed} />, [zaraState, pointerSide, talking, getAmplitude, zaraDimmed]);
   const large = useMemo(() => <ZaraPortrait state={zaraState} side={pointerSide} talking={talking} getAmplitude={getAmplitude} dimmed={false} size={160} />, [zaraState, pointerSide, talking, getAmplitude]);
   const lenaSlot = useMemo(() => (charactersShown ? <Lena state={lenaState} /> : undefined), [charactersShown, lenaState]);
   const handSlot = useMemo(
@@ -209,7 +202,7 @@ export function SessionShell({ stage, yourTurn, zaraState, lenaState, pointerSid
  * mouth's amplitude is polled here, at ~12 fps while she talks, so only
  * this small subtree re-renders on each tick.
  */
-export function ZaraPortrait({ state, side, talking, getAmplitude, dimmed, size = 64, onTap }: { state: ZaraState; side: "left" | "right" | null; talking: boolean; getAmplitude: () => number; dimmed: boolean; size?: number; onTap?: () => void }) {
+export function ZaraPortrait({ state, side, talking, getAmplitude, dimmed, size = 64 }: { state: ZaraState; side: "left" | "right" | null; talking: boolean; getAmplitude: () => number; dimmed: boolean; size?: number }) {
   const [amplitude, setAmplitude] = useState(0);
   useEffect(() => {
     if (!talking) return;
@@ -218,17 +211,9 @@ export function ZaraPortrait({ state, side, talking, getAmplitude, dimmed, size 
   }, [talking, getAmplitude]);
   const mouth = talking ? amplitude : 0;
   return (
-    // the wrapper takes the portrait's drawn size (its 3 px paper border included) so the box sits where the export anchors it
-    <div
-      className="zara-portrait"
-      data-testid="zara-portrait"
-      data-state={state}
-      data-size={size}
-      role={onTap ? "button" : undefined}
-      aria-label={onTap ? "ආයෙත් කියන්න" : undefined}
-      onClick={onTap}
-      style={{ display: "block", width: "max-content", lineHeight: 0, opacity: dimmed ? 0.6 : 1, transition: "opacity 300ms", cursor: onTap ? "pointer" : undefined }}
-    >
+    // the wrapper takes the portrait's drawn size (its 3 px paper border included) so the box sits where the export anchors it.
+    // Zara is not a control: she is never tappable during a lesson.
+    <div className="zara-portrait" data-testid="zara-portrait" data-state={state} data-size={size} style={{ display: "block", width: "max-content", lineHeight: 0, opacity: dimmed ? 0.6 : 1, transition: "opacity 300ms" }}>
       <ZaraCharacter state={state} amplitude={mouth} side={side} portrait size={size} />
     </div>
   );

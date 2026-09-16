@@ -584,8 +584,8 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
    * THE audio gate. Every path that starts a clip goes through here, so two
    * clips can never be audible at once: acquiring stops and clears whatever
    * is playing or queued, then waits for the previous holder to unwind. The
-   * newest request wins — a portrait replay silences the line it repeats, a
-   * new beat silences a replay — and nothing stacks (the ↺ pile-up).
+   * newest request wins — a restart or a resume silences the line that was
+   * playing — and nothing stacks (the ↺ pile-up of the device walk).
    */
   const speechLockRef = useRef<Promise<void>>(Promise.resolve());
   const withSpeech = async <T,>(fn: () => Promise<T>): Promise<T> => {
@@ -1891,28 +1891,6 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
 
   /** ↺ — say the current beat again. */
   /**
-   * A tap on Zara's portrait: say THIS beat's line again, once. It stops
-   * whatever is playing and every queued clip first (the speech lock), and
-   * further taps are ignored until the replay is done — three rapid taps
-   * are one replay, never three stacked clips.
-   */
-  const replayingRef = useRef(false);
-  const replayCountRef = useRef(0);
-  const replayCurrentLine = useCallback(() => {
-    if (replayingRef.current || stoppedRef.current) return;
-    const beat = activeBeatRef.current;
-    if (!beat) return;
-    replayingRef.current = true;
-    replayCountRef.current += 1;
-    if (typeof window !== "undefined") (window as unknown as { __replays?: number }).__replays = replayCountRef.current;
-    logEvent(`replay line of ${beat.id.slice(0, 40)}`);
-    void speak(beat).finally(() => {
-      replayingRef.current = false;
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  /**
    * ⏹ — LEAVE the lesson. The sitting is not finished: no CLOSE_SESSION beat
    * runs and no close row is logged, so the session stays in progress and
    * resume comes back to the beat the child was on (the in-flight beat is
@@ -1998,7 +1976,6 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
       events: debugEventsRef.current.slice(-5),
       stage: describeStage(stageRef.current),
       choreo: activeChoreoRef.current ? `${activeChoreoRef.current.fired}/${activeChoreoRef.current.beat.sentences.length}` : "—",
-      replays: replayCountRef.current,
     }),
     [chat],
   );
@@ -2039,8 +2016,6 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
     stop,
     togglePause,
     toggleMute,
-    /** A tap on Zara: say this beat's line again (once, never stacked). */
-    replayCurrentLine,
     /** ⏹ — leave without finishing: nothing is closed, resume returns here. */
     leaveSession,
     /** ↺ — clear this session's rows and start it again at beat 0. */

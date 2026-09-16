@@ -610,17 +610,21 @@ async function main(): Promise<void> {
       const status = (await snapshot()).status;
       drillNote("first ✋ asks for the microphone", before === 0 && micAsk.up && micAsk.portrait >= 150 && micAsk.dimmed && micAsk.buttons === 2 && gumBeforeAllow === 0 && after === 1 && sheet.up && sheet.portrait >= 150 && sheet.lines === 2 && sheet.dimmed && returned && status !== "chatting", `getUserMedia calls before ✋: ${before} · P1 sheet ${micAsk.up ? "up" : "MISSING"} (Zara ${micAsk.portrait} px, dimmed ${micAsk.dimmed ? "yes" : "NO"}, ${micAsk.buttons} buttons, "${micAsk.title.trim().slice(0, 30)}") · calls before හරි: ${gumBeforeAllow} · after: ${after}${explained ? ` · her explanation: "${explained.slice(0, 40)}"` : ""} · chat sheet over the dimmed board ${sheet.up ? "up" : "MISSING"} (Zara ${sheet.portrait} px, ${sheet.lines} transcript lines) · පාඩමට ආයෙත් ${returned ? "tapped" : "MISSING"} → ${status}`);
     }
-    // 3b. Three rapid taps on Zara replay the line ONCE; three rapid ↺ taps ask ONCE; cancel changes nothing.
+    // 3b. Zara is not a control: ten taps on her portrait change nothing and
+    // start no audio. And three rapid ↺ taps ask ONCE; cancelling changes nothing.
     if (short === "readWrite4Digit:12" && !drillDone.has("audio") && snap.status === "teaching") {
       drillDone.add("audio");
-      const replaysBefore = await evaluate<number>(page, `window.__replays ?? 0`);
-      for (let i = 0; i < 3; i += 1) {
+      const portrait = await evaluate<{ role: string | null; cursor: string; label: string | null }>(page, `(() => { const el = document.querySelector('[data-testid="zara-portrait"]'); return el ? { role: el.getAttribute("role"), cursor: getComputedStyle(el).cursor, label: el.getAttribute("aria-label") } : { role: "MISSING", cursor: "", label: null }; })()`);
+      const beforeTaps = await evaluate<{ beat: string; status: string; started: number; peak: number }>(page, `(() => { const el = document.querySelector('.lesson-screen'); const a = window.__audio ?? { started: 0, peak: 0 }; return { beat: el?.dataset.beatId ?? '—', status: el?.dataset.status ?? '—', started: a.started ?? 0, peak: a.peak ?? 0 }; })()`);
+      for (let i = 0; i < 10; i += 1) {
         await tapSelector('[data-testid="zara-portrait"]');
-        await wait(90);
+        await wait(60);
       }
-      await wait(1500);
-      const replaysAfter = await evaluate<number>(page, `window.__replays ?? 0`);
-      const audio = await evaluate<{ active: number; peak: number }>(page, `window.__audio ?? { active: 0, peak: 0 }`);
+      await wait(1200);
+      const afterTaps = await evaluate<{ beat: string; status: string; started: number; peak: number; sheet: boolean }>(page, `(() => { const el = document.querySelector('.lesson-screen'); const a = window.__audio ?? { started: 0, peak: 0 }; return { beat: el?.dataset.beatId ?? '—', status: el?.dataset.status ?? '—', started: a.started ?? 0, peak: a.peak ?? 0, sheet: !!document.querySelector('[data-testid="confirm-sheet"]') }; })()`);
+      const inert = portrait.role === null && portrait.label === null && portrait.cursor !== "pointer" && afterTaps.beat === beforeTaps.beat && afterTaps.status === beforeTaps.status && afterTaps.started === beforeTaps.started && !afterTaps.sheet && afterTaps.peak <= 1;
+      const portraitTrace = `10 portrait taps → beat ${afterTaps.beat === beforeTaps.beat ? "unchanged" : `CHANGED to ${afterTaps.beat}`}, status ${afterTaps.status === beforeTaps.status ? `unchanged (${afterTaps.status})` : `CHANGED to ${afterTaps.status}`}, clips started ${beforeTaps.started} → ${afterTaps.started} (Δ ${afterTaps.started - beforeTaps.started}), peak audible ${afterTaps.peak} · the portrait has role ${portrait.role ?? "none"}, aria-label ${portrait.label ?? "none"}, cursor ${portrait.cursor}`;
+      drillNote("Zara's portrait is not a control: ten taps change nothing and start no audio", inert, portraitTrace);
       for (let i = 0; i < 3; i += 1) {
         await tapSelector('[aria-label="මුල ඉඳන් ආයෙත්"]');
         await wait(90);
@@ -630,9 +634,9 @@ async function main(): Promise<void> {
       const beforeCancel = await evaluate<string>(page, `document.querySelector('.lesson-screen')?.dataset.beatId ?? '—'`);
       await tapSelector('[data-testid="confirm-no"]');
       await wait(900);
-      const afterCancel = await evaluate<{ beat: string; sheet: boolean; status: string }>(page, `(() => { const el = document.querySelector('.lesson-screen'); return { beat: el?.dataset.beatId ?? '—', sheet: !!document.querySelector('[data-testid="confirm-sheet"]'), status: el?.dataset.status ?? '—' }; })()`);
-      replayTrace = `3 portrait taps → replays ${replaysBefore} → ${replaysAfter} (Δ ${replaysAfter - replaysBefore}) · clips audible ${audio.active}, peak ${audio.peak} · 3 ↺ taps → ${sheets} confirm sheet(s) · cancel → beat ${afterCancel.beat === beforeCancel ? "unchanged" : `CHANGED to ${afterCancel.beat}`}, sheet ${afterCancel.sheet ? "STILL UP" : "gone"}, status ${afterCancel.status}`;
-      drillNote("three rapid taps are one replay; three ↺ taps are one question; cancel changes nothing", replaysAfter - replaysBefore === 1 && audio.peak <= 1 && sheets === 1 && afterCancel.beat === beforeCancel && !afterCancel.sheet, replayTrace);
+      const afterCancel = await evaluate<{ beat: string; sheet: boolean; status: string; started: number }>(page, `(() => { const el = document.querySelector('.lesson-screen'); const a = window.__audio ?? { started: 0 }; return { beat: el?.dataset.beatId ?? '—', sheet: !!document.querySelector('[data-testid="confirm-sheet"]'), status: el?.dataset.status ?? '—', started: a.started ?? 0 }; })()`);
+      replayTrace = `${portraitTrace} · 3 ↺ taps → ${sheets} confirm sheet(s) · cancel → beat ${afterCancel.beat === beforeCancel ? "unchanged" : `CHANGED to ${afterCancel.beat}`}, sheet ${afterCancel.sheet ? "STILL UP" : "gone"}, status ${afterCancel.status}`;
+      drillNote("three ↺ taps are one question; cancel changes nothing", sheets === 1 && afterCancel.beat === beforeCancel && !afterCancel.sheet, `3 ↺ taps → ${sheets} confirm sheet(s) · cancel → beat ${afterCancel.beat === beforeCancel ? "unchanged" : `CHANGED to ${afterCancel.beat}`}, sheet ${afterCancel.sheet ? "STILL UP" : "gone"}, status ${afterCancel.status}`);
     }
     // 4. A clip that cannot be fetched: :6's line is read on the board and its events still run. The
     //    runtime preloads the next three clips, so the door is shut at :3b — :6 is the first beat whose
@@ -1016,7 +1020,7 @@ async function main(): Promise<void> {
   if (DRILLS) {
     console.log(`\nfailure-mode drills (${drillResults.filter((r) => r.startsWith("PASS")).length}/${drillResults.length} handled visibly):`);
     for (const line of drillResults) console.log(`  ${line}`);
-    for (const name of ["touch during playback", "rotation mid-beat", "backgrounded tab", "missing clip", "first ✋ asks for the microphone"]) if (!drillResults.some((r) => r.includes(name))) console.log(`  SKIP  ${name}: its beat was not reached`);
+    for (const name of ["touch during playback", "rotation mid-beat", "backgrounded tab", "missing clip", "first ✋ asks for the microphone", "Zara's portrait is not a control", "three ↺ taps are one question"]) if (!drillResults.some((r) => r.includes(name))) console.log(`  SKIP  ${name}: its beat was not reached`);
   }
   if (fpsSamples.length) console.log(`fps while animating${CPU_THROTTLE > 1 ? ` at cpu×${CPU_THROTTLE}` : ""}: ${fpsSamples.map((s) => `${s.beatId.replace(/^authored:/u, "")} ${s.fps}`).join(", ")}`);
   const flagged = audits.filter((a) => a.audit && (a.audit.overlap || a.audit.portraitOverlap || a.audit.cutOff || a.audit.small.length || a.audit.tinyText.length));
@@ -1097,7 +1101,7 @@ async function main(): Promise<void> {
   console.log(`device sequence (⏹ → lesson detail): ${deviceSequence}`);
   console.log(`resume trace: ${resumeTrace}`);
   console.log(`↺ control trace: ${restartControlTrace}`);
-  console.log(`replay / audio trace: ${replayTrace}`);
+  console.log(`portrait / ↺ trace: ${replayTrace}`);
   {
     const audio = await evaluate<{ active: number; peak: number }>(page, `window.__audio ?? { active: 0, peak: 0 }`).catch(() => ({ active: -1, peak: -1 }));
     console.log(`audio: the most clips audible at once over the run: ${audio.peak} (the contract is 1)`);

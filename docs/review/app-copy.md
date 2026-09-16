@@ -6,7 +6,7 @@ Every child-facing and parent-facing string outside the session, extracted from 
 - **drafted**: from the design export (Screens A/B/C) or the runtime — needs sign-off (README "Copy").
 - **missing**: the app needs the line and the export has no Sinhala for it; the screen leaves the spot empty or reuses an export string, and the English gloss says what is needed.
 
-Counts: fromScript 21 · drafted 219 · missing 16
+Counts: fromScript 21 · drafted 218 · missing 16
 
 Terms: ගණක රාමුව (never අබකසය) · සාරා · සෙරෙන්ඩිබ් ශිෂ්‍ය. `{name}`-style holes are filled at runtime.
 
@@ -251,7 +251,6 @@ Terms: ගණක රාමුව (never අබකසය) · සාරා · ස�
 | Session | `session.leaveAsk` | නවත්වමුද? | Shall we stop? (⏹ asks once — from the device triage) | drafted |
 | Session | `session.leaveBody` | ඉතුරු ටික පස්සේ කරන්න පුළුවන්. | You can do the rest later. | drafted |
 | Session | `session.restartAsk` | මුල ඉඳන්ම ආයෙත් පටන් ගමුද? | Shall we start again from the very beginning? (↺ asks once) | drafted |
-| Session | `session.replay` | ආයෙත් කියන්න | Say it again (a tap on Zara's portrait) | drafted |
 
 ## Missing — no Sinhala in the export (not rendered)
 

@@ -79,6 +79,8 @@ export class PcmPlayer {
   private activeSources = new Set<AudioBufferSourceNode>();
   /** The most clips ever audible at once — 1 is the contract (never two). Read by the harness as window.__audio. */
   private peakSources = 0;
+  /** How many clips have ever started. A control that must not make a sound leaves this untouched. */
+  private clipsStarted = 0;
   private onPlaybackStateChange?: (isPlaying: boolean) => void;
   /** Taps the output for per-frame amplitude (drives the character's mouth) — see getAmplitude. */
   private analyser: AnalyserNode;
@@ -166,6 +168,7 @@ export class PcmPlayer {
     this.nextStartTime = startAt + audioBuffer.duration;
     this.lastScheduledEnd = Math.max(this.lastScheduledEnd, this.nextStartTime);
     this.activeSources.add(source);
+    this.clipsStarted += 1;
     this.probe();
     this.setPlaying(true);
     this.startDrainPoller();
@@ -242,6 +245,7 @@ export class PcmPlayer {
     this.lastScheduledEnd = Math.max(this.lastScheduledEnd, this.nextStartTime);
 
     this.activeSources.add(source);
+    this.clipsStarted += 1;
     this.probe();
     this.setPlaying(true);
     this.startDrainPoller();
@@ -302,11 +306,11 @@ export class PcmPlayer {
   private probe(): void {
     this.peakSources = Math.max(this.peakSources, this.activeSources.size);
     if (typeof window !== "undefined") {
-      (window as unknown as { __audio?: { active: number; peak: number } }).__audio = { active: this.activeSources.size, peak: this.peakSources };
+      (window as unknown as { __audio?: { active: number; peak: number; started: number } }).__audio = { active: this.activeSources.size, peak: this.peakSources, started: this.clipsStarted };
     }
   }
 
-  getPlaybackDebug(): { contextState: string; currentTime: number; lastScheduledEnd: number; playing: boolean; lastDrainVia: string | null; activeSources: number; peakSources: number } {
+  getPlaybackDebug(): { contextState: string; currentTime: number; lastScheduledEnd: number; playing: boolean; lastDrainVia: string | null; activeSources: number; peakSources: number; clipsStarted: number } {
     return {
       contextState: this.audioContext.state,
       currentTime: this.audioContext.currentTime,
@@ -315,6 +319,7 @@ export class PcmPlayer {
       lastDrainVia: this.lastDrainVia,
       activeSources: this.activeSources.size,
       peakSources: this.peakSources,
+      clipsStarted: this.clipsStarted,
     };
   }
 

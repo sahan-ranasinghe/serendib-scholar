@@ -281,7 +281,6 @@ export const COPY = {
   "session.leaveAsk": { screen: "Session", si: "නවත්වමුද?", en: "Shall we stop? (⏹ asks once — from the device triage)" },
   "session.leaveBody": { screen: "Session", si: "ඉතුරු ටික පස්සේ කරන්න පුළුවන්.", en: "You can do the rest later." },
   "session.restartAsk": { screen: "Session", si: "මුල ඉඳන්ම ආයෙත් පටන් ගමුද?", en: "Shall we start again from the very beginning? (↺ asks once)" },
-  "session.replay": { screen: "Session", si: "ආයෙත් කියන්න", en: "Say it again (a tap on Zara's portrait)" },
 } as const satisfies Record<string, CopyEntry>;
 
 export type CopyKey = keyof typeof COPY;
