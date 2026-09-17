@@ -40,13 +40,14 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { parseAuthoredScript, assignAnswerModes, choicesForBeat, type AuthoredBeat, type AuthoredBoardIntent } from "../src/lib/authoredScript";
 import { TOUCH_SURFACE, valueOfAnswer, type AnswerMode } from "../src/lib/answerMode";
-import { READ_ALOUD_PAUSE_MS, SOFT_CHECK_PAUSE_MS } from "../src/lib/lessonOrchestrator";
+import { SOFT_CHECK_PAUSE_MS } from "../src/lib/lessonOrchestrator";
 import type { ChoiceSet } from "../src/lib/distractors";
 import type { TurnSurface } from "../src/components/board/events";
 import { renderNumberMarkers, sinhalaNumberName } from "../src/lib/sinhalaNumber";
 import { sentencesOf } from "../src/lib/scriptDistance";
 import { parseAnswerPredicate } from "../src/lib/answerCheck";
 import { resolveAddress } from "../src/lib/addressToken";
+import { announcesTutorTurn } from "../src/lib/authoredLines";
 import { PLACE_PATTERNS } from "../src/lib/choreography";
 
 const ROOT = process.cwd();
@@ -558,6 +559,16 @@ function planBeat(beat: AuthoredBeat, state: BoardState, upcoming: AuthoredBoard
 
   const sourceSentences = sentencesOf(beat.sourceText);
   const facts = sourceSentences.map(analyse);
+  /**
+   * Her own turn, announced: "මේක මම කරන්නම්." (or the long frame) with the
+   * pointer resting on the cell, and the fill on the sentence that names the
+   * value. A tutor cell must never fill while she says "I'll do this one" —
+   * the child would see the answer before hearing what it is.
+   */
+  const announcing = facts.length > 1 && announcesTutorTurn(facts[0]!.spoken);
+  const fillEvent = announcing ? intentEvents.find((e) => e.primitive === "blankTable" && e.event === "cell_fill") : undefined;
+  const cell = fillEvent ? { row: fillEvent.args!.row as number, field: fillEvent.args!.field as string } : null;
+  if (fillEvent) intentEvents.splice(intentEvents.indexOf(fillEvent), 1);
   const notes: NoteCandidate[] = [];
   const events: Event[] = [];
   const spokenLine = facts.map((f) => f.spoken).join(" ");
@@ -572,6 +583,8 @@ function planBeat(beat: AuthoredBeat, state: BoardState, upcoming: AuthoredBoard
 
   facts.forEach((f) => {
     const mine: Event[] = f.index === 0 ? [...intentEvents] : [];
+    // The announcement: the pointer goes to the cell she is about to take.
+    if (cell && f.index === 0) mine.push({ sentenceIndex: 0, primitive: "pointer", event: "move_to", args: { target: { cell } } });
     let pointed = false;
     const point = (target: Record<string, unknown>) => {
       if (!pointed) mine.push({ sentenceIndex: f.index, primitive: "pointer", event: "move_to", args: { target } });
@@ -720,6 +733,9 @@ function planBeat(beat: AuthoredBeat, state: BoardState, upcoming: AuthoredBoard
     }
   });
 
+  // Her turn's fill lands on the sentence that names the value, never on the one that announces it.
+  if (fillEvent) events.push({ ...fillEvent, sentenceIndex: facts.length - 1 });
+
   // The child. The turn event says which surface leads, so the glow lands
   // there; the chip modes deal their three options as she finishes asking.
   // The beat after a question closes the turn (the runtime does this
@@ -749,19 +765,15 @@ function planBeat(beat: AuthoredBeat, state: BoardState, upcoming: AuthoredBoard
       : mode === "cell" ? "the number pad into the active cell"
       : mode === "valueOrPlace" ? `${rodPick ? "tap the rod, or " : ""}tap one of 3 chips`
       : mode === "why" ? "tap one of 3 findings"
-      : "3 s to say it (🎤 cue, nothing recorded) → tap one of 3 name-chips → Zara reads it back";
+      : "tap one of 3 name-chips → Zara reads the number back";
     child = { kind: beat.type === "CHECK_MY_WORK" ? "find the mistake" : "answer", via, expects: predicate ? `any arrangement of ${predicate.digits.join(",")}` : expects, answerMode: mode, surface };
     const readAloudValue = mode === "readAloud" ? valueOfAnswer(expects ?? null) : null;
-    if (mode === "readAloud") {
-      // Reading practice: the invitation first (the pause), then the chips — the judged step — then her read-back.
-      events.push({ sentenceIndex: lastSentence, primitive: "turn", event: "pause", args: readAloudValue !== null ? { ms: READ_ALOUD_PAUSE_MS, cue: "mic", number: readAloudValue } : { ms: READ_ALOUD_PAUSE_MS, cue: "mic" } });
-    }
     events.push({ sentenceIndex: lastSentence, primitive: "turn", event: "your_turn", args: { answerMode: mode, surface } });
-    // The chips deal as she finishes asking — after reading practice's invitation, at the judged step.
+    // The chips deal as she finishes asking: on a read-aloud they ARE the question (17 Sep — no invitation comes first).
     if (chips && (mode === "why" || mode === "readAloud" || mode === "valueOrPlace")) {
       events.push({ sentenceIndex: lastSentence, primitive: "choiceChips", event: "show", args: { options: chips.options, correctIndex: chips.correctIndex } });
     }
-    // Her read-back confirms a right answer — the runtime plays it after the judge; the storyboard records the order.
+    // Her read-back confirms a right answer — audio and caption only, the board unchanged; the storyboard records the order.
     if (readAloudValue !== null) events.push({ sentenceIndex: lastSentence, primitive: "turn", event: "read_back", args: { number: readAloudValue } });
   } else if (beat.type === "SOFT_CHECK" || beat.pauseType === "SOFT_CHECK") {
     child = { kind: "soft check", via: "a 2 s pause while she reacts; a tap counts as engagement; no mic, no acknowledgement clip", answerMode: answer?.mode ?? undefined, surface: "pause" };
@@ -840,8 +852,8 @@ function describeEvent(e: Event): string {
     case "choiceChips.clear": return "the chips go";
     case "turn.your_turn": return `the child's turn: ${a.answerMode} — ${TOUCH_SURFACE[a.answerMode as AnswerMode] ?? a.surface}${a.surface === "rod" ? " (the rods glow)" : a.surface === "chips" ? " (the chips glow)" : a.surface === "picker" ? " (the picker glows)" : ""}`;
     case "turn.over": return "the turn ends";
-    case "turn.pause": return a.cue === "mic" ? `${Number(a.ms) / 1000} s to say it — the portrait perks up, a faint 🎤 cue, nothing recorded` : `a ${Number(a.ms) / 1000} s pause while she reacts (a tap counts as engagement)`;
-    case "turn.read_back": return `after the judged chip, Zara reads ${textbook(Number(a.number))} back ("මම කියන්නම් —" + the composed number)`;
+    case "turn.pause": return `a ${Number(a.ms) / 1000} s pause while she reacts (a tap counts as engagement)`;
+    case "turn.read_back": return `after the judged chip, Zara reads ${textbook(Number(a.number))} back ("මම කියන්නම් —" + the composed number) — audio and caption, the board unchanged`;
     default: return `${e.primitive}.${e.event}`;
   }
 }

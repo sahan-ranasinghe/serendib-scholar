@@ -276,6 +276,14 @@ export const MISSES_BEFORE_RETEACH = 2;
  */
 export const TOUCH_NUDGE_MS = 12_000;
 export const TOUCH_GIVEUP_MS = 25_000;
+/**
+ * Why a sitting ended. It goes on the CLOSE_SESSION row (and, when the child
+ * simply left, on the SESSION_METRICS row) as `planner_decision.close_reason`,
+ * and the close card says it in Sinhala — a sitting must never just stop
+ * (the device walk, 17 Sep: one ended mid-table with nothing said).
+ */
+export type CloseReason = "complete" | "daily_limit" | "stopped" | "error";
+
 /** Reading practice: the child's own time to say the number before Zara reads it. */
 export const READ_ALOUD_PAUSE_MS = 3000;
 /** A soft check: a brief pause while she reacts; any tap counts as engagement. */

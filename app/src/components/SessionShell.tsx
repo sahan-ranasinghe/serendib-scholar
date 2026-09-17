@@ -119,7 +119,7 @@ export function SessionShell({ stage, yourTurn, zaraState, lenaState, pointerSid
     : null;
 
   return (
-    <div className="lesson-screen" onPointerDown={onRootPointerDown} {...data} data-character={zaraState} data-lena={lenaState} data-paused={paused || undefined} data-pause={stage.pause ? (stage.pause.cue ?? "soft") : undefined} style={{ position: "fixed", inset: 0, display: "flex", flexDirection: "column", background: "var(--color-wood)", color: "var(--color-ink)" }}>
+    <div className="lesson-screen" onPointerDown={onRootPointerDown} {...data} data-character={zaraState} data-lena={lenaState} data-paused={paused || undefined} data-pause={stage.pause ? "soft" : undefined} style={{ position: "fixed", inset: 0, display: "flex", flexDirection: "column", background: "var(--color-wood)", color: "var(--color-ink)" }}>
       {/* ---- the strip: title · concept stops · ⏸ ↺ ⏹ · සි ---------------- */}
       <header data-testid="session-strip" style={{ position: "relative", zIndex: 30, height: STRIP_H, flex: "none", background: "var(--color-teal)", display: "flex", alignItems: "center", padding: "0 0 0 14px", color: "#fff" }}>
         <span data-testid="session-title" onClick={onTitleTap} style={{ font: `600 20px/${STRIP_H}px var(--font-label)`, whiteSpace: "nowrap" }}>

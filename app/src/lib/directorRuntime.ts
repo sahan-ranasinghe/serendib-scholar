@@ -11,7 +11,7 @@
  */
 
 import { parseAnswerPredicate } from "@/lib/answerCheck";
-import type { Beat, BeatBoardAction, PlannerDecision } from "@/lib/lessonOrchestrator";
+import type { Beat, BeatBoardAction, CloseReason, PlannerDecision } from "@/lib/lessonOrchestrator";
 import type { BoardContent } from "@/lib/board";
 import type { PhraseRubric } from "@/lib/authoredScript";
 
@@ -171,6 +171,8 @@ export interface SessionLogPayload {
   boardState: BoardContent | Record<string, unknown> | string | null;
   childTranscript: string | null;
   plannerDecision: PlannerDecision | null;
+  /** Why the sitting ended — on the close row (and the metrics row when the child left). */
+  closeReason?: { reason: CloseReason; minutesToday: number; minutesThisSitting: number } | null;
   outputAudioMs: number | null;
   startedAt: string;
   endedAt: string | null;
@@ -192,7 +194,8 @@ export async function logBeat(payload: SessionLogPayload): Promise<void> {
       director_text: payload.directorText,
       output_audio_ms: payload.outputAudioMs,
       child_transcript: payload.childTranscript,
-      planner_decision: payload.plannerDecision,
+      // The close row has no planner decision; the reason it ended lives there instead.
+      planner_decision: payload.closeReason ?? payload.plannerDecision,
       started_at: payload.startedAt,
       ended_at: payload.endedAt,
     });

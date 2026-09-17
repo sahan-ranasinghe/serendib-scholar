@@ -49,7 +49,7 @@ import { ANSWER_MODES, READING_PRACTICE, SPEECH_PRIMARY, TOUCH_SURFACE, conceptS
 import { validateChoices } from "../src/lib/distractors";
 import { judgePhraseLocally } from "../src/lib/phraseJudge";
 import { isNumberWord } from "../src/lib/sinhalaNumber";
-import { listAuthoredLines } from "../src/lib/authoredLines";
+import { announcesTutorTurn, listAuthoredLines } from "../src/lib/authoredLines";
 import { parseAuthoredScript, type AuthoredScriptFile } from "../src/lib/authoredScript";
 import { describeStage, eventKey, initialStage, isKnownEvent, reduceStage, rodsNamedIn, rowOfCards, type Storyboard } from "../src/lib/choreography";
 import { sentencesOf } from "../src/lib/scriptDistance";
@@ -557,7 +557,7 @@ async function runAssertions(
   console.log(`  speech-primary share: ${speechPrimary}/${judged.length} judged questions (${Math.round((100 * speechPrimary) / judged.length)}%) · ${speechPrimaryAll}/${questions.length} counting soft checks (${Math.round((100 * speechPrimaryAll) / questions.length)}%)`);
   assert.equal(speechPrimary, 0, "a judged question leads with speech — the answer path is touch-only");
   const practice = judged.filter((b) => READING_PRACTICE[b.answerMode!]).length;
-  console.log(`  reading practice (an unjudged invitation before the chips; her read-back after a right answer): ${practice} question(s)`);
+  console.log(`  read-aloud (the chips are the question, from the first word; her read-back after a right answer): ${practice} question(s)`);
   console.log("\n  every judged question, its mode and its options:");
   const optionProblems: string[] = [];
   for (const beat of judged) {
@@ -753,6 +753,43 @@ async function runAssertions(
   assert.deepStrictEqual(lateAsks, [], `staged exercises whose first question comes late: ${lateAsks.join("; ")}`);
   assert.deepStrictEqual(nonAdjacent, [], `demonstrations not adjacent to their practice: ${nonAdjacent.join("; ")}`);
   console.log(`  PASS  no exercise spans a session boundary; every staged exercise's first ASK is within 6 beats; every demonstration is adjacent to its practice`);
+
+  // 6h. TUTOR TURNS ANNOUNCE THEMSELVES (the device walk, issue 2). In a
+  //     MODE 2 alternation a cell Zara takes must say so before it fills —
+  //     otherwise an answer appears from nowhere. A confirmation of the
+  //     cell the child was just asked about is not a tutor turn; a run of
+  //     consecutive tutor fills announces once, at its first cell.
+  const tutorFills: Array<{ id: string; cell: string; first: string; kind: string }> = [];
+  const unannounced: string[] = [];
+  let previousAsk: { itemId: string; rowIndex: number; field: string } | null = null;
+  let runOpen = false;
+  for (const beat of script.beats) {
+    const board = boardOf(beat);
+    if (beat.type === "ASK" && board.kind === "set_active_blank") {
+      previousAsk = { itemId: board.itemId!, rowIndex: board.rowIndex!, field: board.field! };
+      runOpen = false;
+      continue;
+    }
+    const opener = sentencesOf(beat.spokenText ?? "")[0] ?? "";
+    if (board.kind !== "reveal_part" || board.itemId?.startsWith("expansion:")) {
+      // A SHOW_BOARD that says "watch me do this" opens her run; the reveals under it are that demonstration.
+      if (announcesTutorTurn(opener)) runOpen = true;
+      else if (beat.conceptTag !== FRAMING_CONCEPT && board.kind !== "none") runOpen = false;
+      continue;
+    }
+    const confirms = previousAsk !== null && previousAsk.itemId === board.itemId && previousAsk.rowIndex === board.rowIndex && previousAsk.field === board.field;
+    const first = opener;
+    const announced = announcesTutorTurn(first);
+    const kind = confirms ? "confirms the child's answer" : announced ? "announced" : runOpen ? "continues an announced run" : "UNANNOUNCED";
+    tutorFills.push({ id: short(beat.id), cell: `row ${(board.rowIndex ?? 0) + 1} ${board.field}`, first: first.slice(0, 44), kind });
+    if (kind === "UNANNOUNCED") unannounced.push(`${short(beat.id)} fills row ${(board.rowIndex ?? 0) + 1}'s ${board.field} with nothing said: "${first.slice(0, 40)}"`);
+    if (announced) runOpen = true;
+    previousAsk = null;
+  }
+  console.log(`\n${"=".repeat(78)}\nTUTOR TURNS (a cell she takes says so first)\n${"=".repeat(78)}`);
+  for (const row of tutorFills) console.log(`  ${row.kind === "UNANNOUNCED" ? "✗" : "✓"} ${row.id.padEnd(22)} ${row.cell.padEnd(26)} ${row.kind.padEnd(28)} "${row.first}"`);
+  assert.deepStrictEqual(unannounced, [], `tutor fills with no announcing line: ${unannounced.join("; ")}`);
+  console.log(`  PASS  ${tutorFills.length} tutor fill(s): none without an announcing line before it`);
 
   // 6g. SAME-SENTENCE EVENTS (triage cluster E): events on one sentence fire
   //     in sequence — no two abacus gestures share a timestamp — and a text

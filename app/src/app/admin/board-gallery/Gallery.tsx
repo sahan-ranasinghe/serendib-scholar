@@ -807,7 +807,7 @@ function FeedbackSection({ viewport }: { viewport: Viewport }) {
 }
 
 function ChoiceChipsSection({ viewport }: { viewport: Viewport }) {
-  const [chips, setChips] = useState<{ options: string[]; micCue: boolean } | null>(null);
+  const [chips, setChips] = useState<{ options: string[] } | null>(null);
   const [picked, setPicked] = useState<string | null>(null);
   const [touch, setTouch] = useState(true);
   return (
@@ -819,15 +819,15 @@ function ChoiceChipsSection({ viewport }: { viewport: Viewport }) {
       viewport={viewport}
       actions={[
         { label: "clear", event: "choiceChips.clear", run: () => { setChips(null); setPicked(null); }, role: "reset" },
-        { label: "show 3 findings", event: "choiceChips.show", role: "animate-in", run: () => { setPicked(null); setChips({ options: ["අටේ අගය අසූවයි, අට නෙවෙයි", "හතරේ අගය හතළිහයි", "අසූ හතර හරියටම හරි"], micCue: false }); } },
-        { label: "show 3 names + 🎤", event: "choiceChips.show", run: () => { setPicked(null); setChips({ options: [sinhalaNumberName(5421), sinhalaNumberName(5412), sinhalaNumberName(5241)], micCue: true }); } },
-        { label: "show 5000 · 500 · 5", event: "choiceChips.show", run: () => { setPicked(null); setChips({ options: ["500", "5000", "5"], micCue: false }); } },
+        { label: "show 3 findings", event: "choiceChips.show", role: "animate-in", run: () => { setPicked(null); setChips({ options: ["අටේ අගය අසූවයි, අට නෙවෙයි", "හතරේ අගය හතළිහයි", "අසූ හතර හරියටම හරි"] }); } },
+        { label: "show 3 number names (a read-aloud question: the chips ARE the question)", event: "choiceChips.show", run: () => { setPicked(null); setChips({ options: [sinhalaNumberName(5421), sinhalaNumberName(5412), sinhalaNumberName(5241)] }); } },
+        { label: "show 5000 · 500 · 5", event: "choiceChips.show", run: () => { setPicked(null); setChips({ options: ["500", "5000", "5"] }); } },
         { label: touch ? "touch: on" : "touch: off", run: () => setTouch((t) => !t) },
       ]}
     >
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
         <div style={{ fontFamily: "var(--font-sinhala, sans-serif)", color: "#2b1d12", fontSize: 18 }}>{picked ? `tapped: ${picked}` : "the question is on the board above the chips"}</div>
-        {chips && <ChoiceChips options={chips.options} micCue={chips.micCue} interactive={touch} glow={touch} onPick={(option) => setPicked(option)} />}
+        {chips && <ChoiceChips options={chips.options} interactive={touch} glow={touch} onPick={(option) => setPicked(option)} />}
       </div>
     </Section>
   );
@@ -848,7 +848,7 @@ function TurnSection({ viewport }: { viewport: Viewport }) {
         { label: "over", event: "turn.over", run: () => { setTurn(null); setPicked(null); }, role: "reset" },
         { label: "your_turn valueOrPlace on rod", event: "turn.your_turn", role: "animate-in", run: () => { setPicked(null); setTurn("rod"); } },
         { label: "your_turn build on beads", event: "turn.your_turn", run: () => { setPicked(null); setShown([0, 0, 0, 0]); setTurn("beads"); } },
-        { label: "pause 3 s with 🎤 cue", event: "turn.pause", run: () => { setPicked(null); setTurn("pause"); } },
+        { label: "pause 2 s (a soft check — the board shows nothing; the pause is time, not a cue)", event: "turn.pause", run: () => { setPicked(null); setTurn("pause"); } },
         { label: "read_back 5 421", event: "turn.read_back", run: () => { setTurn(null); setPicked(`Zara: මම කියන්නම් — ${sinhalaNumberName(5421)}`); } },
         { label: "retry (paper button)", event: "turn.retry", run: () => { setTurn("retry"); setPicked(null); } },
       ]}
@@ -866,11 +866,7 @@ function TurnSection({ viewport }: { viewport: Viewport }) {
           compact={viewport === "phone"}
         />
         {picked && <div style={{ fontFamily: "var(--font-sinhala, sans-serif)", color: "#1e4c99", fontWeight: 700 }}>{picked}</div>}
-        {turn === "pause" && (
-          <div data-testid="pause-cue" className="wb-pause-cue" aria-hidden>
-            🎤
-          </div>
-        )}
+        {turn === "pause" && <div data-testid="turn-pause" style={{ font: "600 16px/1.4 var(--font-label, sans-serif)", color: "rgba(27,27,27,.55)" }}>(a 2 s pause — nothing is drawn)</div>}
         {turn === "retry" && (
           <button type="button" className="wb-tap wb-retry" data-testid="turn-retry" onClick={() => { setTurn("rod"); setPicked("retry → the rods reopen"); }}>
             ආයෙත් උත්සාහ කරන්න

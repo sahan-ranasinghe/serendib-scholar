@@ -793,8 +793,8 @@
       "id": "authored:readWrite4Digit:18h",
       "conceptTag": "readWrite4Digit",
       "type": "EXPLAIN",
-      "sourceText": "{number:3100} — ඉලක්කම් වලින් ලියන්නේ මෙහෙමයි.",
-      "spokenText": "තුන්දහස් එකසියය — ඉලක්කම් වලින් ලියන්නේ මෙහෙමයි.",
+      "sourceText": "දැන් බලන්න {address}, මම මේක කරලා පෙන්නන්නම්. ඔයා බලාගෙන ඉන්න. {number:3100} — ඉලක්කම් වලින් ලියන්නේ මෙහෙමයි.",
+      "spokenText": "දැන් බලන්න {address}, මම මේක කරලා පෙන්නන්නම්. ඔයා බලාගෙන ඉන්න. තුන්දහස් එකසියය — ඉලක්කම් වලින් ලියන්නේ මෙහෙමයි.",
       "numbers": [
         3100
       ],
@@ -809,9 +809,9 @@
       },
       "guideStep": "textbook step 2: numeral ↔ number-name table (guide activity 1 step 2)",
       "maxSimilarity": {
-        "jaccard": 0.14814814814814814,
+        "jaccard": 0.25,
         "cosine": null,
-        "closest": "තව ඉලක්කම්..."
+        "closest": "නිරූපණය කරලා පෙන්නන්න."
       }
     },
     {
@@ -866,8 +866,8 @@
       "id": "authored:readWrite4Digit:18k",
       "conceptTag": "readWrite4Digit",
       "type": "EXPLAIN",
-      "sourceText": "{number:1008} — ඉලක්කම් වලින් ලියන්නේ මෙහෙමයි.",
-      "spokenText": "එක්දහස් අට — ඉලක්කම් වලින් ලියන්නේ මෙහෙමයි.",
+      "sourceText": "මේක මම කරන්නම්. {number:1008} — ඉලක්කම් වලින් ලියන්නේ මෙහෙමයි.",
+      "spokenText": "මේක මම කරන්නම්. එක්දහස් අට — ඉලක්කම් වලින් ලියන්නේ මෙහෙමයි.",
       "numbers": [
         1008
       ],
@@ -2890,8 +2890,8 @@
       "id": "authored:placeValue4Digit:102a",
       "conceptTag": "placeValue4Digit",
       "type": "EXPLAIN",
-      "sourceText": "{number:2348} කියන සංඛ්‍යාවේ මුල්ම ඉලක්කම {number:2}.",
-      "spokenText": "දෙදහස් තුන්සිය හතළිස් අට කියන සංඛ්‍යාවේ මුල්ම ඉලක්කම දෙක.",
+      "sourceText": "දැන් බලන්න {address}, මම මේක කරලා පෙන්නන්නම්. ඔයා බලාගෙන ඉන්න. {number:2348} කියන සංඛ්‍යාවේ මුල්ම ඉලක්කම {number:2}.",
+      "spokenText": "දැන් බලන්න {address}, මම මේක කරලා පෙන්නන්නම්. ඔයා බලාගෙන ඉන්න. දෙදහස් තුන්සිය හතළිස් අට කියන සංඛ්‍යාවේ මුල්ම ඉලක්කම දෙක.",
       "numbers": [
         2348,
         2
@@ -2907,9 +2907,9 @@
       },
       "guideStep": "guide step 7 of 7: the closing exercise — the textbook's place-value table, worked as one exercise (demonstration row, then MODE 2 alternation)",
       "maxSimilarity": {
-        "jaccard": 0,
+        "jaccard": 0.25,
         "cosine": null,
-        "closest": ""
+        "closest": "නිරූපණය කරලා පෙන්නන්න."
       }
     },
     {
@@ -2989,32 +2989,6 @@
       }
     },
     {
-      "id": "authored:placeValue4Digit:103",
-      "conceptTag": "placeValue4Digit",
-      "type": "ASK",
-      "spokenText": "හයදහස් පන්සිය හැත්තෑ දෙක කියන සංඛ්‍යාවේ හයෙන් පෙන්වන අගය කීයද?",
-      "numbers": [
-        6572,
-        6
-      ],
-      "pauseType": "ASK",
-      "boardIntent": {
-        "kind": "blank",
-        "itemId": "7b58e436-334f-452c-bc2a-81f234d03268",
-        "rowIndex": 1,
-        "field": "valueRepresented"
-      },
-      "guideStep": "guide step 7 of 7: the closing exercise — the textbook's place-value table, worked as one exercise (demonstration row, then MODE 2 alternation)",
-      "maxSimilarity": {
-        "jaccard": 0,
-        "cosine": null,
-        "closest": ""
-      },
-      "sourceText": "{number:6572} කියන සංඛ්‍යාවේ {number:6}ෙන් පෙන්වන අගය කීයද?",
-      "expectedAnswer": "6000",
-      "humanEdited": true
-    },
-    {
       "id": "authored:placeValue4Digit:103a",
       "conceptTag": "placeValue4Digit",
       "type": "ASK",
@@ -3066,8 +3040,8 @@
       "id": "authored:placeValue4Digit:103c",
       "conceptTag": "placeValue4Digit",
       "type": "EXPLAIN",
-      "sourceText": "බලන්න, මෙතනට එන්නේ {number:1000}. මම ලියන්නම්.",
-      "spokenText": "බලන්න, මෙතනට එන්නේ දහස. මම ලියන්නම්.",
+      "sourceText": "මේක මම කරන්නම්. මෙතනට එන්නේ {number:1000}.",
+      "spokenText": "මේක මම කරන්නම්. මෙතනට එන්නේ දහස.",
       "numbers": [
         1000
       ],
@@ -3086,6 +3060,32 @@
         "cosine": null,
         "closest": ""
       }
+    },
+    {
+      "id": "authored:placeValue4Digit:103",
+      "conceptTag": "placeValue4Digit",
+      "type": "ASK",
+      "spokenText": "හයදහස් පන්සිය හැත්තෑ දෙක කියන සංඛ්‍යාවේ හයෙන් පෙන්වන අගය කීයද?",
+      "numbers": [
+        6572,
+        6
+      ],
+      "pauseType": "ASK",
+      "boardIntent": {
+        "kind": "blank",
+        "itemId": "7b58e436-334f-452c-bc2a-81f234d03268",
+        "rowIndex": 1,
+        "field": "valueRepresented"
+      },
+      "guideStep": "guide step 7 of 7: the closing exercise — the textbook's place-value table, worked as one exercise (demonstration row, then MODE 2 alternation)",
+      "maxSimilarity": {
+        "jaccard": 0,
+        "cosine": null,
+        "closest": ""
+      },
+      "sourceText": "{number:6572} කියන සංඛ්‍යාවේ {number:6}ෙන් පෙන්වන අගය කීයද?",
+      "expectedAnswer": "6000",
+      "humanEdited": true
     },
     {
       "id": "authored:placeValue4Digit:104",
@@ -3117,8 +3117,8 @@
       "id": "authored:placeValue4Digit:105",
       "conceptTag": "placeValue4Digit",
       "type": "EXPLAIN",
-      "sourceText": "බලන්න, මෙතනට එන්නේ එකස්ථානය. මම ලියන්නම්.",
-      "spokenText": "බලන්න, මෙතනට එන්නේ එකස්ථානය. මම ලියන්නම්.",
+      "sourceText": "මේක මම කරන්නම්. මෙතනට එන්නේ එකස්ථානය.",
+      "spokenText": "මේක මම කරන්නම්. මෙතනට එන්නේ එකස්ථානය.",
       "numbers": [],
       "humanEdited": true,
       "pauseType": null,
@@ -3131,9 +3131,9 @@
       },
       "guideStep": "guide step 7 of 7: the closing exercise — the textbook's place-value table, worked as one exercise (demonstration row, then MODE 2 alternation)",
       "maxSimilarity": {
-        "jaccard": 0.17391304347826086,
+        "jaccard": 0,
         "cosine": null,
-        "closest": "බලන්න, මේ තියෙන්නේ, සියයේ ඒවා අටක් අටසියයයි."
+        "closest": ""
       }
     },
     {
@@ -3188,8 +3188,8 @@
       "id": "authored:placeValue4Digit:106",
       "conceptTag": "placeValue4Digit",
       "type": "EXPLAIN",
-      "sourceText": "ඒක {number:4}යි. {number:4} තියෙන්නේ එකස්ථානයේ.",
-      "spokenText": "ඒක හතරයි. හතර තියෙන්නේ එකස්ථානයේ.",
+      "sourceText": "මේක මම කරන්නම්. ඒක {number:4}යි. {number:4} තියෙන්නේ එකස්ථානයේ.",
+      "spokenText": "මේක මම කරන්නම්. ඒක හතරයි. හතර තියෙන්නේ එකස්ථානයේ.",
       "numbers": [
         4,
         4
@@ -3266,8 +3266,8 @@
       "id": "authored:placeValue4Digit:108a",
       "conceptTag": "placeValue4Digit",
       "type": "EXPLAIN",
-      "sourceText": "බලන්න, මෙතනට එන්නේ සියයස්ථානය. මම ලියන්නම්.",
-      "spokenText": "බලන්න, මෙතනට එන්නේ සියයස්ථානය. මම ලියන්නම්.",
+      "sourceText": "මේක මම කරන්නම්. මෙතනට එන්නේ සියයස්ථානය.",
+      "spokenText": "මේක මම කරන්නම්. මෙතනට එන්නේ සියයස්ථානය.",
       "numbers": [],
       "humanEdited": true,
       "pauseType": null,
@@ -3280,9 +3280,9 @@
       },
       "guideStep": "guide step 7 of 7: the closing exercise — the textbook's place-value table, worked as one exercise (demonstration row, then MODE 2 alternation)",
       "maxSimilarity": {
-        "jaccard": 0.17391304347826086,
+        "jaccard": 0,
         "cosine": null,
-        "closest": "බලන්න, මේ තියෙන්නේ, සියයේ ඒවා අටක් අටසියයයි."
+        "closest": ""
       }
     },
     {
@@ -3337,8 +3337,8 @@
       "id": "authored:placeValue4Digit:108d",
       "conceptTag": "placeValue4Digit",
       "type": "EXPLAIN",
-      "sourceText": "බලන්න, මෙතනට එන්නේ {number:0}. මම ලියන්නම්.",
-      "spokenText": "බලන්න, මෙතනට එන්නේ බිංදුව. මම ලියන්නම්.",
+      "sourceText": "මේක මම කරන්නම්. මෙතනට එන්නේ {number:0}.",
+      "spokenText": "මේක මම කරන්නම්. මෙතනට එන්නේ බිංදුව.",
       "numbers": [
         0
       ],
@@ -3410,8 +3410,8 @@
       "id": "authored:placeValue4Digit:108g",
       "conceptTag": "placeValue4Digit",
       "type": "EXPLAIN",
-      "sourceText": "බලන්න, මෙතනට එන්නේ {number:0}. මම ලියන්නම්.",
-      "spokenText": "බලන්න, මෙතනට එන්නේ බිංදුව. මම ලියන්නම්.",
+      "sourceText": "මේක මම කරන්නම්. මෙතනට එන්නේ {number:0}.",
+      "spokenText": "මේක මම කරන්නම්. මෙතනට එන්නේ බිංදුව.",
       "numbers": [
         0
       ],
@@ -3483,8 +3483,8 @@
       "id": "authored:placeValue4Digit:108j",
       "conceptTag": "placeValue4Digit",
       "type": "EXPLAIN",
-      "sourceText": "බලන්න, මෙතනට එන්නේ {number:100}. මම ලියන්නම්.",
-      "spokenText": "බලන්න, මෙතනට එන්නේ සියය. මම ලියන්නම්.",
+      "sourceText": "මේක මම කරන්නම්. මෙතනට එන්නේ {number:100}.",
+      "spokenText": "මේක මම කරන්නම්. මෙතනට එන්නේ සියය.",
       "numbers": [
         100
       ],

@@ -1178,7 +1178,7 @@
         }
       },
       {
-        "after": "authored:placeValue4Digit:103",
+        "before": "authored:placeValue4Digit:103",
         "beat": {
           "id": "authored:placeValue4Digit:103a",
           "type": "ASK",
@@ -1192,11 +1192,11 @@
           },
           "expectedAnswer": "දහසස්ථානය",
           "guideStep": "guide step 7 of 7: the closing exercise — the textbook's place-value table, worked as one exercise (demonstration row, then MODE 2 alternation)",
-          "why": "Row 2's place is the child's — the recorded askBlank frame; the outlined cell is the question. A place name is picked from the place-name tiles."
+          "why": "Row 2's place is the child's — the recorded askBlank frame; the outlined cell is the question. A place name is picked from the place-name tiles. Placed BEFORE :103 so the row is worked left to right (place → place value → value) and :104 still confirms the question above it."
         }
       },
       {
-        "after": "authored:placeValue4Digit:103a",
+        "before": "authored:placeValue4Digit:103",
         "beat": {
           "id": "authored:placeValue4Digit:103b",
           "type": "EXPLAIN",
@@ -1210,11 +1210,11 @@
             "value": "දහසස්ථානය"
           },
           "guideStep": "guide step 7 of 7: the closing exercise — the textbook's place-value table, worked as one exercise (demonstration row, then MODE 2 alternation)",
-          "why": "Neutral confirmation: the value is written into row 2's place, no verdict."
+          "why": "Neutral confirmation: the value is written into row 2's place, no verdict. Placed BEFORE :103 so the row is worked left to right (place → place value → value) and :104 still confirms the question above it."
         }
       },
       {
-        "after": "authored:placeValue4Digit:103b",
+        "before": "authored:placeValue4Digit:103",
         "beat": {
           "id": "authored:placeValue4Digit:103c",
           "type": "EXPLAIN",
@@ -1228,7 +1228,7 @@
             "value": "1000"
           },
           "guideStep": "guide step 7 of 7: the closing exercise — the textbook's place-value table, worked as one exercise (demonstration row, then MODE 2 alternation)",
-          "why": "Row 2's placeValue is Zara's (MODE 2 alternation) — the builder's revealBlank frame."
+          "why": "Row 2's placeValue is Zara's (MODE 2 alternation) — the builder's revealBlank frame. Placed BEFORE :103 so the row is worked left to right (place → place value → value) and :104 still confirms the question above it."
         }
       },
       {
@@ -1484,5 +1484,50 @@
         }
       }
     ]
+  },
+  "tutorTurns": {
+    "$comment": "Tutor-turn round (the device walk, 17 Sep 2026 — issue 2). In a MODE 2 alternation a cell Zara takes herself used to fill with nothing said: to the child, an answer appeared from nowhere. Every tutor turn now announces itself before the fill — the existing frame \"දැන් බලන්න {address}, මම මේක කරලා පෙන්නන්නම්. ඔයා බලාගෙන ඉන්න.\" (AUTHORED_LINES.showBoardMode1) opens the FIRST turn of an exercise, the short \"මේක මම කරන්නම්.\" (AUTHORED_LINES.tutorTurn) opens the rest — with the pointer on the cell while she says it, and the ✎ badge on the fill that follows. A confirmation right after the child's own answer is not a tutor turn and keeps its wording. The dry run asserts it: no tutor fill without an announcing line before it.",
+    "rewrite": {
+      "authored:readWrite4Digit:18h": {
+        "text": "දැන් බලන්න {address}, මම මේක කරලා පෙන්නන්නම්. ඔයා බලාගෙන ඉන්න. {number:3100} — ඉලක්කම් වලින් ලියන්නේ මෙහෙමයි.",
+        "why": "Issue 2 (device walk): her first turn in this table announced itself with nothing — the cell just filled. The existing showBoardMode1 frame opens her turn, the pointer rests on the cell, then the fill carries the ✎."
+      },
+      "authored:readWrite4Digit:18k": {
+        "text": "මේක මම කරන්නම්. {number:1008} — ඉලක්කම් වලින් ලියන්නේ මෙහෙමයි.",
+        "why": "Her second turn in the table: the short frame (the long one belongs to the first turn only)."
+      },
+      "authored:placeValue4Digit:102a": {
+        "text": "දැන් බලන්න {address}, මම මේක කරලා පෙන්නන්නම්. ඔයා බලාගෙන ඉන්න. {number:2348} කියන සංඛ්‍යාවේ මුල්ම ඉලක්කම {number:2}.",
+        "why": "The worked row is a demonstration run: it announces itself once, at its first cell; :102b–:102d narrate each cell as they write it."
+      },
+      "authored:placeValue4Digit:103c": {
+        "text": "මේක මම කරන්නම්. මෙතනට එන්නේ {number:1000}.",
+        "why": "Her turn at row 2's place value in the MODE 2 alternation: the short frame announces it, the pointer rests on the cell, the fill carries the ✎."
+      },
+      "authored:placeValue4Digit:105": {
+        "text": "මේක මම කරන්නම්. මෙතනට එන්නේ එකස්ථානය.",
+        "why": "Her turn at row 3's place in the MODE 2 alternation: the short frame announces it, the pointer rests on the cell, the fill carries the ✎."
+      },
+      "authored:placeValue4Digit:106": {
+        "text": "මේක මම කරන්නම්. ඒක {number:4}යි. {number:4} තියෙන්නේ එකස්ථානයේ.",
+        "why": "Her turn at row 3's value in the MODE 2 alternation: the short frame announces it, the pointer rests on the cell, the fill carries the ✎."
+      },
+      "authored:placeValue4Digit:108a": {
+        "text": "මේක මම කරන්නම්. මෙතනට එන්නේ සියයස්ථානය.",
+        "why": "Her turn at row 4's place in the MODE 2 alternation: the short frame announces it, the pointer rests on the cell, the fill carries the ✎."
+      },
+      "authored:placeValue4Digit:108d": {
+        "text": "මේක මම කරන්නම්. මෙතනට එන්නේ {number:0}.",
+        "why": "Her turn at row 5's digit in the MODE 2 alternation: the short frame announces it, the pointer rests on the cell, the fill carries the ✎."
+      },
+      "authored:placeValue4Digit:108g": {
+        "text": "මේක මම කරන්නම්. මෙතනට එන්නේ {number:0}.",
+        "why": "Her turn at row 5's value in the MODE 2 alternation: the short frame announces it, the pointer rests on the cell, the fill carries the ✎."
+      },
+      "authored:placeValue4Digit:108j": {
+        "text": "මේක මම කරන්නම්. මෙතනට එන්නේ {number:100}.",
+        "why": "Her turn at row 6's place value in the MODE 2 alternation: the short frame announces it, the pointer rests on the cell, the fill carries the ✎."
+      }
+    }
   }
 }

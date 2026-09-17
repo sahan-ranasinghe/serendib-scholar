@@ -285,16 +285,6 @@
         {
           "sentenceIndex": 0,
           "primitive": "turn",
-          "event": "pause",
-          "args": {
-            "ms": 3000,
-            "cue": "mic",
-            "number": 84
-          }
-        },
-        {
-          "sentenceIndex": 0,
-          "primitive": "turn",
           "event": "your_turn",
           "args": {
             "answerMode": "readAloud",
@@ -325,12 +315,12 @@
       ],
       "child": {
         "kind": "answer",
-        "via": "3 s to say it (🎤 cue, nothing recorded) → tap one of 3 name-chips → Zara reads it back",
+        "via": "tap one of 3 name-chips → Zara reads the number back",
         "expects": "අසූ හතර",
         "answerMode": "readAloud",
         "surface": "chips"
       },
-      "sees": "Number cards 84 · 101 · 528 · 997 (ring on 84); a ring around 84 — they answer via 3 s to say it (🎤 cue, nothing recorded) → tap one of 3 name-chips → Zara reads it back."
+      "sees": "Number cards 84 · 101 · 528 · 997 (ring on 84); a ring around 84 — they answer via tap one of 3 name-chips → Zara reads the number back."
     },
     {
       "id": "authored:readWrite4Digit:3",
@@ -378,16 +368,6 @@
         {
           "sentenceIndex": 0,
           "primitive": "turn",
-          "event": "pause",
-          "args": {
-            "ms": 3000,
-            "cue": "mic",
-            "number": 101
-          }
-        },
-        {
-          "sentenceIndex": 0,
-          "primitive": "turn",
           "event": "your_turn",
           "args": {
             "answerMode": "readAloud",
@@ -418,12 +398,12 @@
       ],
       "child": {
         "kind": "answer",
-        "via": "3 s to say it (🎤 cue, nothing recorded) → tap one of 3 name-chips → Zara reads it back",
+        "via": "tap one of 3 name-chips → Zara reads the number back",
         "expects": "එකසිය එක",
         "answerMode": "readAloud",
         "surface": "chips"
       },
-      "sees": "Number cards 84 · 101 · 528 · 997 (ring on 101); a ring around 101 — they answer via 3 s to say it (🎤 cue, nothing recorded) → tap one of 3 name-chips → Zara reads it back."
+      "sees": "Number cards 84 · 101 · 528 · 997 (ring on 101); a ring around 101 — they answer via tap one of 3 name-chips → Zara reads the number back."
     },
     {
       "id": "authored:readWrite4Digit:3b",
@@ -503,16 +483,6 @@
         {
           "sentenceIndex": 0,
           "primitive": "turn",
-          "event": "pause",
-          "args": {
-            "ms": 3000,
-            "cue": "mic",
-            "number": 528
-          }
-        },
-        {
-          "sentenceIndex": 0,
-          "primitive": "turn",
           "event": "your_turn",
           "args": {
             "answerMode": "readAloud",
@@ -543,12 +513,12 @@
       ],
       "child": {
         "kind": "answer",
-        "via": "3 s to say it (🎤 cue, nothing recorded) → tap one of 3 name-chips → Zara reads it back",
+        "via": "tap one of 3 name-chips → Zara reads the number back",
         "expects": "පන්සිය විසි අට",
         "answerMode": "readAloud",
         "surface": "chips"
       },
-      "sees": "Number cards 84 · 101 · 528 · 997 (ring on 528); a ring around 528 — they answer via 3 s to say it (🎤 cue, nothing recorded) → tap one of 3 name-chips → Zara reads it back."
+      "sees": "Number cards 84 · 101 · 528 · 997 (ring on 528); a ring around 528 — they answer via tap one of 3 name-chips → Zara reads the number back."
     },
     {
       "id": "authored:readWrite4Digit:5",
@@ -567,16 +537,6 @@
           "event": "highlight_ring",
           "args": {
             "value": 997
-          }
-        },
-        {
-          "sentenceIndex": 0,
-          "primitive": "turn",
-          "event": "pause",
-          "args": {
-            "ms": 3000,
-            "cue": "mic",
-            "number": 997
           }
         },
         {
@@ -612,12 +572,12 @@
       ],
       "child": {
         "kind": "answer",
-        "via": "3 s to say it (🎤 cue, nothing recorded) → tap one of 3 name-chips → Zara reads it back",
+        "via": "tap one of 3 name-chips → Zara reads the number back",
         "expects": "නවසිය අනූ හත",
         "answerMode": "readAloud",
         "surface": "chips"
       },
-      "sees": "Number cards 84 · 101 · 528 · 997 (ring on 997); a ring around 997 — they answer via 3 s to say it (🎤 cue, nothing recorded) → tap one of 3 name-chips → Zara reads it back."
+      "sees": "Number cards 84 · 101 · 528 · 997 (ring on 997); a ring around 997 — they answer via tap one of 3 name-chips → Zara reads the number back."
     },
     {
       "id": "authored:readWrite4Digit:5a",
@@ -959,16 +919,6 @@
         {
           "sentenceIndex": 0,
           "primitive": "turn",
-          "event": "pause",
-          "args": {
-            "ms": 3000,
-            "cue": "mic",
-            "number": 3058
-          }
-        },
-        {
-          "sentenceIndex": 0,
-          "primitive": "turn",
           "event": "your_turn",
           "args": {
             "answerMode": "readAloud",
@@ -999,12 +949,12 @@
       ],
       "child": {
         "kind": "answer",
-        "via": "3 s to say it (🎤 cue, nothing recorded) → tap one of 3 name-chips → Zara reads it back",
+        "via": "tap one of 3 name-chips → Zara reads the number back",
         "expects": "තුන්දහස් පනස් අට",
         "answerMode": "readAloud",
         "surface": "chips"
       },
-      "sees": "Card \"3058\" — they answer via 3 s to say it (🎤 cue, nothing recorded) → tap one of 3 name-chips → Zara reads it back."
+      "sees": "Card \"3058\" — they answer via tap one of 3 name-chips → Zara reads the number back."
     },
     {
       "id": "authored:readWrite4Digit:16",
@@ -1283,14 +1233,39 @@
       "concept": "readWrite4Digit",
       "type": "EXPLAIN",
       "pause": null,
-      "line": "තුන්දහස් එකසියය — ඉලක්කම් වලින් ලියන්නේ මෙහෙමයි.",
+      "line": "දැන් බලන්න පුතේ, මම මේක කරලා පෙන්නන්නම්. ඔයා බලාගෙන ඉන්න. තුන්දහස් එකසියය — ඉලක්කම් වලින් ලියන්නේ මෙහෙමයි.",
       "sentences": [
+        "දැන් බලන්න පුතේ, මම මේක කරලා පෙන්නන්නම්.",
+        "ඔයා බලාගෙන ඉන්න.",
         "තුන්දහස් එකසියය — ඉලක්කම් වලින් ලියන්නේ මෙහෙමයි."
       ],
       "boardAtStart": "the numeral ↔ number-name table: 6 528 · දෙදහස් හාරසිය තිහ · තුන්දහස් එකසියය · 5 060 · එක්දහස් අට · 9 015",
       "events": [
         {
           "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "cell": {
+                "row": 2,
+                "field": "number"
+              }
+            }
+          }
+        },
+        {
+          "sentenceIndex": 2,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "number": 3100
+            }
+          }
+        },
+        {
+          "sentenceIndex": 2,
           "primitive": "blankTable",
           "event": "cell_fill",
           "args": {
@@ -1394,14 +1369,38 @@
       "concept": "readWrite4Digit",
       "type": "EXPLAIN",
       "pause": null,
-      "line": "එක්දහස් අට — ඉලක්කම් වලින් ලියන්නේ මෙහෙමයි.",
+      "line": "මේක මම කරන්නම්. එක්දහස් අට — ඉලක්කම් වලින් ලියන්නේ මෙහෙමයි.",
       "sentences": [
+        "මේක මම කරන්නම්.",
         "එක්දහස් අට — ඉලක්කම් වලින් ලියන්නේ මෙහෙමයි."
       ],
       "boardAtStart": "the numeral ↔ number-name table: 6 528 · දෙදහස් හාරසිය තිහ · තුන්දහස් එකසියය · 5 060 · එක්දහස් අට · 9 015",
       "events": [
         {
           "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "cell": {
+                "row": 4,
+                "field": "number"
+              }
+            }
+          }
+        },
+        {
+          "sentenceIndex": 1,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "number": 1008
+            }
+          }
+        },
+        {
+          "sentenceIndex": 1,
           "primitive": "blankTable",
           "event": "cell_fill",
           "args": {
@@ -3096,16 +3095,6 @@
         {
           "sentenceIndex": 0,
           "primitive": "turn",
-          "event": "pause",
-          "args": {
-            "ms": 3000,
-            "cue": "mic",
-            "number": 5421
-          }
-        },
-        {
-          "sentenceIndex": 0,
-          "primitive": "turn",
           "event": "your_turn",
           "args": {
             "answerMode": "readAloud",
@@ -3136,12 +3125,12 @@
       ],
       "child": {
         "kind": "answer",
-        "via": "3 s to say it (🎤 cue, nothing recorded) → tap one of 3 name-chips → Zara reads it back",
+        "via": "tap one of 3 name-chips → Zara reads the number back",
         "expects": "පන්දහස් හාරසිය විසි එක",
         "answerMode": "readAloud",
         "surface": "chips"
       },
-      "sees": "The abacus showing 5 421; a chalk ring around 5 421 — they answer via 3 s to say it (🎤 cue, nothing recorded) → tap one of 3 name-chips → Zara reads it back."
+      "sees": "The abacus showing 5 421; a chalk ring around 5 421 — they answer via tap one of 3 name-chips → Zara reads the number back."
     },
     {
       "id": "authored:placeValue4Digit:59",
@@ -3286,16 +3275,6 @@
         {
           "sentenceIndex": 0,
           "primitive": "turn",
-          "event": "pause",
-          "args": {
-            "ms": 3000,
-            "cue": "mic",
-            "number": 6831
-          }
-        },
-        {
-          "sentenceIndex": 0,
-          "primitive": "turn",
           "event": "your_turn",
           "args": {
             "answerMode": "readAloud",
@@ -3326,12 +3305,12 @@
       ],
       "child": {
         "kind": "answer",
-        "via": "3 s to say it (🎤 cue, nothing recorded) → tap one of 3 name-chips → Zara reads it back",
+        "via": "tap one of 3 name-chips → Zara reads the number back",
         "expects": "හයදහස් අටසිය තිස් එක",
         "answerMode": "readAloud",
         "surface": "chips"
       },
-      "sees": "The abacus showing 6 831 — they answer via 3 s to say it (🎤 cue, nothing recorded) → tap one of 3 name-chips → Zara reads it back."
+      "sees": "The abacus showing 6 831 — they answer via tap one of 3 name-chips → Zara reads the number back."
     },
     {
       "id": "authored:placeValue4Digit:63",
@@ -4927,14 +4906,39 @@
       "concept": "placeValue4Digit",
       "type": "EXPLAIN",
       "pause": null,
-      "line": "දෙදහස් තුන්සිය හතළිස් අට කියන සංඛ්‍යාවේ මුල්ම ඉලක්කම දෙක.",
+      "line": "දැන් බලන්න පුතේ, මම මේක කරලා පෙන්නන්නම්. ඔයා බලාගෙන ඉන්න. දෙදහස් තුන්සිය හතළිස් අට කියන සංඛ්‍යාවේ මුල්ම ඉලක්කම දෙක.",
       "sentences": [
+        "දැන් බලන්න පුතේ, මම මේක කරලා පෙන්නන්නම්.",
+        "ඔයා බලාගෙන ඉන්න.",
         "දෙදහස් තුන්සිය හතළිස් අට කියන සංඛ්‍යාවේ මුල්ම ඉලක්කම දෙක."
       ],
       "boardAtStart": "the place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate",
       "events": [
         {
           "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "cell": {
+                "row": 0,
+                "field": "digit"
+              }
+            }
+          }
+        },
+        {
+          "sentenceIndex": 2,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "number": 2348
+            }
+          }
+        },
+        {
+          "sentenceIndex": 2,
           "primitive": "blankTable",
           "event": "cell_fill",
           "args": {
@@ -5027,55 +5031,6 @@
       "sees": "The place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate; 2000 written into row 0."
     },
     {
-      "id": "authored:placeValue4Digit:103",
-      "concept": "placeValue4Digit",
-      "type": "ASK",
-      "pause": "ASK",
-      "line": "හයදහස් පන්සිය හැත්තෑ දෙක කියන සංඛ්‍යාවේ හයෙන් පෙන්වන අගය කීයද?",
-      "sentences": [
-        "හයදහස් පන්සිය හැත්තෑ දෙක කියන සංඛ්‍යාවේ හයෙන් පෙන්වන අගය කීයද?"
-      ],
-      "boardAtStart": "the place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate",
-      "events": [
-        {
-          "sentenceIndex": 0,
-          "primitive": "blankTable",
-          "event": "row_activate",
-          "args": {
-            "row": 1,
-            "field": "valueRepresented"
-          }
-        },
-        {
-          "sentenceIndex": 0,
-          "primitive": "pointer",
-          "event": "move_to",
-          "args": {
-            "target": {
-              "number": 6572
-            }
-          }
-        },
-        {
-          "sentenceIndex": 0,
-          "primitive": "turn",
-          "event": "your_turn",
-          "args": {
-            "answerMode": "cell",
-            "surface": "cell"
-          }
-        }
-      ],
-      "child": {
-        "kind": "answer",
-        "via": "the number pad into the active cell",
-        "expects": "6000",
-        "answerMode": "cell",
-        "surface": "cell"
-      },
-      "sees": "The place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate; row 1's valueRepresented cell is outlined — they answer via the number pad into the active cell."
-    },
-    {
       "id": "authored:placeValue4Digit:103a",
       "concept": "placeValue4Digit",
       "type": "ASK",
@@ -5165,15 +5120,39 @@
       "concept": "placeValue4Digit",
       "type": "EXPLAIN",
       "pause": null,
-      "line": "බලන්න, මෙතනට එන්නේ දහස. මම ලියන්නම්.",
+      "line": "මේක මම කරන්නම්. මෙතනට එන්නේ දහස.",
       "sentences": [
-        "බලන්න, මෙතනට එන්නේ දහස.",
-        "මම ලියන්නම්."
+        "මේක මම කරන්නම්.",
+        "මෙතනට එන්නේ දහස."
       ],
       "boardAtStart": "the place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate",
       "events": [
         {
           "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "cell": {
+                "row": 1,
+                "field": "placeValue"
+              }
+            }
+          }
+        },
+        {
+          "sentenceIndex": 1,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "number": 1000
+            }
+          },
+          "at": 0.75
+        },
+        {
+          "sentenceIndex": 1,
           "primitive": "blankTable",
           "event": "cell_fill",
           "args": {
@@ -5188,6 +5167,55 @@
       "sees": "The place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate; 1000 written into row 1."
     },
     {
+      "id": "authored:placeValue4Digit:103",
+      "concept": "placeValue4Digit",
+      "type": "ASK",
+      "pause": "ASK",
+      "line": "හයදහස් පන්සිය හැත්තෑ දෙක කියන සංඛ්‍යාවේ හයෙන් පෙන්වන අගය කීයද?",
+      "sentences": [
+        "හයදහස් පන්සිය හැත්තෑ දෙක කියන සංඛ්‍යාවේ හයෙන් පෙන්වන අගය කීයද?"
+      ],
+      "boardAtStart": "the place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate",
+      "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "blankTable",
+          "event": "row_activate",
+          "args": {
+            "row": 1,
+            "field": "valueRepresented"
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "number": 6572
+            }
+          }
+        },
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "your_turn",
+          "args": {
+            "answerMode": "cell",
+            "surface": "cell"
+          }
+        }
+      ],
+      "child": {
+        "kind": "answer",
+        "via": "the number pad into the active cell",
+        "expects": "6000",
+        "answerMode": "cell",
+        "surface": "cell"
+      },
+      "sees": "The place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate; row 1's valueRepresented cell is outlined — they answer via the number pad into the active cell."
+    },
+    {
       "id": "authored:placeValue4Digit:104",
       "concept": "placeValue4Digit",
       "type": "EXPLAIN",
@@ -5199,6 +5227,12 @@
       ],
       "boardAtStart": "the place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate",
       "events": [
+        {
+          "sentenceIndex": 0,
+          "primitive": "turn",
+          "event": "over",
+          "args": {}
+        },
         {
           "sentenceIndex": 0,
           "primitive": "blankTable",
@@ -5230,15 +5264,38 @@
       "concept": "placeValue4Digit",
       "type": "EXPLAIN",
       "pause": null,
-      "line": "බලන්න, මෙතනට එන්නේ එකස්ථානය. මම ලියන්නම්.",
+      "line": "මේක මම කරන්නම්. මෙතනට එන්නේ එකස්ථානය.",
       "sentences": [
-        "බලන්න, මෙතනට එන්නේ එකස්ථානය.",
-        "මම ලියන්නම්."
+        "මේක මම කරන්නම්.",
+        "මෙතනට එන්නේ එකස්ථානය."
       ],
       "boardAtStart": "the place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate",
       "events": [
         {
           "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "cell": {
+                "row": 2,
+                "field": "place"
+              }
+            }
+          }
+        },
+        {
+          "sentenceIndex": 1,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "column": "එ"
+            }
+          }
+        },
+        {
+          "sentenceIndex": 1,
           "primitive": "blankTable",
           "event": "cell_fill",
           "args": {
@@ -5342,8 +5399,9 @@
       "concept": "placeValue4Digit",
       "type": "EXPLAIN",
       "pause": null,
-      "line": "ඒක හතරයි. හතර තියෙන්නේ එකස්ථානයේ.",
+      "line": "මේක මම කරන්නම්. ඒක හතරයි. හතර තියෙන්නේ එකස්ථානයේ.",
       "sentences": [
+        "මේක මම කරන්නම්.",
         "ඒක හතරයි.",
         "හතර තියෙන්නේ එකස්ථානයේ."
       ],
@@ -5351,13 +5409,15 @@
       "events": [
         {
           "sentenceIndex": 0,
-          "primitive": "blankTable",
-          "event": "cell_fill",
+          "primitive": "pointer",
+          "event": "move_to",
           "args": {
-            "row": 2,
-            "field": "valueRepresented",
-            "value": "4",
-            "by": "tutor"
+            "target": {
+              "cell": {
+                "row": 2,
+                "field": "valueRepresented"
+              }
+            }
           }
         },
         {
@@ -5368,6 +5428,28 @@
             "target": {
               "number": 4
             }
+          },
+          "at": 0.33
+        },
+        {
+          "sentenceIndex": 2,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "number": 4
+            }
+          }
+        },
+        {
+          "sentenceIndex": 2,
+          "primitive": "blankTable",
+          "event": "cell_fill",
+          "args": {
+            "row": 2,
+            "field": "valueRepresented",
+            "value": "4",
+            "by": "tutor"
           }
         }
       ],
@@ -5471,15 +5553,38 @@
       "concept": "placeValue4Digit",
       "type": "EXPLAIN",
       "pause": null,
-      "line": "බලන්න, මෙතනට එන්නේ සියයස්ථානය. මම ලියන්නම්.",
+      "line": "මේක මම කරන්නම්. මෙතනට එන්නේ සියයස්ථානය.",
       "sentences": [
-        "බලන්න, මෙතනට එන්නේ සියයස්ථානය.",
-        "මම ලියන්නම්."
+        "මේක මම කරන්නම්.",
+        "මෙතනට එන්නේ සියයස්ථානය."
       ],
       "boardAtStart": "the place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate",
       "events": [
         {
           "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "cell": {
+                "row": 3,
+                "field": "place"
+              }
+            }
+          }
+        },
+        {
+          "sentenceIndex": 1,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "column": "සි"
+            }
+          }
+        },
+        {
+          "sentenceIndex": 1,
           "primitive": "blankTable",
           "event": "cell_fill",
           "args": {
@@ -5583,15 +5688,39 @@
       "concept": "placeValue4Digit",
       "type": "EXPLAIN",
       "pause": null,
-      "line": "බලන්න, මෙතනට එන්නේ බිංදුව. මම ලියන්නම්.",
+      "line": "මේක මම කරන්නම්. මෙතනට එන්නේ බිංදුව.",
       "sentences": [
-        "බලන්න, මෙතනට එන්නේ බිංදුව.",
-        "මම ලියන්නම්."
+        "මේක මම කරන්නම්.",
+        "මෙතනට එන්නේ බිංදුව."
       ],
       "boardAtStart": "the place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate",
       "events": [
         {
           "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "cell": {
+                "row": 4,
+                "field": "digit"
+              }
+            }
+          }
+        },
+        {
+          "sentenceIndex": 1,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "number": 0
+            }
+          },
+          "at": 0.63
+        },
+        {
+          "sentenceIndex": 1,
           "primitive": "blankTable",
           "event": "cell_fill",
           "args": {
@@ -5695,15 +5824,39 @@
       "concept": "placeValue4Digit",
       "type": "EXPLAIN",
       "pause": null,
-      "line": "බලන්න, මෙතනට එන්නේ බිංදුව. මම ලියන්නම්.",
+      "line": "මේක මම කරන්නම්. මෙතනට එන්නේ බිංදුව.",
       "sentences": [
-        "බලන්න, මෙතනට එන්නේ බිංදුව.",
-        "මම ලියන්නම්."
+        "මේක මම කරන්නම්.",
+        "මෙතනට එන්නේ බිංදුව."
       ],
       "boardAtStart": "the place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate",
       "events": [
         {
           "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "cell": {
+                "row": 4,
+                "field": "valueRepresented"
+              }
+            }
+          }
+        },
+        {
+          "sentenceIndex": 1,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "number": 0
+            }
+          },
+          "at": 0.63
+        },
+        {
+          "sentenceIndex": 1,
           "primitive": "blankTable",
           "event": "cell_fill",
           "args": {
@@ -5807,15 +5960,39 @@
       "concept": "placeValue4Digit",
       "type": "EXPLAIN",
       "pause": null,
-      "line": "බලන්න, මෙතනට එන්නේ සියය. මම ලියන්නම්.",
+      "line": "මේක මම කරන්නම්. මෙතනට එන්නේ සියය.",
       "sentences": [
-        "බලන්න, මෙතනට එන්නේ සියය.",
-        "මම ලියන්නම්."
+        "මේක මම කරන්නම්.",
+        "මෙතනට එන්නේ සියය."
       ],
       "boardAtStart": "the place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate",
       "events": [
         {
           "sentenceIndex": 0,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "cell": {
+                "row": 5,
+                "field": "placeValue"
+              }
+            }
+          }
+        },
+        {
+          "sentenceIndex": 1,
+          "primitive": "pointer",
+          "event": "move_to",
+          "args": {
+            "target": {
+              "number": 100
+            }
+          },
+          "at": 0.71
+        },
+        {
+          "sentenceIndex": 1,
           "primitive": "blankTable",
           "event": "cell_fill",
           "args": {

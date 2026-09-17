@@ -70,10 +70,13 @@ import {
   FRAMING_CONCEPT,
   type AdvanceResult,
   type Beat,
+  type CloseReason,
   type LessonScript,
   type OrchestratorState,
   type PlannerDecision,
 } from "@/lib/lessonOrchestrator";
+import { exerciseUnits } from "@/lib/lessonScriptBuilder";
+import { sentencesOf } from "@/lib/scriptDistance";
 import { answersMatch, exampleAnswerFor } from "@/lib/answerCheck";
 import { resolveBeatAddress, resolveAddress, type ChildGender } from "@/lib/addressToken";
 import type { BoardContent } from "@/lib/board";
@@ -330,7 +333,22 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
   const [childSettings, setChildSettings] = useState<ChildRuntimeSettings | null>(null);
   const limitEndedRef = useRef(false);
   const [limitEnded, setLimitEnded] = useState(false);
-  const dailyLimitReached = () => settingsRef.current.minutesToday + (Date.now() - sessionStartedAtRef.current) / 60000 >= settingsRef.current.dailyLimitMinutes;
+  /**
+   * Why this sitting ended. "complete" until something says otherwise: the
+   * daily limit, the child leaving (⏹), or a failure. It reaches the close
+   * card (in her words) and the session_log row, so "why did it stop?" is
+   * answerable from the trace instead of guessed at (the device walk).
+   */
+  const closeReasonRef = useRef<CloseReason>("complete");
+  /** The limit has been reached but the child is mid-exercise: the close waits for the exercise to finish. */
+  const limitPendingRef = useRef(false);
+  const minutesThisSitting = () => (Date.now() - sessionStartedAtRef.current) / 60000;
+  const minutesUsedToday = () => settingsRef.current.minutesToday + minutesThisSitting();
+  /** DEV_MODE turns the limit OFF by default (a harness or a demo must not be cut short); the debug overlay puts it back. */
+  const devLimitOverrideRef = useRef<number | null>(null);
+  const [devLimit, setDevLimit] = useState<number | null>(null);
+  const effectiveDailyLimit = () => devLimitOverrideRef.current ?? (settingsRef.current.devMode ? Infinity : settingsRef.current.dailyLimitMinutes);
+  const dailyLimitReached = () => minutesUsedToday() >= effectiveDailyLimit();
   const statusRef = useRef<RuntimeStatus>("idle");
   const debugEventsRef = useRef<string[]>([]);
 
@@ -709,9 +727,22 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
         }
         await lessonWait(durationMs + MIC_TAIL_MS);
         setNoClipCaption(null);
+      } else if (text) {
+        // A beat with words but no storyboard (the session's close, a recap):
+        // the words are read ON THE BOARD for as long as saying them would
+        // have taken. Skipping it outright made the close card flash past in
+        // milliseconds — the sitting looked like it ended for no reason.
+        const spans = alignSpans(null, sentencesOf(text));
+        const durationMs = spans.list[spans.list.length - 1]?.endMs ?? 0;
+        logEvent(`no clip for ${beat.id.slice(0, 40)} (${beat.type}) — read on the board for ${durationMs}ms`);
+        setCaption(text);
+        setNoClipCaption(text);
+        recentLinesRef.current.push(text);
+        await lessonWait(durationMs + MIC_TAIL_MS);
+        setNoClipCaption(null);
       } else {
-        // A beat written at runtime (RETEACH) with no line to show: the
-        // trace says so, and what follows (the demo, the re-ask) carries on.
+        // Nothing to say and nothing to show (a RETEACH the runtime wrote no
+        // line for): the trace says so, and what follows carries on.
         logEvent(`no clip for ${beat.id.slice(0, 40)} (${beat.type}) — nothing to say or show, moving on`);
       }
       return;
@@ -813,7 +844,6 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
       answerMode: mode ?? undefined,
       chips,
       rodPick,
-      micCue: !soft && mode === "readAloud",
       // Two doubtful hearings: the pad opens by itself, no third "say it again".
       padFirst: confirmsSoFar >= CONFIRM_LIMIT,
       // A number, a digit set, or a number NAME ("අසූ හතර") — the pad answers all three (see answersMatch).
@@ -930,35 +960,12 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
   };
 
   /**
-   * Reading practice, step 1 — the invitation: "කියන්න බලන්න", three seconds
-   * (on the lesson clock) for the child to say the number — the portrait
-   * perks up, a faint 🎤 cue, nothing recorded unless the reading assessment
-   * is on. The chips (the judged step) come next; her own reading of the
-   * number comes only AFTER the answer is judged (readBackNumber), so
-   * nothing on the board or in her voice gives the name away first
-   * (docs/qa/session1-triage.md, cluster D).
-   */
-  const readAloudInvite = async (beat: Beat): Promise<void> => {
-    const value = valueOfAnswer(beat.expectedAnswer);
-    if (value === null || stoppedRef.current) return;
-    setRuntimeStatus("pausing");
-    dispatchStage({ primitive: "turn", event: "pause", args: { ms: READ_ALOUD_PAUSE_MS, cue: "mic", number: value } });
-    logEvent(`reading practice: ${READ_ALOUD_PAUSE_MS / 1000}s to say it${voiceAssessmentRef.current ? " (assessment recording)" : " (nothing recorded)"}`);
-    if (voiceAssessmentRef.current) {
-      const heard = await listenForAnswerVoice(beat, READ_ALOUD_PAUSE_MS, { transcribe: true });
-      if (heard) logEvent(`reading assessment heard "${heard.transcript.slice(0, 30)}" — logged, never judged`);
-    } else {
-      await lessonWait(READ_ALOUD_PAUSE_MS);
-    }
-    if (stoppedRef.current) return;
-    setRuntimeStatus("teaching");
-  };
-
-  /**
-   * Reading practice, step 3 — the confirmation: after the child's chip was
-   * judged right, Zara reads the number herself (the recorded frame
-   * "මම කියන්නම් —" and the composed number). Its text reaches the board
-   * only as it plays.
+   * The read-back: after the child's chip was judged right, Zara reads the
+   * number herself (the recorded frame "මම කියන්නම් —" and the composed
+   * number), confirming it. Its text reaches the caption only as it plays,
+   * and the board does not change — the row she is reading stays as it was.
+   * (17 Sep, the device walk: the 3 s "🎤 කියන්න බලන්න" invitation that used
+   * to come first is gone — the chips are the question, from the first word.)
    */
   const readBackNumber = async (beat: Beat): Promise<void> => {
     const value = valueOfAnswer(beat.expectedAnswer);
@@ -1075,6 +1082,10 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
   const finishBeatLog = async (beat: Beat, decision: PlannerDecision | null) => {
     sequenceRef.current += 1;
     await logBeat({
+      closeReason:
+        beat.type === "CLOSE_SESSION"
+          ? { reason: closeReasonRef.current, minutesToday: Math.round(minutesUsedToday()), minutesThisSitting: Math.round(minutesThisSitting()) }
+          : null,
       sessionId: sessionIdRef.current,
       sequence: sequenceRef.current,
       beat,
@@ -1211,7 +1222,7 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
         if (storyboarded && activeChoreoRef.current) activeChoreoRef.current.legacy = base;
         // A beat outside the storyboard (a framing beat: the close, a recap) starts from a clean turn — no chips, no
         // pause, no read-aloud step cards left over from the question before it.
-        else setStage({ ...stageRef.current, base, notes: [], highlight: null, pointer: null, turn: null, chips: null, pause: null, retry: false, practice: null, seq: stageRef.current.seq + 1 });
+        else setStage({ ...stageRef.current, base, notes: [], highlight: null, pointer: null, turn: null, chips: null, pause: null, retry: false, seq: stageRef.current.seq + 1 });
       } else if (staged.viewPatch) {
         const patched = applyViewPatch(boardContentRef.current, staged.viewPatch as ViewPatch);
         boardContentRef.current = patched;
@@ -1260,8 +1271,25 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
   };
 
   /** Plays one beat through: speech, and whatever the child owes after it. */
+  /**
+   * The close, in her words. A sitting the daily limit ended says so — "අද
+   * කාලය ඉවරයි — හෙට ආයෙත් එන්න" with the minutes used on the card — instead
+   * of the ordinary goodbye, which would leave the child (and the parent)
+   * guessing why it stopped mid-exercise.
+   */
+  const closeBeatFor = (beat: Beat): Beat => {
+    if (beat.type !== "CLOSE_SESSION" || closeReasonRef.current !== "daily_limit") return beat;
+    const minutes = Math.max(1, Math.round(minutesUsedToday()));
+    const card = beat.board.kind === "text_card" ? beat.board.text.split("\n")[0] ?? "" : "";
+    return {
+      ...beat,
+      spokenText: AUTHORED_LINES.closeSessionDailyLimit,
+      board: { kind: "text_card", text: `${AUTHORED_LINES.closeSessionDailyLimit}\nඅද විනාඩි ${minutes}ක්${card ? `\n${card}` : ""}` },
+    };
+  };
+
   const runBeat = async (rawBeat: Beat, scripted: boolean): Promise<void> => {
-    const beat = await deliverBeat(rawBeat);
+    const beat = await deliverBeat(closeBeatFor(rawBeat));
     if (stoppedRef.current) return;
 
     const handling = beatSpec(beat.type).onChildResponse;
@@ -1338,7 +1366,6 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
    * reteach spiral).
    */
   const runQuestion = async (beat: Beat, scripted: boolean, options: { retry?: boolean } = {}): Promise<void> => {
-    if (beat.answerMode === "readAloud" && !options.retry) await readAloudInvite(beat);
     if (stoppedRef.current) return;
     const tapped = await answerByTouch(beat);
     if (stoppedRef.current) return;
@@ -1714,13 +1741,26 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
       }
       await runBeat(next, true);
       if (wasClose) break; // one sitting per visit
-      if (!skipToCloseRef.current && !limitEndedRef.current && dailyLimitReached()) {
+      if (!skipToCloseRef.current && !limitEndedRef.current && (limitPendingRef.current || dailyLimitReached())) {
         // The parent's daily limit: finish this sitting properly (its close
-        // beat, so progress is saved) rather than cutting the child off.
-        limitEndedRef.current = true;
-        setLimitEnded(true);
-        logEvent(`daily limit reached (${settingsRef.current.dailyLimitMinutes} min) — closing the sitting`);
-        skipToCloseRef.current = true;
+        // beat, so progress is saved) rather than cutting the child off —
+        // and never in the middle of an exercise. A staged exercise and the
+        // questions that work it are one unit: the limit waits for its last
+        // question, then closes. (The device walk: a sitting stopped mid-table.)
+        const unit = exerciseUnits(script.beats).find((u) => u.start < stateRef.current.beatIndex && stateRef.current.beatIndex <= u.end);
+        if (unit) {
+          if (!limitPendingRef.current) {
+            limitPendingRef.current = true;
+            logEvent(`daily limit reached (${Math.round(effectiveDailyLimit())} min) mid-exercise — finishing it first (through ${script.beats[unit.end]?.id.slice(0, 40)})`);
+          }
+        } else {
+          limitPendingRef.current = false;
+          limitEndedRef.current = true;
+          closeReasonRef.current = "daily_limit";
+          setLimitEnded(true);
+          logEvent(`daily limit reached (${Math.round(effectiveDailyLimit())} min, ${Math.round(minutesUsedToday())} used) — closing the sitting`);
+          skipToCloseRef.current = true;
+        }
       }
     }
     if (!stoppedRef.current) {
@@ -1771,7 +1811,10 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
         sequence: sequenceRef.current + 1,
         beat_id: "session-metrics",
         beat_type: "SESSION_METRICS",
+        // Why the sitting ended, on every sitting — the close row only exists when she said goodbye.
+        planner_decision: { close_reason: closeReasonRef.current, minutes_today: Math.round(minutesUsedToday()), minutes_this_sitting: Math.round(minutesThisSitting()) },
         director_text:
+          `close_reason=${closeReasonRef.current} minutes_today=${Math.round(minutesUsedToday())} ` +
           `cached_seconds=${Math.round(cachedSeconds)} flash_audio_seconds=${Math.round(flashAudioSeconds)} ` +
           `live_seconds=${liveSeconds} clips_played=${clipsPlayed} clips_rendered_on_demand=${clipsRendered} ` +
           // flash_audio_seconds is the lesson path's transcription time: 0 unless VOICE_ASSESSMENT is on.
@@ -1788,6 +1831,9 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
 
   const stop = useCallback(() => {
     stoppedRef.current = true;
+    // ⏹ — the child left. No CLOSE_SESSION row (leaving is not finishing), so
+    // the reason rides the metrics row instead; the trace still says why.
+    if (closeReasonRef.current === "complete") closeReasonRef.current = "stopped";
     // The same flush the pagehide listener would do — via the ref, so this
     // callback does not have to depend on a function rebuilt every render.
     window.removeEventListener("pagehide", flushMetricsRef.current);
@@ -1889,6 +1935,8 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
     lastActivityRef.current = 0;
     hasInputRef.current = false;
     limitEndedRef.current = false;
+    limitPendingRef.current = false;
+    closeReasonRef.current = "complete";
     setLimitEnded(false);
 
     try {
@@ -1947,6 +1995,8 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
       await runLesson();
     } catch (err) {
       console.error("[useLessonRuntime] Could not start the lesson:", err);
+      closeReasonRef.current = "error";
+      void reportMetrics();
       setError(err instanceof Error ? err.message : "Could not start the lesson.");
       setRuntimeStatus("error");
     }
@@ -2083,6 +2133,21 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
 
   const getOutputAmplitude = useCallback(() => playerRef.current?.getAmplitude() ?? 0, []);
 
+  /**
+   * DEV_MODE only: the daily limit is OFF by default there (a harness run or
+   * a demo must never be cut short mid-way), and this cycles it
+   * off → 3 min → the parent's setting → off. The overlay shows the minutes
+   * used today beside it.
+   */
+  const cycleDailyLimit = () => {
+    if (!settingsRef.current.devMode) return;
+    const order: Array<number | null> = [null, 3, settingsRef.current.dailyLimitMinutes];
+    const next = order[(order.findIndex((v) => v === devLimitOverrideRef.current) + 1) % order.length] ?? null;
+    devLimitOverrideRef.current = next;
+    setDevLimit(next);
+    logEvent(`daily limit (DEV_MODE): ${next === null ? "off" : `${next} min`}`);
+  };
+
   const getDebugSnapshot = useCallback(
     () => ({
       beatId: activeBeatRef.current?.id ?? "—",
@@ -2102,6 +2167,10 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
       events: debugEventsRef.current.slice(-5),
       stage: describeStage(stageRef.current),
       choreo: activeChoreoRef.current ? `${activeChoreoRef.current.fired}/${activeChoreoRef.current.beat.sentences.length}` : "—",
+      // "why did it stop?" answered on the device itself: how much of today is used, what the limit is, and what the close will say.
+      minutesToday: Math.round(minutesUsedToday()),
+      dailyLimit: effectiveDailyLimit(),
+      closeReason: closeReasonRef.current + (limitPendingRef.current ? " (pending — finishing the exercise)" : ""),
     }),
     [chat],
   );
@@ -2162,6 +2231,9 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
     childSettings,
     /** The daily limit ended this sitting. */
     limitEnded,
+    /** DEV_MODE: the limit override in force (null = off), and the control that cycles it. */
+    devLimit,
+    cycleDailyLimit,
   };
 }
 

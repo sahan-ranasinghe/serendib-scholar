@@ -200,10 +200,12 @@ The textbook's place-value table (`PlaceValueTable`) with blanks to fill.
 Three tappable options along the foot of the board — a phrase's findings,
 three number names, three values — made by the distractor engine
 (`src/lib/distractors.ts`), never by a model. The correct one is not
-marked; the judge decides. A readAloud question shows a "🎤 කියන්න" cue
-above them: speech leads, the chips are for a child who would rather tap.
+marked; the judge decides. On a readAloud question the chips ARE the
+question — they come up with it, and Zara reads the number back only after
+one is judged right (17 Sep: the 🎤 invitation that used to precede them is
+gone, with its cue and its step cards).
 
-- **props** `{ options: string[], correctIndex, interactive, micCue }`
+- **props** `{ options: string[], correctIndex, interactive }`
 - **events**
   - `show { options, correctIndex }` — 300 ms. The chips deal in.
   - `clear` — 150 ms.
@@ -219,9 +221,9 @@ and nowhere else (a soft check glows nothing).
     `surface` one of picker · beads · pad · cell · rod · column · chips · mic.
     Rods become buttons on `rod`; the picker breathes on `picker`; the
     chips breathe on `chips`.
-  - `pause { ms, cue? }` — up to 3000 ms. Reading practice (`cue: "mic"`:
-    a faint 🎤, the child's own moment to say it, nothing recorded) or a
-    soft check (no cue). Clears any chips.
+  - `pause { ms }` — up to 3000 ms. A soft check: she pauses for the child
+    to chime in. Nothing is drawn — a pause is time, not a cue. Clears any
+    chips.
   - `read_back { number }` — 400 ms. Zara reads the number herself
     ("මම කියන්නම් —" + the composed number); the board does not change.
   - `retry` — 300 ms. A wrong answer's visible way back: the paper button

@@ -73,6 +73,8 @@ export default function LessonScreen() {
     submitAccessCode,
     childSettings,
     limitEnded,
+    devLimit,
+    cycleDailyLimit,
   } = useLessonRuntime();
   const router = useRouter();
 
@@ -414,6 +416,14 @@ export default function LessonScreen() {
           <button type="button" onClick={sendDiagnostics} style={{ marginTop: 4, width: "100%", borderRadius: 4, border: 0, background: "#34D399", padding: "4px 0", fontWeight: 700, color: "#000" }}>
             {reportState === "sending" ? "…" : reportState === "sent" ? "sent ✓" : reportState === "failed" ? "failed — retry" : "send diagnostics"}
           </button>
+          <div data-testid="debug-minutes">
+            today: {debug.minutesToday} min | limit: {debug.dailyLimit === Infinity ? "off" : `${debug.dailyLimit} min`} | close: {debug.closeReason}
+          </div>
+          {childSettings?.devMode && (
+            <button type="button" data-testid="daily-limit-toggle" data-limit={devLimit === null ? "off" : String(devLimit)} onClick={cycleDailyLimit} style={{ marginTop: 4, width: "100%", borderRadius: 4, border: 0, background: "#60A5FA", padding: "4px 0", fontWeight: 700, color: "#000" }}>
+              daily limit: {devLimit === null ? "off (DEV_MODE)" : `${devLimit} min`} — tap to cycle
+            </button>
+          )}
           {childSettings?.devMode && (
             <button type="button" data-testid="reset-this-child" onClick={() => void resetThisChild()} style={{ marginTop: 4, width: "100%", borderRadius: 4, border: 0, background: "#F59E0B", padding: "4px 0", fontWeight: 700, color: "#000" }}>
               {resetState === "busy" ? "…" : resetState === "done" ? "reset ✓ — restarting" : resetState === "failed" ? "reset failed" : "reset this child (DEV_MODE)"}

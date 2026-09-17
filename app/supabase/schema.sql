@@ -284,7 +284,10 @@ create table if not exists session_log (
   -- Real playback duration of the model's speech for this beat, in ms.
   output_audio_ms int,
   child_transcript text,
-  -- { understood, next, reason } from the planner, on ASK beats.
+  -- { understood, next, reason } from the planner, on ASK beats. On a
+  -- CLOSE_SESSION row (and on SESSION_METRICS when the child left) it carries
+  -- why the sitting ended instead:
+  -- { close_reason: complete | daily_limit | stopped | error, minutes_today, minutes_this_sitting }.
   planner_decision jsonb,
   started_at timestamptz not null,
   ended_at timestamptz,

@@ -208,12 +208,10 @@ export interface StageState {
   chips: { options: string[]; correctIndex: number } | null;
   /** The child's turn is open: which surface leads, so the glow lands there (turn.your_turn). */
   turn: { answerMode: AnswerMode; surface: TurnSurface } | null;
-  /** A short pause with nothing to answer — reading practice (🎤 cue, nothing recorded) or a soft check (turn.pause). */
-  pause: { ms: number; cue: "mic" | null } | null;
+  /** A short pause with nothing to answer — a soft check while she reacts (turn.pause). Nothing is drawn: a pause is a dwell, not a cue. */
+  pause: { ms: number } | null;
   /** A wrong answer's visible way back: the "ආයෙත් උත්සාහ කරන්න" paper button, top-right (turn.retry). */
   retry: boolean;
-  /** Read-aloud practice on the board (the design's R1 step cards, reordered 16 Sep): 1 = the child's 3 s to say it, 2 = choose the name from the chips (judged), 3 = Zara reads it back. */
-  practice: { step: 1 | 2 | 3; number: number | null } | null;
   /** The puzzle ledgers, by hand of digits (sorted): what the child built from each, so a hand dealt again finds its ledger. */
   pickerLedgers: Record<string, string[]>;
   /** Monotonic counter for keys. */
@@ -234,7 +232,6 @@ export function initialStage(): StageState {
     turn: null,
     pause: null,
     retry: false,
-    practice: null,
     pickerLedgers: {},
     seq: 1,
   };
@@ -260,7 +257,7 @@ function isTermNote(text: string): boolean {
 
 /** A base change clears what was drawn around the old one. */
 function withBase(state: StageState, base: StageBase, pointer: Target | null): StageState {
-  return { ...state, base, notes: [], highlight: null, pointer, practice: null, seq: state.seq + 1 };
+  return { ...state, base, notes: [], highlight: null, pointer, seq: state.seq + 1 };
 }
 
 /**
@@ -490,6 +487,9 @@ export function reduceStage(state: StageState, event: Pick<StoryboardEvent, "pri
     case "blankTable.cell_fill": {
       if (state.base?.kind !== "blankTable") return state;
       const fill: TableFill = { row: Number(args.row), field: String(args.field), value: String(args.value ?? ""), by: args.by === "child" ? "child" : "tutor" };
+      // The child's own answer stands: a confirmation that writes the same
+      // cell afterwards must not turn their green into her blue.
+      if (fill.by === "tutor" && state.base.filled.some((f) => f.row === fill.row && f.field === fill.field && f.by === "child")) return state;
       const filled = [...state.base.filled.filter((f) => !(f.row === fill.row && f.field === fill.field)), fill];
       // Filling the outlined cell closes it; a fill elsewhere (her worked row) leaves the child's cell outlined.
       const activeBlank = state.base.activeBlank && state.base.activeBlank.row === fill.row && state.base.activeBlank.field === fill.field ? null : state.base.activeBlank;
@@ -506,25 +506,21 @@ export function reduceStage(state: StageState, event: Pick<StoryboardEvent, "pri
       return state.chips ? { ...state, chips: null, seq } : state;
     case "turn.your_turn": {
       const answerMode = String(args.answerMode) as AnswerMode;
-      // The practice's second step: the name is chosen from the chips (the judged step).
-      const practice = state.practice && answerMode === "readAloud" ? { ...state.practice, step: 2 as const } : null;
       // The child's turn: her term labels beside the surface step aside (M7, S2 show the abacus without "ගණක රාමුව"); a sum stays.
       const notes = state.notes.filter((n) => /\d/u.test(n.text));
-      return { ...state, turn: { answerMode, surface: String(args.surface) as TurnSurface }, pause: null, retry: false, practice, notes, seq };
+      return { ...state, turn: { answerMode, surface: String(args.surface) as TurnSurface }, pause: null, retry: false, notes, seq };
     }
     case "turn.over":
-      return state.turn || state.chips || state.pause || state.retry || state.practice ? { ...state, turn: null, chips: null, pause: null, retry: false, practice: null, seq } : state;
+      return state.turn || state.chips || state.pause || state.retry ? { ...state, turn: null, chips: null, pause: null, retry: false, seq } : state;
     case "turn.retry":
-      return { ...state, retry: true, turn: null, practice: null, seq };
-    case "turn.pause": {
-      // Reading practice comes before the chips: a pause clears any chips still on the foot of the board.
-      const cue = args.cue === "mic" ? "mic" : null;
-      const number = typeof args.number === "number" ? args.number : null;
-      return { ...state, pause: { ms: Number(args.ms ?? 0), cue }, turn: null, chips: null, practice: cue === "mic" ? { step: 1, number } : null, seq };
-    }
+      return { ...state, retry: true, turn: null, seq };
+    case "turn.pause":
+      // A soft check: she pauses for the child to chime in. Nothing is drawn — the pause is time, not a cue.
+      return { ...state, pause: { ms: Number(args.ms ?? 0) }, turn: null, chips: null, seq };
     case "turn.read_back":
-      // After the judged chip: Zara reads the number herself (composed audio) — the third step; the name reaches the card only now.
-      return { ...state, pause: null, practice: { step: 3, number: typeof args.number === "number" ? args.number : (state.practice?.number ?? null) }, seq };
+      // After the judged chip, Zara reads the number back herself (composed audio, the name in the caption).
+      // The board does not change: the row she is reading stays exactly as it was, ring and all.
+      return state.pause ? { ...state, pause: null, seq } : state;
     default:
       return state;
   }
@@ -681,7 +677,7 @@ export function answerSurfaceFor(stage: StageState): SurfaceInfo | null {
 
 /** One line for logs, data attributes and the session trace. */
 export function describeStage(stage: StageState): string {
-  return describeBase(stage) + (stage.chips ? ` · chips ${stage.chips.options.join(" | ")}` : "") + (stage.turn ? ` · your turn: ${stage.turn.answerMode} on ${stage.turn.surface}` : "") + (stage.pause ? ` · pause ${stage.pause.ms}ms${stage.pause.cue ? " (🎤 cue)" : ""}` : "") + (stage.retry ? " · retry button" : "");
+  return describeBase(stage) + (stage.chips ? ` · chips ${stage.chips.options.join(" | ")}` : "") + (stage.turn ? ` · your turn: ${stage.turn.answerMode} on ${stage.turn.surface}` : "") + (stage.pause ? ` · pause ${stage.pause.ms}ms` : "") + (stage.retry ? " · retry button" : "");
 }
 
 function describeBase(stage: StageState): string {

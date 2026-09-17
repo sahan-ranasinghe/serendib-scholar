@@ -358,20 +358,6 @@
   50% { box-shadow: 0 0 0 4px var(--color-saffron), 0 0 10px 2px var(--color-saffron-glow); }
 }
 
-/* reading practice: a faint mic at the foot — her cue to try saying it; nothing listens */
-.wb-pause-cue {
-  font-size: 26px;
-  opacity: 0.45;
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: rgba(255, 253, 247, 0.7);
-  animation: wb-cue-breathe 1.6s ease-in-out infinite;
-}
-@keyframes wb-cue-breathe {
-  0%, 100% { opacity: 0.35; transform: scale(1); }
-  50% { opacity: 0.6; transform: scale(1.06); }
-}
-
 /* the felt sweep on erase */
 .wb-eraser {
   position: absolute;
@@ -401,7 +387,5 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .wb-glow, .wb-pause-cue { animation: none; }
-  .wb-glow { box-shadow: var(--shadow-glow); }
-  .wb-pause-cue { opacity: 0.5; }
+  .wb-glow { animation: none; box-shadow: var(--shadow-glow); }
 }

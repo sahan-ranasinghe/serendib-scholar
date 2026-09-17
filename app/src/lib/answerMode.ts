@@ -34,7 +34,7 @@ export const TOUCH_SURFACE: Record<AnswerMode, string> = {
 
 /** Which modes are JUDGED by speech: none — speech is practice (readAloud's pause) or the ✋ chat, never an answer. */
 export const SPEECH_PRIMARY: Record<AnswerMode, boolean> = { build: false, cell: false, valueOrPlace: false, why: false, readAloud: false };
-/** Modes whose beat opens with unjudged reading practice before the touch step. */
+/** Reading practice: the child reads a number. Since 17 Sep nothing precedes the chips — they are the question; she reads it back after the judge. */
 export const READING_PRACTICE: Record<AnswerMode, boolean> = { build: false, cell: false, valueOrPlace: false, why: false, readAloud: true };
 
 /** The skill a concept's objective names — the tie-breaker for a bare number. */

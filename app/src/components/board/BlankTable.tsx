@@ -57,6 +57,8 @@ const PLACE_TEMPLATE = "1.1fr .8fr 1.7fr 1fr 1.3fr";
 const NAME_TEMPLATE = "1fr 2fr";
 
 export function BlankTable({ columns, rows, filled = [], activeBlank = null, interactive = false, onAnswer, dockPad = false, sparkleAt = null }: BlankTableProps) {
+  // The newest tutor fill carries the ✎ (fills arrive in order, newest last).
+  const newestTutorFill = [...filled].reverse().find((f) => f.by === "tutor") ?? null;
   const registerTarget = useTargetRef<HTMLDivElement>("component:blankTable");
   const rootRef = useRef<HTMLDivElement | null>(null);
   const headRef = useRef<HTMLDivElement | null>(null);
@@ -142,9 +144,10 @@ export function BlankTable({ columns, rows, filled = [], activeBlank = null, int
           const rowIndex = firstRow + i;
           return columns.map((column) => {
             const fill = filled.find((f) => f.row === rowIndex && f.field === column.key);
-            // Her worked row carries one ✎, on its last filled cell (M10, S1, G13).
-            const tutorCells = columns.filter((c) => filled.some((f) => f.row === rowIndex && f.field === c.key && f.by === "tutor"));
-            const penHere = !!fill && fill.by === "tutor" && tutorCells[tutorCells.length - 1]?.key === column.key;
+            // One ✎ on the board: the cell she has JUST written (the newest tutor
+            // fill). On a worked row filled in one go that is its last cell (M10,
+            // S1, G13); in a MODE 2 alternation the badge follows her turn.
+            const penHere = !!fill && fill.by === "tutor" && newestTutorFill?.row === rowIndex && newestTutorFill.field === column.key;
             const printed = row[column.key];
             const isBlank = printed === null || printed === undefined;
             // Zara outlines the cell (row_activate) whether or not the child may tap yet.
@@ -216,6 +219,7 @@ function Cell({ row, field, printed, fill, active, draft, height, interactive, s
       data-testid={`cell-${row}-${field}`}
       data-active={active || undefined}
       data-filled-by={fill?.by}
+      data-pen={pen && !!fill && !byChild ? "true" : undefined}
       className={interactive ? "wb-tap" : undefined}
       onClick={interactive ? onTap : undefined}
       role={interactive ? "button" : undefined}

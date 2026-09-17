@@ -134,6 +134,11 @@ interface CorrectionsFile {
    * exercise. Applied last — it overrides every earlier round it touches.
    */
   coverage?: { rewrite: Record<string, BeatRewrite & { remove?: boolean }>; insert: InsertedBeat[] };
+  /**
+   * Tutor-turn round (the device walk): every cell Zara takes in a MODE 2
+   * alternation announces itself before it fills. Applied after coverage.
+   */
+  tutorTurns?: { rewrite: Record<string, BeatRewrite> };
 }
 
 interface DecisionsFile {
@@ -364,6 +369,7 @@ async function main(): Promise<void> {
     ...Object.keys(corrections.storyboard.rewrite).filter((id) => id.startsWith("authored:")),
     // The coverage round re-types :5 back to an ASK (the list is asked in full); round 3's softening stands aside.
     ...Object.keys(corrections.coverage?.rewrite ?? {}).filter((id) => id.startsWith("authored:")),
+    ...Object.keys(corrections.tutorTurns?.rewrite ?? {}).filter((id) => id.startsWith("authored:")),
   ]);
 
   const apply = (id: string, sourceText: string, source: string): void => {
@@ -551,7 +557,24 @@ async function main(): Promise<void> {
     applyRewrite(id, rewrite, "ending");
   }
   /** Inserts one beat before/after an anchor, or updates it if already there. */
+  /** Where the file says this beat goes — an existing beat is MOVED there, so the review file owns the order too. */
+  const positionOf = (addition: InsertedBeat): number => {
+    const anchorId = addition.after ?? addition.before!;
+    const anchorIndex = file.beats.findIndex((beat) => beat.id === anchorId);
+    assert.ok(anchorIndex !== -1, `insert anchor ${anchorId} not found`);
+    return addition.after ? anchorIndex + 1 : anchorIndex;
+  };
   const insertBeat = (addition: InsertedBeat, label: string): void => {
+    if (byId.has(addition.beat.id)) {
+      // Already added by an earlier run. Re-apply its wording AND its place:
+      // a round that moves a beat (the confirmation that must follow its own
+      // question) has to take effect on a re-run, not only on a fresh file.
+      const at = file.beats.findIndex((beat) => beat.id === addition.beat.id);
+      const moved = file.beats.splice(at, 1)[0]!;
+      const to = positionOf(addition);
+      if (to !== at) structural.push({ id: addition.beat.id, what: "MOVED", why: addition.beat.why ?? label });
+      file.beats.splice(to, 0, moved);
+    }
     if (byId.has(addition.beat.id)) {
       applyRewrite(
         addition.beat.id,
@@ -569,9 +592,7 @@ async function main(): Promise<void> {
       );
       return;
     }
-    const anchorId = addition.after ?? addition.before!;
-    const anchorIndex = file.beats.findIndex((beat) => beat.id === anchorId);
-    assert.ok(anchorIndex !== -1, `insert anchor ${anchorId} not found`);
+    const anchorIndex = file.beats.findIndex((beat) => beat.id === (addition.after ?? addition.before!));
     const template = file.beats[anchorIndex]!;
     const created: AuthoredBeat = {
       id: addition.beat.id,
@@ -587,7 +608,7 @@ async function main(): Promise<void> {
       guideStep: addition.beat.guideStep ?? template.guideStep,
       maxSimilarity: { jaccard: 0, cosine: null, closest: "" },
     };
-    file.beats.splice(addition.after ? anchorIndex + 1 : anchorIndex, 0, created);
+    file.beats.splice(positionOf(addition), 0, created);
     byId.set(created.id, created);
     humanEdited.add(created.id);
     structural.push({ id: created.id, what: "ADDED", why: addition.beat.why ?? label });
@@ -690,6 +711,11 @@ async function main(): Promise<void> {
     applyRewrite(id, rewrite, rewrite.why ?? "coverage");
   }
   for (const addition of corrections.coverage?.insert ?? []) insertBeat(addition, "coverage");
+  // ---- TUTOR-TURN ROUND: her turn announces itself before the cell fills
+  for (const [id, rewrite] of Object.entries(corrections.tutorTurns?.rewrite ?? {})) {
+    if (!id.startsWith("authored:")) continue;
+    applyRewrite(id, rewrite, rewrite.why ?? "tutor turn announces itself");
+  }
   for (const [id, text] of Object.entries(corrections.chipWording ?? {})) {
     if (id === "$comment") continue;
     applyRewrite(id, { text }, "chip wording: the answer is tapped or said, never only said");

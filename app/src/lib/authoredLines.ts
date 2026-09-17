@@ -55,8 +55,16 @@ export const AUTHORED_LINES = {
   confirmHeard: "ඔයා කිව්වේ {value} නේද?",
 
   // --- the touch-only answer path ------------------------------------------
-  /** Reading practice: after the child's 3 s to say it, Zara reads the number herself — this frame, then the composed number. */
+  /** Read-aloud: after the child's chip is judged right, Zara reads the number herself — this frame, then the composed number. */
   readBack: "මම කියන්නම් —",
+  /**
+   * MODE 2 alternation: the cell (or the rod) Zara takes herself. Said with the
+   * pointer on the cell, before the fill, so a tutor turn never appears out of
+   * nowhere. The first of an exercise uses showBoardMode1 above; the rest use this.
+   */
+  tutorTurn: "මේක මම කරන්නම්.",
+  /** The daily limit ended the sitting: the close card and her closing line say so, never silence. */
+  closeSessionDailyLimit: "අද කාලය ඉවරයි — හෙට ආයෙත් එන්න.",
   /** A touch surface with no tap for 12 s: one gentle nudge, then at 25 s she demonstrates and moves on. */
   touchNudge: "ඕනෑම එකක් තෝරලා බලන්න.",
   /** The first ✋: the only moment the microphone is asked for, explained in her words before the browser asks. */
@@ -73,6 +81,26 @@ export const AUTHORED_LINES = {
   // --- hook (default praise; the blueprint file can override per concept) --
   hookPraiseDefault: "හරි! දහසේ එකක්, සීයේ එකක්, දහයේ එකක්, එකේ එකක් — ඒක තමයි අද අපි ඉගෙන ගන්න යන්නේ.",
 } as const;
+
+/**
+ * Does this sentence open one of Zara's own turns? A cell she fills in a
+ * MODE 2 alternation must say so first (the device walk, 17 Sep): the long
+ * frame opens the first turn of an exercise, the short one the rest. The
+ * storyboard puts the pointer on the cell while she says it and the fill on
+ * the sentence after; the dry run asserts no tutor fill goes unannounced.
+ */
+export function announcesTutorTurn(sentence: string): boolean {
+  const squash = (text: string) => text.replace(/[\s,.!?]/gu, "");
+  // The address ("පුතේ" / "දුවේ" / nothing) sits inside the frame, so each
+  // frame is matched by the distinctive part AFTER it.
+  const tail = (line: string) => squash(line.split("{address}").pop()!.split(". ")[0]!);
+  const opener = squash(sentence);
+  // mode 1 ("watch me do this") and mode 2 ("I'll start, you finish") are hers;
+  // mode 3 ("now you do it alone") is the child's and opens nothing.
+  return [AUTHORED_LINES.tutorTurn, AUTHORED_LINES.showBoardMode1, AUTHORED_LINES.showBoardMode2]
+    .map(tail)
+    .some((frame) => frame.length > 0 && opener.includes(frame));
+}
 
 /** Flat list for review printing: [label, line]. */
 export function listAuthoredLines(): Array<[string, string]> {

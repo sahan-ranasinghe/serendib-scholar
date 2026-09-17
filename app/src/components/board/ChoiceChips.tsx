@@ -21,8 +21,6 @@ export interface ChoiceChipsProps {
   /** The child may tap (their turn is open). */
   interactive?: boolean;
   onPick?: (option: string, index: number) => void;
-  /** Kept for callers: the read-aloud cue lives in the practice step now. */
-  micCue?: boolean;
   /** The chips are the answer surface: the row breathes. */
   glow?: boolean;
   /** Per-option state, by index (idle when absent). */

@@ -152,6 +152,15 @@ async function main(): Promise<void> {
     await tap(point.x, point.y);
     return true;
   };
+  /**
+   * A press that is not a finger: the button's own click. The word bank's ✓
+   * (and the pad's) sits at the end of a run of rapid taps, and a synthetic
+   * touch there is sometimes swallowed — the tiles land, the commit does not,
+   * and the walk waits forever on a turn that never closes. Touch is proved
+   * by the tiles and the chips; the commit only has to happen.
+   */
+  const clickSelector = async (selector: string): Promise<boolean> =>
+    (await evaluate<boolean>(page, `(() => { const el = document.querySelector(${JSON.stringify(selector)}); if (!el) return false; el.click(); return true; })()`).catch(() => false)) ?? false;
   const snapshot = (): Promise<Snapshot> =>
     evaluate(
       page,
@@ -284,11 +293,12 @@ async function main(): Promise<void> {
     console.log(`fresh device → onboarding (step 1 only):\n${pathTrace.map((l) => `  ${l}`).join("\n")}`);
     console.log(`\nstep 1 assertions (${clusterA.filter((r) => r.startsWith("PASS")).length}/${clusterA.length}):`);
     for (const line of clusterA) console.log(`  ${line}`);
-    console.log(`\nstep 1 screen text, both states:`);
+  console.log(`\nstep 1 screen text, both states:`);
     for (const entry of step1Texts) console.log(`  [${entry.state}]\n${entry.text.split("\n").map((l) => `    ${l}`).join("\n")}`);
     const { data: made } = await supabaseAdmin.from("children").select("id").eq("parent_contact", "+94770000002");
     for (const row of made ?? []) {
-      for (const table of ["session_log", "child_progress", "child_weaknesses", "child_profile"] as const) await supabaseAdmin.from(table).delete().eq("child_id", row.id);
+      // debug_reports too: the ✋ drill files one, and its foreign key otherwise keeps the child alive after a run.
+      for (const table of ["session_log", "child_progress", "child_weaknesses", "child_profile", "debug_reports"] as const) await supabaseAdmin.from(table).delete().eq("child_id", row.id);
       await supabaseAdmin.from("children").delete().eq("id", row.id);
     }
     browser.kill();
@@ -462,42 +472,111 @@ async function main(): Promise<void> {
   let turnClosed = true;
   const practiceSeen = new Set<string>();
   interface PracticeRecord {
-    inviteAt: number;
-    cue: boolean;
-    rowAtInvite: boolean;
-    ringAtInvite: boolean;
-    leakAtInvite: boolean;
-    stepAtInvite: number | null;
-    chipsAt: number | null;
+    chipsAt: number;
     rowAtChips: boolean;
+    ringAtChips: boolean;
     leakAtChips: boolean;
-    stepAtChips: number | null;
+    cue: boolean;
+    steps: boolean;
     readBackAt: number | null;
     readBack: string;
-    nameInCard: string;
   }
   const practice = new Map<string, PracticeRecord>();
-  /** What the board shows during reading practice: the cue, the primitive being read (the number row, the abacus, a card) and its ring, the step, and whether the expected name is visible anywhere but the chips. */
+  /**
+   * What the board shows on a read-aloud: the primitive being read (the number
+   * row, the abacus, a card) and its ring, whether the expected name is
+   * visible anywhere but the chips, and that nothing of the old invitation
+   * survives — no 🎤 cue, no step cards (17 Sep: the invite is gone).
+   */
   const practiceLook = (expectedName: string) =>
-    evaluate<{ cue: boolean; row: boolean; ring: boolean; step: number | null; leak: boolean }>(
+    evaluate<{ cue: boolean; steps: boolean; row: boolean; ring: boolean; leak: boolean }>(
       page,
       `(() => {
         const board = document.querySelector('[data-testid="lesson-board"]');
         const inBoard = (el) => { if (!el || !board) return false; const r = el.getBoundingClientRect(); const b = board.getBoundingClientRect(); return r.width > 0 && r.top >= b.top && r.bottom <= b.bottom; };
-        const steps = document.querySelector('[data-testid="read-aloud-steps"]');
         const caption = (document.querySelector('[data-testid="caption"]')?.textContent ?? '');
+        const chips = [...document.querySelectorAll('[data-testid="turn-choice"]')].map((el) => el.textContent || '').join(' ');
         const name = ${JSON.stringify(expectedName)}.replace(/\\s+/g, '');
         const squash = (t) => (t || '').replace(/\\s+/g, '');
+        const outsideChips = squash(board ? board.textContent : '').replace(squash(chips), '');
         return {
-          cue: !!document.querySelector('[data-testid="pause-cue"]'),
+          cue: !!document.querySelector('[data-testid="pause-cue"], .wb-pause-cue'),
+          steps: !!document.querySelector('[data-testid="read-aloud-steps"]'),
           row: ['[data-testid="number-cards"]', '[data-testid="abacus"]', '[data-testid="text-card"]', '[data-testid="digit-picker"]'].some((sel) => inBoard(document.querySelector(sel))),
           ring: !!document.querySelector('[data-ringed], [data-testid="highlight-circle"]'),
-          step: steps ? Number(steps.getAttribute('data-step')) : null,
-          leak: name.length > 0 && (squash(steps ? steps.textContent : '').includes(name) || squash(caption).includes(name)),
+          leak: name.length > 0 && (outsideChips.includes(name) || squash(caption).includes(name)),
         };
       })()`,
     );
   let retryTaps = 0;
+  /**
+   * A cell Zara takes in a MODE 2 alternation (the device walk, issue 2): she
+   * must SAY it is her turn, with the pointer on the cell, before the cell
+   * fills — and the fill carries the ✎ badge.
+   */
+  const tutorTurns: string[] = [];
+  const tutorTurnSeen = new Set<string>();
+  const TUTOR_TURN_BEATS = new Map<string, { row: number; field: string }>([
+    ["authored:readWrite4Digit:18h", { row: 2, field: "number" }],
+    ["authored:readWrite4Digit:18k", { row: 4, field: "number" }],
+  ]);
+  const watchTutorTurn = async (beatId: string): Promise<void> => {
+    const cell = TUTOR_TURN_BEATS.get(beatId);
+    if (!cell || tutorTurnSeen.has(beatId)) return;
+    tutorTurnSeen.add(beatId);
+    const selector = `[data-testid="cell-${cell.row}-${cell.field}"]`;
+    const look = () =>
+      evaluate<{ caption: string; pointer: string; filled: string; pen: boolean }>(
+        page,
+        `(() => {
+          const cell = document.querySelector(${JSON.stringify(selector)});
+          const pointer = document.querySelector('[data-testid="pointer"]');
+          const cellBox = cell ? cell.getBoundingClientRect() : null;
+          const pointerBox = pointer ? pointer.getBoundingClientRect() : null;
+          const centreY = pointerBox ? pointerBox.top + pointerBox.height / 2 : 0;
+          const near = !!cellBox && !!pointerBox && centreY > cellBox.top - 12 && centreY < cellBox.bottom + 12 && pointerBox.left > cellBox.left - 220 && pointerBox.left < cellBox.right + 220;
+          return {
+            caption: (document.querySelector('[data-testid="caption"]')?.textContent ?? '').trim(),
+            pointer: pointer ? (near ? 'on the cell' : 'elsewhere') : 'none',
+            filled: cell ? (cell.getAttribute('data-filled-by') ?? '') : 'no cell',
+            pen: cell ? cell.getAttribute('data-pen') === 'true' : false,
+          };
+        })()`,
+      ).catch(() => ({ caption: "", pointer: "none", filled: "", pen: false }));
+    // While she announces it the cell is still empty and the pointer rests on
+    // it. The announcement is recognised by the frame itself — a caption
+    // comparison would race with the beat before it.
+    const ANNOUNCES = /මේක මම කරන්නම්|මම මේක කරලා පෙන්නන්නම්/u;
+    let announcement = "";
+    let pointerAt = "none";
+    let emptyWhileAnnouncing = false;
+    let last = { caption: "", pointer: "none", filled: "", pen: false };
+    for (let i = 0; i < 90; i += 1) {
+      const now = await look();
+      last = now;
+      if (ANNOUNCES.test(now.caption)) {
+        if (!announcement) {
+          announcement = now.caption;
+          emptyWhileAnnouncing = now.filled === "";
+        }
+        // The pointer moves to the cell as she says it; any sighting before the fill counts.
+        if (now.filled === "" && now.pointer === "on the cell") pointerAt = "on the cell";
+        else if (pointerAt === "none") pointerAt = now.pointer;
+      }
+      if (now.filled === "tutor") {
+        await shoot(beatId, "-tutor-turn");
+        const line = `${beatId.replace(/^authored:/u, "")}: said "${announcement.slice(0, 46)}" · pointer ${pointerAt} · cell empty while she said it ${emptyWhileAnnouncing ? "yes" : "NO"} → filled by tutor, ✎ ${now.pen ? "yes" : "NO"}`;
+        tutorTurns.push(line);
+        console.log(`      ✎ tutor turn ${line}`);
+        if (DRILLS) drillNote(`tutor turn ${beatId.replace(/^authored:/u, "")}: announced before the cell fills, pointer on it, ✎ on the fill`, announcement.length > 0 && pointerAt === "on the cell" && emptyWhileAnnouncing && now.pen, line);
+        return;
+      }
+      await wait(250);
+    }
+    const line = `${beatId.replace(/^authored:/u, "")}: said "${announcement.slice(0, 46)}" · pointer ${pointerAt} · the cell never filled in 25 s (last: ${last.filled === "no cell" ? "no such cell on screen" : `filled "${last.filled}"`}, caption "${last.caption.slice(0, 30)}")`;
+    tutorTurns.push(line);
+    if (DRILLS) drillNote(`tutor turn ${beatId.replace(/^authored:/u, "")}: announced before the cell fills, pointer on it, ✎ on the fill`, false, line);
+  };
   const practiceLog: string[] = [];
   /** Tap-to-feedback latencies, from the page's own clock (submitTypedAnswer → fireFeedback). */
   const latencies: number[] = [];
@@ -830,7 +909,7 @@ async function main(): Promise<void> {
             if (ok) placed += 1;
             await wait(120);
           }
-          await tapSelector('[data-testid="word-bank-done"]');
+          await clickSelector('[data-testid="word-bank-done"]');
           note({ beatId: snap.beatId, via: `word bank (${placed}/${words.length} tiles)`, answer: expected });
           return;
         }
@@ -910,31 +989,22 @@ async function main(): Promise<void> {
       await tapSelector('[data-soft-tap]');
       note({ beatId: snap.beatId, via: "tap on the board (soft pause)", answer: "(tapped)" });
     }
-    // Reading practice, step 1 — the invitation. Cluster D: the number row (and its ring) must
-    // still be on the board, and the answer must appear nowhere yet (not in the step cards, not
-    // in the caption). The chips and her read-back are recorded at the turn, below.
-    if (snap.status === "pausing" && snap.pause === "mic" && !practiceSeen.has(snap.beatId)) {
-      practiceSeen.add(snap.beatId);
-      const expectedName = expectedById.get(snap.beatId)?.expectedAnswer ?? "";
-      const look = await practiceLook(expectedName);
-      practice.set(snap.beatId, { inviteAt: Date.now(), cue: look.cue, rowAtInvite: look.row, ringAtInvite: look.ring, leakAtInvite: look.leak, stepAtInvite: look.step, chipsAt: null, rowAtChips: false, leakAtChips: false, stepAtChips: null, readBackAt: null, readBack: "", nameInCard: "" });
-      await shoot(snap.beatId, "-reading-practice-invite");
-    }
     if (snap.status === "turn" && snap.yourTurn && (snap.beatId !== lastTurnBeat || turnClosed)) {
       lastTurnBeat = snap.beatId;
       turnClosed = false;
       await wait(700);
       await shoot(snap.beatId, "-your-turn");
       const shortTurn = snap.beatId.replace(/^authored:/u, "");
-      const record = practice.get(snap.beatId);
-      if (record && record.chipsAt === null) {
-        // Step 2 — the chips are up, the row is still there, and the answer is nowhere but the chips.
+      // A read-aloud: the chips ARE the question. The row it is about must be on
+      // the board, the answer nowhere but the chips, and nothing of the removed
+      // invitation left (no 🎤, no step cards).
+      if (expectedById.get(snap.beatId)?.answerMode === "readAloud" && !practiceSeen.has(snap.beatId)) {
+        practiceSeen.add(snap.beatId);
         const look = await practiceLook(expectedById.get(snap.beatId)?.expectedAnswer ?? "");
-        record.chipsAt = Date.now();
-        record.rowAtChips = look.row;
-        record.leakAtChips = look.leak;
-        record.stepAtChips = look.step;
+        practice.set(snap.beatId, { chipsAt: Date.now(), rowAtChips: look.row, ringAtChips: look.ring, leakAtChips: look.leak, cue: look.cue, steps: look.steps, readBackAt: null, readBack: "" });
+        await shoot(snap.beatId, "-read-aloud-chips");
       }
+      const record = practice.get(snap.beatId);
       if (DRILLS && shortTurn === "readWrite4Digit:8" && !drillDone.has("slow")) {
         // Cluster B, issue 16: a child who starts late — one digit at 11 s, another at 23 s — is never cut off.
         drillDone.add("slow");
@@ -980,31 +1050,23 @@ async function main(): Promise<void> {
         await answer(snap);
       }
       if (record && record.readBackAt === null) {
-        // Step 3 — her read-back, only after the judge: its text reaches the caption as it plays.
+        // Her read-back, only after the judge: its text reaches the caption as it plays.
         const name = expectedById.get(snap.beatId)?.expectedAnswer ?? "";
         for (let i = 0; i < 60 && record.readBackAt === null; i += 1) {
           await wait(150);
-          const seen = await evaluate<{ caption: string; card: string }>(page, `({ caption: (document.querySelector('[data-testid="caption"]')?.textContent ?? '').trim(), card: document.querySelector('[data-testid="read-aloud-steps"][data-step="3"]') ? 'step 3' : '' })`).catch(() => ({ caption: "", card: "" }));
-          if (seen.caption.includes("මම කියන්නම්") || (name && seen.caption.replace(/\s+/gu, "").includes(name.replace(/\s+/gu, ""))) || seen.card) {
-            // The card names the number the instant her read-back starts; the caption follows as the composed clip begins.
+          const caption = await evaluate<string>(page, `(document.querySelector('[data-testid="caption"]')?.textContent ?? '').trim()`).catch(() => "");
+          if (caption.includes("මම කියන්නම්") || (name && caption.replace(/\s+/gu, "").includes(name.replace(/\s+/gu, "")))) {
             record.readBackAt = Date.now();
-            record.nameInCard = seen.card;
-            let caption = seen.caption;
-            // Up to 3 s: the composed clip for a four-digit name takes longer to assemble than a two-digit one.
-            for (let j = 0; j < 20 && !(caption.includes("මම කියන්නම්") || (name && caption.replace(/\s+/gu, "").includes(name.replace(/\s+/gu, "")))); j += 1) {
-              await wait(150);
-              caption = await evaluate<string>(page, `(document.querySelector('[data-testid="caption"]')?.textContent ?? '').trim()`).catch(() => caption);
-            }
             record.readBack = caption;
           }
         }
-        await shoot(snap.beatId, "-reading-practice-readback");
+        await shoot(snap.beatId, "-read-aloud-readback");
         const r = record;
-        const order = r.chipsAt !== null && r.readBackAt !== null && r.inviteAt < r.chipsAt && r.chipsAt < r.readBackAt;
-        const line = `${shortTurn}: invite@0 s (🎤 ${r.cue ? "cue" : "NO CUE"}, row ${r.rowAtInvite ? "on screen" : "MISSING"}, ring ${r.ringAtInvite ? "yes" : "no"}, step ${r.stepAtInvite}, answer ${r.leakAtInvite ? "VISIBLE" : "hidden"}) → chips@${r.chipsAt ? ((r.chipsAt - r.inviteAt) / 1000).toFixed(1) : "?"} s (row ${r.rowAtChips ? "on screen" : "MISSING"}, step ${r.stepAtChips}, answer ${r.leakAtChips ? "VISIBLE" : "hidden"}) → readBack@${r.readBackAt ? ((r.readBackAt - r.inviteAt) / 1000).toFixed(1) : "?"} s ("${r.readBack.slice(0, 36)}", cards at ${r.nameInCard || "step ?"})`;
+        const order = r.readBackAt !== null && r.chipsAt < r.readBackAt;
+        const line = `${shortTurn}: chips@0 s (row ${r.rowAtChips ? "on screen" : "MISSING"}, ring ${r.ringAtChips ? "yes" : "no"}, answer ${r.leakAtChips ? "VISIBLE" : "hidden"}, 🎤 cue ${r.cue ? "STILL THERE" : "gone"}, step cards ${r.steps ? "STILL THERE" : "gone"}) → readBack@${r.readBackAt ? ((r.readBackAt - r.chipsAt) / 1000).toFixed(1) : "?"} s ("${r.readBack.slice(0, 36)}")`;
         practiceLog.push(line);
-        console.log(`      📖 reading practice ${line}`);
-        if (DRILLS) drillNote(`reading practice ${shortTurn}: row on screen · answer hidden until judged · invite → chips → read-back`, order && r.cue && r.rowAtInvite && r.rowAtChips && !r.leakAtInvite && !r.leakAtChips, line);
+        console.log(`      📖 read-aloud ${line}`);
+        if (DRILLS) drillNote(`read-aloud ${shortTurn}: chips are the question · no invite · answer hidden until judged · read-back after`, order && !r.cue && !r.steps && r.rowAtChips && !r.leakAtChips, line);
       }
       for (let i = 0; i < 20; i += 1) {
         const ms = await evaluate<number | null>(page, `(() => { const t = window.__lastTapAt, f = window.__lastFeedbackAt; return t && f && f >= t ? Math.round(f - t) : null; })()`);
@@ -1016,6 +1078,7 @@ async function main(): Promise<void> {
         await wait(50);
       }
     }
+    if (TUTOR_TURN_BEATS.has(snap.beatId)) await watchTutorTurn(snap.beatId);
     if (WRONG_BEAT && /:(reteach|reteach-demo|reveal|giveup)$/u.test(snap.beatId) && !ladderSeen.includes(snap.beatId)) ladderSeen.push(snap.beatId);
     await watchStrip(snap.beatId);
     if (snap.status === "done") {
@@ -1193,8 +1256,10 @@ async function main(): Promise<void> {
       const r1 = practiceLog.find((l) => l.startsWith("readWrite4Digit:2:"));
       console.log(`R1 trace (readWrite4Digit:2, the first read-aloud): ${r1 ?? "not reached"}`);
     }
-    console.log(`reading practice seen on ${practiceLog.length} beat(s):`);
+    console.log(`read-aloud seen on ${practiceLog.length} beat(s):`);
     for (const line of practiceLog) console.log(`  ${line}`);
+    console.log(`\ntutor turns (she says the cell is hers before it fills) — ${tutorTurns.length} seen:`);
+    for (const line of tutorTurns) console.log(`  ${line}`);
     if (hear > 0 || planner > 0) console.log(`FAIL  the lesson path called ${hear ? "/api/hear" : "/api/planner"} — the answer path is touch-only`);
     if (gum > (DRILLS ? 1 : 0)) console.log(`FAIL  the microphone was asked for ${gum} time(s) — only the ✋ may ask`);
     if (median !== null && median > 200) console.log(`FAIL  median tap → feedback ${median} ms, over 200`);
@@ -1239,6 +1304,117 @@ async function main(): Promise<void> {
     const audio = await evaluate<{ active: number; peak: number }>(page, `window.__audio ?? { active: 0, peak: 0 }`).catch(() => ({ active: -1, peak: -1 }));
     console.log(`audio: the most clips audible at once over the run: ${audio.peak} (the contract is 1)`);
   }
+  // ---- THE CLOSE SAYS WHY (the device walk, issue 3) ---------------------
+  // A sitting that stops must say why. The drill: walk into the numeral ↔ name
+  // table, then set the daily limit to 3 minutes with the sitting already
+  // older than that — the limit is crossed mid-exercise. It must NOT cut the
+  // table off: it finishes the exercise, then closes with her daily-limit line
+  // on the card and close_reason=daily_limit on the session_log row.
+  let closeDrill = "not run";
+  const seenAfterArm: string[] = [];
+  if (DRILLS && childA) {
+    const TABLE_FIRST = "authored:readWrite4Digit:18c";
+    const TABLE_LAST = "authored:readWrite4Digit:18m";
+    await evaluate(page, `fetch("/api/session/restart", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ lesson: 1, session: 0 }) }).then((r) => r.json())`).catch(() => undefined);
+    await page.send("Page.navigate", { url: `${BASE}/session` });
+    await wait(2500);
+    await tap(446, 206);
+    const started = Date.now();
+    let armed = false;
+    let armedAt = "—";
+    let closedAt = "—";
+    let closedInside = "";
+    let cardText = "";
+    let lastSeen = "—";
+    let lastDrillTurn = "";
+    let lastDrillAnswerAt = 0;
+    /** The debug overlay's own line (minutes used · limit · close reason) once the limit is armed. */
+    let overlay = "not read";
+    const recent: string[] = [];
+    const deadline = Date.now() + 14 * 60_000;
+    while (Date.now() < deadline) {
+      const snap = await snapshot().catch(() => null);
+      if (!snap) {
+        await wait(300);
+        continue;
+      }
+      if (snap.beatId !== "—") {
+        lastSeen = snap.beatId;
+        const shortId = snap.beatId.replace(/^authored:/u, "");
+        if (recent[recent.length - 1] !== shortId) recent.push(shortId);
+        if (recent.length > 10) recent.shift();
+      }
+      if (armed) overlay = (await evaluate<string>(page, `(document.querySelector('[data-testid="debug-minutes"]')?.textContent ?? "no overlay").trim()`).catch(() => "no overlay")) ?? "no overlay";
+      if (snap.status === "done" || /:close$/u.test(snap.beatId)) {
+        if (/:close$/u.test(snap.beatId) && cardText === "") {
+          cardText = await evaluate<string>(page, `((document.querySelector('[data-testid="board-content"]')?.textContent ?? '') + ' | ' + (document.querySelector('[data-testid="caption"]')?.textContent ?? '')).trim()`).catch(() => "");
+          closedAt = snap.beatId;
+          await shoot(snap.beatId, "-daily-limit-close");
+        }
+        if (snap.status === "done") {
+          // The close card is on screen for as long as her closing line takes: read it before leaving.
+          if (cardText === "") cardText = await evaluate<string>(page, `((document.querySelector('[data-testid="board-content"]')?.textContent ?? '') + ' | ' + (document.querySelector('[data-testid="caption"]')?.textContent ?? '')).trim()`).catch(() => "");
+          break;
+        }
+      }
+      // Inside the table, with the sitting already past three minutes: arm the limit.
+      if (!armed && snap.beatId === "authored:readWrite4Digit:18d" && (Date.now() - started) / 60000 >= 3.2) {
+        armed = true;
+        armedAt = snap.beatId;
+        for (let i = 0; i < 5; i += 1) {
+          await clickSelector('[data-testid="session-title"]');
+          await wait(120);
+        }
+        // The overlay's body fills from a 1 s interval — the toggle is not in the DOM the instant it opens.
+        for (let i = 0; i < 12; i += 1) {
+          if (await evaluate<boolean>(page, `!!document.querySelector('[data-testid="daily-limit-toggle"]')`).catch(() => false)) break;
+          await wait(300);
+        }
+        const toggled = await evaluate<string>(page, `(() => { const b = document.querySelector('[data-testid="daily-limit-toggle"]'); if (!b) return "no toggle"; b.click(); return b.getAttribute("data-limit") ?? "?"; })()`).catch(() => "no toggle");
+        await wait(200);
+        const now = await evaluate<string>(page, `(document.querySelector('[data-testid="daily-limit-toggle"]')?.getAttribute("data-limit") ?? "?")`).catch(() => "?");
+        console.log(`      ⏱ daily limit armed at ${snap.beatId.replace(/^authored:/u, "")} (${((Date.now() - started) / 60000).toFixed(1)} min into the sitting): toggle ${toggled} → ${now}`);
+      }
+      // Cut inside the exercise? The close beat must never arrive between its first and last beat.
+      if (armed && /:close$/u.test(snap.beatId) && closedInside === "" && seenAfterArm.length > 0 && !seenAfterArm.includes(TABLE_LAST)) closedInside = `CLOSED INSIDE the exercise (last table beat seen ${seenAfterArm[seenAfterArm.length - 1]})`;
+      if (armed && snap.beatId.startsWith("authored:readWrite4Digit:18") && !seenAfterArm.includes(snap.beatId)) seenAfterArm.push(snap.beatId);
+      // One answer per open turn — but a turn that reopens (a retry), or one
+      // still open 12 s later (tiles left in a bank never time out, by
+      // design), is answered again rather than deadlocking the walk.
+      if (snap.status !== "turn") lastDrillTurn = "";
+      if (snap.status === "turn" && snap.yourTurn && (snap.beatId !== lastDrillTurn || Date.now() - lastDrillAnswerAt > 12_000)) {
+        lastDrillTurn = snap.beatId;
+        lastDrillAnswerAt = Date.now();
+        await wait(500);
+        await answer(snap);
+      }
+      await wait(350);
+    }
+    // The row is written as the beat ends (fire and forget): give it a moment.
+    let closeRow: { planner_decision?: { reason?: string; minutesToday?: number } } | undefined;
+    for (let i = 0; i < 10 && !closeRow; i += 1) {
+      await wait(500);
+      const { data: closeRows } = await supabaseAdmin
+        .from("session_log")
+        .select("beat_id, beat_type, planner_decision, director_text, started_at")
+        .eq("child_id", childA)
+        .in("beat_type", ["CLOSE_SESSION", "SESSION_METRICS"])
+        .order("started_at", { ascending: false })
+        .limit(4);
+      closeRow = (closeRows ?? []).find((r) => r.beat_type === "CLOSE_SESSION") as typeof closeRow;
+    }
+    const reason = closeRow?.planner_decision?.reason ?? "(none)";
+    const limitLine = cardText.includes("අද කාලය ඉවරයි");
+    const wholeTable = seenAfterArm.includes(TABLE_LAST);
+    closeDrill =
+      `limit 3 min armed at ${armedAt.replace(/^authored:/u, "")} (inside ${TABLE_FIRST.replace(/^authored:/u, "")}…${TABLE_LAST.replace(/^authored:/u, "")}) · ` +
+      `the exercise finished ${wholeTable ? "before the close" : "NOT — cut short"} (${seenAfterArm.length} table beat(s) after arming, last ${(seenAfterArm[seenAfterArm.length - 1] ?? "none").replace(/^authored:/u, "")}) · ` +
+      `${closedInside || "no cut inside the exercise"} · closed at ${closedAt.replace(/^authored:/u, "")} · card "${cardText.slice(0, 60)}" · session_log close_reason=${reason} (minutes_today ${closeRow?.planner_decision?.minutesToday ?? "—"}) · overlay [${overlay}] · last beats ${recent.join(" → ")}`;
+    drillNote("the close says why: the daily limit waits for the exercise, then closes with a reason", wholeTable && closedInside === "" && limitLine && reason === "daily_limit", closeDrill);
+    if (lastSeen === "—") console.log("      ⏱ close drill: the session never started");
+  }
+
+  console.log(`close-reason drill: ${closeDrill}`);
   console.log(`\nstep 1 screen text, both states:`);
   for (const entry of step1Texts) console.log(`  [${entry.state}]\n${entry.text.split("\n").map((l) => `    ${l}`).join("\n")}`);
   // The children this run created (and every row keyed to them) are removed again.

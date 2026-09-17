@@ -60,7 +60,7 @@ export type BoardEvent =
   | { primitive: "choiceChips"; event: "clear"; args?: undefined }
   | { primitive: "turn"; event: "your_turn"; args: { answerMode: AnswerMode; surface: TurnSurface } }
   | { primitive: "turn"; event: "over"; args?: undefined }
-  | { primitive: "turn"; event: "pause"; args: { ms: number; cue?: "mic" } }
+  | { primitive: "turn"; event: "pause"; args: { ms: number } }
   | { primitive: "turn"; event: "read_back"; args: { number: number } }
   | { primitive: "turn"; event: "retry"; args?: undefined };
 
