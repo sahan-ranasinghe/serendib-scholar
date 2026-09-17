@@ -1,3 +1,4 @@
+import { getLang } from "@/lib/langStore";
 /**
  * Every child-facing and parent-facing string of the app shell, in one
  * table — the export's Sinhala verbatim (docs/design/export/handoff, Screens
@@ -18,9 +19,20 @@ export interface CopyEntry {
   en: string;
 }
 
+/**
+ * The app's name (decision, docs/qa/session1-triage.md cluster I): the child
+ * sees සාරා ටීචර්; "Zara Teacher" only where Latin is allowed (the splash
+ * wordmark, the PWA manifest, the parent zone's English toggle). "Serendib
+ * Scholar" is the company, and appears only in the parent zone's footer and
+ * in infrastructure.
+ */
+export const APP_NAME_SI = "සාරා ටීචර්";
+export const APP_NAME_EN = "Zara Teacher";
+export const COMPANY_NAME = "Serendib Scholar";
+
 export const COPY = {
   // --- wordmark and terms ---------------------------------------------------
-  "brand.wordmarkSi": { screen: "Splash", si: "සෙරෙන්ඩිබ් ශිෂ්‍ය", en: "Serendib Scholar (Sinhala wordmark)" },
+  "brand.wordmarkSi": { screen: "Splash", si: APP_NAME_SI, en: `${APP_NAME_EN} (Sinhala wordmark)` },
   "brand.zara": { screen: "all", si: "සාරා", en: "Zara" },
   "brand.zaraTeacher": { screen: "Certificate", si: "සාරා ගුරුතුමිය", en: "Teacher Zara" },
   "brand.abacus": { screen: "all", si: "ගණක රාමුව", en: "abacus (never අබකසය)" },
@@ -58,7 +70,20 @@ export const COPY = {
   "home.badgeReason": { screen: "Home", si: "{concept} ඉගෙන ගත්තා", en: "Learned {concept}" },
   "home.badgesCount": { screen: "Home", si: "ලාංඡන {earned} / {total}", en: "Badges {earned} / {total}" },
   "home.parent": { screen: "Home", si: "දෙමාපිය", en: "Parent (lock button title)" },
-  "nav.home": { screen: "nav", si: "නිවස", en: "Home" },
+  // --- the app shell (cluster H): quiet indicators, skeleton lines, optimistic writes -------
+  "app.updating": { screen: "shell", si: "යාවත්කාලීන වෙමින්…", en: "Updating…" },
+  "app.offlineCached": { screen: "shell", si: "සම්බන්ධතාවය නැහැ — පෙර දත්ත පෙන්වනවා", en: "No connection — showing the last copy" },
+  "app.noData": { screen: "shell", si: "දත්ත ලබා ගන්න බැහැ — සම්බන්ධතාවය බලලා ආයෙ උත්සාහ කරන්න", en: "Could not load — check the connection and try again" },
+  "app.saveFailed": { screen: "shell", si: "සුරැකීම හරි ගියේ නැහැ — ආයෙ උත්සාහ කරන්න", en: "Could not save — try again" },
+  "app.resetting": { screen: "shell", si: "යළි පටන් ගන්නවා…", en: "Resetting…" },
+  "app.checking": { screen: "shell", si: "බලනවා…", en: "Checking…" },
+  "rewards.outfitSheet.owned": { screen: "Rewards", si: "ලේනා දැන් මේක අඳිනවා!", en: "Lena wears this now!" },
+  "rewards.outfitSheet.locked": { screen: "Rewards", si: "තවම අගුළු දාලා", en: "Still locked" },
+  "rewards.outfitSheet.earn": { screen: "Rewards", si: "කොටස් {n}ක් ඉගෙන ගත්තම ලේනාට මේ ඇඳුම ලැබෙනවා", en: "Master {n} concepts and Lena earns this outfit" },
+  "rewards.outfitSheet.left": { screen: "Rewards", si: "තව කොටස් {n}යි", en: "{n} more to go" },
+  "rewards.outfitSheet.art": { screen: "Rewards", si: "චිත්‍රය ළඟදීම", en: "Art coming soon" },
+  "rewards.outfitSheet.close": { screen: "Rewards", si: "වහන්න", en: "Close" },
+  "nav.home": { screen: "nav", si: "මුල් පිටුව", en: "Home" },
   "nav.lessons": { screen: "nav", si: "පාඩම්", en: "Lessons" },
   "nav.practice": { screen: "nav", si: "පුහුණුව", en: "Practice" },
   "nav.rewards": { screen: "nav", si: "තෑගි", en: "Rewards" },
@@ -127,6 +152,9 @@ export const COPY = {
   "cert.body": { screen: "Certificate", si: "{grade} ශ්‍රේණියේ ගණිතය — {concept} සංකල්පය මනාව ප්‍රගුණ කළ බවයි.", en: "has mastered the concept {concept} in Grade {grade} maths." },
   "cert.share": { screen: "Certificate", si: "බෙදාගන්න", en: "Share" },
   "cert.print": { screen: "Certificate", si: "මුද්‍රණය (A4)", en: "Print (A4)" },
+  "cert.printing": { screen: "Certificate", si: "මුද්‍රණයට යවනවා…", en: "Sending to print…" },
+  "cert.copied": { screen: "Certificate", si: "ලින්ක් එක පිටපත් කළා", en: "Link copied" },
+  "cert.sharing": { screen: "Certificate", si: "බෙදාගන්නවා…", en: "Sharing…" },
   "cert.month.9": { screen: "Certificate", si: "සැප්තැම්බර්", en: "September" },
   "cert.dateFormat": { screen: "Certificate", si: "{year} {month} {day}", en: "date: year month day" },
 
@@ -271,7 +299,7 @@ export const COPY = {
   "edge.mic.type": { screen: "Edge", si: "ටයිප් කරන්නම්", en: "I'll type" },
   "edge.error.title": { screen: "Edge", si: "අපොයි, මගේ අතින් වැරැද්දක්", en: "Oops, my mistake" },
   "edge.error.body": { screen: "Edge", si: "මට පොඩි ප්‍රශ්නයක් ආවා. ආයෙත් උත්සාහ කරමුද?", en: "I hit a small problem. Shall we try again?" },
-  "edge.error.home": { screen: "Edge", si: "නිවසට", en: "To home" },
+  "edge.error.home": { screen: "Edge", si: "මුල් පිටුවට", en: "To home" },
 
   // --- lesson runtime lines the shell reuses (already in the codebase) ------------------------------
   "gate.title": { screen: "Session", si: "ප්‍රවේශ කේතය ඇතුළත් කරන්න", en: "Enter the access code" },
@@ -286,8 +314,12 @@ export const COPY = {
 export type CopyKey = keyof typeof COPY;
 
 /** The Sinhala for a key, with {holes} filled. */
+/** The screens whose English column the සිං|EN toggle may show (cluster I): the parent zone and onboarding. The child's screens never switch. */
+const LATIN_ALLOWED_SCREENS = new Set(["Parent zone", "Weekly report", "Subscription", "Onboarding", "Onboarding 1", "Onboarding 2", "Onboarding 3", "Onboarding 4", "Weekly report / Certificate"]);
+
 export function t(key: CopyKey, holes?: Record<string, string | number>): string {
-  let text: string = COPY[key].si;
+  const entry = COPY[key];
+  let text: string = getLang() === "en" && LATIN_ALLOWED_SCREENS.has(entry.screen) && entry.en ? entry.en : entry.si;
   if (holes) for (const [k, v] of Object.entries(holes)) text = text.split(`{${k}}`).join(String(v));
   return text;
 }

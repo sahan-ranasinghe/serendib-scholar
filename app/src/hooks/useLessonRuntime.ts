@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
-import { PcmPlayer } from "@/lib/pcmAudio";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { arrayBufferToBase64, PcmPlayer } from "@/lib/pcmAudio";
 import { closeRecordingContext, recordAnswer as recordAnswerClip, type AnswerRecorderHandle } from "@/lib/answerRecorder";
 import { clipKey, AUDIO_FORMAT_VERSION, type ClipMeta } from "@/lib/audioCache";
 import { parseAnswerPredicate } from "@/lib/answerCheck";
@@ -75,7 +75,8 @@ import {
   type OrchestratorState,
   type PlannerDecision,
 } from "@/lib/lessonOrchestrator";
-import { exerciseUnits } from "@/lib/lessonScriptBuilder";
+import { exerciseUnits, unitAt } from "@/lib/exerciseUnits";
+import { estimateBeatSeconds } from "@/lib/beatRegistry";
 import { sentencesOf } from "@/lib/scriptDistance";
 import { answersMatch, exampleAnswerFor } from "@/lib/answerCheck";
 import { resolveBeatAddress, resolveAddress, type ChildGender } from "@/lib/addressToken";
@@ -297,7 +298,7 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
     new Promise((resolve) => {
       const end = lessonNow() + ms;
       const tick = () => {
-        if (stoppedRef.current) return resolve();
+        if (stoppedRef.current || interruptRef.current) return resolve();
         const left = end - lessonNow();
         if (left <= 0 && !pausedRef.current) return resolve();
         setTimeout(tick, Math.min(Math.max(left, 40), 250));
@@ -322,6 +323,8 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
   }, []);
   const mutedRef = useRef(false);
   const chatRequestedRef = useRef(false);
+  /** ✋ tapped: every wait on the lesson path ends now, so the sheet opens on ONE tap rather than at the next beat boundary. */
+  const interruptRef = useRef(false);
   const skipToCloseRef = useRef(false);
   /**
    * What /api/session-start says about this child: captions (default on),
@@ -329,7 +332,7 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
    * The limit is enforced here: when the sitting's clock crosses it the
    * runtime jumps to the sitting's close, exactly as ⏹ does.
    */
-  const settingsRef = useRef<ChildRuntimeSettings>({ captions: true, sound: true, dailyLimitMinutes: 15, minutesToday: 0, devMode: false });
+  const settingsRef = useRef<ChildRuntimeSettings>({ captions: true, sound: true, dailyLimitMinutes: 30, minutesToday: 0, devMode: false });
   const [childSettings, setChildSettings] = useState<ChildRuntimeSettings | null>(null);
   const limitEndedRef = useRef(false);
   const [limitEnded, setLimitEnded] = useState(false);
@@ -577,7 +580,9 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
   // become a failure, not a frozen lesson: the missing-clip path then reads
   // the line on the board and runs its events on estimated spans.
   const CLIP_META_TIMEOUT_MS = 10_000;
-  const CLIP_AUDIO_TIMEOUT_MS = 25_000;
+  /** The render route (a cache miss) — it renders and uploads, so it gets longer than a cached clip, but never forever. */
+const SPEAK_LINE_TIMEOUT_MS = 20_000;
+const CLIP_AUDIO_TIMEOUT_MS = 25_000;
   const loadClipByKey = async (key: string, text: string): Promise<{ text: string; audio: ArrayBuffer; meta: ClipMeta } | null> => {
     const metaResponse = await fetch(`/api/clip/${key}?meta=1`, { signal: AbortSignal.timeout(CLIP_META_TIMEOUT_MS) });
     if (!metaResponse.ok) return null;
@@ -616,9 +621,12 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
         }
       }
       try {
+        // Bounded like the clip fetches: a network that drops mid-lesson (a half-open connection never errors on its own)
+        // must fall through to the read-on-the-board path, never hang the beat.
         const response = await fetch("/api/speak-line", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          signal: AbortSignal.timeout(SPEAK_LINE_TIMEOUT_MS),
           body: JSON.stringify({
             text,
             goal: fallback.goal,
@@ -1406,6 +1414,8 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
     // confirmation. A wrong one gets the ladder as usual; reading the name out
     // then would hand the retry its answer.
     if (understood && beat.answerMode === "readAloud") await readBackNumber(beat);
+    // ⏸ during the read-back holds here too: the feedback beat is not served until the child resumes.
+    while (pausedRef.current && !stoppedRef.current) await wait(200);
     const decision: PlannerDecision = { understood, next: "advance", reason: understood ? "touch: matches the expected answer" : "touch: does not match the expected answer" };
     await settleAnswer(beat, scripted, tapped, decision, { feedbackFired: true });
   };
@@ -1515,7 +1525,10 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
     }
     if (beat.conceptTag !== FRAMING_CONCEPT) sessionStatsRef.current.concepts.add(beat.conceptTag);
     void recordMastery(beat, decision.understood);
-    if (stageRef.current.base?.kind === "abacus" && said && !beat.rubric) dispatchStage({ primitive: "abacus", event: "child_answer_overlay", args: { text: said.slice(0, 24) } });
+    // The overlay under the abacus is drawn in the hand-digit face, which has
+    // no Sinhala: a name answer (a read-aloud's chip) would render as tofu.
+    // Digits go under the rods; a name is on the chip the child tapped.
+    if (stageRef.current.base?.kind === "abacus" && said && !beat.rubric && /^[\d\s]+$/u.test(said)) dispatchStage({ primitive: "abacus", event: "child_answer_overlay", args: { text: said.replace(/\s/gu, "").slice(0, 24) } });
 
     if (decision.understood) {
       sessionStatsRef.current.correct += 1;
@@ -1644,6 +1657,7 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
 
   /** Pauses the lesson for a live conversation, and resumes when it ends. */
   const openChat = async () => {
+    interruptRef.current = false;
     const player = playerRef.current;
     if (!player || stoppedRef.current) return;
     // The ✋ is the only place the microphone opens. The first time, she
@@ -1698,12 +1712,36 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
   };
 
   /** The driver: beats in order, inserted beats first, until the sitting ends. */
+  /** DEV_MODE: a requested jump (session index, beat offset) taken at the next beat boundary. */
+  const jumpRequestRef = useRef<{ session: number; beat: number | string } | null>(null);
   const runLesson = async () => {
     const script = scriptRef.current;
     if (!script) return;
     while (!stoppedRef.current) {
       while (pausedRef.current && !stoppedRef.current) await wait(200);
       if (stoppedRef.current) break;
+      if (jumpRequestRef.current && !settingsRef.current.devMode) jumpRequestRef.current = null;
+      if (jumpRequestRef.current) {
+        // DEV_MODE only: land on session N's beat X (a later session can be
+        // tested without playing the earlier ones). Pending beats are dropped,
+        // the turn is closed, the board follows the beat as it always does.
+        const request = jumpRequestRef.current;
+        jumpRequestRef.current = null;
+        // A beat id (or its prefix) is also accepted — harnesses land on a known board that way; it is looked up across the whole lesson and its session follows.
+        const byId = typeof request.beat === "string" ? script.beats.findIndex((b) => b.id === request.beat || b.id.startsWith(request.beat as string)) : -1;
+        const session = typeof request.beat === "string" && byId >= 0 ? Math.max(0, script.sessions.findIndex((s) => byId >= s.firstBeat && byId <= s.lastBeat)) : request.session;
+        const beat = typeof request.beat === "string" ? (byId >= 0 ? byId - (script.sessions[session]?.firstBeat ?? 0) : 0) : request.beat;
+        const target = script.sessions[session];
+        if (target) {
+          const index = Math.min(target.lastBeat, Math.max(target.firstBeat, target.firstBeat + beat));
+          pendingBeatsRef.current = [];
+          limitPendingRef.current = false;
+          stateRef.current = { ...stateRef.current, beatIndex: index, unaidedCorrect: 0, recentMisses: 0 };
+          setCurrentSessionIndex(session);
+          sessionIndexRef.current = session;
+          logEvent(`DEV jump → session ${session + 1}, beat ${beat} (${script.beats[index]?.id.slice(0, 40)})`);
+        }
+      }
 
       if (chatRequestedRef.current) {
         chatRequestedRef.current = false;
@@ -1747,8 +1785,20 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
         // and never in the middle of an exercise. A staged exercise and the
         // questions that work it are one unit: the limit waits for its last
         // question, then closes. (The device walk: a sitting stopped mid-table.)
-        const unit = exerciseUnits(script.beats).find((u) => u.start < stateRef.current.beatIndex && stateRef.current.beatIndex <= u.end);
-        if (unit) {
+        const at = stateRef.current.beatIndex;
+        const unit = unitAt(exerciseUnits(script.beats), at);
+        const insideUnit = unit !== undefined && at > unit.start;
+        // A sitting with under three minutes of beats left is finished, not cut:
+        // closing it early would save nothing and lose the ending.
+        const sessionIndex = script.beats[at]?.sessionIndex ?? sessionIndexRef.current;
+        const sessionEnd = script.sessions[sessionIndex]?.lastBeat ?? script.beats.length - 1;
+        const remainingSeconds = script.beats.slice(at, sessionEnd + 1).reduce((sum, b) => sum + estimateBeatSeconds(b), 0);
+        if (remainingSeconds < 180) {
+          if (!limitPendingRef.current) {
+            limitPendingRef.current = true;
+            logEvent(`daily limit reached (${Math.round(effectiveDailyLimit())} min) with ${Math.round(remainingSeconds)}s of the sitting left — finishing it`);
+          }
+        } else if (insideUnit) {
           if (!limitPendingRef.current) {
             limitPendingRef.current = true;
             logEvent(`daily limit reached (${Math.round(effectiveDailyLimit())} min) mid-exercise — finishing it first (through ${script.beats[unit.end]?.id.slice(0, 40)})`);
@@ -1875,7 +1925,7 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
         const next: ChildRuntimeSettings = {
           captions: typeof raw.captions === "boolean" ? raw.captions : true,
           sound: typeof raw.sound === "boolean" ? raw.sound : true,
-          dailyLimitMinutes: typeof raw.dailyLimitMinutes === "number" ? raw.dailyLimitMinutes : 15,
+          dailyLimitMinutes: typeof raw.dailyLimitMinutes === "number" ? raw.dailyLimitMinutes : 30,
           minutesToday: typeof payload?.minutes_today === "number" ? payload.minutes_today : 0,
           devMode: payload?.dev_mode === true,
         };
@@ -2114,6 +2164,9 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
       return;
     }
     chatRequestedRef.current = true;
+    interruptRef.current = true;
+    playerRef.current?.clear();
+    tapResolveRef.current?.();
     recorderRef.current?.finish();
   }, [chat]);
 
@@ -2139,6 +2192,50 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
    * off → 3 min → the parent's setting → off. The overlay shows the minutes
    * used today beside it.
    */
+  /** DEV_MODE: jump to session N (0-based) beat X — taken at the next beat boundary; also on window.__dev.jump for harnesses. */
+  const chatTranscriptRef = useRef(chat.transcript);
+  useEffect(() => {
+    chatTranscriptRef.current = chat.transcript;
+  }, [chat.transcript]);
+  const jumpTo = (session: number, beat: number | string) => {
+    // Stored now, honoured (DEV_MODE only) when the driver reaches its next beat boundary — the settings may still be loading when a harness asks.
+    jumpRequestRef.current = { session, beat };
+  };
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    (window as unknown as { __dev?: Record<string, unknown> }).__dev = {
+      jump: (session: number, beat: number | string) => jumpTo(session, beat),
+      setDailyLimit: (minutes: number | null) => {
+        if (!settingsRef.current.devMode) return;
+        devLimitOverrideRef.current = minutes;
+        setDevLimit(minutes);
+      },
+      /** The ✋ verification (chat-live-check): type into the open chat as the child would speak. */
+      chatSend: (text: string) => {
+        if (!settingsRef.current.devMode) return false;
+        return chat.sendText(text);
+      },
+      chatTranscript: () => chatTranscriptRef.current,
+      chatError: () => chat.error,
+      /** Lip-sync drill: four seconds of tone — loud, medium, soft, then silence — through the same player and analyser as her voice. */
+      playTestClip: () => {
+        if (!settingsRef.current.devMode) return false;
+        const player = playerRef.current;
+        if (!player) return false;
+        const rate = 24000;
+        const seconds = [0.6, 0.15, 0.04, 0];
+        const pcm = new Int16Array(rate * seconds.length);
+        for (let i = 0; i < pcm.length; i += 1) {
+          const amp = seconds[Math.floor(i / rate)] ?? 0;
+          pcm[i] = Math.round(Math.sin((2 * Math.PI * 220 * i) / rate) * amp * 0x7fff);
+        }
+        player.enqueue(arrayBufferToBase64(pcm.buffer));
+        return true;
+      },
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const cycleDailyLimit = () => {
     if (!settingsRef.current.devMode) return;
     const order: Array<number | null> = [null, 3, settingsRef.current.dailyLimitMinutes];
@@ -2171,6 +2268,9 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
       minutesToday: Math.round(minutesUsedToday()),
       dailyLimit: effectiveDailyLimit(),
       closeReason: closeReasonRef.current + (limitPendingRef.current ? " (pending — finishing the exercise)" : ""),
+      /** The ✋ connection's last error (cluster H item 12) — shown in the overlay, never swallowed. */
+      chatError: chat.error,
+      chatStatus: chat.chatting ? "connected" : "idle",
     }),
     [chat],
   );
@@ -2209,6 +2309,8 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
     muted,
     paused,
     chatting: chat.chatting,
+    /** The ✋ connection's last error (surfaced in the overlay and on the lesson root for harnesses). */
+    chatError: chat.error,
     /** The ✋ sheet's two-line live transcript. */
     chatTranscript: chat.transcript,
     start,
@@ -2234,6 +2336,8 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
     /** DEV_MODE: the limit override in force (null = off), and the control that cycles it. */
     devLimit,
     cycleDailyLimit,
+    /** DEV_MODE: jump to session N (0-based) beat X. */
+    jumpTo,
   };
 }
 

@@ -610,50 +610,9 @@ function isBoundary(beat: Beat | undefined): boolean {
   return beat.type === "SHOW_BOARD" || beat.type === "EXPLAIN" || beat.type === "HOOK" || beat.type === "TRANSITION";
 }
 
-/**
- * Exercise atomicity (docs/qa/session1-triage.md, issue 22). A staged
- * exercise and every beat that works it are ONE unit: the packer never cuts
- * a sitting inside it and never drops the break inside it. A unit runs from
- * the beat that stages the item (or any SHOW_BOARD) to the last beat of the
- * same concept that touches it — a cell of the item, a reveal into it, or a
- * beat of the same guide step (the digit puzzle's five builds each re-stage
- * their own picker, so the guide step is what holds them together).
- */
-export interface ExerciseUnit {
-  /** Inclusive indices into the list the units were computed on. */
-  start: number;
-  end: number;
-  itemId: string | null;
-}
-
-export function exerciseUnits(beats: Beat[]): ExerciseUnit[] {
-  const units: ExerciseUnit[] = [];
-  const itemOf = (beat: Beat): string | null => beat.itemId ?? ("itemId" in beat.board ? (beat.board as { itemId: string }).itemId : null);
-  for (let i = 0; i < beats.length; i += 1) {
-    const beat = beats[i]!;
-    if (beat.board.kind !== "stage_item" && beat.type !== "SHOW_BOARD") continue;
-    const itemId = beat.board.kind === "stage_item" ? itemOf(beat) : null;
-    const step = beat.guideStep ?? null;
-    let end = i;
-    for (let j = i + 1; j < beats.length; j += 1) {
-      const other = beats[j]!;
-      if (other.conceptTag !== beat.conceptTag) break;
-      if (other.board.kind === "stage_item" && itemOf(other) !== itemId) break;
-      if (other.board.kind === "clear" || other.board.kind === "title_card") break;
-      const sameItem = itemId !== null && itemOf(other) === itemId;
-      const sameStep = step !== null && other.guideStep === step;
-      if (sameItem || sameStep) end = j;
-    }
-    if (end > i) units.push({ start: i, end, itemId });
-    i = end;
-  }
-  return units;
-}
-
-/** Whether index `i` sits INSIDE a unit (after its first beat) — no cut, no break there. */
-export function insideExerciseUnit(units: ExerciseUnit[], i: number): boolean {
-  return units.some((u) => u.start < i && i <= u.end);
-}
+// Exercise atomicity lives in src/lib/exerciseUnits.ts (shared with the orchestrator and the runtime).
+export { exerciseUnits, insideExerciseUnit, type ExerciseUnit } from "@/lib/exerciseUnits";
+import { exerciseUnits, insideExerciseUnit } from "@/lib/exerciseUnits";
 
 /**
  * The first sitting opens with her COMPLETE recorded opening (segment 0,

@@ -671,7 +671,8 @@ async function runAssertions(
     const stages = indexed.filter(({ beat }) => beat.board.kind === "stage_item" && boardOf(beat).itemId === row.id);
     if (row.component_type === "DigitPickerPuzzle") {
       // Five builds: the picker questions of the exercise's unit.
-      const unit = workUnits.find((u) => stages.some((s) => s.index === u.startIndex));
+      // The unit that CONTAINS the staging beat (a guided run may open a few beats before the picker is dealt).
+      const unit = workUnits.find((u) => stages.some((s) => s.index >= u.startIndex && s.index <= u.endIndex));
       const builds = unit ? indexed.slice(unit.startIndex, unit.endIndex + 1).filter(({ beat }) => beat.type === "ASK" && beat.board.kind === "show_components") : [];
       for (let n = 1; n <= 5; n += 1) {
         const build = builds[n - 1];
@@ -790,6 +791,85 @@ async function runAssertions(
   for (const row of tutorFills) console.log(`  ${row.kind === "UNANNOUNCED" ? "✗" : "✓"} ${row.id.padEnd(22)} ${row.cell.padEnd(26)} ${row.kind.padEnd(28)} "${row.first}"`);
   assert.deepStrictEqual(unannounced, [], `tutor fills with no announcing line: ${unannounced.join("; ")}`);
   console.log(`  PASS  ${tutorFills.length} tutor fill(s): none without an announcing line before it`);
+
+  // 6i. TABLES ARE PRACTICE (the device walk, item 2). Per textbook table:
+  //     Zara demonstrates exactly the worked cell(s) — one cell of the
+  //     numeral ↔ name table, row 1 of the place-value table — and every
+  //     other blank is a question to the child. A confirmation after the
+  //     child's own answer is not a tutor cell (it only writes on a give-up).
+  console.log(`\n${"=".repeat(78)}\nTABLES: tutor-filled vs child-filled cells\n${"=".repeat(78)}`);
+  const DEMONSTRATION: Record<string, Array<{ row: number; field: string }>> = {
+    "4c2aa078": [{ row: 0, field: "numberName" }],
+    "7b58e436": [{ row: 0, field: "digit" }, { row: 0, field: "place" }, { row: 0, field: "placeValue" }, { row: 0, field: "valueRepresented" }],
+  };
+  const tableProblems: string[] = [];
+  for (const row of rows.filter((r) => r.component_type === "PlaceValueTable" && textbookIds.has(r.id))) {
+    const demo = DEMONSTRATION[row.id.slice(0, 8)] ?? [];
+    const cellKey = (c: { row: number; field: string }) => `${c.row}/${c.field}`;
+    const askedCells = new Set<string>();
+    let lastAsk: string | null = null;
+    const tutorCells = new Set<string>();
+    for (const beat of script.beats) {
+      const board = boardOf(beat);
+      if (board.itemId !== row.id) {
+        if (beat.type === "ASK") lastAsk = null;
+        continue;
+      }
+      if (beat.type === "ASK" && board.kind === "set_active_blank") {
+        lastAsk = `${board.rowIndex}/${board.field}`;
+        askedCells.add(lastAsk);
+      } else if (board.kind === "reveal_part") {
+        const key = `${board.rowIndex}/${board.field}`;
+        if (key !== lastAsk) tutorCells.add(key);
+      }
+    }
+    const demoKeys = new Set(demo.map(cellKey));
+    const blanks = blanksForItem(row.component_type, row.component_props, row.answer).map((b) => `${b.rowIndex}/${b.field}`);
+    const childOnly = blanks.filter((b) => !demoKeys.has(b));
+    const extraTutor = [...tutorCells].filter((c) => !demoKeys.has(c));
+    const missingChild = childOnly.filter((c) => !askedCells.has(c));
+    console.log(`  ${row.component_type} ${row.id.slice(0, 8)}: tutor-filled ${tutorCells.size} (${[...tutorCells].join(", ") || "none"}) · child-asked ${askedCells.size} of ${childOnly.length} practice cells · demonstration ${demo.length} cell(s)`);
+    if (extraTutor.length) tableProblems.push(`${row.id.slice(0, 8)}: Zara fills ${extraTutor.join(", ")} — the child's cells`);
+    if (missingChild.length) tableProblems.push(`${row.id.slice(0, 8)}: the child is never asked ${missingChild.join(", ")}`);
+    if (tutorCells.size !== demo.length || [...tutorCells].some((c) => !demoKeys.has(c))) tableProblems.push(`${row.id.slice(0, 8)}: tutor cells ${[...tutorCells].join(", ")} ≠ the demonstration ${[...demoKeys].join(", ")}`);
+  }
+  assert.deepStrictEqual(tableProblems, [], `tables are practice: ${tableProblems.join("; ")}`);
+  console.log(`  PASS  per table, only the demonstration is Zara's; every other cell is the child's`);
+
+  // 6j. OPEN-ENDED BUILDS (item 4): once the child has built a number from a
+  //     hand of digits, Zara never names a specific number from that hand as
+  //     an example — an example, if any, comes BEFORE the first open build.
+  const openEnded: string[] = [];
+  let hand: number[] | null = null;
+  let childBuilt = false;
+  for (const beat of script.beats) {
+    const board = beat.board as { kind: string; components?: Array<{ type: string; props: { availableDigits?: number[] } }> };
+    if (board.kind === "show_components" && board.components?.[0]?.type === "DigitPickerPuzzle") {
+      const pool = board.components[0].props.availableDigits ?? [];
+      if (hand === null || pool.join() !== hand.join()) { hand = [...pool]; childBuilt = false; }
+    }
+    if (beat.conceptTag === FRAMING_CONCEPT || hand === null) continue;
+    if (beat.type === "ASK" && parseAnswerPredicate(beat.expectedAnswer)) { childBuilt = true; continue; }
+    if (!childBuilt) continue;
+    const named = (beat.spokenText ?? "").match(/\d[\d\s]{2,}/gu) ?? [];
+    for (const raw of named) {
+      const digits = raw.replace(/\s/gu, "");
+      if (digits.length === hand.length && [...digits].map(Number).sort().join() === [...hand].sort().join()) openEnded.push(`${short(beat.id)} names ${digits} after the child built one from ${hand.join("")}`);
+    }
+    if (/උදාහරණයක්/u.test(beat.spokenText ?? "") && named.length) openEnded.push(`${short(beat.id)} offers an example after the child's build`);
+    if (beat.type === "TRANSITION" || beat.board.kind === "clear" || beat.board.kind === "title_card") { hand = null; childBuilt = false; }
+  }
+  assert.deepStrictEqual(openEnded, [], `open-ended builds: ${openEnded.join("; ")}`);
+  console.log(`  PASS  open-ended builds: no example named after the child's first build (every hand audited)`);
+
+  // 6k. THE FIVE BUILDS (item 3): the digit puzzle's unit holds five picker
+  //     questions, all inside one exercise unit — so neither the packer nor
+  //     mastery can leave it early (mastery waits for a unit's last beat).
+  const puzzleStage = indexed.find(({ beat }) => beat.board.kind === "stage_item" && boardOf(beat).itemId?.startsWith("7daf0141"));
+  const puzzleUnit = puzzleStage ? workUnits.find((u) => puzzleStage.index >= u.startIndex && puzzleStage.index <= u.endIndex) : undefined;
+  const puzzleAsks = puzzleUnit ? indexed.slice(puzzleUnit.startIndex, puzzleUnit.endIndex + 1).filter(({ beat }) => beat.type === "ASK" && beat.board.kind === "show_components").map(({ beat }) => short(beat.id)) : [];
+  assert.equal(puzzleAsks.length, 5, `the digit puzzle unit must hold five builds, holds ${puzzleAsks.length}: ${puzzleAsks.join(", ")}`);
+  console.log(`  PASS  the digit puzzle is one unit with five builds: ${puzzleAsks.join(" → ")}`);
 
   // 6g. SAME-SENTENCE EVENTS (triage cluster E): events on one sentence fire
   //     in sequence — no two abacus gestures share a timestamp — and a text

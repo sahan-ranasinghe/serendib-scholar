@@ -29,8 +29,8 @@ export interface ZaraCharacterProps {
   size?: number;
   /** Kept for callers; the export's Zara has no idle variants (motion is the animator's). */
   idleVariant?: 1 | 2 | 3;
-  /** A talking mouth to force (1 · 2 · 3); otherwise from the amplitude. */
-  mouth?: 1 | 2 | 3;
+  /** A talking mouth to force (0 closed · 1 · 2 · 3); otherwise from the amplitude. */
+  mouth?: MouthShape;
 }
 
 // --- the export's tables, verbatim --------------------------------------------
@@ -99,10 +99,18 @@ export const ZARA_STATES: Record<string, StateSpec> = {
   wave: { mouth: "big", brow: -4, armR: "waveR" },
 };
 
-/** The talking mouth for an output amplitude: 1 small o · 2 open · 3 wide ah. */
-export function mouthShapeFor(amplitude: number): 1 | 2 | 3 {
-  if (amplitude < 0.03) return 1;
-  if (amplitude < 0.15) return 2;
+/**
+ * The mouth for an output amplitude, per frame: closed on silence, then
+ * three open shapes by band — 1 small o · 2 open · 3 wide ah. The bands are
+ * RMS of the clip's own output (an AnalyserNode on the player), so the
+ * mouth follows the voice rather than a "talking" flag.
+ */
+export type MouthShape = 0 | 1 | 2 | 3;
+export const MOUTH_SILENCE = 0.012;
+export function mouthShapeFor(amplitude: number): MouthShape {
+  if (amplitude < MOUTH_SILENCE) return 0;
+  if (amplitude < 0.05) return 1;
+  if (amplitude < 0.14) return 2;
   return 3;
 }
 
@@ -112,7 +120,10 @@ export default function ZaraCharacter({ state, amplitude, side = null, portrait 
   const st = ZARA_STATES[stateKey] ?? ZARA_STATES.idle!;
   const px = size ?? 240;
   let mk = st.mouth;
-  if (mk === "talk2") mk = `talk${mouth ?? mouthShapeFor(amplitude)}`;
+  const shape: MouthShape = mouth ?? mouthShapeFor(amplitude);
+  // Talking with the sound at silence (between words, the clip's tail): the mouth closes to her smile.
+  // Her mouth follows what is audible: the talking state's shapes, and any audio through her player (a chat reply, a test clip) even in another state.
+  if (mk === "talk2" || shape > 0) mk = shape === 0 ? "smile" : `talk${shape}`;
   const smiling = mk === "smile";
   const mouthD = smiling ? F.smile : MOUTH[mk]!;
   const dark = /talk|big/.test(mk);
@@ -140,7 +151,7 @@ export default function ZaraCharacter({ state, amplitude, side = null, portrait 
   const smileEyeD = smiling || mk === "big" || mk === "half" ? F.smileEye : "M0 0";
   const teethD = mk === "big" ? "M106 128q14 3 28 0v5h-28z" : smiling && F.teeth ? F.teeth : "M0 0";
   return (
-    <div className="zara-root" data-zara-state={stateKey} data-talking={talking || undefined} style={box}>
+    <div className="zara-root" data-zara-state={stateKey} data-talking={talking || undefined} data-mouth={shape > 0 ? String(shape) : talking ? "0" : "closed"} style={box}>
       <svg viewBox={vb} width={w} height={h} style={{ display: "block", position: "relative", overflow: "visible" }} data-part="zara">
         <g transform={st.bodyT ?? "translate(0 0)"}>
           <g data-part="bun">

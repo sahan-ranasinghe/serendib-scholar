@@ -1,3 +1,6 @@
+"use client";
+
+import { useLang } from "@/lib/useLang";
 import type { ReactNode } from "react";
 import ZaraCharacter, { type ZaraState } from "@/components/ZaraCharacter";
 import { ArtSlot, LangToggle, Screen } from "../Screen";
@@ -16,6 +19,7 @@ const LABEL = "font:600 16px/1.5 var(--font-label);color:var(--color-ink-70)";
 
 /** The onboarding frame shared by the four steps: paper-white, step counter, සිං|EN, dots, Zara + bubble, title, then the step's body and CTA. */
 export function OnboardingScreen({ step, frame, children, cta, skip, lang, onLang }: { step: 1 | 2 | 3 | 4; frame?: boolean; children: ReactNode; cta: ReactNode; skip?: ReactNode; lang?: "si" | "en"; onLang?: (l: "si" | "en") => void }) {
+  useLang();
   const o = ONBOARDING_STEPS[step - 1]!;
   return (
     <Screen label={o.label} frame={frame} root="background:#FFFDF8;display:flex;flex-direction:column;padding:0 24px">
@@ -87,6 +91,7 @@ export interface PhoneStepProps {
 }
 
 export function PhoneStep({ mode, phone, onPhone, code, codeActive, onCode, sent = false, sending = false, onSend, secondsLeft = null, resend = null, onResend }: PhoneStepProps) {
+  useLang();
   const showCode = mode === "dev" || sent;
   return (
     <div style={sx("display:grid;gap:14px;margin-top:16px")} data-testid="phone-step" data-sms-mode={mode}>
@@ -136,6 +141,7 @@ export function PhoneStep({ mode, phone, onPhone, code, codeActive, onCode, sent
 // --- step 2: child profile --------------------------------------------------------------
 
 export function ProfileStep({ name, avatarIndex, grade, school, onName, onAvatar, onGrade, onSchool }: { name: string; avatarIndex: number | null; grade: 4 | 5; school?: string; onName?: (v: string) => void; onAvatar?: (i: number) => void; onGrade?: (g: 4 | 5) => void; onSchool?: (v: string) => void }) {
+  useLang();
   const gradeBox = (g: 4 | 5) => (g === grade ? "flex:1;height:52px;border:2px solid var(--color-saffron);background:var(--color-saffron-soft);border-radius:12px;display:flex;align-items:center;justify-content:center;font:700 24px/1 var(--font-display)" : "flex:1;height:52px;border:2px solid var(--color-ink-18);border-radius:12px;display:flex;align-items:center;justify-content:center;font:700 24px/1 var(--font-display)");
   return (
     <div style={sx("display:grid;gap:14px;margin-top:16px")}>
@@ -184,6 +190,7 @@ const CONSENT = [
 ];
 
 export function ConsentStep({ privacyHref = "#" }: { privacyHref?: string }) {
+  useLang();
   return (
     <div style={sx("display:grid;gap:12px;margin-top:16px")}>
       {CONSENT.map((c) => (
@@ -203,6 +210,7 @@ export function ConsentStep({ privacyHref = "#" }: { privacyHref?: string }) {
 // --- step 4: subscription -----------------------------------------------------------------
 
 export function PayStep({ method, onMethod }: { method: "card" | "bank"; onMethod?: (m: "card" | "bank") => void }) {
+  useLang();
   const box = (on: boolean) => (on ? "flex:1;height:52px;border:2px solid var(--color-teal);border-radius:12px;display:flex;align-items:center;justify-content:center;font:600 18px/1 var(--font-label)" : "flex:1;height:52px;border:2px solid var(--color-ink-18);border-radius:12px;display:flex;align-items:center;justify-content:center;font:600 18px/1 var(--font-label);color:var(--color-ink-70)");
   return (
     <div style={sx("display:grid;gap:12px;margin-top:16px")}>

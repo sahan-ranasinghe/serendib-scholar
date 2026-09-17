@@ -33,6 +33,10 @@ const CHAT_IDLE_TIMEOUT_MS = 20000;
 
 export interface LiveChatHandle {
   chatting: boolean;
+  /** Why the last chat could not open or ended early — for the debug overlay. */
+  error: string | null;
+  /** DEV_MODE / the harness: put a typed line to the model as if the child had said it. */
+  sendText: (text: string) => boolean;
   /** The live transcript's last two lines — what the child said, what Zara said — from the session's own transcriptions. */
   transcript: { child: string; zara: string };
   /** Connected seconds so far this session — feeds the audio-cost split. */
@@ -56,6 +60,7 @@ export interface LiveChatHandle {
 
 export function useLiveChat(): LiveChatHandle {
   const [chatting, setChatting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [transcript, setTranscript] = useState<{ child: string; zara: string }>({ child: "", zara: "" });
   /** Whose line is being built: a new speaker starts a fresh line. */
   const speakingRef = useRef<"child" | "zara" | null>(null);
@@ -119,8 +124,11 @@ export function useLiveChat(): LiveChatHandle {
             if (!response.ok) throw new Error("could not start a chat session");
             const { token, model } = await response.json();
 
+            let ready = false;
             const client = new GeminiLiveClient({
               onReady: async () => {
+                ready = true;
+                setError(null);
                 setTranscript({ child: "", zara: "" });
                 setChatting(true);
                 touchIdle();
@@ -177,13 +185,21 @@ export function useLiveChat(): LiveChatHandle {
                 );
                 client.sendToolResponse(responses);
               },
-              onClose: finish,
-              onError: finish,
+              onClose: (event) => {
+                // Closed before the session was ready: a connect failure, said with the socket's code and reason (the overlay and data-chat-error show it).
+                if (!ready) setError(`the live connection closed before it was ready (code ${event.code}${event.reason ? `: ${event.reason}` : ""})`);
+                finish();
+              },
+              onError: (why?: unknown) => {
+                setError(why instanceof Error ? why.message : typeof why === "string" ? why : "the live session closed with an error");
+                finish();
+              },
             });
             clientRef.current = client;
             client.connect(token, model);
           } catch (error) {
             console.error("[useLiveChat] Could not open the chat:", error);
+            setError(error instanceof Error ? error.message : String(error));
             finish();
           }
         })();
@@ -191,5 +207,12 @@ export function useLiveChat(): LiveChatHandle {
     [],
   );
 
-  return { chatting, transcript, liveSecondsRef, runChat, endChat };
+  const sendText = useCallback((text: string): boolean => {
+    const client = clientRef.current;
+    if (!client) return false;
+    client.sendTextInput(text);
+    return true;
+  }, []);
+
+  return { chatting, transcript, liveSecondsRef, runChat, endChat, error, sendText };
 }

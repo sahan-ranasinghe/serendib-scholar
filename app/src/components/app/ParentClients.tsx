@@ -1,5 +1,7 @@
 "use client";
 
+import { useLang } from "@/lib/useLang";
+import { useAppState } from "@/lib/appStore";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Screen } from "./Screen";
@@ -16,12 +18,18 @@ const PRIMARY = "height:52px;border:2px solid var(--color-teal);border-radius:12
 
 /** Daily limit (15 · 20 · 30), sound and captions — the parent's settings, saved as they change. */
 export function SettingsClient({ settings: initial, source }: { settings: ChildSettings; source: string }) {
+  useLang();
+  const { refresh } = useAppState();
   const [settings, setSettings] = useState(initial);
   const [saved, setSaved] = useState<string | null>(null);
   const save = async (patch: Partial<ChildSettings>) => {
+    // Optimistic: the choice shows at once; a failed write reverts visibly and says so.
+    const previous = settings;
     const next = { ...settings, ...patch };
     setSettings(next);
     const r = await postJson<{ ok: boolean; source: string }>("/api/parent/settings", patch);
+    if (!r.ok) setSettings(previous);
+    else void refresh();
     setSaved(r.ok ? (r.json?.source ?? source) : "error");
   };
   const choice = (on: boolean) => (on ? "flex:1;height:52px;border:2px solid var(--color-saffron);background:var(--color-saffron-soft);border-radius:12px;display:flex;align-items:center;justify-content:center;font:700 24px/1 var(--font-display)" : "flex:1;height:52px;border:2px solid var(--color-ink-18);border-radius:12px;display:flex;align-items:center;justify-content:center;font:700 24px/1 var(--font-display)");
@@ -44,7 +52,7 @@ export function SettingsClient({ settings: initial, source }: { settings: ChildS
           <SettingsRow label={t("parent.row.soundOn").replace(" ✓", "")} value={settings.sound ? "✓" : ""} onClick={() => void save({ sound: !settings.sound })} chevron={false} testId="toggle-sound" />
           <SettingsRow label={t("parent.row.captionsOn").replace(" ✓", "")} value={settings.captions ? "✓" : ""} onClick={() => void save({ captions: !settings.captions })} chevron={false} testId="toggle-captions" />
         </div>
-        {saved && <span data-testid="settings-saved" data-source={saved} style={sx("font:400 16px/1.5 var(--font-body);color:var(--color-ink-70)")}>{saved === "error" ? t("session.connectFail") : "✓"}</span>}
+        {saved && <span data-testid="settings-saved" data-source={saved} style={sx("font:400 16px/1.5 var(--font-body);color:var(--color-ink-70)")}>{saved === "error" ? t("app.saveFailed") : "✓"}</span>}
       </div>
     </Screen>
   );
@@ -58,7 +66,9 @@ export function SettingsClient({ settings: initial, source }: { settings: ChildS
  * the zone asks to create one again.
  */
 export function PinChangeClient({ pinSet, create = false }: { pinSet: boolean; create?: boolean }) {
+  useLang();
   const router = useRouter();
+  const { refresh } = useAppState();
   const [current, setCurrent] = useState("");
   const [pin, setPin] = useState("");
   const [again, setAgain] = useState("");
@@ -72,7 +82,7 @@ export function PinChangeClient({ pinSet, create = false }: { pinSet: boolean; c
     const r = await postJson<{ ok: boolean; error?: string }>("/api/parent/pin", { current, pin });
     if (r.ok) {
       setState("saved");
-      setTimeout(() => (create ? router.refresh() : router.push("/parent")), 800);
+      setTimeout(() => (create ? void refresh() : router.push("/parent")), 800);
     } else setState(r.json?.error === "wrong_pin" ? "wrong" : "error");
   };
   const reset = async () => {
@@ -81,7 +91,7 @@ export function PinChangeClient({ pinSet, create = false }: { pinSet: boolean; c
     if (r.ok) {
       setState("idle");
       setResetOpen(false);
-      router.refresh();
+      void refresh();
     } else setState(r.json?.error === "wrong_code" ? "wrong" : "error");
   };
   return (
@@ -130,6 +140,7 @@ export function PinChangeClient({ pinSet, create = false }: { pinSet: boolean; c
 
 /** "ගිණුම සහ දත්ත මකන්න" — a coral confirmation that really deletes the child's rows. */
 export function DeleteClient({ childName }: { childName: string }) {
+  useLang();
   const router = useRouter();
   const [state, setState] = useState<"idle" | "busy" | "done" | "error">("idle");
   const [result, setResult] = useState<Record<string, number | string> | null>(null);
@@ -175,13 +186,19 @@ export function DeleteClient({ childName }: { childName: string }) {
 
 /** The children this parent looks after; tapping one makes it the active child on this device. */
 export function ProfilesClient({ profiles }: { profiles: ProfilesData }) {
+  useLang();
   const router = useRouter();
+  const { refresh, clear } = useAppState();
   const [busy, setBusy] = useState<string | null>(null);
   const pick = async (id: string) => {
     setBusy(id);
     const r = await postJson("/api/parent/switch", { child_id: id });
     setBusy(null);
-    if (r.ok) router.refresh();
+    if (r.ok) {
+      clear();
+      await refresh();
+      router.push("/home");
+    }
   };
   return (
     <Screen label="Profiles" root={ROOT}>

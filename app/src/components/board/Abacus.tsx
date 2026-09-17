@@ -23,7 +23,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { HandNumber } from "./HandNumber";
 import { useTargetRef } from "./targets";
-import { BOARD, ROD_LABELS, ROD_VALUE_LABELS, SPRING_BOUNCY, FONT_LABEL } from "./tokens";
+import { FONT_SINHALA, BOARD, ROD_LABELS, ROD_VALUE_LABELS, SPRING_BOUNCY, FONT_LABEL } from "./tokens";
 import { playSound } from "./sound";
 import { hitTest, useDrag, type DragPoint } from "./useDrag";
 
@@ -238,7 +238,12 @@ export function Abacus({
               transition={{ ...SPRING_BOUNCY }}
               style={{ display: "flex", justifyContent: "center", marginTop: 4 }}
             >
-              <HandNumber text={childAnswer} size={34 * scale + 6} color={BOARD.markerGreen} budgetMs={250} />
+              {/* digits in the hand face; anything else (a name) in the Sinhala face — the hand glyphs have no Sinhala */}
+              {/^\d+$/u.test(childAnswer) ? (
+                <HandNumber text={childAnswer} size={34 * scale + 6} color={BOARD.markerGreen} budgetMs={250} />
+              ) : (
+                <span style={{ font: `700 ${Math.round(24 * scale + 4)}px/1.4 ${FONT_SINHALA}`, color: BOARD.markerGreen }}>{childAnswer}</span>
+              )}
             </motion.div>
           )}
         </AnimatePresence>

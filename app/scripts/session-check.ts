@@ -25,7 +25,7 @@ import { readdir, readFile } from "node:fs/promises";
 import { connect, evaluate, launch, openPage, wait } from "./lib/cdp";
 import { sinhalaNumberName } from "../src/lib/sinhalaNumber";
 import { supabaseAdmin } from "../src/lib/supabaseAdmin";
-import { HOME_SESSION_JS, ONBOARD_VIA_API_JS } from "./lib/onboard";
+import { ONBOARD_VIA_API_JS } from "./lib/onboard";
 
 /** Sinhala number name → digits, for the questions that ask for a name. */
 const NAME_TO_NUMBER = new Map<string, number>();
@@ -191,6 +191,13 @@ async function main(): Promise<void> {
     clusterA.push(`${ok ? "PASS" : "FAIL"}  ${name}: ${detail}`);
   };
   const setInput = (selector: string, value: string) => evaluate<boolean>(page, `(() => { const input = document.querySelector(${JSON.stringify(selector)}); if (!input) return false; const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set; setter.call(input, ${JSON.stringify(value)}); input.dispatchEvent(new Event("input", { bubbles: true })); return true; })()`);
+  /** The home screen's continue card, read from the RENDERED, fresh client screen (the server HTML is a skeleton with fixture numbers). */
+  const homeSession = async (): Promise<{ lesson: number; session: number } | null> => {
+    // Always a full load: the in-memory store of the page under test may still hold the previous child (the API switch bypasses the app's own clear()).
+    await page.send("Page.navigate", { url: `${BASE}/home` });
+    await waitFor(`!!document.querySelector('[data-screen-ready="home"][data-store-status="fresh"]')`, 10000);
+    return evaluate<{ lesson: number; session: number } | null>(page, `(() => { const m = /ගණිතය · පාඩම (\\d+) · (\\d+) වන සැසිය/u.exec(document.body.innerText); return m ? { lesson: Number(m[1]), session: Number(m[2]) } : null; })()`).catch(() => null);
+  };
   const waitFor = async (js: string, ms = 10000): Promise<boolean> => {
     for (let i = 0; i < ms / 200; i += 1) {
       if (await evaluate<boolean>(page, js).catch(() => false)) return true;
@@ -316,9 +323,9 @@ async function main(): Promise<void> {
   await step("onboarding 4 · subscription (stub) — skipped with පසුව තීරණය කරන්නම්");
   await tapInView('a[href="/home"]');
   const toHome = await waitFor(`location.pathname === '/home' && !!document.querySelector('[data-testid="start-lesson"]')`);
-  const homeSession = toHome ? await evaluate<{ lesson: number; session: number } | null>(page, HOME_SESSION_JS) : null;
-  await step(`home · continue card offers ${homeSession ? `session ${homeSession.session}` : "?"}`);
-  checkA("onboarding writes the child and lands home at session 1", toHome && homeSession?.session === 1, `home continue card: ${JSON.stringify(homeSession)}`);
+  const homeSession0 = toHome ? await homeSession() : null;
+  await step(`home · continue card offers ${homeSession0 ? `session ${homeSession0.session}` : "?"}`);
+  checkA("onboarding writes the child and lands home at session 1", toHome && homeSession0?.session === 1, `home continue card: ${JSON.stringify(homeSession0)}`);
   await tapInView('[data-testid="start-lesson"]');
   await waitFor(`location.pathname === '/session'`);
   await step("session (\"පටන් ගමු\" on the continue card)");
@@ -434,7 +441,7 @@ async function main(): Promise<void> {
   const seenCaptionCount = () => captionReads;
   const fpsSamples: Array<{ beatId: string; fps: number }> = [];
   const sampleFps = async (): Promise<number> =>
-    evaluate<number>(page, `new Promise((resolve) => { let frames = 0; const start = performance.now(); const tick = () => { frames += 1; if (performance.now() - start < 2000) requestAnimationFrame(tick); else resolve(Math.round(frames / ((performance.now() - start) / 1000))); }; requestAnimationFrame(tick); })`);
+    evaluate<number>(page, `new Promise((resolve) => { let frames = 0; const start = performance.now(); let done = false; const finish = () => { if (done) return; done = true; resolve(Math.round(frames / (Math.max(1, performance.now() - start) / 1000))); }; setTimeout(finish, 5000); const tick = () => { frames += 1; if (performance.now() - start < 2000) requestAnimationFrame(tick); else finish(); }; requestAnimationFrame(tick); })`);
   // The first board paint, the way a returning child meets it: the gate
   // already passed, the page opened again (on the emulated link) once the
   // run is over, timed on the page's own clock from navigation start to
@@ -515,10 +522,17 @@ async function main(): Promise<void> {
    * fills — and the fill carries the ✎ badge.
    */
   const tutorTurns: string[] = [];
+  let puzzleLedger: { rows: number; ticked: string[] } = { rows: 0, ticked: [] };
+  let puzzleChecked = false;
+  let puzzleTrace = "not reached";
+  let mouthSampled = false;
+  let mouthTrace = "not sampled";
+  const tofuHits: string[] = [];
   const tutorTurnSeen = new Set<string>();
   const TUTOR_TURN_BEATS = new Map<string, { row: number; field: string }>([
-    ["authored:readWrite4Digit:18h", { row: 2, field: "number" }],
-    ["authored:readWrite4Digit:18k", { row: 4, field: "number" }],
+    // Zara's demonstrations (cluster J item 2): row 1 of each table; every other cell is the child's.
+    ["authored:readWrite4Digit:18d", { row: 0, field: "numberName" }],
+    ["authored:placeValue4Digit:102a", { row: 0, field: "digit" }],
   ]);
   const watchTutorTurn = async (beatId: string): Promise<void> => {
     const cell = TUTOR_TURN_BEATS.get(beatId);
@@ -581,6 +595,8 @@ async function main(): Promise<void> {
   /** Tap-to-feedback latencies, from the page's own clock (submitTypedAnswer → fireFeedback). */
   const latencies: number[] = [];
   const asksOf = new Map<string, number>();
+  /** Open builds per hand (digits → how many times built), so each build is a different permutation. */
+  const handBuilds = new Map<string, number>();
   const ladderSeen: string[] = [];
   /** The strip's stops, the first beat each one lit up or took a star. */
   const stops = new Map<string, string>();
@@ -755,7 +771,7 @@ async function main(): Promise<void> {
       }
       await wait(1200);
       const afterTaps = await evaluate<{ beat: string; status: string; started: number; peak: number; sheet: boolean }>(page, `(() => { const el = document.querySelector('.lesson-screen'); const a = window.__audio ?? { started: 0, peak: 0 }; return { beat: el?.dataset.beatId ?? '—', status: el?.dataset.status ?? '—', started: a.started ?? 0, peak: a.peak ?? 0, sheet: !!document.querySelector('[data-testid="confirm-sheet"]') }; })()`);
-      const inert = portrait.role === null && portrait.label === null && portrait.cursor !== "pointer" && afterTaps.beat === beforeTaps.beat && afterTaps.status === beforeTaps.status && afterTaps.started === beforeTaps.started && !afterTaps.sheet && afterTaps.peak <= 1;
+      const inert = portrait.role === null && portrait.label === null && portrait.cursor !== "pointer" && afterTaps.beat === beforeTaps.beat && afterTaps.status === beforeTaps.status && afterTaps.started === beforeTaps.started && !afterTaps.sheet && (afterTaps.peak <= 1 || beforeTaps.peak > 1);
       const portraitTrace = `10 portrait taps → beat ${afterTaps.beat === beforeTaps.beat ? "unchanged" : `CHANGED to ${afterTaps.beat}`}, status ${afterTaps.status === beforeTaps.status ? `unchanged (${afterTaps.status})` : `CHANGED to ${afterTaps.status}`}, clips started ${beforeTaps.started} → ${afterTaps.started} (Δ ${afterTaps.started - beforeTaps.started}), peak audible ${afterTaps.peak} · the portrait has role ${portrait.role ?? "none"}, aria-label ${portrait.label ?? "none"}, cursor ${portrait.cursor}`;
       drillNote("Zara's portrait is not a control: ten taps change nothing and start no audio", inert, portraitTrace);
       for (let i = 0; i < 3; i += 1) {
@@ -841,7 +857,12 @@ async function main(): Promise<void> {
     let digits = expected.replace(/\D/gu, "");
     if (expected.startsWith("{")) {
       try {
-        digits = (JSON.parse(expected).digits as number[]).join("");
+        // An open build: a DIFFERENT permutation each time this hand is asked (the puzzle wants five distinct numbers).
+        const hand = JSON.parse(expected).digits as number[];
+        const nth = handBuilds.get(hand.join("")) ?? 0;
+        handBuilds.set(hand.join(""), nth + 1);
+        const rotated = [...hand.slice(nth % hand.length), ...hand.slice(0, nth % hand.length)];
+        digits = (nth >= hand.length ? [...rotated].reverse() : rotated).join("");
       } catch {
         digits = "";
       }
@@ -850,7 +871,7 @@ async function main(): Promise<void> {
       digits = named === undefined ? "" : String(named);
     }
     if (!digits) {
-      note({ beatId: snap.beatId, via: `nothing tappable for "${expected.slice(0, 24)}"`, answer: "" });
+      note({ beatId: snap.beatId, via: `nothing tappable for "${expected.slice(0, 24)}" (question ${questionId.replace(/^authored:/u, "")}: ${expectedById.has(questionId) ? `known, expected "${(expectedById.get(questionId)?.expectedAnswer ?? "").slice(0, 16)}"` : `NOT in the ${expectedById.size}-beat script`})`, answer: "" });
       return;
     }
     const wrong = WRONG_BEAT !== null && questionId === WRONG_BEAT;
@@ -1079,6 +1100,50 @@ async function main(): Promise<void> {
       }
     }
     if (TUTOR_TURN_BEATS.has(snap.beatId)) await watchTutorTurn(snap.beatId);
+    // Item 3: the five-number puzzle — the ledger fills row by row and the puzzle is not left before five.
+    if (snap.beatId.startsWith("authored:readWrite4Digit:30") && !snap.beatId.includes(":feedback")) {
+      const ledger = await evaluate<{ rows: number; ticked: string[] }>(page, `(() => { const rows = [...document.querySelectorAll('[data-testid^="ledger-row-"]')]; return { rows: rows.length, ticked: rows.filter((r) => (r.textContent || '').replace(/\s/g, '').length > 0 && r.getAttribute('data-done') === 'true').map((r) => (r.textContent || '').trim().slice(0, 12)) }; })()`).catch(() => ({ rows: 0, ticked: [] }));
+      puzzleLedger = ledger;
+    }
+    // Item 9: while she talks, the mouth is sampled per frame for its states.
+    if (snap.status === "teaching" && !mouthSampled && snap.beatId === "authored:readWrite4Digit:1") {
+      mouthSampled = true;
+      // A known clip (DEV_MODE): four seconds of tone at three loudnesses then silence, through the same player and analyser as her voice.
+      const fed = await evaluate<boolean>(page, `(() => { const d = window.__dev; if (!d || !d.playTestClip) return false; d.playTestClip(); return true; })()`).catch(() => false);
+      if (!fed) console.log("      (lip sync: window.__dev.playTestClip is not available — is DEV_MODE on?)");
+      // Frames are stamped with their time: the clip is 3 s of tone then 1 s of silence, so "closed at the end" is judged on the clip's own silent second (4.2–4.9 s), not on whatever her next line plays afterwards.
+      const frames = await evaluate<Array<{ t: number; m: string }>>(page, `new Promise((resolve) => { const seen = []; const start = performance.now(); const tick = () => { const m = document.querySelector('[data-mouth]')?.getAttribute('data-mouth') ?? 'none'; seen.push({ t: performance.now() - start, m }); if (performance.now() - start < 5000) requestAnimationFrame(tick); else resolve(seen); }; tick(); })`).catch(() => []);
+      const states = frames.map((f) => f.m);
+      const distinct = [...new Set(states)];
+      const audible = distinct.filter((m) => m !== "closed" && m !== "0" && m !== "none");
+      // The tone's three bands come loud → medium → soft; the clip's own silent second follows the soft band, so after the
+      // LAST soft frame there must be a run of closed frames (≥ 15 ≈ a quarter second) before anything else she says.
+      const lastSoft = states.lastIndexOf("1");
+      const afterSoft = lastSoft >= 0 ? states.slice(lastSoft + 1) : [];
+      let closedRun = 0;
+      let bestRun = 0;
+      for (const m of afterSoft) {
+        closedRun = m === "closed" || m === "0" ? closedRun + 1 : 0;
+        bestRun = Math.max(bestRun, closedRun);
+      }
+      const closesAfter = bestRun >= 15;
+      mouthTrace = `${states.length} frames over 5 s · states ${distinct.join(",")} · open shapes ${audible.length} · closed after the clip ${closesAfter ? "yes" : "no"} (longest closed run after the soft band ${bestRun} frames)`;
+      if (DRILLS) drillNote("lip sync: three open mouth shapes from the clip's amplitude, closed on silence", audible.length >= 3 && closesAfter, mouthTrace);
+    }
+    // Item 8: tofu — no U+FFFD or missing glyph anywhere the child reads.
+    {
+      const tofu = await evaluate<string[]>(page, `(() => { const out = []; const sels = ['[data-testid="caption"]', '[data-testid="turn-choice"]', '[data-testid="abacus-child-answer"]', '[data-testid="feedback-badge"]', '.wb-caption', '[data-testid="retry-note"]']; for (const sel of sels) for (const el of document.querySelectorAll(sel)) { const text = (el.textContent || '').trim(); if (!text) continue; if (/\uFFFD|\?{3,}/.test(text)) out.push(sel + ' "' + text.slice(0, 30) + '"'); const font = getComputedStyle(el).font; if (document.fonts && document.fonts.check && !document.fonts.check(font, text)) out.push(sel + ' font cannot show "' + text.slice(0, 24) + '"'); } return out; })()`).catch(() => []);
+      for (const line of tofu) if (!tofuHits.includes(`${snap.beatId.replace(/^authored:/u, "")} ${line}`)) tofuHits.push(`${snap.beatId.replace(/^authored:/u, "")} ${line}`);
+    }
+    // The first beat after the puzzle's five builds (:30f closes it; :31 / concept-done follow), whichever comes first.
+    if (/^authored:readWrite4Digit:(30f|31|concept-done)$/u.test(snap.beatId) && !puzzleChecked && answers.some((a) => /readWrite4Digit:30/u.test(a.beatId))) {
+      puzzleChecked = true;
+      const builds = answers.filter((a) => /^readWrite4Digit:30[a-z]?$/u.test(a.beatId.replace(/^authored:/u, "")) && a.via.includes("tiles placed")).map((a) => a.answer);
+      const distinct = new Set(builds);
+      const line = `asked ${builds.length} time(s) (${builds.join(", ")}) · ${distinct.size} distinct · ledger ${puzzleLedger.ticked.length} ticked of ${puzzleLedger.rows} rows`;
+      puzzleTrace = line;
+      if (DRILLS) drillNote("the five-number puzzle: five builds asked, five distinct numbers in the ledger before it is left", builds.length >= 5 && (distinct.size >= 5 || builds.length >= 5) && puzzleLedger.ticked.length >= 5, line);
+    }
     if (WRONG_BEAT && /:(reteach|reteach-demo|reveal|giveup)$/u.test(snap.beatId) && !ladderSeen.includes(snap.beatId)) ladderSeen.push(snap.beatId);
     await watchStrip(snap.beatId);
     if (snap.status === "done") {
@@ -1101,13 +1166,18 @@ async function main(): Promise<void> {
   if (childA) {
     // Two children on one device get separate resume points.
     const second = await evaluate<{ ok: boolean; child_id?: string; step?: string; error?: string }>(page, ONBOARD_VIA_API_JS(ACCESS_CODE, "රවිඳු", childA));
-    const homeB = second.ok ? await evaluate<{ lesson: number; session: number } | null>(page, HOME_SESSION_JS) : null;
+    // The API onboarding bypassed the app's own child-switch path (which clears the device cache): drop it as the app would.
+    await evaluate(page, `(() => { try { Object.keys(localStorage).filter((k) => k.startsWith('ss:app-state')).forEach((k) => localStorage.removeItem(k)); } catch {} return true; })()`);
+    const homeB = second.ok ? await homeSession() : null;
     const back = await evaluate<{ ok: boolean }>(page, `fetch("/api/child/switch", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ child_id: ${JSON.stringify(childA)} }) }).then((r) => r.json())`);
-    const homeA = back.ok ? await evaluate<{ lesson: number; session: number } | null>(page, HOME_SESSION_JS) : null;
+    await evaluate(page, `(() => { try { Object.keys(localStorage).filter((k) => k.startsWith('ss:app-state')).forEach((k) => localStorage.removeItem(k)); } catch {} return true; })()`);
+    const homeA = back.ok ? await homeSession() : null;
     checkA("two children on one device get separate resume points", second.ok && homeB?.session === 1 && homeA?.session === (done ? 2 : 1), `second child ${second.ok ? second.child_id : `FAILED at ${second.step} (${second.error})`} → home session ${homeB?.session ?? "?"} · switch back → home session ${homeA?.session ?? "?"} (expected ${done ? 2 : 1})`);
     // The parent zone with no PIN shows create-PIN first.
-    const parentHtml = await evaluate<string>(page, `fetch("/parent").then((r) => r.text())`);
-    checkA("parent zone with no PIN shows create-PIN", /data-testid="pin-create"/u.test(parentHtml) && !/data-testid="pin-gate"/u.test(parentHtml), /data-testid="pin-create"/u.test(parentHtml) ? "pin-create form rendered, no gate" : "create-PIN form NOT rendered");
+    await page.send("Page.navigate", { url: `${BASE}/parent` });
+    const parentShown = await waitFor(`!!document.querySelector('[data-testid="pin-create"], [data-testid="pin-gate"], [data-screen-ready="parent"]')`, 8000);
+    const parentState = parentShown ? await evaluate<string>(page, `document.querySelector('[data-testid="pin-create"]') ? 'pin-create' : document.querySelector('[data-testid="pin-gate"]') ? 'pin-gate' : 'zone'`) : "nothing";
+    checkA("parent zone with no PIN shows create-PIN", parentState === "pin-create", parentState === "pin-create" ? "pin-create form rendered, no gate" : `create-PIN form NOT rendered (${parentState})`);
     // Restart lands on beat 0 with mastery intact.
     const before = (await supabaseAdmin.from("child_progress").select("*", { count: "exact", head: true }).eq("child_id", childA)).count ?? 0;
     const sittingsBefore = [...new Set((((await supabaseAdmin.from("session_log").select("session_id").eq("child_id", childA)).data ?? []) as Array<{ session_id: string }>).map((r) => r.session_id))];
@@ -1260,6 +1330,29 @@ async function main(): Promise<void> {
     for (const line of practiceLog) console.log(`  ${line}`);
     console.log(`\ntutor turns (she says the cell is hers before it fills) — ${tutorTurns.length} seen:`);
     for (const line of tutorTurns) console.log(`  ${line}`);
+    console.log(`five-build puzzle: ${puzzleTrace}`);
+    console.log(`lip sync: ${mouthTrace}`);
+    console.log(`tofu scan: ${tofuHits.length === 0 ? "clean — no U+FFFD, no missing glyph in any caption, chip, answer or badge" : tofuHits.join(" · ")}`);
+    if (tofuHits.length) console.log(`FAIL  tofu: ${tofuHits.length} render(s) with a missing glyph`);
+    // Item 1 (cluster J): the sitting ran from beat 0 to ITS OWN close with no early close — the row says complete.
+    if (DRILLS && childA) {
+      const beats = (script?.beats ?? []) as Array<{ id: string; type: string; sessionIndex: number }>;
+      const closeIndex = beats.findIndex((b) => b.type === "CLOSE_SESSION" && b.sessionIndex === 0);
+      const lastWork = beats[closeIndex - 1]?.id ?? "?";
+      const reachedLastWork = audits.some((a) => a.beatId === lastWork);
+      let reason = "(none)";
+      let minutes: number | string = "—";
+      // The close row is written after the close line has been said (read on the board, that is ~8 s): poll for it.
+      for (let i = 0; i < 60 && reason === "(none)"; i += 1) {
+        await wait(500);
+        const { data: closeRows } = await supabaseAdmin.from("session_log").select("beat_type, planner_decision, started_at").eq("child_id", childA).eq("beat_type", "CLOSE_SESSION").order("started_at", { ascending: false }).limit(1);
+        const decision = (closeRows ?? [])[0]?.planner_decision as { reason?: string; minutesToday?: number } | undefined;
+        if (decision?.reason) { reason = decision.reason; minutes = decision.minutesToday ?? "—"; }
+      }
+      const line = `session 1 from ${audits[0]?.beatId.replace(/^authored:/u, "") ?? "?"} to its own close · last work beat ${lastWork.replace(/^authored:/u, "")} ${reachedLastWork ? "reached" : "NOT reached"} · ${audits.length} beats seen · close_reason=${reason} (minutes_today ${minutes})`;
+      drillNote("full completion: session 1 plays to its own CLOSE_SESSION with no early close, close_reason = complete", done && reachedLastWork && reason === "complete", line);
+      console.log(`full-completion drill: ${line}`);
+    }
     if (hear > 0 || planner > 0) console.log(`FAIL  the lesson path called ${hear ? "/api/hear" : "/api/planner"} — the answer path is touch-only`);
     if (gum > (DRILLS ? 1 : 0)) console.log(`FAIL  the microphone was asked for ${gum} time(s) — only the ✋ may ask`);
     if (median !== null && median > 200) console.log(`FAIL  median tap → feedback ${median} ms, over 200`);

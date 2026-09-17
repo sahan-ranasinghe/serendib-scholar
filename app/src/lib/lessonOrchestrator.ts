@@ -29,6 +29,7 @@ import type { PhraseRubric } from "@/lib/authoredScript";
 import type { AnswerMode } from "@/lib/answerMode";
 import { exampleAnswerFor } from "@/lib/answerCheck";
 import type { ChoiceSet } from "@/lib/distractors";
+import { exerciseUnits, unitAt } from "@/lib/exerciseUnits";
 export { BEAT_REGISTRY, beatSpec, estimateBeatSeconds };
 
 /** Which of the three teaching modes a beat belongs to. Null for beats outside them. */
@@ -734,9 +735,14 @@ export function advance(
   }
 
   // Mastered: skip the concept's leftover practice, landing on whatever
-  // comes next (the following concept, a break, or the session close).
+  // comes next (the following concept, a break, or the session close) —
+  // but never out of the middle of an exercise. A staged exercise's
+  // questions are owed in full (the five builds of the digit puzzle, every
+  // blank of a table): mastery waits for the unit's last beat, then jumps.
   if (next.unaidedCorrect >= UNAIDED_CORRECT_TO_ADVANCE) {
-    return { state: enterBeat(next, script, indexAfterConcept(script, next)), movedConcept: true };
+    const unit = unitAt(exerciseUnits(script.beats), state.beatIndex);
+    const insideUnit = unit !== undefined && state.beatIndex < unit.end;
+    if (!insideUnit) return { state: enterBeat(next, script, indexAfterConcept(script, next)), movedConcept: true };
   }
 
   if (decision && decision.next !== "advance") {

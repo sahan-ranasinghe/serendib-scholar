@@ -1,12 +1,13 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useLang } from "@/lib/useLang";
 import { useState } from "react";
 import { Screen } from "./Screen";
 import { ParentHeader } from "./screens/ParentZone";
 import { sx } from "./sx";
 import { t } from "@/lib/appCopy";
 import { postJson } from "@/lib/clientSession";
+import { useAppState } from "@/lib/appStore";
 
 /** Four 56 px boxes for a PIN (the onboarding OTP boxes' look). */
 export function PinBoxes({ value, onChange, active, testId }: { value: string; onChange: (v: string) => void; active: boolean; testId?: string }) {
@@ -29,7 +30,8 @@ export function PinBoxes({ value, onChange, active, testId }: { value: string; o
  * the gate shows only the label PIN and the step's next button).
  */
 export function PinGate({ pinSet }: { pinSet: boolean }) {
-  const router = useRouter();
+  useLang();
+  const { refresh } = useAppState();
   const [pin, setPin] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -39,7 +41,7 @@ export function PinGate({ pinSet }: { pinSet: boolean }) {
     const r = await postJson<{ ok: boolean; error?: string }>("/api/parent/enter", { pin });
     setBusy(false);
     if (r.ok) {
-      router.refresh();
+      await refresh();
       return;
     }
     setError(r.status === 401 && r.json?.error === "wrong_pin" ? t("parent.pinWrong") : t("session.connectFail"));
@@ -60,8 +62,8 @@ export function PinGate({ pinSet }: { pinSet: boolean }) {
         <span style={sx("font:600 16px/1.5 var(--font-label);color:var(--color-ink-70)")}>PIN</span>
         <PinBoxes value={pin} onChange={setPin} active testId="pin-boxes" />
         {error && <span style={sx("font:400 16px/1.5 var(--font-body);color:var(--color-coral-text)")} data-testid="pin-error">{error}</span>}
-        <button type="submit" disabled={pin.length !== 4 || busy} data-testid="pin-submit" style={sx("height:56px;border:0;border-radius:12px;background:var(--color-teal);color:#fff;font:700 24px/1.5 var(--font-display);box-shadow:var(--shadow-button)", { opacity: pin.length === 4 ? 1 : 0.45 })}>
-          {t("onb.next")}
+        <button type="submit" disabled={pin.length !== 4 || busy} data-busy={busy || undefined} data-testid="pin-submit" style={sx("height:56px;border:0;border-radius:12px;background:var(--color-teal);color:#fff;font:700 24px/1.5 var(--font-display);box-shadow:var(--shadow-button)", { opacity: pin.length === 4 ? 1 : 0.45 })}>
+          {busy ? t("app.checking") : t("onb.next")}
         </button>
       </form>
     </Screen>

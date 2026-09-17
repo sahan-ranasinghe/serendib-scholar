@@ -27,7 +27,9 @@ export interface ChildExtras {
   source: "columns" | "bucket" | "defaults";
 }
 
-export const DEFAULT_SETTINGS: ChildSettings = { captions: true, sound: true, dailyLimitMinutes: 15 };
+// 30 by default (the device walk, 17 Sep: a 15-minute limit closed a sitting
+// in the middle of the abacus reading). A parent can bring it down to 20 or 15.
+export const DEFAULT_SETTINGS: ChildSettings = { captions: true, sound: true, dailyLimitMinutes: 30 };
 
 const BUCKET = "child-extras";
 const MISSING_COLUMN = /column .* does not exist|schema cache/u;

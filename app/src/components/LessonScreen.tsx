@@ -28,6 +28,7 @@ import { EdgeState } from "@/components/app/EdgeState";
 import { leaveLessonDisplay } from "@/components/app/StartLessonButton";
 import { pageBuildStamp } from "@/components/app/UpdateBanner";
 import { t } from "@/lib/appCopy";
+import { useAppState } from "@/lib/appStore";
 import type { BoardContent } from "@/lib/board";
 import TeachingBoard from "@/components/TeachingBoard";
 import type { ZaraState } from "@/components/ZaraCharacter";
@@ -66,6 +67,7 @@ export default function LessonScreen() {
     restartThisSession,
     lesson,
     chatting,
+    chatError,
     requestChat,
     getDebugSnapshot,
     getOutputAmplitude,
@@ -75,6 +77,7 @@ export default function LessonScreen() {
     limitEnded,
     devLimit,
     cycleDailyLimit,
+    jumpTo,
   } = useLessonRuntime();
   const router = useRouter();
 
@@ -179,11 +182,17 @@ export default function LessonScreen() {
 
   // The sitting's end: the summary screen (real lines from the log). The
   // moment on the board is given a beat so the celebration lands first.
+  const { refresh: refreshAppState } = useAppState();
+  // Leaving the lesson by any path (⏹, ↺, the end, an error): the store re-reads the child's records, so the
+  // lesson detail and home the child lands on show this sitting (resume, not start) — never the cached copy.
+  useEffect(() => () => void refreshAppState(), [refreshAppState]);
   useEffect(() => {
     if (status !== "done" || leaving) return;
+    // The store re-reads the child's records now, so /session/summary opens on this sitting's numbers, not the cached ones.
+    void refreshAppState();
     const timer = setTimeout(() => router.replace(limitEnded ? "/session/summary?limit=1" : "/session/summary"), 900);
     return () => clearTimeout(timer);
-  }, [status, limitEnded, leaving, router]);
+  }, [status, limitEnded, leaving, router, refreshAppState]);
 
   // Entering the lesson asked for fullscreen + landscape (StartLessonButton); leaving lets go of both.
   useEffect(() => {
@@ -253,7 +262,9 @@ export default function LessonScreen() {
             setAsking(null);
             setLeaving(true);
             leaveSession();
-            router.push(`/lessons/${lesson}`);
+            // The store re-reads the records BEFORE the detail opens, so it renders "resume" from its first frame — no cached
+            // "start" flipping to "resume" as the fresh copy lands (a layout shift, and a tap that can miss).
+            void refreshAppState().finally(() => router.push(`/lessons/${lesson}`));
           },
           onCancel: () => setAsking(null),
         }
@@ -339,6 +350,8 @@ export default function LessonScreen() {
         "data-your-turn": yourTurn ? `${yourTurn.kind}:${yourTurn.surface ?? "pad"}:${yourTurn.touchable ? "touch" : "voice"}:${yourTurn.answerMode ?? "-"}${yourTurn.chips ? ":chips" : ""}${yourTurn.rodPick ? `:rod-${yourTurn.rodPick}` : ""}` : undefined,
         "data-captions": captionsOn ? "on" : "off",
         "data-error": error ?? undefined,
+        "data-chat": chatting ? "connected" : chatError ? "error" : "idle",
+        "data-chat-error": chatError ?? undefined,
       }}
     >
       {/* the designed error state — Zara, two buttons, never a stack trace (the message sits in data-error for the harness) */}
@@ -419,6 +432,30 @@ export default function LessonScreen() {
           <div data-testid="debug-minutes">
             today: {debug.minutesToday} min | limit: {debug.dailyLimit === Infinity ? "off" : `${debug.dailyLimit} min`} | close: {debug.closeReason}
           </div>
+          <div data-testid="debug-chat" style={debug.chatError ? { color: "#F87171" } : undefined}>
+            ✋ {debug.chatStatus}{debug.chatError ? ` — ${debug.chatError}` : ""}
+          </div>
+          {childSettings?.devMode && (
+            <form
+              data-testid="dev-jump"
+              onSubmit={(e) => {
+                e.preventDefault();
+                const form = e.currentTarget;
+                const session = Number((form.elements.namedItem("session") as HTMLInputElement).value) - 1;
+                const beat = Number((form.elements.namedItem("beat") as HTMLInputElement).value);
+                if (Number.isInteger(session) && session >= 0 && Number.isInteger(beat) && beat >= 0) jumpTo(session, beat);
+              }}
+              style={{ marginTop: 4, display: "flex", gap: 4, alignItems: "center" }}
+            >
+              <span>jump →</span>
+              <input name="session" type="number" min={1} defaultValue={1} aria-label="session" style={{ width: 40, font: "inherit" }} />
+              <span>/ beat</span>
+              <input name="beat" type="number" min={0} defaultValue={0} aria-label="beat" style={{ width: 48, font: "inherit" }} />
+              <button type="submit" style={{ borderRadius: 4, border: 0, background: "#A78BFA", padding: "2px 8px", fontWeight: 700, color: "#000" }}>
+                go
+              </button>
+            </form>
+          )}
           {childSettings?.devMode && (
             <button type="button" data-testid="daily-limit-toggle" data-limit={devLimit === null ? "off" : String(devLimit)} onClick={cycleDailyLimit} style={{ marginTop: 4, width: "100%", borderRadius: 4, border: 0, background: "#60A5FA", padding: "4px 0", fontWeight: 700, color: "#000" }}>
               daily limit: {devLimit === null ? "off (DEV_MODE)" : `${devLimit} min`} — tap to cycle

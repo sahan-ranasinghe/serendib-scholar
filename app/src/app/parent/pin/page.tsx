@@ -1,7 +1,6 @@
-import { PinChangeClient } from "@/components/app/ParentClients";
-import { loadChildState } from "@/lib/appData";
+import { PinRoute } from "@/components/app/routes/routes";
 
-export default async function PinPage() {
-  const state = await loadChildState();
-  return <PinChangeClient pinSet={Boolean(state.extras.parentPinHash)} />;
+/** `/parent/pin` — a static shell around the client route (see src/app/home/page.tsx). */
+export default function Page() {
+  return <PinRoute />;
 }

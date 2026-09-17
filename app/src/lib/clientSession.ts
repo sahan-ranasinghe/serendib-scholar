@@ -20,7 +20,7 @@ export async function ensureSession(accessCode?: string): Promise<{ status: "ok"
     });
     if (response.ok) {
       const json = await response.json();
-      return { status: "ok", info: { settings: json.settings ?? { captions: true, sound: true, dailyLimitMinutes: 15 }, minutesToday: json.minutes_today ?? 0 } };
+      return { status: "ok", info: { settings: json.settings ?? { captions: true, sound: true, dailyLimitMinutes: 30 }, minutesToday: json.minutes_today ?? 0 } };
     }
     if (response.status === 401) {
       const payload = await response.json().catch(() => ({}));

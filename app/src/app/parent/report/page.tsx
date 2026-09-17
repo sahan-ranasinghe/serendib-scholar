@@ -1,7 +1,11 @@
-import { WeeklyReportScreen } from "@/components/app/screens/ParentZone";
-import { loadChildState, reportData } from "@/lib/appData";
+import { ReportRoute } from "@/components/app/routes/routes";
 
-export default async function ReportPage() {
-  const state = await loadChildState();
-  return <WeeklyReportScreen data={reportData(state)} />;
+/**
+ * `/parent/report` — a static shell: the screen renders on the client from the app
+ * store (src/lib/appStore.tsx), its skeleton first if the store is cold.
+ * No server data here, so the route is prefetchable and every navigation
+ * to it is a client-side transition (cluster H).
+ */
+export default function Page() {
+  return <ReportRoute />;
 }

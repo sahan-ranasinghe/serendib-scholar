@@ -8,7 +8,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { createPortal } from "react-dom";
 import { useBoard, useTargetRect, type Target } from "./targets";
-import { RING_D, RING_FRAME_D, UNDERLINE_D } from "./strokes";
+import { RING_D, RING_FRAME_D, UNDERLINE_D, scaledPath } from "./strokes";
 
 export interface HighlightProps {
   kind: "circle" | "underline" | null;
@@ -40,8 +40,8 @@ export function Highlight({ kind, target }: HighlightProps) {
         >
           <motion.svg
             className="chalk-stroke"
-            viewBox={kind === "circle" ? "0 0 100 80" : "0 0 100 10"}
-            preserveAspectRatio="none"
+            data-testid="chalk-ring-path"
+            viewBox={kind === "circle" ? `0 0 ${rect.width + pad * 2} ${rect.height + pad * 2}` : `0 0 ${rect.width} 10`}
             width="100%"
             height="100%"
             initial={{ opacity: 1 }}
@@ -49,12 +49,11 @@ export function Highlight({ kind, target }: HighlightProps) {
             style={{ display: "block", overflow: "visible" }}
           >
             <motion.path
-              d={kind === "circle" ? (big ? RING_FRAME_D : RING_D) : UNDERLINE_D}
+              d={kind === "circle" ? scaledPath(big ? RING_FRAME_D : RING_D, rect.width + pad * 2, rect.height + pad * 2) : scaledPath(UNDERLINE_D, rect.width, 10, 100, 10)}
               fill="none"
               stroke="var(--color-saffron)"
               strokeWidth={3.5}
               strokeLinecap="round"
-              vectorEffect="non-scaling-stroke"
               initial={{ pathLength: 0 }}
               animate={{ pathLength: 1 }}
               transition={{ duration: 0.25, ease: "easeOut" }}

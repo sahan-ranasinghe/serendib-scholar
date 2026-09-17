@@ -19,6 +19,8 @@
  *    hit targets ≥ 56 px on child surfaces, never red for wrong, the
  *    *-text tokens on tinted grounds — on every staged frame.
  */
+import { sinhalaNumberName } from "../src/lib/sinhalaNumber";
+import { APP_NAME_EN, APP_NAME_SI } from "../src/lib/appCopy";
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import http from "node:http";
@@ -758,7 +760,9 @@ async function checkCarryOver(page: Cdp, gotoFrame: (id: string) => Promise<void
   // Rule e1 — the word bank: 4 correct + 2 distractors, 56 px tiles.
   await gotoFrame("readWrite:18c–18g");
   const bank = await q<{ tiles: number; h: number }>(`(() => { const tiles = [...document.querySelectorAll('[data-testid="word-tile"]')]; return { tiles: tiles.length, h: tiles[0] ? tiles[0].getBoundingClientRect().height : 0 }; })()`);
-  add("e1 word bank", "six tiles (4 + 2)", "6", bank.tiles, bank.tiles === 6);
+  // The active cell is row 4's name (5060 → two words) since Zara demonstrates only row 1: the bank is its words + 2 distractors.
+  const e1Words = sinhalaNumberName(5060).split(" ").length;
+  add("e1 word bank", `the row's words + 2 distractors (${e1Words} + 2)`, String(e1Words + 2), bank.tiles, bank.tiles === e1Words + 2);
   add("e1 word bank", "tiles 56 px", "56", Math.round(bank.h), near(bank.h, 56, 1));
 
   // Rule g — a ring on an abacus number rings the whole frame.
@@ -816,7 +820,7 @@ async function checkPwa(page: Cdp, root: Cdp): Promise<PwaRow[]> {
   const manifest = await fetch(`${BASE}/manifest.webmanifest`).then(async (r) => ({ status: r.status, json: r.ok ? ((await r.json()) as Record<string, unknown>) : null })).catch(() => ({ status: 0, json: null }));
   const m = manifest.json ?? {};
   add("manifest served", "200", manifest.status, manifest.status === 200);
-  add("manifest name / short_name", "Serendib Scholar / සෙරෙන්ඩිබ් ශිෂ්‍ය", `${m.name} / ${m.short_name}`, m.name === "Serendib Scholar" && m.short_name === "සෙරෙන්ඩිබ් ශිෂ්‍ය");
+  add("manifest name / short_name", `${APP_NAME_EN} / ${APP_NAME_SI}`, `${m.name} / ${m.short_name}`, m.name === APP_NAME_EN && m.short_name === APP_NAME_SI);
   add("manifest display / orientation", "standalone / any", `${m.display} / ${m.orientation}`, m.display === "standalone" && m.orientation === "any");
   add("manifest theme / background (tokens)", "#0F4C5C / #F7F3EA", `${m.theme_color} / ${m.background_color}`, m.theme_color === "#0F4C5C" && m.background_color === "#F7F3EA");
   const icons = (m.icons as Array<{ src: string; sizes: string; purpose?: string }> | undefined) ?? [];
@@ -955,7 +959,9 @@ async function checkPwa(page: Cdp, root: Cdp): Promise<PwaRow[]> {
     const cached = await evaluate<{ clips: number; apiKeys: string[] }>(page, `caches.keys().then(async (names) => { let clips = 0; const apiKeys = []; for (const n of names) { const c = await caches.open(n); for (const req of await c.keys()) { const u = new URL(req.url); if (/^\\/api\\/clip\\//.test(u.pathname)) clips += 1; else if (u.pathname.startsWith('/api/')) apiKeys.push(u.pathname); } } return { clips, apiKeys }; })`).catch(() => ({ clips: -1, apiKeys: ["(caches unavailable)"] }));
     add("second fetch of the same clip served by the worker", "fromServiceWorker", `ok ${again.ok} · fromServiceWorker ${served.get(firstClip) ?? "unknown"}`, again.ok && served.get(firstClip) === true);
     add("clip cache holds the played clip(s)", "≥ 1", cached.clips, cached.clips >= 1);
-    add("no other /api/* response in any cache (child data never cached)", "none", cached.apiKeys.length ? cached.apiKeys.join(" ") : "none", cached.apiKeys.length === 0);
+    // The packed lesson script is cached as content since cluster H (a sitting starts at once, offline too); the child's records live in the app store's device cache, never in the worker's.
+    const foreignApi = cached.apiKeys.filter((k) => k !== "/api/lesson-script");
+    add("no other /api/* response in any cache (child records never cached by the worker; the lesson script is content)", "none", foreignApi.length ? foreignApi.join(" ") : "none", foreignApi.length === 0);
   }
   // Stop the lesson: leave the page; the drill's child and its rows are removed again.
   await page.send("Page.navigate", { url: "about:blank" });

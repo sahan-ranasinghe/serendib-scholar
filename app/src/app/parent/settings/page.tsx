@@ -1,7 +1,6 @@
-import { SettingsClient } from "@/components/app/ParentClients";
-import { loadChildState } from "@/lib/appData";
+import { SettingsRoute } from "@/components/app/routes/routes";
 
-export default async function SettingsPage() {
-  const state = await loadChildState();
-  return <SettingsClient settings={state.extras.settings} source={state.extras.source} />;
+/** `/parent/settings` — a static shell around the client route (see src/app/home/page.tsx). */
+export default function Page() {
+  return <SettingsRoute />;
 }

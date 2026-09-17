@@ -352,7 +352,8 @@ export function reduceStage(state: StageState, event: Pick<StoryboardEvent, "pri
       const pool = Array.isArray(args.pool) ? asNumberArray(args.pool) : ctx.legacy?.kind === "digitPicker" ? ctx.legacy.pool : [];
       const itemId = ctx.legacy?.kind === "digitPicker" ? ctx.legacy.itemId : undefined;
       const same = state.base?.kind === "digitPicker" && state.base.pool.join() === pool.join();
-      if (same) return { ...state, pointer: { text: "picker" }, seq };
+      // The same hand dealt again is a NEW build (the example, or the last build, must not sit in the slots): cleared slots, the ledger kept.
+      if (same && state.base?.kind === "digitPicker") return { ...state, base: { ...state.base, built: null, builtName: null, builtBy: "child" }, pointer: { text: "picker" }, seq };
       // A hand dealt again — whatever came between — finds the ledger of what the child built from it.
       // The puzzle: the printed pool (an item), and every hand dealt while it is on the board.
       const puzzle = Boolean(itemId) || (state.base?.kind === "digitPicker" && Boolean(state.base.puzzle));

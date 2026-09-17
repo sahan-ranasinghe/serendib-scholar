@@ -1,5 +1,6 @@
 import Link from "next/link";
 import LenaCharacter from "@/components/LenaCharacter";
+import { OutfitsGrid } from "../OutfitsGrid";
 import { ArtSlot, BottomNav, Screen } from "../Screen";
 import { sx } from "../sx";
 import { t } from "@/lib/appCopy";
@@ -32,17 +33,7 @@ export function RewardsScreen({ data, frame }: { data: RewardsData; frame?: bool
         </div>
         <div style={sx("background:var(--color-paper);border:2px solid var(--color-ink-10);border-radius:20px;padding:14px;display:grid;gap:10px;box-shadow:var(--shadow-paper)")}>
           <span style={sx("font:600 20px/1.5 var(--font-label);color:var(--color-ink-70)")}>{t("rewards.outfits")}</span>
-          <div style={sx("display:grid;grid-template-columns:repeat(3,1fr);gap:10px")} data-testid="outfits">
-            {data.outfits.map((o) => (
-              <div key={o.name} style={sx(`display:grid;gap:4px;justify-items:center;border:2px solid ${o.owned ? "#E9B44C" : "rgba(27,27,27,.12)"};border-radius:14px;padding:8px 4px;background:${o.owned ? "#FBEFD3" : "transparent"};min-height:96px`)} data-owned={o.owned || undefined}>
-                <div style={sx("position:relative")}>
-                  <LenaCharacter state="idle" size={56} />
-                  <div data-art-slot={`outfit:${o.name}`} style={sx(`position:absolute;left:8px;top:-4px;width:28px;height:16px;border-radius:8px 8px 3px 3px;background:${o.hat};border:2px solid rgba(27,27,27,.25)`)} />
-                </div>
-                <span style={sx(`font:700 20px/1.4 var(--font-display);color:${o.owned ? "#1B1B1B" : "rgba(27,27,27,.5)"}`)}>{o.name}</span>
-              </div>
-            ))}
-          </div>
+          <OutfitsGrid outfits={data.outfits} masteredCount={data.earned} />
         </div>
         {data.certificate ? (
           <Link href="/rewards/certificate" data-testid="certificate-card" style={sx("background:var(--color-saffron-soft);border:2px solid var(--color-saffron);border-radius:20px;padding:14px;display:flex;align-items:center;gap:12px")}>

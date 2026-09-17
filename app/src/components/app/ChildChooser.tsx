@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useAppState } from "@/lib/appStore";
 import { sx } from "./sx";
 import { t } from "@/lib/appCopy";
 import { postJson } from "@/lib/clientSession";
@@ -14,12 +15,17 @@ import { postJson } from "@/lib/clientSession";
  */
 export function ChildChooser({ kids }: { kids: Array<{ id: string; name: string; grade: number; active: boolean }> }) {
   const router = useRouter();
+  const { clear, refresh } = useAppState();
   const [busy, setBusy] = useState<string | null>(null);
   const pick = async (id: string) => {
     setBusy(id);
     const r = await postJson("/api/child/switch", { child_id: id });
     setBusy(null);
-    if (r.ok) router.push("/home");
+    if (r.ok) {
+      clear();
+      void refresh();
+      router.push("/home");
+    }
   };
   return (
     <div data-testid="child-chooser" style={sx("display:grid;gap:8px")}>

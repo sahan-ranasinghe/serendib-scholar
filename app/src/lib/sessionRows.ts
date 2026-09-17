@@ -18,7 +18,10 @@ export async function loadScript(subject = "maths", grade = 5, lesson = 1): Prom
 export function sessionBeatIds(script: LessonScript, index: number): string[] {
   const session = script.sessions[index];
   if (!session) return [];
-  return script.beats.slice(session.firstBeat, session.lastBeat + 1).map((b) => b.id);
+  // The lesson's framing (the opening) sits before the first packed session's first beat: it belongs to session 1 here,
+  // so a child who left during the opening resumes there, not at beat 0.
+  const first = index === 0 ? 0 : session.firstBeat;
+  return script.beats.slice(first, session.lastBeat + 1).map((b) => b.id);
 }
 
 /** The close beat of one packed session, if the packer gave it one. */

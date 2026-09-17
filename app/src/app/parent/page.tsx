@@ -1,8 +1,11 @@
-import { ParentZoneScreen } from "@/components/app/screens/ParentZone";
-import { loadChildState, parentZoneData, profilesData } from "@/lib/appData";
+import { ParentRoute } from "@/components/app/routes/routes";
 
-export default async function ParentPage() {
-  const state = await loadChildState();
-  const profiles = await profilesData(state);
-  return <ParentZoneScreen data={parentZoneData(state, profiles.childrenCount)} />;
+/**
+ * `/parent` — a static shell: the screen renders on the client from the app
+ * store (src/lib/appStore.tsx), its skeleton first if the store is cold.
+ * No server data here, so the route is prefetchable and every navigation
+ * to it is a client-side transition (cluster H).
+ */
+export default function Page() {
+  return <ParentRoute />;
 }

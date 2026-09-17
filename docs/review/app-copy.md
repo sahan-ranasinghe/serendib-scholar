@@ -6,13 +6,13 @@ Every child-facing and parent-facing string outside the session, extracted from 
 - **drafted**: from the design export (Screens A/B/C) or the runtime — needs sign-off (README "Copy").
 - **missing**: the app needs the line and the export has no Sinhala for it; the screen leaves the spot empty or reuses an export string, and the English gloss says what is needed.
 
-Counts: fromScript 21 · drafted 218 · missing 16
+Counts: fromScript 21 · drafted 233 · missing 16
 
-Terms: ගණක රාමුව (never අබකසය) · සාරා · සෙරෙන්ඩිබ් ශිෂ්‍ය. `{name}`-style holes are filled at runtime.
+Terms: ගණක රාමුව (never අබකසය) · සාරා · සාරා ටීචර් (Latin "Zara Teacher" only on the splash wordmark, the manifest and the parent zone's English; "Serendib Scholar" is the company, parent-zone footer only). `{name}`-style holes are filled at runtime.
 
 | screen | key | Sinhala | English gloss | status |
 |---|---|---|---|---|
-| Splash | `brand.wordmarkSi` | සෙරෙන්ඩිබ් ශිෂ්‍ය | Serendib Scholar (Sinhala wordmark) | drafted |
+| Splash | `brand.wordmarkSi` | සාරා ටීචර් | Zara Teacher (Sinhala wordmark) | drafted |
 | all | `brand.zara` | සාරා | Zara | drafted |
 | Certificate | `brand.zaraTeacher` | සාරා ගුරුතුමිය | Teacher Zara | drafted |
 | all | `brand.abacus` | ගණක රාමුව | abacus (never අබකසය) | fromScript |
@@ -46,7 +46,19 @@ Terms: ගණක රාමුව (never අබකසය) · සාරා · ස�
 | Home | `home.badgeReason` | {concept} ඉගෙන ගත්තා | Learned {concept} | fromScript |
 | Home | `home.badgesCount` | ලාංඡන {earned} / {total} | Badges {earned} / {total} | drafted |
 | Home | `home.parent` | දෙමාපිය | Parent (lock button title) | drafted |
-| nav | `nav.home` | නිවස | Home | drafted |
+| shell | `app.updating` | යාවත්කාලීන වෙමින්… | Updating… | drafted |
+| shell | `app.offlineCached` | සම්බන්ධතාවය නැහැ — පෙර දත්ත පෙන්වනවා | No connection — showing the last copy | drafted |
+| shell | `app.noData` | දත්ත ලබා ගන්න බැහැ — සම්බන්ධතාවය බලලා ආයෙ උත්සාහ කරන්න | Could not load — check the connection and try again | drafted |
+| shell | `app.saveFailed` | සුරැකීම හරි ගියේ නැහැ — ආයෙ උත්සාහ කරන්න | Could not save — try again | drafted |
+| shell | `app.resetting` | යළි පටන් ගන්නවා… | Resetting… | drafted |
+| shell | `app.checking` | බලනවා… | Checking… | drafted |
+| Rewards | `rewards.outfitSheet.owned` | ලේනා දැන් මේක අඳිනවා! | Lena wears this now! | drafted |
+| Rewards | `rewards.outfitSheet.locked` | තවම අගුළු දාලා | Still locked | drafted |
+| Rewards | `rewards.outfitSheet.earn` | කොටස් {n}ක් ඉගෙන ගත්තම ලේනාට මේ ඇඳුම ලැබෙනවා | Master {n} concepts and Lena earns this outfit | drafted |
+| Rewards | `rewards.outfitSheet.left` | තව කොටස් {n}යි | {n} more to go | drafted |
+| Rewards | `rewards.outfitSheet.art` | චිත්‍රය ළඟදීම | Art coming soon | drafted |
+| Rewards | `rewards.outfitSheet.close` | වහන්න | Close | drafted |
+| nav | `nav.home` | මුල් පිටුව | Home | drafted |
 | nav | `nav.lessons` | පාඩම් | Lessons | fromScript |
 | nav | `nav.practice` | පුහුණුව | Practice | drafted |
 | nav | `nav.rewards` | තෑගි | Rewards | drafted |
@@ -107,6 +119,9 @@ Terms: ගණක රාමුව (never අබකසය) · සාරා · ස�
 | Certificate | `cert.body` | {grade} ශ්‍රේණියේ ගණිතය — {concept} සංකල්පය මනාව ප්‍රගුණ කළ බවයි. | has mastered the concept {concept} in Grade {grade} maths. | drafted |
 | Certificate | `cert.share` | බෙදාගන්න | Share | drafted |
 | Certificate | `cert.print` | මුද්‍රණය (A4) | Print (A4) | drafted |
+| Certificate | `cert.printing` | මුද්‍රණයට යවනවා… | Sending to print… | drafted |
+| Certificate | `cert.copied` | ලින්ක් එක පිටපත් කළා | Link copied | drafted |
+| Certificate | `cert.sharing` | බෙදාගන්නවා… | Sharing… | drafted |
 | Certificate | `cert.month.9` | සැප්තැම්බර් | September | drafted |
 | Certificate | `cert.dateFormat` | {year} {month} {day} | date: year month day | drafted |
 | Progress | `progress.title` | මගේ ප්‍රගතිය | My progress | drafted |
@@ -243,7 +258,7 @@ Terms: ගණක රාමුව (never අබකසය) · සාරා · ස�
 | Edge | `edge.mic.type` | ටයිප් කරන්නම් | I'll type | drafted |
 | Edge | `edge.error.title` | අපොයි, මගේ අතින් වැරැද්දක් | Oops, my mistake | drafted |
 | Edge | `edge.error.body` | මට පොඩි ප්‍රශ්නයක් ආවා. ආයෙත් උත්සාහ කරමුද? | I hit a small problem. Shall we try again? | drafted |
-| Edge | `edge.error.home` | නිවසට | To home | drafted |
+| Edge | `edge.error.home` | මුල් පිටුවට | To home | drafted |
 | Session | `gate.title` | ප්‍රවේශ කේතය ඇතුළත් කරන්න | Enter the access code | drafted |
 | Session | `gate.sub` | (දෙමාපියන් සඳහා — මේ උපකරණයේ එක වතාවක් පමණයි) | (for parents — once on this device) | drafted |
 | Session | `gate.enter` | ඇතුල් වෙන්න | Enter | drafted |

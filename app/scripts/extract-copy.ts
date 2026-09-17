@@ -10,7 +10,7 @@
  */
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import path from "node:path";
-import { COPY, MISSING } from "../src/lib/appCopy";
+import { COPY, MISSING, APP_NAME_EN, APP_NAME_SI, COMPANY_NAME } from "../src/lib/appCopy";
 
 async function main() {
   const authored = await readFile(path.resolve(process.cwd(), "src/data/lessons/authored/maths-5-1.json"), "utf8");
@@ -30,7 +30,7 @@ async function main() {
   lines.push("- **drafted**: from the design export (Screens A/B/C) or the runtime — needs sign-off (README \"Copy\").");
   lines.push("- **missing**: the app needs the line and the export has no Sinhala for it; the screen leaves the spot empty or reuses an export string, and the English gloss says what is needed.", "");
   lines.push(`Counts: fromScript ${counts.fromScript} · drafted ${counts.drafted} · missing ${counts.missing}`, "");
-  lines.push("Terms: ගණක රාමුව (never අබකසය) · සාරා · සෙරෙන්ඩිබ් ශිෂ්‍ය. `{name}`-style holes are filled at runtime.", "");
+  lines.push(`Terms: ගණක රාමුව (never අබකසය) · සාරා · ${APP_NAME_SI} (Latin "${APP_NAME_EN}" only on the splash wordmark, the manifest and the parent zone's English; "${COMPANY_NAME}" is the company, parent-zone footer only). \`{name}\`-style holes are filled at runtime.`, "");
   lines.push("| screen | key | Sinhala | English gloss | status |", "|---|---|---|---|---|");
   for (const r of rows) lines.push(`| ${r.screen} | \`${r.key}\` | ${r.si.replace(/\|/gu, "\\|")} | ${r.en.replace(/\|/gu, "\\|")} | ${r.status} |`);
   lines.push("", "## Missing — no Sinhala in the export (not rendered)", "", "| screen | key | needed (English) | where |", "|---|---|---|---|");

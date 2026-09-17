@@ -1,7 +1,6 @@
-import { DeleteClient } from "@/components/app/ParentClients";
-import { loadChildState } from "@/lib/appData";
+import { DeleteRoute } from "@/components/app/routes/routes";
 
-export default async function DeletePage() {
-  const state = await loadChildState();
-  return <DeleteClient childName={state.name} />;
+/** `/parent/delete` — a static shell around the client route (see src/app/home/page.tsx). */
+export default function Page() {
+  return <DeleteRoute />;
 }

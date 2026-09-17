@@ -89,6 +89,9 @@ export async function POST(request: NextRequest) {
     let written = false;
     if (!text) {
       if (!goal) return NextResponse.json({ ok: false, error: "Nothing to say." }, { status: 400 });
+      // CLIP_RENDER=off gates the WRITING model too: a goal-only line (a RETEACH written at runtime) has no cached
+      // clip to find without its words, and writing them is a model call — the runtime reads its fallback on the board.
+      if (process.env.CLIP_RENDER === "off") return NextResponse.json({ ok: false, error: "Rendering is off; the line has no clip yet." }, { status: 503 });
       text = resolveAddress(await writeLine(goal, maxSentences, apiKey), child.gender);
       written = true;
     }

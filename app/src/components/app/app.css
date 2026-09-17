@@ -39,3 +39,23 @@
     min-height: 0 !important;
   }
 }
+
+/* --- skeletons (cluster H): the real screen, greyed, in place; the nav stays live ---------- */
+.app-skeleton [data-app-screen] > :not([data-testid="bottom-nav"]) {
+  filter: grayscale(1) contrast(0.55) opacity(0.55);
+  color: transparent !important;
+  animation: app-skeleton-pulse 1.4s ease-in-out infinite;
+  pointer-events: none;
+  user-select: none;
+}
+.app-skeleton [data-app-screen] > :not([data-testid="bottom-nav"]) * {
+  color: transparent !important;
+  text-shadow: none !important;
+}
+@keyframes app-skeleton-pulse {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 0.35; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-skeleton [data-app-screen] > :not([data-testid="bottom-nav"]) { animation: none; }
+}

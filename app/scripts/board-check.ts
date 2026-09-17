@@ -60,6 +60,8 @@ async function main(): Promise<void> {
 
   const failures: string[] = [];
   const written: string[] = [];
+  /** Every ring measured, with how much of its path it drew. */
+  const ringRows: string[] = [];
 
   for (const viewport of VIEWPORTS) {
     if (ONLY && ONLY !== "gallery") break;
@@ -119,6 +121,28 @@ async function main(): Promise<void> {
           };
         })()`,
       );
+      // Every chalk ring on the board must have drawn to its full length (cluster F: the half-circle regression).
+      const rings = await evaluate<Array<{ what: string; completion: number }>>(
+        page,
+        `(() => {
+          const s = document.querySelector('[data-primitive="${primitive}"]');
+          const paths = [...s.querySelectorAll('[data-testid="chalk-ring-path"] path, [data-testid="card-ring"] path, [data-testid="highlight-circle"] path')];
+          return paths.map((path) => {
+            const cs = getComputedStyle(path);
+            const total = path.getTotalLength ? path.getTotalLength() : 0;
+            // framer-motion animates pathLength: the path is normalised to 1 and dashoffset counts down from 1 to 0.
+            const offset = parseFloat(cs.strokeDashoffset) || 0;
+            const usesUnit = path.getAttribute('pathLength') === '1';
+            const completion = usesUnit ? Math.max(0, 1 - Math.abs(offset)) : total > 0 ? Math.max(0, 1 - Math.abs(offset) / total) : 1;
+            const box = path.getBBox ? path.getBBox() : { width: 0, height: 0 };
+            return { what: (path.closest('[data-testid]')?.getAttribute('data-testid') ?? 'ring') + ' ' + Math.round(box.width) + '×' + Math.round(box.height), completion: Math.round(completion * 1000) / 1000 };
+          });
+        })()`,
+      ).catch(() => []);
+      for (const ring of rings) {
+        ringRows.push(`${viewport.name}/${primitive} ${ring.what}: ${Math.round(ring.completion * 100)} %`);
+        if (ring.completion < 0.999) failures.push(`${viewport.name}/${primitive}: ring ${ring.what} drew to ${Math.round(ring.completion * 100)} % of its length`);
+      }
       if (shot.missing > 0) failures.push(`${viewport.name}/${primitive}: the pointer is aimed at a target nothing registered`);
       if (shot.overflow) failures.push(`${viewport.name}/${primitive}: content is drawn outside the board surface`);
       const image = (await page.send("Page.captureScreenshot", {
@@ -206,6 +230,8 @@ async function main(): Promise<void> {
         const mid = await shoot("mid");
         await wait(1000);
         const rest = await shoot("rest");
+        // Ring completion (cluster F): every ringed target's ring, at rest, must be 100 % of its length.
+        for (const stroke of rest.strokes) if (/ring|circle/iu.test(stroke.label)) ringRows.push(`${viewport.name}/${probe.name} ${stroke.label}: ${Math.round(stroke.drawn * 100)} %`);
         const problems = [...judgeAtRest(probe, rest), ...judgeJump(probe, mid, rest)];
         console.log(`  ${problems.length ? "✗" : "✓"} ${probe.name.padEnd(30)} mid: ${describeMid(mid)}`);
         for (const problem of problems) {
@@ -219,6 +245,8 @@ async function main(): Promise<void> {
   // --- touch: the abacus, with a finger -----------------------------------
   if (ONLY && ONLY !== "touch") {
     console.log(`\nScreenshots (${written.length}): ${path.relative(process.cwd(), OUT_DIR)}/`);
+    console.log(`\nring completion (${ringRows.length} ring(s) measured):`);
+    for (const row of ringRows) console.log(`  ${row}`);
     if (failures.length) {
       console.log(`\nFAILURES (${failures.length}):`);
       for (const failure of failures) console.log(`  ✗ ${failure}`);
@@ -341,6 +369,8 @@ async function main(): Promise<void> {
   }
 
   console.log(`\nScreenshots (${written.length}): ${path.relative(process.cwd(), OUT_DIR)}/`);
+  console.log(`\nring completion (${ringRows.length} ring(s) measured at rest):`);
+  for (const row of ringRows) console.log(`  ${row}`);
   if (failures.length) {
     console.log(`\nFAILURES (${failures.length}):`);
     for (const failure of failures) console.log(`  ✗ ${failure}`);

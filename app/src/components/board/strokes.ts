@@ -14,3 +14,27 @@ export function ringPath(): string {
 export function underlinePath(): string {
   return UNDERLINE_D;
 }
+
+/**
+ * A hand-drawn path re-plotted into a box of `width` × `height` px, from
+ * its 100 × 80 design space. Rings used to be drawn through
+ * preserveAspectRatio="none" with a non-scaling stroke, and under that
+ * combination the dash that animates the stroke was measured in a
+ * different space from the path — the ring stopped at roughly half. In
+ * pixel space the dash and the path agree, and the stroke stays 3.5 px.
+ */
+export function scaledPath(d: string, width: number, height: number, designWidth = 100, designHeight = 80): string {
+  const sx = width / designWidth;
+  const sy = height / designHeight;
+  let axis = 0;
+  return d.replace(/[-+]?\d*\.?\d+/gu, (token) => {
+    const n = Number(token);
+    const scaled = axis % 2 === 0 ? n * sx : n * sy;
+    axis += 1;
+    return String(Math.round(scaled * 100) / 100);
+  }).replace(/[A-Za-z]/gu, (command) => {
+    axis = 0;
+    return command;
+  });
+}
+

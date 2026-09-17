@@ -18,7 +18,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { BoardContent } from "@/lib/board";
 import type { StageState } from "@/lib/choreography";
-import ZaraCharacter, { type ZaraState } from "@/components/ZaraCharacter";
+import ZaraCharacter, { mouthShapeFor, type MouthShape, type ZaraState } from "@/components/ZaraCharacter";
 import LenaCharacter, { type LenaState } from "@/components/LenaCharacter";
 import { BoardStage, type YourTurn } from "@/components/board/BoardStage";
 import { ProgressStrip, type ConceptStop } from "@/components/ProgressStrip";
@@ -208,11 +208,25 @@ export function SessionShell({ stage, yourTurn, zaraState, lenaState, pointerSid
 export function ZaraPortrait({ state, side, talking, getAmplitude, dimmed, size = 64 }: { state: ZaraState; side: "left" | "right" | null; talking: boolean; getAmplitude: () => number; dimmed: boolean; size?: number }) {
   const [amplitude, setAmplitude] = useState(0);
   useEffect(() => {
-    if (!talking) return;
-    const timer = setInterval(() => setAmplitude(getAmplitude()), AMPLITUDE_INTERVAL_MS);
-    return () => clearInterval(timer);
+    // Sampled always (cheap: one analyser read per frame); shapes change only on a band change.
+    // Per frame, from the player's analyser: the mouth follows the voice —
+    // three shapes by band, closed between words and on the clip's tail.
+    // Only a CHANGE of shape re-renders the portrait.
+    let frame = 0;
+    let lastShape: MouthShape = 0;
+    const tick = () => {
+      const a = getAmplitude();
+      const shape = mouthShapeFor(a);
+      if (shape !== lastShape) {
+        lastShape = shape;
+        setAmplitude(a);
+      }
+      frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
   }, [talking, getAmplitude]);
-  const mouth = talking ? amplitude : 0;
+  const mouth = amplitude;
   return (
     // the wrapper takes the portrait's drawn size (its 3 px paper border included) so the box sits where the export anchors it.
     // Zara is not a control: she is never tappable during a lesson.

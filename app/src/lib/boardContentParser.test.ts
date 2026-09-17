@@ -43,8 +43,9 @@ test("abacus worked steps parse to rod + bead count; non-bead steps to null", ()
   assert.equal(parseAbacusStep("සංඛ්‍යාව: 5322", 4), null, "the final-number step is not a bead placement");
 });
 
-test("the talking mouth maps amplitude to the export's three talk shapes", () => {
-  assert.equal(mouthShapeFor(0.0), 1, "silence → talk1 (small o)");
-  assert.equal(mouthShapeFor(0.06), 2, "quiet → talk2 (open)");
+test("the talking mouth maps amplitude to closed + the export's three talk shapes", () => {
+  assert.equal(mouthShapeFor(0.0), 0, "silence → closed (17 Sep: the mouth no longer hangs open between words)");
+  assert.equal(mouthShapeFor(0.03), 1, "faint → talk1 (small o)");
+  assert.equal(mouthShapeFor(0.08), 2, "quiet → talk2 (open)");
   assert.equal(mouthShapeFor(0.3), 3, "loud → talk3 (wide ah)");
 });

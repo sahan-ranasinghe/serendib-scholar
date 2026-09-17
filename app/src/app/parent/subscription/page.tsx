@@ -1,7 +1,11 @@
-import { SubscriptionScreen } from "@/components/app/screens/ParentZone";
-import { loadChildState, profilesData } from "@/lib/appData";
+import { SubscriptionRoute } from "@/components/app/routes/routes";
 
-export default async function SubscriptionPage() {
-  const state = await loadChildState();
-  return <SubscriptionScreen profiles={await profilesData(state)} />;
+/**
+ * `/parent/subscription` — a static shell: the screen renders on the client from the app
+ * store (src/lib/appStore.tsx), its skeleton first if the store is cold.
+ * No server data here, so the route is prefetchable and every navigation
+ * to it is a client-side transition (cluster H).
+ */
+export default function Page() {
+  return <SubscriptionRoute />;
 }

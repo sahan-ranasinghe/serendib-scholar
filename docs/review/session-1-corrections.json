@@ -1529,5 +1529,341 @@
         "why": "Her turn at row 6's place value in the MODE 2 alternation: the short frame announces it, the pointer rests on the cell, the fill carries the ✎."
       }
     }
+  },
+  "practiceRatio": {
+    "$comment": "Practice-ratio round (the device walk, 17 Sep 2026 — items 2 and 4). Tables are practice: Zara demonstrates ONE cell of the numeral ↔ name table (row 1's name) and row 1 of the place-value table, and the child fills every other cell — the MODE 2 alternation stays only for the abacus reading, where taking turns is the point. The dry run asserts per table that the only tutor-filled cells are the demonstration's. And the worked example of the digit puzzle (\"we could make 1364\") moves BEFORE the child's first open build: after a child has built a number Zara never names a specific one, she refers to \"ඔයා හදපු සංඛ්‍යාව\".",
+    "rewrite": {
+      "authored:readWrite4Digit:18d": {
+        "type": "EXPLAIN",
+        "pause": "—",
+        "text": "දැන් බලන්න {address}, මම මේක කරලා පෙන්නන්නම්. ඔයා බලාගෙන ඉන්න. {number:6528} — ඒ නම අපි වගුවේ ලියමු.",
+        "board": {
+          "kind": "reveal",
+          "itemId": "4c2aa078-355a-4ba6-a32f-a2ed2d261a99",
+          "rowIndex": 0,
+          "field": "numberName",
+          "value": "හයදහස් පන්සිය විසි අට"
+        },
+        "dropExpectedAnswer": true,
+        "why": "Item 2 (device walk): tables are practice. Zara demonstrates the FIRST cell only — row 1's name — announced with the long frame; every other cell is the child's."
+      },
+      "authored:readWrite4Digit:18e": {
+        "remove": true,
+        "why": "Its confirmation is now the demonstration itself (:18d writes the name as she says it)."
+      },
+      "authored:readWrite4Digit:18h": {
+        "type": "ASK",
+        "pause": "ASK",
+        "text": "දැන් ඔයාගේ වාරයයි {address}. මේ හිස්තැනට එන්නේ මොකක්ද කියන්න බලන්න.",
+        "board": {
+          "kind": "blank",
+          "itemId": "4c2aa078-355a-4ba6-a32f-a2ed2d261a99",
+          "rowIndex": 2,
+          "field": "number"
+        },
+        "expectedAnswer": "3100",
+        "why": "Item 2: row 3 (තුන්දහස් එකසියය → 3100) is the child's now, on the pad."
+      },
+      "authored:readWrite4Digit:18k": {
+        "type": "ASK",
+        "pause": "ASK",
+        "text": "දැන් ඔයාගේ වාරයයි {address}. මේ හිස්තැනට එන්නේ මොකක්ද කියන්න බලන්න.",
+        "board": {
+          "kind": "blank",
+          "itemId": "4c2aa078-355a-4ba6-a32f-a2ed2d261a99",
+          "rowIndex": 4,
+          "field": "number"
+        },
+        "expectedAnswer": "1008",
+        "why": "Item 2: row 5 (එක්දහස් අට → 1008) is the child's now."
+      },
+      "authored:placeValue4Digit:103c": {
+        "type": "ASK",
+        "pause": "ASK",
+        "text": "දැන් ඔයාගේ වාරයයි {address}. මේ හිස්තැනට එන්නේ මොකක්ද කියන්න බලන්න.",
+        "board": {
+          "kind": "blank",
+          "itemId": "7b58e436-334f-452c-bc2a-81f234d03268",
+          "rowIndex": 1,
+          "field": "placeValue"
+        },
+        "expectedAnswer": "1000",
+        "guideStep": "guide step 7 of 7: the closing exercise — the textbook's place-value table, worked as one exercise (demonstration row, then MODE 2 alternation)",
+        "why": "Item 2: row 2's placeValue is the child's — rows 2–6 are all theirs; Zara demonstrated row 1. Typed on the docked pad."
+      },
+      "authored:placeValue4Digit:105": {
+        "type": "ASK",
+        "pause": "ASK",
+        "text": "දැන් ඔයාගේ වාරයයි {address}. මේ හිස්තැනට එන්නේ මොකක්ද කියන්න බලන්න.",
+        "board": {
+          "kind": "blank",
+          "itemId": "7b58e436-334f-452c-bc2a-81f234d03268",
+          "rowIndex": 2,
+          "field": "place"
+        },
+        "expectedAnswer": "එකස්ථානය",
+        "guideStep": "guide step 7 of 7: the closing exercise — the textbook's place-value table, worked as one exercise (demonstration row, then MODE 2 alternation)",
+        "why": "Item 2: row 3's place is the child's — rows 2–6 are all theirs; Zara demonstrated row 1. A place name is picked from the place-name tiles."
+      },
+      "authored:placeValue4Digit:106": {
+        "type": "ASK",
+        "pause": "ASK",
+        "text": "දැන් ඔයාගේ වාරයයි {address}. මේ හිස්තැනට එන්නේ මොකක්ද කියන්න බලන්න.",
+        "board": {
+          "kind": "blank",
+          "itemId": "7b58e436-334f-452c-bc2a-81f234d03268",
+          "rowIndex": 2,
+          "field": "valueRepresented"
+        },
+        "expectedAnswer": "4",
+        "guideStep": "guide step 7 of 7: the closing exercise — the textbook's place-value table, worked as one exercise (demonstration row, then MODE 2 alternation)",
+        "why": "Item 2: row 3's valueRepresented is the child's — rows 2–6 are all theirs; Zara demonstrated row 1. Typed on the docked pad."
+      },
+      "authored:placeValue4Digit:108a": {
+        "type": "ASK",
+        "pause": "ASK",
+        "text": "දැන් ඔයාගේ වාරයයි {address}. මේ හිස්තැනට එන්නේ මොකක්ද කියන්න බලන්න.",
+        "board": {
+          "kind": "blank",
+          "itemId": "7b58e436-334f-452c-bc2a-81f234d03268",
+          "rowIndex": 3,
+          "field": "place"
+        },
+        "expectedAnswer": "සියයස්ථානය",
+        "guideStep": "guide step 7 of 7: the closing exercise — the textbook's place-value table, worked as one exercise (demonstration row, then MODE 2 alternation)",
+        "why": "Item 2: row 4's place is the child's — rows 2–6 are all theirs; Zara demonstrated row 1. A place name is picked from the place-name tiles."
+      },
+      "authored:placeValue4Digit:108d": {
+        "type": "ASK",
+        "pause": "ASK",
+        "text": "දැන් ඔයාගේ වාරයයි {address}. මේ හිස්තැනට එන්නේ මොකක්ද කියන්න බලන්න.",
+        "board": {
+          "kind": "blank",
+          "itemId": "7b58e436-334f-452c-bc2a-81f234d03268",
+          "rowIndex": 4,
+          "field": "digit"
+        },
+        "expectedAnswer": "0",
+        "guideStep": "guide step 7 of 7: the closing exercise — the textbook's place-value table, worked as one exercise (demonstration row, then MODE 2 alternation)",
+        "why": "Item 2: row 5's digit is the child's — rows 2–6 are all theirs; Zara demonstrated row 1. Typed on the docked pad."
+      },
+      "authored:placeValue4Digit:108g": {
+        "type": "ASK",
+        "pause": "ASK",
+        "text": "දැන් ඔයාගේ වාරයයි {address}. මේ හිස්තැනට එන්නේ මොකක්ද කියන්න බලන්න.",
+        "board": {
+          "kind": "blank",
+          "itemId": "7b58e436-334f-452c-bc2a-81f234d03268",
+          "rowIndex": 4,
+          "field": "valueRepresented"
+        },
+        "expectedAnswer": "0",
+        "guideStep": "guide step 7 of 7: the closing exercise — the textbook's place-value table, worked as one exercise (demonstration row, then MODE 2 alternation)",
+        "why": "Item 2: row 5's valueRepresented is the child's — rows 2–6 are all theirs; Zara demonstrated row 1. Typed on the docked pad."
+      },
+      "authored:placeValue4Digit:108j": {
+        "type": "ASK",
+        "pause": "ASK",
+        "text": "දැන් ඔයාගේ වාරයයි {address}. මේ හිස්තැනට එන්නේ මොකක්ද කියන්න බලන්න.",
+        "board": {
+          "kind": "blank",
+          "itemId": "7b58e436-334f-452c-bc2a-81f234d03268",
+          "rowIndex": 5,
+          "field": "placeValue"
+        },
+        "expectedAnswer": "100",
+        "guideStep": "guide step 7 of 7: the closing exercise — the textbook's place-value table, worked as one exercise (demonstration row, then MODE 2 alternation)",
+        "why": "Item 2: row 6's placeValue is the child's — rows 2–6 are all theirs; Zara demonstrated row 1. Typed on the docked pad."
+      },
+      "authored:readWrite4Digit:22": {
+        "board": {
+          "kind": "digitPicker",
+          "digits": [
+            1,
+            3,
+            6,
+            4
+          ],
+          "instructions": "මේ ඉලක්කම් වලින් ඉලක්කම් හතරේ සංඛ්‍යාවක් හදන්න."
+        },
+        "why": "The example (:23) is built on the picker before this first open build; the child's build must start on cleared slots, so the ASK re-sets the picker — as :30a does."
+      }
+    },
+    "insert": [
+      {
+        "before": "authored:readWrite4Digit:22",
+        "beat": {
+          "id": "authored:readWrite4Digit:23",
+          "type": "EXPLAIN",
+          "pause": "—",
+          "spokenText": "උදාහරණයක් විදිහට අපිට {number:1364} හදන්නත් පුළුවන්.",
+          "board": {
+            "kind": "text",
+            "text": "1, 3, 6, 4   →   1 364"
+          },
+          "why": "Issue 4 (device walk): the example named a specific number AFTER the child had built one — the same class as the earlier 1364 bug. An example, if any, comes before the first open build; from then on she refers only to what the child made."
+        }
+      },
+      {
+        "after": "authored:readWrite4Digit:18h",
+        "beat": {
+          "id": "authored:readWrite4Digit:18h2",
+          "type": "EXPLAIN",
+          "pause": "—",
+          "spokenText": "{number:3100} — ඉලක්කම් වලින් ලියන්නේ මෙහෙමයි.",
+          "board": {
+            "kind": "reveal",
+            "itemId": "4c2aa078-355a-4ba6-a32f-a2ed2d261a99",
+            "rowIndex": 2,
+            "field": "number",
+            "value": "3100"
+          },
+          "why": "Neutral confirmation (the former tutor line), no verdict."
+        }
+      },
+      {
+        "after": "authored:readWrite4Digit:18k",
+        "beat": {
+          "id": "authored:readWrite4Digit:18k2",
+          "type": "EXPLAIN",
+          "pause": "—",
+          "spokenText": "{number:1008} — ඉලක්කම් වලින් ලියන්නේ මෙහෙමයි.",
+          "board": {
+            "kind": "reveal",
+            "itemId": "4c2aa078-355a-4ba6-a32f-a2ed2d261a99",
+            "rowIndex": 4,
+            "field": "number",
+            "value": "1008"
+          },
+          "why": "Neutral confirmation, no verdict."
+        }
+      },
+      {
+        "after": "authored:placeValue4Digit:103c",
+        "beat": {
+          "id": "authored:placeValue4Digit:103c2",
+          "type": "EXPLAIN",
+          "pause": "—",
+          "spokenText": "ඒක {number:1000}යි.",
+          "board": {
+            "kind": "reveal",
+            "itemId": "7b58e436-334f-452c-bc2a-81f234d03268",
+            "rowIndex": 1,
+            "field": "placeValue",
+            "value": "1000"
+          },
+          "guideStep": "guide step 7 of 7: the closing exercise — the textbook's place-value table, worked as one exercise (demonstration row, then MODE 2 alternation)",
+          "why": "Neutral confirmation: the value is written into row 2's placeValue, no verdict."
+        }
+      },
+      {
+        "after": "authored:placeValue4Digit:105",
+        "beat": {
+          "id": "authored:placeValue4Digit:105c",
+          "type": "EXPLAIN",
+          "pause": "—",
+          "spokenText": "ඒ {number:4} තියෙන්නේ එකස්ථානයේ.",
+          "board": {
+            "kind": "reveal",
+            "itemId": "7b58e436-334f-452c-bc2a-81f234d03268",
+            "rowIndex": 2,
+            "field": "place",
+            "value": "එකස්ථානය"
+          },
+          "guideStep": "guide step 7 of 7: the closing exercise — the textbook's place-value table, worked as one exercise (demonstration row, then MODE 2 alternation)",
+          "why": "Neutral confirmation: the value is written into row 3's place, no verdict."
+        }
+      },
+      {
+        "after": "authored:placeValue4Digit:106",
+        "beat": {
+          "id": "authored:placeValue4Digit:106a",
+          "type": "EXPLAIN",
+          "pause": "—",
+          "spokenText": "ඒක {number:4}යි.",
+          "board": {
+            "kind": "reveal",
+            "itemId": "7b58e436-334f-452c-bc2a-81f234d03268",
+            "rowIndex": 2,
+            "field": "valueRepresented",
+            "value": "4"
+          },
+          "guideStep": "guide step 7 of 7: the closing exercise — the textbook's place-value table, worked as one exercise (demonstration row, then MODE 2 alternation)",
+          "why": "Neutral confirmation: the value is written into row 3's valueRepresented, no verdict."
+        }
+      },
+      {
+        "after": "authored:placeValue4Digit:108a",
+        "beat": {
+          "id": "authored:placeValue4Digit:108a2",
+          "type": "EXPLAIN",
+          "pause": "—",
+          "spokenText": "ඒ {number:7} තියෙන්නේ සියයස්ථානයේ.",
+          "board": {
+            "kind": "reveal",
+            "itemId": "7b58e436-334f-452c-bc2a-81f234d03268",
+            "rowIndex": 3,
+            "field": "place",
+            "value": "සියයස්ථානය"
+          },
+          "guideStep": "guide step 7 of 7: the closing exercise — the textbook's place-value table, worked as one exercise (demonstration row, then MODE 2 alternation)",
+          "why": "Neutral confirmation: the value is written into row 4's place, no verdict."
+        }
+      },
+      {
+        "after": "authored:placeValue4Digit:108d",
+        "beat": {
+          "id": "authored:placeValue4Digit:108d2",
+          "type": "EXPLAIN",
+          "pause": "—",
+          "spokenText": "ඒක {number:0}යි.",
+          "board": {
+            "kind": "reveal",
+            "itemId": "7b58e436-334f-452c-bc2a-81f234d03268",
+            "rowIndex": 4,
+            "field": "digit",
+            "value": "0"
+          },
+          "guideStep": "guide step 7 of 7: the closing exercise — the textbook's place-value table, worked as one exercise (demonstration row, then MODE 2 alternation)",
+          "why": "Neutral confirmation: the value is written into row 5's digit, no verdict."
+        }
+      },
+      {
+        "after": "authored:placeValue4Digit:108g",
+        "beat": {
+          "id": "authored:placeValue4Digit:108g2",
+          "type": "EXPLAIN",
+          "pause": "—",
+          "spokenText": "ඒක {number:0}යි.",
+          "board": {
+            "kind": "reveal",
+            "itemId": "7b58e436-334f-452c-bc2a-81f234d03268",
+            "rowIndex": 4,
+            "field": "valueRepresented",
+            "value": "0"
+          },
+          "guideStep": "guide step 7 of 7: the closing exercise — the textbook's place-value table, worked as one exercise (demonstration row, then MODE 2 alternation)",
+          "why": "Neutral confirmation: the value is written into row 5's valueRepresented, no verdict."
+        }
+      },
+      {
+        "after": "authored:placeValue4Digit:108j",
+        "beat": {
+          "id": "authored:placeValue4Digit:108j2",
+          "type": "EXPLAIN",
+          "pause": "—",
+          "spokenText": "ඒක {number:100}යි.",
+          "board": {
+            "kind": "reveal",
+            "itemId": "7b58e436-334f-452c-bc2a-81f234d03268",
+            "rowIndex": 5,
+            "field": "placeValue",
+            "value": "100"
+          },
+          "guideStep": "guide step 7 of 7: the closing exercise — the textbook's place-value table, worked as one exercise (demonstration row, then MODE 2 alternation)",
+          "why": "Neutral confirmation: the value is written into row 6's placeValue, no verdict."
+        }
+      }
+    ]
   }
 }

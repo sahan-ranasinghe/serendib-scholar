@@ -44,7 +44,7 @@ export function SessionActions({ lesson, session, label }: { lesson: number; /**
       </PrimaryButton>
       <div style={sx("display:flex;gap:10px")}>
         <SecondaryButton height={48} onClick={() => void restart()} testId={confirm ? "restart-confirm" : "restart-session"} style={{ flex: 1, opacity: busy ? 0.6 : 1, borderColor: confirm ? "var(--color-coral)" : undefined, color: confirm ? "var(--color-coral-text)" : undefined }}>
-          {t("detail.restart")}
+          {busy ? t("app.resetting") : t("detail.restart")}
         </SecondaryButton>
         {confirm && (
           <SecondaryButton height={48} onClick={() => setConfirm(false)} testId="restart-cancel" style={{ flex: 1 }} font="700 20px/1.5 var(--font-display)">

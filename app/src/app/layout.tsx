@@ -1,11 +1,14 @@
 import type { Metadata, Viewport } from "next";
 import { Pwa } from "@/components/app/Pwa";
 import { UpdateBanner } from "@/components/app/UpdateBanner";
+import { AppStateProvider } from "@/lib/appStore";
+import { AppStateBadge } from "@/components/app/AppStateBadge";
 import { buildInfo } from "@/lib/buildInfo";
 import { Abhaya_Libre, Gemunu_Libre, Inter, Yaldevi } from "next/font/google";
 import "./tokens.css";
 import "./fonts.css";
 import "./globals.css";
+import { APP_NAME_EN, APP_NAME_SI } from "@/lib/appCopy";
 
 // The design's four families (tokens.css → --font-display / body / label /
 // latin), self-hosted by next/font. Inter is for parent-zone English only.
@@ -15,10 +18,10 @@ const yaldevi = Yaldevi({ variable: "--font-yaldevi", weight: ["400", "600"], su
 const inter = Inter({ variable: "--font-inter", weight: ["400", "600", "700"], subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Serendib Scholar",
+  title: APP_NAME_EN,
   description: "ඔයාගේම ගුරුතුමිය, ඔයාගේ ෆෝන් එකේ",
-  applicationName: "Serendib Scholar",
-  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "සෙරෙන්ඩිබ් ශිෂ්‍ය" },
+  applicationName: APP_NAME_EN,
+  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: APP_NAME_SI },
   icons: { icon: "/icons/icon-192.png", apple: "/icons/icon-192.png" },
 };
 
@@ -45,7 +48,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col">
         <Pwa sha={build.sha} />
         <UpdateBanner />
-        {children}
+        <AppStateProvider>
+          <AppStateBadge />
+          {children}
+        </AppStateProvider>
       </body>
     </html>
   );

@@ -7,6 +7,7 @@ import { AccessCodeGate } from "./AccessCodeGate";
 import { sx } from "./sx";
 import { AVATARS, t } from "@/lib/appCopy";
 import { ensureSession, postJson } from "@/lib/clientSession";
+import { useAppState } from "@/lib/appStore";
 
 /** After a send, the one resend is offered once this many seconds later — and never again. */
 const RESEND_AFTER_S = 30;
@@ -30,6 +31,7 @@ function useHydrated(): boolean {
  * Step 2 writes the children row; step 3 stamps consent.
  */
 export function OnboardingClient({ step, stub, smsMode = "dev", siblingOf }: { step: 1 | 2 | 3 | 4; stub: boolean; smsMode?: "dev" | "provider"; siblingOf?: string | null }) {
+  const { clear: clearAppState } = useAppState();
   const router = useRouter();
   const hydrated = useHydrated();
   const [gate, setGate] = useState<{ wrong: boolean } | null>(null);
@@ -102,6 +104,8 @@ export function OnboardingClient({ step, stub, smsMode = "dev", siblingOf }: { s
     } else if (step === 2) {
       const r = await postJson<{ ok: boolean; child_id: string }>("/api/onboarding/profile", { name, grade, avatar: avatar === null ? null : AVATARS[avatar], school, sibling_of: siblingOf ?? undefined });
       if (!r.ok) return fail(r);
+      // A new child on this device: whatever the store cached belonged to someone else.
+      clearAppState();
       router.push(siblingOf ? "/parent/profiles" : "/onboarding/3");
     } else if (step === 3) {
       const r = await postJson("/api/onboarding/consent", {});

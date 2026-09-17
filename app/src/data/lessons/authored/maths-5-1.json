@@ -694,32 +694,9 @@
     {
       "id": "authored:readWrite4Digit:18d",
       "conceptTag": "readWrite4Digit",
-      "type": "ASK",
-      "sourceText": "මුල්ම පේළියේ තියෙන සංඛ්‍යාව බලලා ඒකේ නම කියන්න බලන්න.",
-      "spokenText": "මුල්ම පේළියේ තියෙන සංඛ්‍යාව බලලා ඒකේ නම කියන්න බලන්න.",
-      "numbers": [],
-      "humanEdited": true,
-      "pauseType": "ASK",
-      "boardIntent": {
-        "kind": "blank",
-        "itemId": "4c2aa078-355a-4ba6-a32f-a2ed2d261a99",
-        "rowIndex": 0,
-        "field": "numberName"
-      },
-      "expectedAnswer": "හයදහස් පන්සිය විසි අට",
-      "guideStep": "textbook step 2: numeral ↔ number-name table (guide activity 1 step 2)",
-      "maxSimilarity": {
-        "jaccard": 0.12195121951219512,
-        "cosine": null,
-        "closest": "දීලා තියෙන සංඛ්‍යාව බලන්න හොඳට."
-      }
-    },
-    {
-      "id": "authored:readWrite4Digit:18e",
-      "conceptTag": "readWrite4Digit",
       "type": "EXPLAIN",
-      "sourceText": "{number:6528} — ඒ නම අපි වගුවේ ලියමු.",
-      "spokenText": "හයදහස් පන්සිය විසි අට — ඒ නම අපි වගුවේ ලියමු.",
+      "sourceText": "දැන් බලන්න {address}, මම මේක කරලා පෙන්නන්නම්. ඔයා බලාගෙන ඉන්න. {number:6528} — ඒ නම අපි වගුවේ ලියමු.",
+      "spokenText": "දැන් බලන්න {address}, මම මේක කරලා පෙන්නන්නම්. ඔයා බලාගෙන ඉන්න. හයදහස් පන්සිය විසි අට — ඒ නම අපි වගුවේ ලියමු.",
       "numbers": [
         6528
       ],
@@ -734,9 +711,9 @@
       },
       "guideStep": "textbook step 2: numeral ↔ number-name table (guide activity 1 step 2)",
       "maxSimilarity": {
-        "jaccard": 0.12903225806451613,
+        "jaccard": 0.25,
         "cosine": null,
-        "closest": "එහෙමනම් අපි ලියමු..."
+        "closest": "නිරූපණය කරලා පෙන්නන්න."
       }
     },
     {
@@ -792,9 +769,32 @@
     {
       "id": "authored:readWrite4Digit:18h",
       "conceptTag": "readWrite4Digit",
+      "type": "ASK",
+      "sourceText": "දැන් ඔයාගේ වාරයයි {address}. මේ හිස්තැනට එන්නේ මොකක්ද කියන්න බලන්න.",
+      "spokenText": "දැන් ඔයාගේ වාරයයි {address}. මේ හිස්තැනට එන්නේ මොකක්ද කියන්න බලන්න.",
+      "numbers": [],
+      "humanEdited": true,
+      "pauseType": "ASK",
+      "boardIntent": {
+        "kind": "blank",
+        "itemId": "4c2aa078-355a-4ba6-a32f-a2ed2d261a99",
+        "rowIndex": 2,
+        "field": "number"
+      },
+      "guideStep": "textbook step 2: numeral ↔ number-name table (guide activity 1 step 2)",
+      "maxSimilarity": {
+        "jaccard": 0,
+        "cosine": null,
+        "closest": ""
+      },
+      "expectedAnswer": "3100"
+    },
+    {
+      "id": "authored:readWrite4Digit:18h2",
+      "conceptTag": "readWrite4Digit",
       "type": "EXPLAIN",
-      "sourceText": "දැන් බලන්න {address}, මම මේක කරලා පෙන්නන්නම්. ඔයා බලාගෙන ඉන්න. {number:3100} — ඉලක්කම් වලින් ලියන්නේ මෙහෙමයි.",
-      "spokenText": "දැන් බලන්න {address}, මම මේක කරලා පෙන්නන්නම්. ඔයා බලාගෙන ඉන්න. තුන්දහස් එකසියය — ඉලක්කම් වලින් ලියන්නේ මෙහෙමයි.",
+      "sourceText": "{number:3100} — ඉලක්කම් වලින් ලියන්නේ මෙහෙමයි.",
+      "spokenText": "තුන්දහස් එකසියය — ඉලක්කම් වලින් ලියන්නේ මෙහෙමයි.",
       "numbers": [
         3100
       ],
@@ -809,9 +809,9 @@
       },
       "guideStep": "textbook step 2: numeral ↔ number-name table (guide activity 1 step 2)",
       "maxSimilarity": {
-        "jaccard": 0.25,
+        "jaccard": 0.14814814814814814,
         "cosine": null,
-        "closest": "නිරූපණය කරලා පෙන්නන්න."
+        "closest": "තව ඉලක්කම්..."
       }
     },
     {
@@ -865,9 +865,32 @@
     {
       "id": "authored:readWrite4Digit:18k",
       "conceptTag": "readWrite4Digit",
+      "type": "ASK",
+      "sourceText": "දැන් ඔයාගේ වාරයයි {address}. මේ හිස්තැනට එන්නේ මොකක්ද කියන්න බලන්න.",
+      "spokenText": "දැන් ඔයාගේ වාරයයි {address}. මේ හිස්තැනට එන්නේ මොකක්ද කියන්න බලන්න.",
+      "numbers": [],
+      "humanEdited": true,
+      "pauseType": "ASK",
+      "boardIntent": {
+        "kind": "blank",
+        "itemId": "4c2aa078-355a-4ba6-a32f-a2ed2d261a99",
+        "rowIndex": 4,
+        "field": "number"
+      },
+      "guideStep": "textbook step 2: numeral ↔ number-name table (guide activity 1 step 2)",
+      "maxSimilarity": {
+        "jaccard": 0,
+        "cosine": null,
+        "closest": ""
+      },
+      "expectedAnswer": "1008"
+    },
+    {
+      "id": "authored:readWrite4Digit:18k2",
+      "conceptTag": "readWrite4Digit",
       "type": "EXPLAIN",
-      "sourceText": "මේක මම කරන්නම්. {number:1008} — ඉලක්කම් වලින් ලියන්නේ මෙහෙමයි.",
-      "spokenText": "මේක මම කරන්නම්. එක්දහස් අට — ඉලක්කම් වලින් ලියන්නේ මෙහෙමයි.",
+      "sourceText": "{number:1008} — ඉලක්කම් වලින් ලියන්නේ මෙහෙමයි.",
+      "spokenText": "එක්දහස් අට — ඉලක්කම් වලින් ලියන්නේ මෙහෙමයි.",
       "numbers": [
         1008
       ],
@@ -1024,6 +1047,28 @@
       "humanEdited": true
     },
     {
+      "id": "authored:readWrite4Digit:23",
+      "conceptTag": "readWrite4Digit",
+      "type": "EXPLAIN",
+      "spokenText": "උදාහරණයක් විදිහට අපිට එක්දහස් තුන්සිය හැට හතර හදන්නත් පුළුවන්.",
+      "numbers": [
+        1364
+      ],
+      "pauseType": null,
+      "boardIntent": {
+        "kind": "text",
+        "text": "1, 3, 6, 4   →   1 364"
+      },
+      "guideStep": "Give groups a worksheet with a circle containing digits 1, 3, 6, 4.",
+      "maxSimilarity": {
+        "jaccard": 0.14516129032258066,
+        "cosine": null,
+        "closest": "මේක ඉතින් ඕනි විදිහට වෙනස් වෙන්න පුළුවන්."
+      },
+      "sourceText": "උදාහරණයක් විදිහට අපිට {number:1364} හදන්නත් පුළුවන්.",
+      "humanEdited": true
+    },
+    {
       "id": "authored:readWrite4Digit:22",
       "conceptTag": "readWrite4Digit",
       "type": "ASK",
@@ -1031,7 +1076,14 @@
       "numbers": [],
       "pauseType": "ASK",
       "boardIntent": {
-        "kind": "none"
+        "kind": "digitPicker",
+        "digits": [
+          1,
+          3,
+          6,
+          4
+        ],
+        "instructions": "මේ ඉලක්කම් වලින් ඉලක්කම් හතරේ සංඛ්‍යාවක් හදන්න."
       },
       "guideStep": "Give groups a worksheet with a circle containing digits 1, 3, 6, 4.",
       "maxSimilarity": {
@@ -1061,28 +1113,6 @@
         "cosine": null,
         "closest": ""
       }
-    },
-    {
-      "id": "authored:readWrite4Digit:23",
-      "conceptTag": "readWrite4Digit",
-      "type": "EXPLAIN",
-      "spokenText": "උදාහරණයක් විදිහට අපිට එක්දහස් තුන්සිය හැට හතර හදන්නත් පුළුවන්.",
-      "numbers": [
-        1364
-      ],
-      "pauseType": null,
-      "boardIntent": {
-        "kind": "text",
-        "text": "1, 3, 6, 4   →   1 364"
-      },
-      "guideStep": "Give groups a worksheet with a circle containing digits 1, 3, 6, 4.",
-      "maxSimilarity": {
-        "jaccard": 0.14516129032258066,
-        "cosine": null,
-        "closest": "මේක ඉතින් ඕනි විදිහට වෙනස් වෙන්න පුළුවන්."
-      },
-      "sourceText": "උදාහරණයක් විදිහට අපිට {number:1364} හදන්නත් පුළුවන්.",
-      "humanEdited": true
     },
     {
       "id": "authored:readWrite4Digit:26",
@@ -3039,9 +3069,32 @@
     {
       "id": "authored:placeValue4Digit:103c",
       "conceptTag": "placeValue4Digit",
+      "type": "ASK",
+      "sourceText": "දැන් ඔයාගේ වාරයයි {address}. මේ හිස්තැනට එන්නේ මොකක්ද කියන්න බලන්න.",
+      "spokenText": "දැන් ඔයාගේ වාරයයි {address}. මේ හිස්තැනට එන්නේ මොකක්ද කියන්න බලන්න.",
+      "numbers": [],
+      "humanEdited": true,
+      "pauseType": "ASK",
+      "boardIntent": {
+        "kind": "blank",
+        "itemId": "7b58e436-334f-452c-bc2a-81f234d03268",
+        "rowIndex": 1,
+        "field": "placeValue"
+      },
+      "guideStep": "guide step 7 of 7: the closing exercise — the textbook's place-value table, worked as one exercise (demonstration row, then MODE 2 alternation)",
+      "maxSimilarity": {
+        "jaccard": 0,
+        "cosine": null,
+        "closest": ""
+      },
+      "expectedAnswer": "1000"
+    },
+    {
+      "id": "authored:placeValue4Digit:103c2",
+      "conceptTag": "placeValue4Digit",
       "type": "EXPLAIN",
-      "sourceText": "මේක මම කරන්නම්. මෙතනට එන්නේ {number:1000}.",
-      "spokenText": "මේක මම කරන්නම්. මෙතනට එන්නේ දහස.",
+      "sourceText": "ඒක {number:1000}යි.",
+      "spokenText": "ඒක දහසයි.",
       "numbers": [
         1000
       ],
@@ -3116,10 +3169,35 @@
     {
       "id": "authored:placeValue4Digit:105",
       "conceptTag": "placeValue4Digit",
-      "type": "EXPLAIN",
-      "sourceText": "මේක මම කරන්නම්. මෙතනට එන්නේ එකස්ථානය.",
-      "spokenText": "මේක මම කරන්නම්. මෙතනට එන්නේ එකස්ථානය.",
+      "type": "ASK",
+      "sourceText": "දැන් ඔයාගේ වාරයයි {address}. මේ හිස්තැනට එන්නේ මොකක්ද කියන්න බලන්න.",
+      "spokenText": "දැන් ඔයාගේ වාරයයි {address}. මේ හිස්තැනට එන්නේ මොකක්ද කියන්න බලන්න.",
       "numbers": [],
+      "humanEdited": true,
+      "pauseType": "ASK",
+      "boardIntent": {
+        "kind": "blank",
+        "itemId": "7b58e436-334f-452c-bc2a-81f234d03268",
+        "rowIndex": 2,
+        "field": "place"
+      },
+      "guideStep": "guide step 7 of 7: the closing exercise — the textbook's place-value table, worked as one exercise (demonstration row, then MODE 2 alternation)",
+      "maxSimilarity": {
+        "jaccard": 0,
+        "cosine": null,
+        "closest": ""
+      },
+      "expectedAnswer": "එකස්ථානය"
+    },
+    {
+      "id": "authored:placeValue4Digit:105c",
+      "conceptTag": "placeValue4Digit",
+      "type": "EXPLAIN",
+      "sourceText": "ඒ {number:4} තියෙන්නේ එකස්ථානයේ.",
+      "spokenText": "ඒ හතර තියෙන්නේ එකස්ථානයේ.",
+      "numbers": [
+        4
+      ],
       "humanEdited": true,
       "pauseType": null,
       "boardIntent": {
@@ -3187,11 +3265,33 @@
     {
       "id": "authored:placeValue4Digit:106",
       "conceptTag": "placeValue4Digit",
+      "type": "ASK",
+      "sourceText": "දැන් ඔයාගේ වාරයයි {address}. මේ හිස්තැනට එන්නේ මොකක්ද කියන්න බලන්න.",
+      "spokenText": "දැන් ඔයාගේ වාරයයි {address}. මේ හිස්තැනට එන්නේ මොකක්ද කියන්න බලන්න.",
+      "numbers": [],
+      "humanEdited": true,
+      "pauseType": "ASK",
+      "boardIntent": {
+        "kind": "blank",
+        "itemId": "7b58e436-334f-452c-bc2a-81f234d03268",
+        "rowIndex": 2,
+        "field": "valueRepresented"
+      },
+      "guideStep": "guide step 7 of 7: the closing exercise — the textbook's place-value table, worked as one exercise (demonstration row, then MODE 2 alternation)",
+      "maxSimilarity": {
+        "jaccard": 0,
+        "cosine": null,
+        "closest": ""
+      },
+      "expectedAnswer": "4"
+    },
+    {
+      "id": "authored:placeValue4Digit:106a",
+      "conceptTag": "placeValue4Digit",
       "type": "EXPLAIN",
-      "sourceText": "මේක මම කරන්නම්. ඒක {number:4}යි. {number:4} තියෙන්නේ එකස්ථානයේ.",
-      "spokenText": "මේක මම කරන්නම්. ඒක හතරයි. හතර තියෙන්නේ එකස්ථානයේ.",
+      "sourceText": "ඒක {number:4}යි.",
+      "spokenText": "ඒක හතරයි.",
       "numbers": [
-        4,
         4
       ],
       "humanEdited": true,
@@ -3265,10 +3365,35 @@
     {
       "id": "authored:placeValue4Digit:108a",
       "conceptTag": "placeValue4Digit",
-      "type": "EXPLAIN",
-      "sourceText": "මේක මම කරන්නම්. මෙතනට එන්නේ සියයස්ථානය.",
-      "spokenText": "මේක මම කරන්නම්. මෙතනට එන්නේ සියයස්ථානය.",
+      "type": "ASK",
+      "sourceText": "දැන් ඔයාගේ වාරයයි {address}. මේ හිස්තැනට එන්නේ මොකක්ද කියන්න බලන්න.",
+      "spokenText": "දැන් ඔයාගේ වාරයයි {address}. මේ හිස්තැනට එන්නේ මොකක්ද කියන්න බලන්න.",
       "numbers": [],
+      "humanEdited": true,
+      "pauseType": "ASK",
+      "boardIntent": {
+        "kind": "blank",
+        "itemId": "7b58e436-334f-452c-bc2a-81f234d03268",
+        "rowIndex": 3,
+        "field": "place"
+      },
+      "guideStep": "guide step 7 of 7: the closing exercise — the textbook's place-value table, worked as one exercise (demonstration row, then MODE 2 alternation)",
+      "maxSimilarity": {
+        "jaccard": 0,
+        "cosine": null,
+        "closest": ""
+      },
+      "expectedAnswer": "සියයස්ථානය"
+    },
+    {
+      "id": "authored:placeValue4Digit:108a2",
+      "conceptTag": "placeValue4Digit",
+      "type": "EXPLAIN",
+      "sourceText": "ඒ {number:7} තියෙන්නේ සියයස්ථානයේ.",
+      "spokenText": "ඒ හත තියෙන්නේ සියයස්ථානයේ.",
+      "numbers": [
+        7
+      ],
       "humanEdited": true,
       "pauseType": null,
       "boardIntent": {
@@ -3336,9 +3461,32 @@
     {
       "id": "authored:placeValue4Digit:108d",
       "conceptTag": "placeValue4Digit",
+      "type": "ASK",
+      "sourceText": "දැන් ඔයාගේ වාරයයි {address}. මේ හිස්තැනට එන්නේ මොකක්ද කියන්න බලන්න.",
+      "spokenText": "දැන් ඔයාගේ වාරයයි {address}. මේ හිස්තැනට එන්නේ මොකක්ද කියන්න බලන්න.",
+      "numbers": [],
+      "humanEdited": true,
+      "pauseType": "ASK",
+      "boardIntent": {
+        "kind": "blank",
+        "itemId": "7b58e436-334f-452c-bc2a-81f234d03268",
+        "rowIndex": 4,
+        "field": "digit"
+      },
+      "guideStep": "guide step 7 of 7: the closing exercise — the textbook's place-value table, worked as one exercise (demonstration row, then MODE 2 alternation)",
+      "maxSimilarity": {
+        "jaccard": 0,
+        "cosine": null,
+        "closest": ""
+      },
+      "expectedAnswer": "0"
+    },
+    {
+      "id": "authored:placeValue4Digit:108d2",
+      "conceptTag": "placeValue4Digit",
       "type": "EXPLAIN",
-      "sourceText": "මේක මම කරන්නම්. මෙතනට එන්නේ {number:0}.",
-      "spokenText": "මේක මම කරන්නම්. මෙතනට එන්නේ බිංදුව.",
+      "sourceText": "ඒක {number:0}යි.",
+      "spokenText": "ඒක බිංදුවයි.",
       "numbers": [
         0
       ],
@@ -3409,9 +3557,32 @@
     {
       "id": "authored:placeValue4Digit:108g",
       "conceptTag": "placeValue4Digit",
+      "type": "ASK",
+      "sourceText": "දැන් ඔයාගේ වාරයයි {address}. මේ හිස්තැනට එන්නේ මොකක්ද කියන්න බලන්න.",
+      "spokenText": "දැන් ඔයාගේ වාරයයි {address}. මේ හිස්තැනට එන්නේ මොකක්ද කියන්න බලන්න.",
+      "numbers": [],
+      "humanEdited": true,
+      "pauseType": "ASK",
+      "boardIntent": {
+        "kind": "blank",
+        "itemId": "7b58e436-334f-452c-bc2a-81f234d03268",
+        "rowIndex": 4,
+        "field": "valueRepresented"
+      },
+      "guideStep": "guide step 7 of 7: the closing exercise — the textbook's place-value table, worked as one exercise (demonstration row, then MODE 2 alternation)",
+      "maxSimilarity": {
+        "jaccard": 0,
+        "cosine": null,
+        "closest": ""
+      },
+      "expectedAnswer": "0"
+    },
+    {
+      "id": "authored:placeValue4Digit:108g2",
+      "conceptTag": "placeValue4Digit",
       "type": "EXPLAIN",
-      "sourceText": "මේක මම කරන්නම්. මෙතනට එන්නේ {number:0}.",
-      "spokenText": "මේක මම කරන්නම්. මෙතනට එන්නේ බිංදුව.",
+      "sourceText": "ඒක {number:0}යි.",
+      "spokenText": "ඒක බිංදුවයි.",
       "numbers": [
         0
       ],
@@ -3482,9 +3653,32 @@
     {
       "id": "authored:placeValue4Digit:108j",
       "conceptTag": "placeValue4Digit",
+      "type": "ASK",
+      "sourceText": "දැන් ඔයාගේ වාරයයි {address}. මේ හිස්තැනට එන්නේ මොකක්ද කියන්න බලන්න.",
+      "spokenText": "දැන් ඔයාගේ වාරයයි {address}. මේ හිස්තැනට එන්නේ මොකක්ද කියන්න බලන්න.",
+      "numbers": [],
+      "humanEdited": true,
+      "pauseType": "ASK",
+      "boardIntent": {
+        "kind": "blank",
+        "itemId": "7b58e436-334f-452c-bc2a-81f234d03268",
+        "rowIndex": 5,
+        "field": "placeValue"
+      },
+      "guideStep": "guide step 7 of 7: the closing exercise — the textbook's place-value table, worked as one exercise (demonstration row, then MODE 2 alternation)",
+      "maxSimilarity": {
+        "jaccard": 0,
+        "cosine": null,
+        "closest": ""
+      },
+      "expectedAnswer": "100"
+    },
+    {
+      "id": "authored:placeValue4Digit:108j2",
+      "conceptTag": "placeValue4Digit",
       "type": "EXPLAIN",
-      "sourceText": "මේක මම කරන්නම්. මෙතනට එන්නේ {number:100}.",
-      "spokenText": "මේක මම කරන්නම්. මෙතනට එන්නේ සියය.",
+      "sourceText": "ඒක {number:100}යි.",
+      "spokenText": "ඒක සියයයි.",
       "numbers": [
         100
       ],

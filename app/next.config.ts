@@ -27,6 +27,11 @@ const nextConfig: NextConfig = {
   // (e.g. testing mic capture on an actual device) without the
   // "cross origin request detected" warning/block.
   allowedDevOrigins: ["192.168.150.75"],
+  // Cluster H: a prefetched route stays in the client router cache for an hour, so a tap
+  // minutes later is still an instant transition (and works offline).
+  experimental: {
+    staleTimes: { dynamic: 120, static: 3600 },
+  },
 };
 
 export default nextConfig;

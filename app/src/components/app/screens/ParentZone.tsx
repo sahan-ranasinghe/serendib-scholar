@@ -1,3 +1,6 @@
+"use client";
+
+import { useLang } from "@/lib/useLang";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import ZaraCharacter from "@/components/ZaraCharacter";
@@ -54,6 +57,7 @@ export function SettingsRow({ label, value, sub, href, onClick, color = "#1B1B1B
 
 /** Screens B · Parent zone — home & settings. */
 export function ParentZoneScreen({ data, frame, lang, onLang, subscriptionValue }: { data: ParentZoneData; frame?: boolean; lang?: "si" | "en"; onLang?: (l: "si" | "en") => void; subscriptionValue?: string }) {
+  useLang();
   return (
     <Screen label="Parent zone" frame={frame} root={ROOT}>
       <ParentHeader title={t("parent.title")} sub={t("parent.childLine", { name: data.childName, grade: data.grade })} lang={lang} onLang={onLang} />
@@ -98,6 +102,7 @@ export function ParentZoneScreen({ data, frame, lang, onLang, subscriptionValue 
 
 /** Screens B · Parent zone — weekly report. */
 export function WeeklyReportScreen({ data, frame, lang, onLang, share }: { data: ReportData; frame?: boolean; lang?: "si" | "en"; onLang?: (l: "si" | "en") => void; share?: ReactNode }) {
+  useLang();
   return (
     <Screen label="Weekly report" frame={frame} root={ROOT}>
       <ParentHeader title={t("report.title")} sub={t("report.rangeChild", { range: data.range, name: data.childName })} back="/parent" lang={lang} onLang={onLang} />
@@ -160,6 +165,7 @@ export function WeeklyReportScreen({ data, frame, lang, onLang, share }: { data:
  * card number, no next-payment date is shown as if it were real.
  */
 export function SubscriptionScreen({ profiles, frame, sample, deleteButton }: { profiles: ProfilesData; frame?: boolean; /** The preview renders the export's sample plan card (a fixture, never the app). */ sample?: { next: string; method: string }; deleteButton?: ReactNode }) {
+  useLang();
   return (
     <Screen label="Subscription" frame={frame} root={ROOT}>
       <div style={sx("padding-top:52px;display:flex;align-items:center;gap:10px")}>

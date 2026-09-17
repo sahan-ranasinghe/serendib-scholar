@@ -139,6 +139,8 @@ interface CorrectionsFile {
    * alternation announces itself before it fills. Applied after coverage.
    */
   tutorTurns?: { rewrite: Record<string, BeatRewrite> };
+  /** Practice-ratio round (the device walk): tables are the child's; the worked example precedes the first open build. */
+  practiceRatio?: { rewrite: Record<string, BeatRewrite & { remove?: boolean }>; insert: InsertedBeat[] };
 }
 
 interface DecisionsFile {
@@ -346,6 +348,9 @@ async function main(): Promise<void> {
   // longer exists. Skipping is right ONLY for those; any other unknown id
   // is a typo in a review file and must still fail loudly.
   const removedLater = new Set<string>([
+    ...Object.entries(corrections.practiceRatio?.rewrite ?? {})
+      .filter(([, rewrite]) => rewrite.remove)
+      .map(([id]) => id),
     ...corrections.conversationalRuns.remove.map((entry) => entry.id),
     ...Object.entries(corrections.activitiesThatHappen.rewrite)
       .filter(([, rewrite]) => rewrite.remove)
@@ -370,6 +375,7 @@ async function main(): Promise<void> {
     // The coverage round re-types :5 back to an ASK (the list is asked in full); round 3's softening stands aside.
     ...Object.keys(corrections.coverage?.rewrite ?? {}).filter((id) => id.startsWith("authored:")),
     ...Object.keys(corrections.tutorTurns?.rewrite ?? {}).filter((id) => id.startsWith("authored:")),
+    ...Object.keys(corrections.practiceRatio?.rewrite ?? {}).filter((id) => id.startsWith("authored:")),
   ]);
 
   const apply = (id: string, sourceText: string, source: string): void => {
@@ -716,6 +722,19 @@ async function main(): Promise<void> {
     if (!id.startsWith("authored:")) continue;
     applyRewrite(id, rewrite, rewrite.why ?? "tutor turn announces itself");
   }
+  // ---- PRACTICE-RATIO ROUND: tables are the child's; the example precedes the first build
+  for (const [id, rewrite] of Object.entries(corrections.practiceRatio?.rewrite ?? {})) {
+    if (!id.startsWith("authored:")) continue;
+    if (rewrite.remove) {
+      const before = file.beats.length;
+      file.beats = file.beats.filter((beat) => beat.id !== id);
+      if (file.beats.length < before) structural.push({ id, what: "REMOVED", why: rewrite.why ?? "practice ratio" });
+      byId.delete(id);
+      continue;
+    }
+    applyRewrite(id, rewrite, rewrite.why ?? "practice ratio");
+  }
+  for (const addition of corrections.practiceRatio?.insert ?? []) insertBeat(addition, "practice ratio");
   for (const [id, text] of Object.entries(corrections.chipWording ?? {})) {
     if (id === "$comment") continue;
     applyRewrite(id, { text }, "chip wording: the answer is tapped or said, never only said");

@@ -23,10 +23,14 @@ export interface StagedBoard {
   viewPatch?: Record<string, unknown>;
 }
 
+/** A write that takes longer than this is treated as failed: a network that drops mid-lesson (a half-open connection never errors on its own) must not hang the beat that awaits its log row. */
+const POST_TIMEOUT_MS = 15_000;
+
 async function post(path: string, body: unknown): Promise<Record<string, unknown>> {
   const res = await fetch(path, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    signal: AbortSignal.timeout(POST_TIMEOUT_MS),
     body: JSON.stringify(body),
   });
   return (await res.json()) as Record<string, unknown>;

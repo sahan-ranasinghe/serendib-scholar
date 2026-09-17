@@ -1,28 +1,14 @@
-import { notFound, redirect } from "next/navigation";
-import { LessonDetailScreen } from "@/components/app/screens/LessonDetail";
-import { StartLessonButton } from "@/components/app/StartLessonButton";
-import { SessionActions } from "@/components/app/SessionActions";
-import { PrimaryButton } from "@/components/app/Screen";
-import { hasActiveChild } from "@/lib/activeChild";
-import { lessonDetailData, loadChildState } from "@/lib/appData";
-import { t } from "@/lib/appCopy";
+import { LessonDetailRoute } from "@/components/app/routes/routes";
+import { LESSON_NAMES } from "@/lib/appCopy";
 
-export const dynamic = "force-dynamic";
+/** The catalogue's lesson numbers are static routes: fully prefetched, instant to open (cluster H). */
+export function generateStaticParams() {
+  const numbers = Object.keys(LESSON_NAMES);
+  return (numbers.length ? numbers : ["1"]).map((id) => ({ id }));
+}
 
+/** `/lessons/[id]` — a static shell around the client route (see src/app/home/page.tsx). */
 export default async function LessonDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  if (!(await hasActiveChild())) redirect("/onboarding/1");
   const { id } = await params;
-  const state = await loadChildState();
-  const data = lessonDetailData(state, Number(id));
-  if (!data) notFound();
-  const cta = data.ctaSession && data.currentStarted ? (
-    <SessionActions lesson={data.lessonNumber} session={data.ctaSession - 1} label={t("common.sessionNth", { n: data.ctaSession })} />
-  ) : data.ctaSession ? (
-    <StartLessonButton height={60} label={t("detail.cta", { n: data.ctaSession })} style={{ width: "100%" }} />
-  ) : (
-    <PrimaryButton height={60} href="/practice" style={{ width: "100%" }}>
-      {t("practice.title")}
-    </PrimaryButton>
-  );
-  return <LessonDetailScreen data={data} cta={cta} />;
+  return <LessonDetailRoute lessonNumber={Number(id)} />;
 }

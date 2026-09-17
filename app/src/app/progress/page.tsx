@@ -1,12 +1,11 @@
-import { redirect } from "next/navigation";
-import { ProgressScreen } from "@/components/app/screens/Progress";
-import { hasActiveChild } from "@/lib/activeChild";
-import { loadChildState, progressData } from "@/lib/appData";
+import { ProgressRoute } from "@/components/app/routes/routes";
 
-export const dynamic = "force-dynamic";
-
-export default async function ProgressPage() {
-  if (!(await hasActiveChild())) redirect("/onboarding/1");
-  const state = await loadChildState();
-  return <ProgressScreen data={progressData(state)} />;
+/**
+ * `/progress` — a static shell: the screen renders on the client from the app
+ * store (src/lib/appStore.tsx), its skeleton first if the store is cold.
+ * No server data here, so the route is prefetchable and every navigation
+ * to it is a client-side transition (cluster H).
+ */
+export default function Page() {
+  return <ProgressRoute />;
 }

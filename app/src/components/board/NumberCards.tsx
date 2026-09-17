@@ -9,12 +9,12 @@
  * lift out at 72×76.
  */
 import { AnimatePresence, motion } from "framer-motion";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { HandNumber } from "./HandNumber";
 import { useTargetRef } from "./targets";
 import { BOARD, SPRING, TOUCH_MIN } from "./tokens";
-import { RING_D } from "./strokes";
+import { RING_D, scaledPath } from "./strokes";
 import { playSound } from "./sound";
 import { hitTest, useDrag, type DragPoint } from "./useDrag";
 
@@ -136,12 +136,30 @@ function Card({
   handlers: Record<string, unknown>;
   ringInset: number;
 }) {
+  // The ring is drawn in the card's own pixels (cluster F): measure the card, redraw on resize.
+  const cardRef = useRef<HTMLDivElement | null>(null);
+  const [measured, setMeasured] = useState<{ w: number; h: number } | null>(null);
+  useLayoutEffect(() => {
+    const el = cardRef.current;
+    if (!el) return;
+    const read = () => {
+      // offsetWidth/Height: the layout box, untouched by the deal-in rotation and the lift.
+      const w = el.offsetWidth;
+      const h = el.offsetHeight;
+      setMeasured((m) => (m && Math.abs(m.w - w) < 0.5 && Math.abs(m.h - h) < 0.5 ? m : { w, h }));
+    };
+    read();
+    const ro = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(read);
+    ro?.observe(el);
+    return () => ro?.disconnect();
+  }, []);
   const ref = useTargetRef<HTMLDivElement>([`card:${value}`, `number:${value}`]);
   const el = useRef<HTMLDivElement | null>(null);
   const mergedRef = useCallback(
     (element: HTMLDivElement | null) => {
       ref(element);
       el.current = element;
+      cardRef.current = element;
     },
     [ref],
   );
@@ -164,9 +182,9 @@ function Card({
       style={{ position: "relative", minWidth: Math.max(box.minWidth, interactive ? TOUCH_MIN : 0), minHeight: interactive ? TOUCH_MIN : undefined }}
     >
       <CardFace value={value} size={size} box={box} lifted={selected} />
-      {ringed && (
-        <svg viewBox="0 0 100 80" className="chalk-stroke" style={{ position: "absolute", inset: -ringInset, width: `calc(100% + ${ringInset * 2}px)`, height: `calc(100% + ${ringInset * 2}px)`, overflow: "visible", pointerEvents: "none" }} preserveAspectRatio="none" aria-hidden>
-          <motion.path d={RING_D} fill="none" stroke="var(--color-saffron)" strokeWidth="3.5" strokeLinecap="round" vectorEffect="non-scaling-stroke" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.25, ease: "easeOut" }} />
+      {ringed && measured && (
+        <svg viewBox={`0 0 ${measured.w + ringInset * 2} ${measured.h + ringInset * 2}`} className="chalk-stroke" data-testid="card-ring" style={{ position: "absolute", inset: -ringInset, width: `calc(100% + ${ringInset * 2}px)`, height: `calc(100% + ${ringInset * 2}px)`, overflow: "visible", pointerEvents: "none" }} preserveAspectRatio="none" aria-hidden>
+          <motion.path d={scaledPath(RING_D, measured.w + ringInset * 2, measured.h + ringInset * 2)} fill="none" stroke="var(--color-saffron)" strokeWidth="3.5" strokeLinecap="round" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.25, ease: "easeOut" }} />
         </svg>
       )}
     </motion.div>

@@ -27,8 +27,8 @@ export function RestartRow({ lesson, session }: { lesson: number; session: numbe
   const css = `height:48px;padding:0 14px;border:2px solid ${confirm ? "var(--color-coral)" : "var(--color-ink-18)"};border-radius:12px;background:var(--color-paper);color:${confirm ? "var(--color-coral-text)" : "var(--color-teal)"};font:700 20px/1.5 var(--font-display)`;
   return (
     <div style={sx("width:100%;display:flex;gap:8px;justify-content:flex-end")} data-testid="restart-row" data-session={session}>
-      <button type="button" onClick={() => void restart()} disabled={busy} data-testid={confirm ? "restart-confirm" : "restart-session"} style={sx(css)}>
-        {t("detail.restart")}
+      <button type="button" onClick={() => void restart()} disabled={busy} data-busy={busy || undefined} data-testid={confirm ? "restart-confirm" : "restart-session"} style={sx(css)}>
+        {busy ? t("app.resetting") : t("detail.restart")}
       </button>
       {confirm && (
         <button type="button" onClick={() => setConfirm(false)} data-testid="restart-cancel" style={sx("height:48px;padding:0 14px;border:2px solid var(--color-ink-18);border-radius:12px;background:var(--color-paper);color:var(--color-ink-70);font:700 20px/1.5 var(--font-display)")}>

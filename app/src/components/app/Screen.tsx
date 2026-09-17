@@ -1,3 +1,7 @@
+"use client";
+
+import { setLang } from "@/lib/langStore";
+import { useLang } from "@/lib/useLang";
 import type { CSSProperties, ReactNode } from "react";
 import Link from "next/link";
 import { sx } from "./sx";
@@ -79,21 +83,25 @@ export function BackButton({ href, size = 56 }: { href: string; size?: 56 | 44 }
 }
 
 /** සිං | EN — the parent header's toggle (Inter for the English only). */
-export function LangToggle({ lang = "si", onChange }: { lang?: "si" | "en"; onChange?: (lang: "si" | "en") => void }) {
+export function LangToggle({ lang: langProp, onChange: onChangeProp }: { lang?: "si" | "en"; onChange?: (lang: "si" | "en") => void }) {
+  // Unwired (the live app): the device's language store. Wired (the design preview): the caller's state.
+  const storeLang = useLang();
+  const lang = langProp ?? storeLang;
+  const onChange = onChangeProp ?? setLang;
   const on = "padding:0 10px;background:var(--color-teal);color:#fff;font:600 14px/28px var(--font-label)";
   const offSi = "padding:0 10px;font:600 14px/28px var(--font-label);color:var(--color-ink-70)";
   const offEn = "padding:0 10px;font:500 13px/28px var(--font-latin);color:var(--color-ink-70)";
   const onEn = "padding:0 10px;background:var(--color-teal);color:#fff;font:500 13px/28px var(--font-latin)";
   return (
     <div role="group" aria-label="language" style={sx("display:flex;border:2px solid var(--color-ink-18);border-radius:999px;overflow:hidden;height:32px")}>
-      <span role="button" onClick={onChange ? () => onChange("si") : undefined} style={sx(lang === "si" ? on : offSi)}>{t("onb.toggleSi")}</span>
-      <span role="button" onClick={onChange ? () => onChange("en") : undefined} style={sx(lang === "en" ? onEn : offEn)}>EN</span>
+      <span role="button" aria-pressed={lang === "si"} data-testid="lang-si" onClick={() => onChange("si")} style={sx(lang === "si" ? on : offSi)}>{t("onb.toggleSi")}</span>
+      <span role="button" aria-pressed={lang === "en"} data-testid="lang-en" onClick={() => onChange("en")} style={sx(lang === "en" ? onEn : offEn)}>EN</span>
     </div>
   );
 }
 
 /** The teal primary button of the child screens (56 px; 60 px for a screen's main CTA). */
-export function PrimaryButton({ children, onClick, href, height = 56, font, style, testId, disabled, type = "button" }: { children: ReactNode; onClick?: () => void; href?: string; height?: 56 | 60 | 52; font?: string; style?: CSSProperties; testId?: string; disabled?: boolean; type?: "button" | "submit" }) {
+export function PrimaryButton({ children, onClick, href, height = 56, font, style, testId, disabled, busy, type = "button" }: { children: ReactNode; onClick?: () => void; href?: string; height?: 56 | 60 | 52; font?: string; style?: CSSProperties; testId?: string; disabled?: boolean; /** The tap is being acted on: the button says so (data-busy, dimmed) until the action lands. */ busy?: boolean; type?: "button" | "submit" }) {
   const radius = height === 60 ? 14 : 12;
   const face = font ?? (height === 60 ? "700 26px/1.5 var(--font-display)" : "700 24px/1.5 var(--font-display)");
   const css = sx(`height:${height}px;border:0;border-radius:${radius}px;background:var(--color-teal);color:#fff;font:${face};box-shadow:var(--shadow-button)`, { display: "flex", alignItems: "center", justifyContent: "center", opacity: disabled ? 0.45 : 1, ...style });
@@ -105,14 +113,14 @@ export function PrimaryButton({ children, onClick, href, height = 56, font, styl
     );
   }
   return (
-    <button type={type} onClick={onClick} disabled={disabled} data-testid={testId} style={css}>
+    <button type={type} onClick={onClick} disabled={disabled} data-testid={testId} data-busy={busy || undefined} aria-busy={busy || undefined} style={busy ? { ...css, opacity: 0.8 } : css}>
       {children}
     </button>
   );
 }
 
 /** Paper secondary button (border ink-18, teal text). */
-export function SecondaryButton({ children, onClick, href, height = 48, font, style, testId }: { children: ReactNode; onClick?: () => void; href?: string; height?: 48 | 52 | 56; font?: string; style?: CSSProperties; testId?: string }) {
+export function SecondaryButton({ children, onClick, href, height = 48, font, style, testId, busy }: { children: ReactNode; onClick?: () => void; href?: string; height?: 48 | 52 | 56; font?: string; style?: CSSProperties; testId?: string; busy?: boolean }) {
   const css = sx(`height:${height}px;border:2px solid var(--color-ink-18);border-radius:12px;background:var(--color-paper);color:var(--color-teal);font:${font ?? "700 22px/1.5 var(--font-display)"}`, { display: "flex", alignItems: "center", justifyContent: "center", ...style });
   if (href) {
     return (
@@ -122,7 +130,7 @@ export function SecondaryButton({ children, onClick, href, height = 48, font, st
     );
   }
   return (
-    <button type="button" onClick={onClick} data-testid={testId} style={css}>
+    <button type="button" onClick={onClick} data-testid={testId} data-busy={busy || undefined} aria-busy={busy || undefined} style={busy ? { ...css, opacity: 0.8 } : css}>
       {children}
     </button>
   );
