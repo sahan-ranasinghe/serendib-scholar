@@ -14,7 +14,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { GoogleGenAI } from "@google/genai";
 import { initialStage, isKnownEvent, reduceStage, conceptTitle, type Storyboard } from "../src/lib/choreography";
-import { chatContextPrompt, sanitizeChatContext, serializeStage } from "../src/lib/chatContext";
+import { boardFocus, chatContextPrompt, sanitizeChatContext, serializeStage } from "../src/lib/chatContext";
 import { buildSystemPrompt } from "../src/lib/prompt";
 import { CHAT_BOARD_TOOLS } from "../src/lib/geminiLiveTools";
 
@@ -39,10 +39,12 @@ async function main(): Promise<void> {
     recentLines: storyboard.beats.slice(Math.max(0, index - 3), index).map((b) => b.line),
     nextLine: storyboard.beats[index]?.line ?? null,
     board: serializeStage(stage),
+    boardFocus: boardFocus(stage),
     recentAnswers: [{ question: storyboard.beats[index - 1]?.line ?? "", answer: "(tapped)", correct: true }],
     weakestConcept: null,
   })!;
   console.log(`context board: ${context.board}`);
+  console.log(`what they are pointing at: ${context.boardFocus ?? "(nothing specific)"}`);
   console.log(`last lines: ${context.recentLines.map((l) => l.slice(0, 40)).join(" | ")}`);
 
   const apiKey = process.env.GEMINI_API_KEY;

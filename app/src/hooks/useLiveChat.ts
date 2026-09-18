@@ -139,7 +139,9 @@ export function useLiveChat(): LiveChatHandle {
                 client.sendTextInput(
                   opener ??
                     (context
-                      ? "The child has raised their hand during the lesson. In ONE short Sinhala sentence, acknowledge where they are (name the thing on the board) and ask what their doubt is, then listen."
+                      ? `The child has raised their hand during the lesson. Your first line, in Sinhala ONLY (no English words, no quotation marks): ONE short spoken sentence that names what they are pointing at — ${
+                          context.boardFocus ?? "the concept they are on"
+                        } — keeping its exact number, rod or cell, then asks what their doubt is. Do not name the topic alone, and never say a number that is not on the board.`
                       : "The child has opened a free chat with you. Say one short, warm Sinhala sentence inviting " +
                         "them to tell you anything, then listen."),
                 );

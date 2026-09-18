@@ -35,7 +35,7 @@ import { renderNumberMarkers } from "@/lib/sinhalaNumber";
 import { parseTargetKey } from "@/lib/choreography";
 import { valueOfAnswer } from "@/lib/answerMode";
 import type { TurnSurface } from "@/components/board/events";
-import { serializeStage, type ChatAnswer, type ChatContext } from "@/lib/chatContext";
+import { boardFocus, serializeStage, type ChatAnswer, type ChatContext } from "@/lib/chatContext";
 import type { Target } from "@/components/board/events";
 import type { YourTurn } from "@/components/board/BoardStage";
 import type { ConceptStop } from "@/components/ProgressStrip";
@@ -1650,6 +1650,7 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
       recentLines: recentLinesRef.current.slice(-3),
       nextLine: next?.spokenText ?? null,
       board: serializeStage(stageRef.current),
+      boardFocus: boardFocus(stageRef.current),
       recentAnswers: recentAnswersRef.current.slice(-2),
       weakestConcept: weakestRatio < 1 ? weakest : null,
     };
@@ -1736,6 +1737,17 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
           const index = Math.min(target.lastBeat, Math.max(target.firstBeat, target.firstBeat + beat));
           pendingBeatsRef.current = [];
           limitPendingRef.current = false;
+          // The board the child would be looking at, had they played to here: every storyboard
+          // event of every beat before this one, replayed silently. Without it a jump lands on a
+          // later beat with an earlier board (the title card under an abacus question).
+          let rebuilt = initialStage();
+          for (let i = 0; i < index; i += 1) {
+            const storyboarded = storyboardRef.current.get(script.beats[i]!.id);
+            if (!storyboarded) continue;
+            for (const event of storyboarded.events) if (isKnownEvent(event)) rebuilt = reduceStage(rebuilt, event, { legacy: null, lastBuilt: 1364 });
+          }
+          activeChoreoRef.current = null;
+          setStage(rebuilt);
           stateRef.current = { ...stateRef.current, beatIndex: index, unaidedCorrect: 0, recentMisses: 0 };
           setCurrentSessionIndex(session);
           sessionIndexRef.current = session;
@@ -2217,6 +2229,8 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
       },
       chatTranscript: () => chatTranscriptRef.current,
       chatError: () => chat.error,
+      /** The ✋ verification: the very context the chat is opened with — the board and the one thing the child is pointing at. */
+      chatContext: () => (settingsRef.current.devMode ? buildChatContext() : null),
       /** Lip-sync drill: four seconds of tone — loud, medium, soft, then silence — through the same player and analyser as her voice. */
       playTestClip: () => {
         if (!settingsRef.current.devMode) return false;

@@ -21,9 +21,25 @@ const MOBILE_UA = "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (
 const QUESTION = "මොකද්ද මේ?";
 /** The board at the target beat: the abacus showing 5421 (placeValue4Digit:44). */
 const TARGET_BEAT = "authored:placeValue4Digit:44";
-const BOARD_WORDS = ["චක්‍රාවලිය", "ඇබකස", "abacus", "5421", "පන්දහස්", "පොල්", "කූරු", "කූර", "ස්ථාන", "දහස්", "සිය", "දහය", "ඒකක", "සංඛ්‍යා", "පබළු", "ගණන", "බෝල", "ඉලක්කම", "ලකුණු"];
+/**
+ * A reply "references the board" if it names any of three things: the
+ * primitive itself (the abacus, the table, the cards — what the child is
+ * looking at), a place name it is made of, or a value that is actually on
+ * the board. The values come from the live board, not from this file: the
+ * check reads the runtime's own chat context.
+ */
+const PRIMITIVE_NAMES = ["ගණක රාමුව", "රාමුව", "ඇබකස", "abacus", "වගුව", "කාඩ්පත", "කාඩ්", "ඉලක්කම්", "පුවරුව", "තීරුව", "කොටුව", "පේළිය", "කූර", "කූරු", "පබළු"];
+const PLACE_NAMES = ["ස්ථාන", "දහස", "දහස්", "සිය", "සියය", "දහය", "ඒකක", "අගය", "සංඛ්‍යා", "ඉලක්කම"];
 const OFF_TOPIC = ["ගුණ කිරීම", "බෙදීම", "භාග", "දශම", "ත්‍රිකෝණ", "වර්ග", "කාලය", "මුදල්", "ක්‍රීඩා", "කතන්දර", "සින්දු", "multiplication", "fraction", "decimal"];
 
+/** Digits as they may be spoken or written: "5421", "5 421", "5,421" all count as the same value. */
+const packDigits = (text: string) => text.replace(/[\s,]+/gu, "");
+/** Every 2+ digit number on the board (its focus included) — the values a reply may legitimately name. */
+const boardValues = (board: string, focus: string | null): string[] => {
+  const found = new Set<string>();
+  for (const match of packDigits(`${board} ${focus ?? ""}`).matchAll(/\d{2,}/gu)) found.add(match[0]);
+  return [...found];
+};
 async function main(): Promise<void> {
   const accessCode = /ACCESS_CODE=(.+)/u.exec(readFileSync(path.join(process.cwd(), ".env.local"), "utf8"))?.[1]?.trim() ?? "";
   // A fake microphone: the P1 sheet is answered "හරි, අවසර දෙන්න" and the browser grants it without a prompt (typed chat is not a path yet).
@@ -95,6 +111,10 @@ async function main(): Promise<void> {
   const interesting = consoleLines.filter((l) => !/\[pcm\]|\[beat\] sentence|React DevTools|\[proxy\]/u.test(l));
   console.log(`runtime log (last ${Math.min(30, interesting.length)}):\n  ${interesting.slice(-30).join("\n  ")}`);
   if (!/connected/u.test(chatState)) throw new Error(`the chat did not connect: ${chatState}`);
+  // The board the chat was opened with, from the runtime itself.
+  const context = await evaluate<{ board: string; boardFocus: string | null } | null>(page, `window.__dev.chatContext ? window.__dev.chatContext() : null`).catch(() => null);
+  console.log(`board: ${context?.board ?? "(unavailable)"}`);
+  console.log(`what they are pointing at: ${context?.boardFocus ?? "(nothing specific)"}`);
   const sent = await evaluate<boolean>(page, `window.__dev.chatSend(${JSON.stringify(QUESTION)})`);
   if (!sent) throw new Error("chatSend refused (not connected)");
   let reply = "";
@@ -105,9 +125,20 @@ async function main(): Promise<void> {
     await wait(500);
   }
   console.log(`\nchild: ${QUESTION}\nzara: ${reply.trim() || "(no reply)"}`);
-  const mentionsBoard = BOARD_WORDS.some((w) => reply.includes(w));
+  const values = boardValues(context?.board ?? "", context?.boardFocus ?? null);
+  const packed = packDigits(reply);
+  const namedValue = values.find((v) => packed.includes(v)) ?? null;
+  const namedPrimitive = PRIMITIVE_NAMES.find((w) => reply.includes(w)) ?? null;
+  const namedPlace = PLACE_NAMES.find((w) => reply.includes(w)) ?? null;
+  const mentionsBoard = Boolean(namedValue || namedPrimitive || namedPlace);
+  // A number the board does not have is worse than a vague reply: she would be pointing the child at something that is not there.
+  const invented = [...new Set([...packed.matchAll(/\d{2,}/gu)].map((m) => m[0]))].filter((n) => !values.includes(n));
   const offTopic = OFF_TOPIC.filter((w) => reply.includes(w));
-  console.log(`\nreferences the board: ${mentionsBoard ? "yes" : "NO"} · new topic: ${offTopic.length ? offTopic.join(", ") : "none"}`);
+  console.log(
+    `\nreferences the board: ${mentionsBoard ? "yes" : "NO"} (value ${namedValue ?? "—"} · primitive ${namedPrimitive ?? "—"} · place ${namedPlace ?? "—"})` +
+      `\nvalues on the board: ${values.join(", ") || "(none)"}${invented.length ? ` · NOT on the board: ${invented.join(", ")}` : ""}` +
+      `\nnew topic: ${offTopic.length ? offTopic.join(", ") : "none"}`,
+  );
   await evaluate(page, `(() => { const b = document.querySelector('[data-testid="chat-return"]'); b && b.click(); })()`).catch(() => undefined);
   await wait(500);
 
@@ -115,7 +146,8 @@ async function main(): Promise<void> {
   page.close();
   browser.kill();
   if (!reply.trim()) throw new Error("no reply");
-  if (!mentionsBoard) throw new Error("the reply does not reference the current board");
+  if (!mentionsBoard) throw new Error("the reply does not reference the current board (no value, primitive or place name)");
+  if (invented.length) throw new Error(`the reply names a number that is not on the board: ${invented.join(", ")}`);
   if (offTopic.length) throw new Error(`the reply introduces a new topic: ${offTopic.join(", ")}`);
   process.exit(0);
 }
