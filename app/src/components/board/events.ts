@@ -61,7 +61,6 @@ export type BoardEvent =
   | { primitive: "turn"; event: "your_turn"; args: { answerMode: AnswerMode; surface: TurnSurface } }
   | { primitive: "turn"; event: "over"; args?: undefined }
   | { primitive: "turn"; event: "pause"; args: { ms: number } }
-  | { primitive: "turn"; event: "read_back"; args: { number: number } }
   | { primitive: "turn"; event: "retry"; args?: undefined };
 
 /** Where the child's turn lands on the board — the glow goes there. Every surface is a touch; the microphone is not one. */
@@ -85,7 +84,7 @@ export const VOCABULARY: Record<Primitive, readonly string[]> = {
   textCard: ["show"],
   blankTable: ["show", "row_activate", "cell_fill"],
   choiceChips: ["show", "clear"],
-  turn: ["your_turn", "over", "pause", "read_back", "retry"],
+  turn: ["your_turn", "over", "pause", "retry"],
 };
 
 /** The doc's duration ceiling per event, in ms — the gallery asserts against these. */
@@ -128,7 +127,6 @@ export const DURATION_MS: Record<EventName, number> = {
   "turn.your_turn": 300,
   "turn.over": 150,
   "turn.pause": 3000,
-  "turn.read_back": 400,
   "turn.retry": 300,
 };
 

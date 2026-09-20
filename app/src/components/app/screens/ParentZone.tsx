@@ -82,7 +82,8 @@ export function ParentZoneScreen({ data, frame, lang, onLang, subscriptionValue 
         <SettingsRow label={t("parent.row.sound")} value={[data.settings.sound ? t("parent.row.soundOn") : null, data.settings.captions ? t("parent.row.captionsOn") : null].filter(Boolean).join(" · ")} href="/parent/settings" testId="row-sound" />
         <SettingsRow label={t("parent.row.profiles")} value={String(data.childrenCount)} sub={t("parent.row.profilesSub")} href="/parent/profiles" testId="row-profiles" />
         <SettingsRow label={t("parent.row.pin")} value={data.pinSet ? t("parent.pinSet") : ""} href="/parent/pin" testId="row-pin" />
-        <SettingsRow label={t("parent.row.help")} value="" href={data.whatsappHref ?? "/parent"} testId="row-help" />
+        {/* No support number configured → no help row (it used to link to this same screen: a dead control); the dashed footer says "soon". */}
+        {data.whatsappHref && <SettingsRow label={t("parent.row.help")} value="" href={data.whatsappHref} testId="row-help" />}
         <SettingsRow label={t("parent.row.delete")} value="" href="/parent/delete" color="#D9643A" testId="row-delete" />
       </div>
       <div style={sx("margin-top:auto;padding-bottom:28px")}>

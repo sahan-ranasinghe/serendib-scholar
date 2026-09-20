@@ -132,6 +132,8 @@ export interface ExpansionState {
   number: number;
   parts: Array<string | null>;
   fly: { fromRod: number; index: number; key: number } | null;
+  /** The parts the CHILD wrote (judged right): drawn in green with a ✓, and they stand when her confirmation reveals the same part. */
+  answered?: Array<string | null>;
 }
 
 export interface TableColumn {
@@ -155,6 +157,8 @@ export type StageBase =
       /** The rods glowing now: the ones named in the same sentence, together; otherwise one. */
       glowRods: number[];
       childAnswer: string | null;
+      /** The rod the child's answer belongs to: it sits under that rod and leaves when another rod is asked (null: a whole number). */
+      answerRod?: number | null;
       /** The expanded form, staged BENEATH the abacus. */
       expansion: ExpansionState | null;
     }
@@ -212,6 +216,11 @@ export interface StageState {
   pause: { ms: number } | null;
   /** A wrong answer's visible way back: the "ආයෙත් උත්සාහ කරන්න" paper button, top-right (turn.retry). */
   retry: boolean;
+  /**
+   * What the child has just entered, shown on the surface the instant it is entered — BEFORE the judge
+   * (enterAnswer), then marked right or wrong (judgeEntry). It leaves when the turn reopens or the base changes.
+   */
+  entry: { value: string; verdict: "pending" | "correct" | "wrong" } | null;
   /** The puzzle ledgers, by hand of digits (sorted): what the child built from each, so a hand dealt again finds its ledger. */
   pickerLedgers: Record<string, string[]>;
   /** Monotonic counter for keys. */
@@ -232,6 +241,7 @@ export function initialStage(): StageState {
     turn: null,
     pause: null,
     retry: false,
+    entry: null,
     pickerLedgers: {},
     seq: 1,
   };
@@ -257,7 +267,52 @@ function isTermNote(text: string): boolean {
 
 /** A base change clears what was drawn around the old one. */
 function withBase(state: StageState, base: StageBase, pointer: Target | null): StageState {
-  return { ...state, base, notes: [], highlight: null, pointer, seq: state.seq + 1 };
+  return { ...state, base, notes: [], highlight: null, pointer, entry: null, seq: state.seq + 1 };
+}
+
+/** Only the rod under discussion carries a value: the child's answer leaves when attention moves to another rod (or to the whole number). */
+function withoutStaleRodAnswer<B extends Extract<NonNullable<StageBase>, { kind: "abacus" }>>(base: B, rods: number[] | null): B {
+  if (base.childAnswer === null) return base;
+  if (rods !== null && base.answerRod !== null && base.answerRod !== undefined && rods.includes(base.answerRod)) return base;
+  return { ...base, childAnswer: null, answerRod: null };
+}
+
+/**
+ * The child has entered a value (a pad commit, a word-bank commit, a build, a rod, a chip): it is ON the
+ * surface before anything judges it. The abacus writes it under the rod asked about; every other surface
+ * reads `entry` (the active cell, the blank part, the slot row, the chalk "?").
+ */
+export function enterAnswer(state: StageState, value: string): StageState {
+  const seq = state.seq + 1;
+  const entry = { value, verdict: "pending" as const };
+  if (state.base?.kind === "abacus" && !state.base.expansion && /^[\d\s]+$/u.test(value)) {
+    const rod = state.base.glowRods[0] ?? (state.pointer && "rod" in state.pointer ? state.pointer.rod : null);
+    return { ...state, entry, base: { ...state.base, childAnswer: value.replace(/\s/gu, "").slice(0, 24), answerRod: rod ?? null }, seq };
+  }
+  return { ...state, entry, seq };
+}
+
+/** The judge's verdict on the entry: a right cell becomes the child's own fill (green ✓, it stands); a right part is written; a wrong one stays to wobble. */
+export function judgeEntry(state: StageState, correct: boolean): StageState {
+  if (!state.entry) return state;
+  const seq = state.seq + 1;
+  const entry = { ...state.entry, verdict: correct ? ("correct" as const) : ("wrong" as const) };
+  if (!correct) return { ...state, entry, seq };
+  if (state.base?.kind === "blankTable" && state.base.activeBlank) {
+    const { row, field } = state.base.activeBlank;
+    const filled = [...state.base.filled.filter((f) => !(f.row === row && f.field === field)), { row, field, value: entry.value, by: "child" as const }];
+    return { ...state, entry: null, base: { ...state.base, filled, activeBlank: null }, seq };
+  }
+  const expansion = state.base?.kind === "expansion" ? state.base.expansion : state.base?.kind === "abacus" ? state.base.expansion : null;
+  if (expansion && /^\d+$/u.test(entry.value)) {
+    const index = expansion.parts.findIndex((part) => part === null);
+    if (index >= 0) {
+      const next = { ...expansion, parts: expansion.parts.map((part, i) => (i === index ? entry.value : part)), answered: expansion.parts.map((_, i) => (i === index ? entry.value : (expansion.answered?.[i] ?? null))) };
+      if (state.base?.kind === "expansion") return { ...state, entry: null, base: { ...state.base, expansion: next }, seq };
+      if (state.base?.kind === "abacus") return { ...state, entry: null, base: { ...state.base, expansion: next }, seq };
+    }
+  }
+  return { ...state, entry, seq };
 }
 
 /**
@@ -277,7 +332,7 @@ export function reduceStage(state: StageState, event: Pick<StoryboardEvent, "pri
       const shown = sameNumber ? previous.shown : digits.map((d) => (bare ? 0 : d));
       return withBase(
         state,
-        { kind: "abacus", digits, shown, animate: Boolean(args.animate), glowRods: [], childAnswer: null, expansion: null },
+        { kind: "abacus", digits, shown, animate: Boolean(args.animate), glowRods: [], childAnswer: null, answerRod: null, expansion: null },
         { text: "abacus" },
       );
     }
@@ -288,7 +343,7 @@ export function reduceStage(state: StageState, event: Pick<StoryboardEvent, "pri
       const shown = state.base.shown.map((n, i) => (i === rod ? Math.min(state.base!.kind === "abacus" ? state.base.digits[i]! : 9, n + count) : n));
       // Beads landing on a rod ARE the attention: the rod she is filling
       // glows, so the hundreds rod lights when she names it and fills it.
-      return { ...state, base: { ...state.base, shown, glowRods: [rod] }, pointer: { rod }, seq };
+      return { ...state, base: { ...withoutStaleRodAnswer(state.base, [rod]), shown, glowRods: [rod] }, pointer: { rod }, seq };
     }
     case "abacus.rod_glow": {
       if (state.base?.kind !== "abacus") return state;
@@ -296,15 +351,17 @@ export function reduceStage(state: StageState, event: Pick<StoryboardEvent, "pri
       // A group named in one sentence glows together; otherwise one glow only.
       const rods = Array.isArray(args.rods) && (args.rods as unknown[]).length ? asNumberArray(args.rods) : [rod];
       // One glow at a time: a chalk ring still on the board gives way to the rod's glow.
-      return { ...state, base: { ...state.base, glowRods: rods }, pointer: { rod: rods[0] ?? rod }, highlight: null, seq };
+      return { ...state, base: { ...withoutStaleRodAnswer(state.base, rods), glowRods: rods }, pointer: { rod: rods[0] ?? rod }, highlight: null, seq };
     }
     case "abacus.child_answer_overlay": {
       if (state.base?.kind !== "abacus") return state;
-      return { ...state, base: { ...state.base, childAnswer: String(args.text ?? "") }, seq };
+      // The answer belongs to the rod under discussion (the glow, else the pointer): it is drawn under that rod.
+      const answerRod = args.rod !== undefined && args.rod !== null ? Number(args.rod) : (state.base.glowRods[0] ?? (state.pointer && "rod" in state.pointer ? state.pointer.rod : null));
+      return { ...state, base: { ...state.base, childAnswer: String(args.text ?? ""), answerRod: answerRod ?? null }, seq };
     }
     case "abacus.clear_overlay": {
       if (state.base?.kind !== "abacus") return state;
-      return { ...state, base: { ...state.base, childAnswer: null }, seq };
+      return { ...state, base: { ...state.base, childAnswer: null, answerRod: null }, seq };
     }
     // --- place-value strip ---
     case "placeValueStrip.show": {
@@ -327,7 +384,8 @@ export function reduceStage(state: StageState, event: Pick<StoryboardEvent, "pri
       const number = Number(args.number);
       const parts = (Array.isArray(args.parts) ? args.parts : [null, null, null, null]).map((p) => (p === null || p === undefined ? null : String(p)));
       const expansion: ExpansionState = { number, parts, fly: null };
-      if (state.base?.kind === "abacus") return { ...state, base: { ...state.base, expansion }, notes: state.notes.filter((n) => /\d/u.test(n.text)), pointer: { number }, highlight: null, seq };
+      // The expansion is where the values are written from here on: a rod's answer still under the rods gives way to it.
+      if (state.base?.kind === "abacus") return { ...state, base: { ...state.base, childAnswer: null, answerRod: null, expansion }, notes: state.notes.filter((n) => /\d/u.test(n.text)), pointer: { number }, highlight: null, seq };
       return withBase(state, { kind: "expansion", expansion }, { number });
     }
     case "expansion.part_reveal": {
@@ -429,8 +487,12 @@ export function reduceStage(state: StageState, event: Pick<StoryboardEvent, "pri
     case "chalkText.erase":
       return { ...state, base: null, notes: [], highlight: null, pointer: null, wipe: state.wipe + 1, seq };
     // --- pointer / highlight ---
-    case "pointer.move_to":
-      return { ...state, pointer: (args.target as Target) ?? null, seq };
+    case "pointer.move_to": {
+      const target = (args.target as Target) ?? null;
+      // The hand moving to another rod, or to the whole number, takes the last rod's answer off the board.
+      const base = state.base?.kind === "abacus" && target && ("rod" in target || "number" in target) ? withoutStaleRodAnswer(state.base, "rod" in target ? [target.rod] : null) : state.base;
+      return { ...state, base, pointer: target, seq };
+    }
     case "pointer.pulse":
       return { ...state, pointerPulse: state.pointerPulse + 1, seq };
     case "pointer.hide":
@@ -439,7 +501,8 @@ export function reduceStage(state: StageState, event: Pick<StoryboardEvent, "pri
     case "highlight.underline": {
       const target = (args.target as Target) ?? null;
       // One glow at a time: a saffron ring on the board takes the rods' glow with it.
-      const base = target && state.base?.kind === "abacus" && state.base.glowRods.length ? { ...state.base, glowRods: [] } : state.base;
+      // A ring is about the whole number: no rod is under discussion, so no rod's answer stays (one value at a time).
+      const base = target && state.base?.kind === "abacus" ? { ...withoutStaleRodAnswer(state.base, null), glowRods: [] } : state.base;
       return { ...state, base, highlight: target ? { kind: event.event as "circle" | "underline", target } : null, pointer: target ?? state.pointer, seq };
     }
     case "highlight.off":
@@ -483,7 +546,7 @@ export function reduceStage(state: StageState, event: Pick<StoryboardEvent, "pri
       const cell = { row: Number(args.row), field: String(args.field) };
       // The hand rests on the row's number (M10, G13: "pointer on 6572").
       const numberCell = { row: cell.row, field: state.base.columns[0]?.key ?? cell.field };
-      return { ...state, base: { ...state.base, activeBlank: cell }, pointer: { cell: numberCell }, seq };
+      return { ...state, base: { ...state.base, activeBlank: cell }, pointer: { cell: numberCell }, entry: null, seq };
     }
     case "blankTable.cell_fill": {
       if (state.base?.kind !== "blankTable") return state;
@@ -509,19 +572,19 @@ export function reduceStage(state: StageState, event: Pick<StoryboardEvent, "pri
       const answerMode = String(args.answerMode) as AnswerMode;
       // The child's turn: her term labels beside the surface step aside (M7, S2 show the abacus without "ගණක රාමුව"); a sum stays.
       const notes = state.notes.filter((n) => /\d/u.test(n.text));
-      return { ...state, turn: { answerMode, surface: String(args.surface) as TurnSurface }, pause: null, retry: false, notes, seq };
+      // A new question starts clean: the last entry leaves, and so does the answer under the last rod asked.
+      const base = state.base?.kind === "abacus" ? withoutStaleRodAnswer(state.base, null) : state.base;
+      return { ...state, base, turn: { answerMode, surface: String(args.surface) as TurnSurface }, pause: null, retry: false, entry: null, notes, seq };
     }
     case "turn.over":
+      // The window closing on a tap keeps the chips up: the tapped one is the child's entry, and it is about to be marked ✓ or wobble.
+      if (state.entry?.verdict === "pending") return { ...state, turn: null, pause: null, retry: false, seq };
       return state.turn || state.chips || state.pause || state.retry ? { ...state, turn: null, chips: null, pause: null, retry: false, seq } : state;
     case "turn.retry":
       return { ...state, retry: true, turn: null, seq };
     case "turn.pause":
       // A soft check: she pauses for the child to chime in. Nothing is drawn — the pause is time, not a cue.
       return { ...state, pause: { ms: Number(args.ms ?? 0) }, turn: null, chips: null, seq };
-    case "turn.read_back":
-      // After the judged chip, Zara reads the number back herself (composed audio, the name in the caption).
-      // The board does not change: the row she is reading stays exactly as it was, ring and all.
-      return state.pause ? { ...state, pause: null, seq } : state;
     default:
       return state;
   }

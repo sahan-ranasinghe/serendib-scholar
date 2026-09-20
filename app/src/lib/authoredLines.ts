@@ -55,8 +55,6 @@ export const AUTHORED_LINES = {
   confirmHeard: "ඔයා කිව්වේ {value} නේද?",
 
   // --- the touch-only answer path ------------------------------------------
-  /** Read-aloud: after the child's chip is judged right, Zara reads the number herself — this frame, then the composed number. */
-  readBack: "මම කියන්නම් —",
   /**
    * MODE 2 alternation: the cell (or the rod) Zara takes herself. Said with the
    * pointer on the cell, before the fill, so a tutor turn never appears out of

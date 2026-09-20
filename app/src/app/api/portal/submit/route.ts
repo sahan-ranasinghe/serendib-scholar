@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { paidCallAllowed } from "@/lib/paidCalls";
 import { readFile } from "node:fs/promises";
 import { GoogleGenAI } from "@google/genai";
 import { parseAuthoredScript } from "@/lib/authoredScript";
@@ -47,6 +48,8 @@ export const runtime = "nodejs";
 export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
+  // "Say it your way" transcribes and checks a take with a model: a paid call, off unless PORTAL_TRANSCRIBE=on.
+  if (!paidCallAllowed("portalTranscribe")) return NextResponse.json({ ok: false, error: "Checking a re-worded take is switched off (PORTAL_TRANSCRIBE is not on). Record the line as written." }, { status: 503 });
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return NextResponse.json({ ok: false, error: "GEMINI_API_KEY is not set." }, { status: 500 });
 

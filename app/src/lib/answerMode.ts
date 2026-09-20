@@ -29,7 +29,7 @@ export const TOUCH_SURFACE: Record<AnswerMode, string> = {
   cell: "tap the cell + pad",
   valueOrPlace: "tap the rod or column, or 3 chips",
   why: "3 chips from the start",
-  readAloud: "listen-and-repeat pause, Zara's read-back, then 3 name-chips",
+  readAloud: "3 name-chips with the question — judged on the tap, feedback at once (no invitation, no read-back)",
 };
 
 /** Which modes are JUDGED by speech: none — speech is practice (readAloud's pause) or the ✋ chat, never an answer. */

@@ -163,12 +163,20 @@
   gap: 10px;
   box-sizing: border-box;
 }
+/* NOTHING OVERLAPS (18 Sep 2026): the caption is measured (--wb-cap, 0 with none). A caption that wraps to a second
+   line lifts the foot (chips, dock) clear of it, and the content inset clear of both — the design's numbers are the floor. */
+.wb-frame {
+  --wb-foot-bottom: max(64px, calc(26px + var(--wb-cap, 0px) + 6px));
+}
+.wb-content {
+  bottom: max(42px, calc(var(--wb-cap, 0px) + 10px)); /* 64 from the frame with the design's one-line caption */
+}
 .wb-frame[data-foot="chips"] .wb-content {
   /* 124 from the frame with the design's 56 px chips; taller chips (long names wrapping inside their pills) push the inset up with them */
-  bottom: max(102px, calc(var(--wb-foot, 60px) + 42px));
+  bottom: max(102px, calc(var(--wb-foot-bottom) - 22px + var(--wb-foot, 60px)));
 }
 .wb-frame[data-foot="dock"] .wb-content {
-  bottom: 168px; /* 190 from the frame */
+  bottom: max(168px, calc(var(--wb-foot-bottom) - 22px + 126px)); /* 190 from the frame */
   justify-content: flex-start;
 }
 
@@ -177,7 +185,7 @@
   position: absolute;
   left: 94px;
   right: 130px;
-  bottom: 64px;
+  bottom: var(--wb-foot-bottom, 64px);
   display: flex;
   justify-content: center;
   gap: 10px;
@@ -195,7 +203,7 @@
   position: absolute;
   left: 94px;
   right: 130px;
-  bottom: 64px;
+  bottom: var(--wb-foot-bottom, 64px);
   display: flex;
   justify-content: flex-start;
   align-items: flex-end;
@@ -388,4 +396,155 @@
 
 @media (prefers-reduced-motion: reduce) {
   .wb-glow { animation: none; box-shadow: var(--shadow-glow); }
+}
+
+/* ---- the ✋ chat: a compact panel BESIDE the board, never over it (18 Sep 2026) --------------------------------------
+   The board keeps the whole of its own box — it reflows into the room the panel leaves, fully visible and undimmed.
+   Landscape: a side column, at most a third of the width. Portrait: a sheet beneath the board, at most a third of the height. */
+.session-main {
+  display: flex;
+  flex-direction: row;
+}
+.session-board {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+}
+.chat-panel,
+.chat-panel * {
+  box-sizing: border-box;
+}
+.chat-panel {
+  flex: none;
+  width: clamp(200px, 30%, 280px);
+  max-width: 33.3%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 10px 12px;
+  background: var(--color-paper);
+  border-left: 3px solid var(--color-wood-dark);
+  box-shadow: -6px 0 14px rgba(27, 27, 27, 0.12);
+  z-index: 22;
+  overflow: hidden;
+}
+@media (orientation: portrait) {
+  .session-main {
+    flex-direction: column;
+  }
+  .chat-panel {
+    width: 100%;
+    max-width: none;
+    max-height: 33.3%;
+    border-left: 0;
+    border-top: 3px solid var(--color-wood-dark);
+    box-shadow: 0 -6px 14px rgba(27, 27, 27, 0.12);
+  }
+}
+.chat-panel-head {
+  display: grid;
+  grid-template-columns: 60px 1fr 48px;
+  grid-template-areas: "zara . close" "pill pill pill";
+  align-items: center;
+  gap: 6px 8px;
+  flex: none;
+}
+/* Zara small: the 40 px portrait and its halo sit inside a 60 px cell, so nothing of her spills onto the pill */
+.chat-panel-zara {
+  grid-area: zara;
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.chat-panel-close {
+  grid-area: close;
+}
+.chat-panel-pill {
+  grid-area: pill;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: var(--color-coral-soft);
+  font: 600 16px/1.4 var(--font-label);
+  color: var(--color-coral-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.chat-panel-dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--color-coral);
+}
+.chat-panel-close {
+  flex: none;
+  width: 48px;
+  height: 48px;
+  border: 2px solid var(--color-ink-18);
+  border-radius: 50%;
+  background: var(--color-paper);
+  box-shadow: 0 2px 0 #d8d1c2;
+  font: 700 20px/1 var(--font-latin);
+  color: var(--color-ink);
+  cursor: pointer;
+}
+.chat-panel-lines {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+}
+.chat-line {
+  padding: 6px 12px;
+  font: 400 18px/1.5 var(--font-body);
+  color: var(--color-ink);
+  overflow-wrap: anywhere;
+}
+.chat-line-child {
+  align-self: flex-end;
+  max-width: 92%;
+  border-radius: 14px 14px 4px 14px;
+  background: var(--color-success-soft);
+}
+.chat-line-zara {
+  align-self: flex-start;
+  max-width: 96%;
+  border-radius: 14px 14px 14px 4px;
+  background: var(--color-card);
+}
+/* the chat's door: the bot, with the ✋ it answers to */
+.wb-hand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.wb-hand[data-open] {
+  border-color: var(--color-teal);
+  background: var(--color-saffron-soft, #fbefd3);
+}
+.wb-hand-badge {
+  position: absolute;
+  right: -4px;
+  top: -6px;
+  font-size: 18px;
+  line-height: 1;
+}
+
+/* the fitted content scales about its centre — about its top edge while a dock is up (the content top-aligns then) */
+.wb-fit {
+  transform-origin: center;
+}
+.wb-frame[data-foot="dock"] .wb-fit {
+  transform-origin: top center;
 }

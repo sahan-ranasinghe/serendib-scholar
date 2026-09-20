@@ -53,6 +53,8 @@ const DRILLS = process.argv.includes("--drills");
 const OTP_ONLY = process.argv.includes("--otp-only");
 /** --wrong=readWrite4Digit:8 — answer that question wrongly every time it is asked, to walk the retry ladder. */
 const WRONG_BEAT = arg("wrong") ? `authored:${arg("wrong")!.replace(/^authored:/u, "")}` : null;
+/** --from=<beat>: a partial run for one stretch of the lesson (DEV_MODE's jump) — the completion and mastery checks do not apply to it. */
+const FROM_BEAT = arg("from") ? `authored:${arg("from")!.replace(/^authored:/u, "")}` : null;
 const RUN_TAG = arg("tag") ?? `${VIEW_W}x${VIEW_H}-${SCHEME}${REDUCED_MOTION ? "-reduced" : ""}`;
 const OUT_DIR = path.join(process.cwd(), ".board-check", "session-1", RUN_TAG);
 const ACCESS_CODE = process.env.ACCESS_CODE ?? process.env.VERIFY_ACCESS_CODE ?? "";
@@ -485,8 +487,10 @@ async function main(): Promise<void> {
     leakAtChips: boolean;
     cue: boolean;
     steps: boolean;
-    readBackAt: number | null;
-    readBack: string;
+    /** Every caption seen between the tap and the feedback line — none may be a read-back ("… කියන්නම්"). */
+    captionsAfterTap: string[];
+    /** Tap → her feedback line starting (its clip, or its caption when there is no clip), on the page's clock. */
+    spokenMs: number | null;
   }
   const practice = new Map<string, PracticeRecord>();
   /**
@@ -594,6 +598,19 @@ async function main(): Promise<void> {
   const practiceLog: string[] = [];
   /** Tap-to-feedback latencies, from the page's own clock (submitTypedAnswer → fireFeedback). */
   const latencies: number[] = [];
+  type Entered = { value: string; surface: string; beatId?: string; enteredAt: number; judgeAt: number | null; renderedBeforeJudge: boolean | null };
+  const inputTrace: Entered[] = [];
+  /** Tap → her feedback LINE starting (clip or caption), for the read-aloud answers the drill follows. */
+  const answerPathSpoken: number[] = [];
+  /** NOTHING OVERLAPS: every beat the session shows is put to the board's own layout probe (window.__boardLayout). */
+  const overlapFindings: string[] = [];
+  let overlapFrames = 0;
+  /** The abacus rod run (placeValue4Digit:43–52): what is written under the rods at each beat — one value at a time. */
+  const rodRun: string[] = [];
+  let rodRunBad = 0;
+  let inputNotShown = 0;
+  let chatPanel: { coverage: number; share: number; dimmed: boolean; portrait: number; boardOk: boolean } | null = null;
+  let paidCallCount = 0;
   const asksOf = new Map<string, number>();
   /** Open builds per hand (digits → how many times built), so each build is a different permutation. */
   const handBuilds = new Map<string, number>();
@@ -721,7 +738,7 @@ async function main(): Promise<void> {
         if (url.includes("/api/gemini-session")) held.push(id);
         else void page.send("Fetch.continueRequest", { requestId: id }).catch(() => undefined);
       });
-      await tapSelector('[aria-label="Zara එක්ක කතා කරන්න"]');
+      await tapSelector('[data-testid="hand"]');
       // First the P1 sheet: the board dims, Zara (160 px) explains; the browser's prompt waits for "හරි, අවසර දෙන්න".
       let explained = "";
       let asked = false;
@@ -750,14 +767,31 @@ async function main(): Promise<void> {
         after = await evaluate<number>(page, `window.__gumCalls ?? 0`);
       }
       await wait(800);
-      const sheet = await evaluate<{ up: boolean; portrait: number; lines: number; dimmed: boolean }>(page, `(() => { const s = document.querySelector('[data-testid="chat-sheet"]'); const p = s && s.querySelector('.zara-portrait'); return { up: !!s, portrait: p ? Math.round(p.getBoundingClientRect().width) : 0, lines: s ? s.querySelectorAll('[data-testid^="chat-line-"]').length : 0, dimmed: !!(s && s.querySelector('[data-testid="board-dim"]')) }; })()`);
+      // THE CHAT PANEL (18 Sep): it never covers or dims the board. Measured here, in the real session: how much of the
+      // board the panel covers (0 %), that nothing dims the board, Zara small, the transcript, the close button, and the
+      // bot button still there to close it with — and the board's own layout still clean beside the panel.
+      const sheet = await evaluate<{ up: boolean; portrait: number; lines: number; dimmed: boolean; coverage: number; share: number; bot: boolean; close: boolean; boardOk: boolean; veil: number }>(page, `(() => {
+        const s = document.querySelector('[data-testid="chat-sheet"]');
+        const board = document.querySelector('[data-board-root]');
+        const main = document.querySelector('[data-testid="session-main"]');
+        if (!s || !board || !main) return { up: !!s, portrait: 0, lines: 0, dimmed: false, coverage: 100, share: 100, bot: false, close: false, boardOk: false, veil: 0 };
+        const p = s.querySelector('.zara-portrait');
+        const a = s.getBoundingClientRect(), b = board.getBoundingClientRect(), m = main.getBoundingClientRect();
+        const w = Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left)), h = Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top));
+        const landscape = m.width >= m.height;
+        const hand = document.querySelector('[data-testid="hand"]');
+        const report = window.__boardLayout ? window.__boardLayout()[0] : null;
+        return { up: true, portrait: p ? Math.round(p.getBoundingClientRect().width) : 0, lines: s.querySelectorAll('[data-testid^="chat-line-"]').length, dimmed: !!document.querySelector('[data-testid="board-dim"]'), coverage: Math.round((w * h) / (b.width * b.height) * 1000) / 10, share: Math.round((landscape ? a.width / m.width : a.height / m.height) * 1000) / 10, bot: !!hand && hand.getBoundingClientRect().width >= 48, close: !!s.querySelector('[data-testid="chat-return"]'), boardOk: !!report && report.ok, veil: Number(getComputedStyle(board).opacity) };
+      })()`);
+      chatPanel = sheet;
       await shoot(snap.beatId, "-drill-first-hand");
-      const returned = await tapSelector('[data-testid="chat-return"]');
+      // The bot button closes it again — the child comes and goes freely.
+      const returned = await tapSelector('[data-testid="hand"]');
       await wait(1200);
       for (const id of held) await page.send("Fetch.failRequest", { requestId: id, errorReason: "Aborted" }).catch(() => undefined);
       await page.send("Fetch.disable");
       const status = (await snapshot()).status;
-      drillNote("first ✋ asks for the microphone", before === 0 && micAsk.up && micAsk.portrait >= 150 && micAsk.dimmed && micAsk.buttons === 2 && gumBeforeAllow === 0 && after === 1 && sheet.up && sheet.portrait >= 150 && sheet.lines === 2 && sheet.dimmed && returned && status !== "chatting", `getUserMedia calls before ✋: ${before} · P1 sheet ${micAsk.up ? "up" : "MISSING"} (Zara ${micAsk.portrait} px, dimmed ${micAsk.dimmed ? "yes" : "NO"}, ${micAsk.buttons} buttons, "${micAsk.title.trim().slice(0, 30)}") · calls before හරි: ${gumBeforeAllow} · after: ${after}${explained ? ` · her explanation: "${explained.slice(0, 40)}"` : ""} · chat sheet over the dimmed board ${sheet.up ? "up" : "MISSING"} (Zara ${sheet.portrait} px, ${sheet.lines} transcript lines) · පාඩමට ආයෙත් ${returned ? "tapped" : "MISSING"} → ${status}`);
+      drillNote("first ✋ asks for the microphone; the chat is a panel beside the board", before === 0 && micAsk.up && micAsk.portrait >= 150 && micAsk.dimmed && micAsk.buttons === 2 && gumBeforeAllow === 0 && after === 1 && sheet.up && sheet.portrait > 0 && sheet.portrait <= 64 && sheet.lines === 2 && !sheet.dimmed && sheet.coverage === 0 && sheet.share <= 33.4 && sheet.bot && sheet.close && sheet.veil === 1 && returned && status !== "chatting", `getUserMedia calls before ✋: ${before} · P1 sheet ${micAsk.up ? "up" : "MISSING"} (Zara ${micAsk.portrait} px, dimmed ${micAsk.dimmed ? "yes" : "NO"}, ${micAsk.buttons} buttons, "${micAsk.title.trim().slice(0, 30)}") · calls before හරි: ${gumBeforeAllow} · after: ${after}${explained ? ` · her explanation: "${explained.slice(0, 40)}"` : ""} · chat panel ${sheet.up ? "up" : "MISSING"}: covers ${sheet.coverage} % of the board, takes ${sheet.share} % of the screen's long side, board dimmed ${sheet.dimmed ? "YES" : "no"} (opacity ${sheet.veil}), Zara ${sheet.portrait} px, ${sheet.lines} transcript lines, close button ${sheet.close ? "yes" : "NO"}, bot button ${sheet.bot ? "still there" : "GONE"}, board layout beside it ${sheet.boardOk ? "clean" : "HAS OVERLAPS"} · bot tapped to close ${returned ? "yes" : "NO"} → ${status}`);
     }
     // 3b. Zara is not a control: ten taps on her portrait change nothing and
     // start no audio. And three rapid ↺ taps ask ONCE; cancelling changes nothing.
@@ -975,6 +1009,14 @@ async function main(): Promise<void> {
   console.log(`build under test: page ${buildSeen.page} · server ${buildSeen.server}${buildSeen.page === buildSeen.server ? "" : " — MISMATCH (a stale page)"}`);
   console.log(`session-1 run: ${BASE} · mobile ${VIEW_W}×${VIEW_H} ${SCHEME} · up to ${MAX_MINUTES} min`);
   let done = false;
+  if (FROM_BEAT) {
+    let jumped = false;
+    for (let i = 0; i < 80 && !jumped; i += 1) {
+      jumped = await evaluate<boolean>(page, `(() => { const d = window.__dev; if (!d || !d.jump || !document.querySelector('.lesson-screen')) return false; d.jump(0, ${JSON.stringify(FROM_BEAT)}); return true; })()`).catch(() => false);
+      if (!jumped) await wait(250);
+    }
+    console.log(`  --from: ${jumped ? `jumped to ${FROM_BEAT}` : "window.__dev.jump is not installed (DEV_MODE off?) — running from the start"}`);
+  }
   while (Date.now() - started < MAX_MINUTES * 60_000) {
     const snap = await snapshot();
     if (snap.beatId !== lastBeat && snap.beatId !== "—") {
@@ -984,6 +1026,20 @@ async function main(): Promise<void> {
       await shoot(snap.beatId);
       const audit = await evaluate<Audit>(page, AUDIT_JS);
       audits.push({ beatId: snap.beatId, audit });
+      {
+        type Probe = { textOverlaps: Array<{ a: string; b: string; area: number }>; marks: Array<{ kind: string; insideTarget: number; hits: string[] }>; pointer: { hits: string[] }; ok: boolean };
+        const probe = (await evaluate<Probe[]>(page, `window.__boardLayout ? window.__boardLayout() : []`).catch(() => []))[0];
+        if (probe) {
+          overlapFrames += 1;
+          if (!probe.ok) overlapFindings.push(`${snap.beatId.replace(/^authored:/u, "")}: ${[...probe.textOverlaps.map((o) => `"${o.a}" ∩ "${o.b}"`), ...probe.marks.filter((m) => m.insideTarget || m.hits.length).map((m) => `${m.kind}${m.insideTarget ? " crosses its target" : ""}${m.hits.length ? ` over ${m.hits.join(", ")}` : ""}`), ...(probe.pointer.hits.length ? [`pointer over ${probe.pointer.hits.join(", ")}`] : [])].join(" · ")}`);
+        }
+        if (/placeValue4Digit:(4[3-9]|5[0-2])(:|$)/u.test(snap.beatId)) {
+          const rods = await evaluate<{ values: Array<{ text: string; rod: string | null }>; glow: string }>(page, `(() => ({ values: [...document.querySelectorAll('[data-testid="abacus-child-answer"]')].map((el) => ({ text: el.querySelector('[data-readable]')?.getAttribute('data-readable') ?? (el.textContent ?? '').trim(), rod: el.getAttribute('data-rod') })), glow: document.querySelector('[data-rods-discussed]')?.getAttribute('data-rods-discussed') ?? '' }))()`).catch(() => ({ values: [], glow: "" }));
+          const ok = rods.values.length <= 1 && rods.values.every((v) => !rods.glow || v.rod === null || rods.glow.split(",").includes(v.rod));
+          if (!ok) rodRunBad += 1;
+          rodRun.push(`${snap.beatId.replace(/^authored:/u, "").padEnd(28)} rod under discussion: ${(rods.glow || "—").padEnd(4)} values on the abacus: ${rods.values.length ? rods.values.map((v) => `"${v.text}" under rod ${v.rod ?? "—"}`).join(", ") : "none"}${ok ? "" : "   ✗ STALE"}`);
+        }
+      }
       if (fpsSamples.length < 6 && /placeValue4Digit:(39|41|57)|readWrite4Digit:(1|12|22)$/u.test(snap.beatId)) {
         fpsSamples.push({ beatId: snap.beatId, fps: await sampleFps() });
       }
@@ -1022,7 +1078,7 @@ async function main(): Promise<void> {
       if (expectedById.get(snap.beatId)?.answerMode === "readAloud" && !practiceSeen.has(snap.beatId)) {
         practiceSeen.add(snap.beatId);
         const look = await practiceLook(expectedById.get(snap.beatId)?.expectedAnswer ?? "");
-        practice.set(snap.beatId, { chipsAt: Date.now(), rowAtChips: look.row, ringAtChips: look.ring, leakAtChips: look.leak, cue: look.cue, steps: look.steps, readBackAt: null, readBack: "" });
+        practice.set(snap.beatId, { chipsAt: Date.now(), rowAtChips: look.row, ringAtChips: look.ring, leakAtChips: look.leak, cue: look.cue, steps: look.steps, captionsAfterTap: [], spokenMs: null });
         await shoot(snap.beatId, "-read-aloud-chips");
       }
       const record = practice.get(snap.beatId);
@@ -1070,28 +1126,33 @@ async function main(): Promise<void> {
       } else {
         await answer(snap);
       }
-      if (record && record.readBackAt === null) {
-        // Her read-back, only after the judge: its text reaches the caption as it plays.
-        const name = expectedById.get(snap.beatId)?.expectedAnswer ?? "";
-        for (let i = 0; i < 60 && record.readBackAt === null; i += 1) {
-          await wait(150);
-          const caption = await evaluate<string>(page, `(document.querySelector('[data-testid="caption"]')?.textContent ?? '').trim()`).catch(() => "");
-          if (caption.includes("මම කියන්නම්") || (name && caption.replace(/\s+/gu, "").includes(name.replace(/\s+/gu, "")))) {
-            record.readBackAt = Date.now();
-            record.readBack = caption;
-          }
+      if (record && record.spokenMs === null) {
+        // THE ANSWER PATH (18 Sep): a tap is judged, the feedback plays, the lesson continues. No read-back beat, no frame
+        // line, no composed number — so from the tap to her feedback line no caption may say "… කියන්නම්", no beat may be a
+        // :readback, and the feedback line itself starts at once.
+        let sawReadBackBeat = false;
+        for (let i = 0; i < 40 && record.spokenMs === null; i += 1) {
+          await wait(100);
+          const seen = await evaluate<{ caption: string; beatId: string; spoken: number | null }>(page, `(() => { const t = window.__lastTapAt, l = window.__lastLineStart; const el = document.querySelector('.lesson-screen'); return { caption: (document.querySelector('[data-testid="caption"]')?.textContent ?? '').trim(), beatId: el?.dataset.beatId ?? '', spoken: t && l && l.at >= t && /:feedback|:miss/.test(l.beatId) ? Math.round(l.at - t) : null }; })()`).catch(() => ({ caption: "", beatId: "", spoken: null }));
+          if (seen.caption && !record.captionsAfterTap.includes(seen.caption)) record.captionsAfterTap.push(seen.caption);
+          if (/:readback$/u.test(seen.beatId)) sawReadBackBeat = true;
+          if (seen.spoken !== null) record.spokenMs = seen.spoken;
         }
-        await shoot(snap.beatId, "-read-aloud-readback");
+        await shoot(snap.beatId, "-read-aloud-after-tap");
         const r = record;
-        const order = r.readBackAt !== null && r.chipsAt < r.readBackAt;
-        const line = `${shortTurn}: chips@0 s (row ${r.rowAtChips ? "on screen" : "MISSING"}, ring ${r.ringAtChips ? "yes" : "no"}, answer ${r.leakAtChips ? "VISIBLE" : "hidden"}, 🎤 cue ${r.cue ? "STILL THERE" : "gone"}, step cards ${r.steps ? "STILL THERE" : "gone"}) → readBack@${r.readBackAt ? ((r.readBackAt - r.chipsAt) / 1000).toFixed(1) : "?"} s ("${r.readBack.slice(0, 36)}")`;
+        const readBackCaption = r.captionsAfterTap.find((c) => c.includes("කියන්නම්")) ?? null;
+        const line = `${shortTurn}: chips@0 s (row ${r.rowAtChips ? "on screen" : "MISSING"}, ring ${r.ringAtChips ? "yes" : "no"}, answer ${r.leakAtChips ? "VISIBLE" : "hidden"}, 🎤 cue ${r.cue ? "STILL THERE" : "gone"}, step cards ${r.steps ? "STILL THERE" : "gone"}) → tap → her feedback line ${r.spokenMs === null ? "NOT SEEN in 4 s" : `+${r.spokenMs} ms`} · read-back beat ${sawReadBackBeat ? "STILL THERE" : "none"} · "කියන්නම්" caption ${readBackCaption ? `STILL THERE ("${readBackCaption.slice(0, 30)}")` : "none"}`;
         practiceLog.push(line);
+        answerPathSpoken.push(...(r.spokenMs === null ? [] : [r.spokenMs]));
         console.log(`      📖 read-aloud ${line}`);
-        if (DRILLS) drillNote(`read-aloud ${shortTurn}: chips are the question · no invite · answer hidden until judged · read-back after`, order && !r.cue && !r.steps && r.rowAtChips && !r.leakAtChips, line);
+        if (DRILLS) drillNote(`read-aloud ${shortTurn}: chips are the question · no invite · answer hidden until judged · NO read-back, feedback at once`, !sawReadBackBeat && !readBackCaption && r.spokenMs !== null && !r.cue && !r.steps && r.rowAtChips && !r.leakAtChips, line);
       }
       for (let i = 0; i < 20; i += 1) {
         const ms = await evaluate<number | null>(page, `(() => { const t = window.__lastTapAt, f = window.__lastFeedbackAt; return t && f && f >= t ? Math.round(f - t) : null; })()`);
         if (ms !== null) {
+          // The input trace is collected as it is made: later drills reload the page, and window state goes with it.
+          const entered = (await evaluate<Entered[]>(page, `(() => { const t = window.__inputTrace ?? []; window.__inputTrace = []; return t; })()`).catch(() => [])) ?? [];
+          inputTrace.push(...entered);
           latencies.push(ms);
           await evaluate(page, `window.__lastTapAt = undefined; true`);
           break;
@@ -1111,23 +1172,32 @@ async function main(): Promise<void> {
       // A known clip (DEV_MODE): four seconds of tone at three loudnesses then silence, through the same player and analyser as her voice.
       const fed = await evaluate<boolean>(page, `(() => { const d = window.__dev; if (!d || !d.playTestClip) return false; d.playTestClip(); return true; })()`).catch(() => false);
       if (!fed) console.log("      (lip sync: window.__dev.playTestClip is not available — is DEV_MODE on?)");
-      // Frames are stamped with their time: the clip is 3 s of tone then 1 s of silence, so "closed at the end" is judged on the clip's own silent second (4.2–4.9 s), not on whatever her next line plays afterwards.
-      const frames = await evaluate<Array<{ t: number; m: string }>>(page, `new Promise((resolve) => { const seen = []; const start = performance.now(); const tick = () => { const m = document.querySelector('[data-mouth]')?.getAttribute('data-mouth') ?? 'none'; seen.push({ t: performance.now() - start, m }); if (performance.now() - start < 5000) requestAnimationFrame(tick); else resolve(seen); }; tick(); })`).catch(() => []);
+      // The tone waits for her line to end and holds the floor (window.__testClip says when it played): frames are sampled
+      // until it is done, and ONLY the tone's own four seconds are judged — three seconds of tone (loud, medium, soft), then
+      // its silent second, where the mouth must close for a run of ≥ 15 frames (a quarter second).
+      const sampled = await evaluate<{ frames: Array<{ t: number; m: string }>; startedAt: number | null }>(page, `new Promise((resolve) => { const seen = []; const begin = performance.now(); const tick = () => { const now = performance.now(); const m = document.querySelector('[data-mouth]')?.getAttribute('data-mouth') ?? 'none'; seen.push({ t: now, m }); const c = window.__testClip; if ((c && c.state === 'done') || now - begin > 20000) resolve({ frames: seen, startedAt: c && c.startedAt ? c.startedAt : null }); else requestAnimationFrame(tick); }; requestAnimationFrame(tick); })`);
+      const t0 = sampled.startedAt ?? sampled.frames[0]?.t ?? 0;
+      const frames = sampled.frames.filter((f) => f.t >= t0).map((f) => ({ t: f.t - t0, m: f.m }));
       const states = frames.map((f) => f.m);
       const distinct = [...new Set(states)];
-      const audible = distinct.filter((m) => m !== "closed" && m !== "0" && m !== "none");
-      // The tone's three bands come loud → medium → soft; the clip's own silent second follows the soft band, so after the
-      // LAST soft frame there must be a run of closed frames (≥ 15 ≈ a quarter second) before anything else she says.
-      const lastSoft = states.lastIndexOf("1");
-      const afterSoft = lastSoft >= 0 ? states.slice(lastSoft + 1) : [];
+      const audible = [...new Set(frames.filter((f) => f.t < 3000).map((f) => f.m))].filter((m) => m !== "closed" && m !== "0" && m !== "none");
       let closedRun = 0;
       let bestRun = 0;
-      for (const m of afterSoft) {
-        closedRun = m === "closed" || m === "0" ? closedRun + 1 : 0;
+      for (const f of frames.filter((frame) => frame.t >= 3000 && frame.t <= 4200)) {
+        closedRun = f.m === "closed" || f.m === "0" ? closedRun + 1 : 0;
         bestRun = Math.max(bestRun, closedRun);
       }
-      const closesAfter = bestRun >= 15;
-      mouthTrace = `${states.length} frames over 5 s · states ${distinct.join(",")} · open shapes ${audible.length} · closed after the clip ${closesAfter ? "yes" : "no"} (longest closed run after the soft band ${bestRun} frames)`;
+      const closesAfter = sampled.startedAt !== null && bestRun >= 15;
+      // The timeline, run-length encoded with times, so a failure can be read: "closed 0.0–0.4 · 3 0.4–1.1 · …".
+      const runs: string[] = [];
+      for (let i = 0, from = 0; i <= frames.length; i += 1) {
+        if (i === frames.length || frames[i]!.m !== frames[from]!.m) {
+          if (i > from) runs.push(`${frames[from]!.m} ${(frames[from]!.t / 1000).toFixed(1)}–${(frames[i - 1]!.t / 1000).toFixed(1)}`);
+          from = i;
+        }
+      }
+      console.log(`      👄 mouth timeline: ${runs.join(" · ").slice(0, 600)}`);
+      mouthTrace = `${states.length} frames over the tone's own window${sampled.startedAt === null ? " (THE TONE NEVER PLAYED)" : ""} · states ${distinct.join(",")} · open shapes during the tone ${audible.length} · closed in its silent second ${closesAfter ? "yes" : "no"} (longest closed run ${bestRun} frames)`;
       if (DRILLS) drillNote("lip sync: three open mouth shapes from the clip's amplitude, closed on silence", audible.length >= 3 && closesAfter, mouthTrace);
     }
     // Item 8: tofu — no U+FFFD or missing glyph anywhere the child reads.
@@ -1160,6 +1230,19 @@ async function main(): Promise<void> {
   }
 
   const log = (await evaluate<ChoreoLogEntry[]>(page, `window.__choreoLog ?? []`)) ?? [];
+
+  // The sitting's own CLOSE_SESSION row, read NOW — before the cluster A drills below restart the session (which removes
+  // its session_log rows, the close row with them; read after that, the full-completion drill could only ever see "(none)").
+  // The close row is written after the close line has been said (read on the board, that is ~8 s): poll for it.
+  let closeAtEnd: { reason: string; minutes: number | string } = { reason: "(none)", minutes: "—" };
+  if (DRILLS && childA) {
+    for (let i = 0; i < 60 && closeAtEnd.reason === "(none)"; i += 1) {
+      await wait(500);
+      const { data: closeRows } = await supabaseAdmin.from("session_log").select("beat_type, planner_decision, started_at").eq("child_id", childA).eq("beat_type", "CLOSE_SESSION").order("started_at", { ascending: false }).limit(1);
+      const decision = (closeRows ?? [])[0]?.planner_decision as { reason?: string; minutesToday?: number } | undefined;
+      if (decision?.reason) closeAtEnd = { reason: decision.reason, minutes: decision.minutesToday ?? "—" };
+    }
+  }
 
   // ---- Cluster A / G regression assertions (after the sitting) ---------------------
   let restartTrace = "not run";
@@ -1321,6 +1404,33 @@ async function main(): Promise<void> {
     const sorted = [...latencies].sort((a, b) => a - b);
     const median = sorted.length ? sorted[Math.floor(sorted.length / 2)]! : null;
     console.log(`\nvoice on the lesson path: /api/hear calls ${hear} · /api/planner calls ${planner} · getUserMedia calls ${gum} (${DRILLS ? "1 expected, from the ✋ drill" : "0 expected"})`);
+    // ---- the answer flow, the input surfaces, the rod run, the overlap probe, the paid calls (18 Sep 2026) -------------
+    const spoken = [...answerPathSpoken].sort((a, b) => a - b);
+    console.log(`tap → her feedback LINE starting (read-aloud answers followed by the drill): ${spoken.length ? `median ${spoken[Math.floor(spoken.length / 2)]} ms, max ${spoken[spoken.length - 1]} ms over ${spoken.length}` : "n/a"}`);
+    if (!inputTrace.length) console.log("  FAIL  no entered value was traced");
+    const bySurface = new Map<string, Entered[]>();
+    for (const entry of inputTrace) bySurface.set(entry.surface, [...(bySurface.get(entry.surface) ?? []), entry]);
+    console.log(`\ninput shown BEFORE it is judged (every entered value; the DOM is read as the judge begins):`);
+    for (const [surface, entries] of bySurface) {
+      const shown = entries.filter((e) => e.renderedBeforeJudge === true).length;
+      const sample = entries[0]!;
+      console.log(`  ${shown === entries.length ? "✓" : "✗"} ${surface.padEnd(24)} ${shown}/${entries.length} rendered before the judge · e.g. "${sample.value.slice(0, 24)}" entered → judged +${sample.judgeAt === null ? "?" : Math.round(sample.judgeAt - sample.enteredAt)} ms`);
+    }
+    for (const e of inputTrace.filter((entry) => entry.judgeAt !== null && entry.renderedBeforeJudge !== true)) console.log(`    ✗ NOT shown before the judge: "${e.value}" on ${e.surface} at ${(e.beatId ?? "?").replace(/^authored:/u, "")}`);
+    inputNotShown = inputTrace.filter((e) => e.judgeAt !== null && e.renderedBeforeJudge !== true).length;
+    if (!inputTrace.length) inputNotShown = 1;
+    console.log(`\nabacus rod run — one value at a time, under the rod under discussion (${rodRunBad ? `✗ ${rodRunBad} stale` : "✓ none stale"}):`);
+    for (const line of rodRun) console.log(`  ${line}`);
+    console.log(`\noverlap assertion over the live session: ${overlapFrames} beat frame(s) probed · ${overlapFindings.length ? `✗ ${overlapFindings.length} with an overlap` : "✓ 0 overlaps"}`);
+    for (const line of overlapFindings.slice(0, 20)) console.log(`  - ${line}`);
+    console.log(`\nchat panel: ${chatPanel ? `covers ${chatPanel.coverage} % of the board · ${chatPanel.share} % of the screen's long side · board dimmed: ${chatPanel.dimmed ? "YES" : "no"} · Zara ${chatPanel.portrait} px · board layout beside it ${chatPanel.boardOk ? "clean" : "HAS OVERLAPS"}` : "not opened in this run (run with --drills)"}`);
+    const paidRoutes = ["speak-line", "planner", "hear", "extract-interest"];
+    paidCallCount = paidRoutes.reduce((sum, route) => sum + (apiCalls.get(route) ?? 0), 0);
+    const server = await evaluate<{ allowed?: Record<string, number>; refused?: Record<string, number>; switches?: Record<string, string> } | null>(page, `fetch('/api/paid-calls').then((r) => r.json()).catch(() => null)`).catch(() => null);
+    const serverAllowed = Object.entries(server?.allowed ?? {}).filter(([kind]) => kind !== "chat");
+    paidCallCount += serverAllowed.reduce((sum, [, n]) => sum + n, 0);
+    console.log(`\nPAID CALLS this session: ${paidCallCount}  (requests — ${paidRoutes.map((r) => `/api/${r} ${apiCalls.get(r) ?? 0}`).join(" · ")} · chat token /api/gemini-session ${apiCalls.get("gemini-session") ?? 0}${DRILLS ? " (the ✋ drill's, held at the door and never answered)" : ""})`);
+    console.log(`  server gate (src/lib/paidCalls.ts, this process): allowed ${JSON.stringify(server?.allowed ?? {})} · refused ${JSON.stringify(server?.refused ?? {})} · switches ${JSON.stringify(server?.switches ?? {})}`);
     console.log(`tap → feedback latency: median ${median === null ? "n/a" : `${median} ms`} over ${latencies.length} judged answers${sorted.length ? ` (min ${sorted[0]}, max ${sorted[sorted.length - 1]})` : ""}`);
     {
       const r1 = practiceLog.find((l) => l.startsWith("readWrite4Digit:2:"));
@@ -1340,15 +1450,7 @@ async function main(): Promise<void> {
       const closeIndex = beats.findIndex((b) => b.type === "CLOSE_SESSION" && b.sessionIndex === 0);
       const lastWork = beats[closeIndex - 1]?.id ?? "?";
       const reachedLastWork = audits.some((a) => a.beatId === lastWork);
-      let reason = "(none)";
-      let minutes: number | string = "—";
-      // The close row is written after the close line has been said (read on the board, that is ~8 s): poll for it.
-      for (let i = 0; i < 60 && reason === "(none)"; i += 1) {
-        await wait(500);
-        const { data: closeRows } = await supabaseAdmin.from("session_log").select("beat_type, planner_decision, started_at").eq("child_id", childA).eq("beat_type", "CLOSE_SESSION").order("started_at", { ascending: false }).limit(1);
-        const decision = (closeRows ?? [])[0]?.planner_decision as { reason?: string; minutesToday?: number } | undefined;
-        if (decision?.reason) { reason = decision.reason; minutes = decision.minutesToday ?? "—"; }
-      }
+      const { reason, minutes } = closeAtEnd;
       const line = `session 1 from ${audits[0]?.beatId.replace(/^authored:/u, "") ?? "?"} to its own close · last work beat ${lastWork.replace(/^authored:/u, "")} ${reachedLastWork ? "reached" : "NOT reached"} · ${audits.length} beats seen · close_reason=${reason} (minutes_today ${minutes})`;
       drillNote("full completion: session 1 plays to its own CLOSE_SESSION with no early close, close_reason = complete", done && reachedLastWork && reason === "complete", line);
       console.log(`full-completion drill: ${line}`);
@@ -1525,10 +1627,11 @@ async function main(): Promise<void> {
   browser.kill();
   const layoutClean = flagged.filter((a) => a.audit!.portraitOverlap || a.audit!.cutOff || a.audit!.small.length).length === 0;
   const voiceClean = (apiCalls.get("hear") ?? 0) === 0 && (apiCalls.get("planner") ?? 0) === 0;
+  const answerFlowClean = inputNotShown === 0 && rodRunBad === 0 && overlapFindings.length === 0 && paidCallCount === 0 && answerPathSpoken.every((ms) => ms <= 200);
   const latencyClean = latencies.length === 0 || [...latencies].sort((a, b) => a - b)[Math.floor(latencies.length / 2)]! <= 200;
   const clusterClean = clusterA.every((r) => r.startsWith("PASS"));
   const drillsClean = !DRILLS || drillResults.every((r) => r.startsWith("PASS"));
-  process.exit(done && layoutClean && voiceClean && latencyClean && clusterClean && drillsClean ? 0 : 1);
+  process.exit(done && layoutClean && voiceClean && latencyClean && clusterClean && drillsClean && answerFlowClean ? 0 : 1);
 }
 
 main().catch((error) => {

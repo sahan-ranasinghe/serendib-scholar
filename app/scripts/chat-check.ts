@@ -9,12 +9,17 @@
  * system prompt: "මොකද්ද මේ දහසස්ථානය?". Asserts the reply refers to the
  * abacus / the thousands rod and introduces no new topic. One model call
  * (the text model the planner route already uses), not a Live session.
+ *
+ *   npm run chat:check -- --offline     NO MODEL CALL: builds the context,
+ *   prints the field list and the full board state, and asserts the prompt
+ *   (everything on screen is in it; the teaching instructions are in it; she
+ *   is NOT told to open by narrating where they are).
  */
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { GoogleGenAI } from "@google/genai";
 import { initialStage, isKnownEvent, reduceStage, conceptTitle, type Storyboard } from "../src/lib/choreography";
-import { boardFocus, chatContextPrompt, sanitizeChatContext, serializeStage } from "../src/lib/chatContext";
+import { CHAT_CONTEXT_FIELDS, boardFocus, chatContextPrompt, fullBoardState, sanitizeChatContext, serializeStage, vocabularyAt } from "../src/lib/chatContext";
 import { buildSystemPrompt } from "../src/lib/prompt";
 import { CHAT_BOARD_TOOLS } from "../src/lib/geminiLiveTools";
 
@@ -36,7 +41,12 @@ async function main(): Promise<void> {
     subject: "maths",
     lesson: "1 · සංඛ්‍යා - 1",
     concept: { tag: "placeValue4Digit", title: conceptTitle("placeValue4Digit"), objective: design.concepts.find((c) => c.conceptTag === "placeValue4Digit")?.objective ?? "" },
-    recentLines: storyboard.beats.slice(Math.max(0, index - 3), index).map((b) => b.line),
+    session: "සැසිය 1",
+    recentLines: storyboard.beats.slice(Math.max(0, index - 5), index).map((b) => b.line),
+    boardState: fullBoardState(stage),
+    address: "පුතේ",
+    vocabularyAllowed: vocabularyAt("placeValue4Digit").allowed,
+    vocabularyLater: vocabularyAt("placeValue4Digit").later,
     nextLine: storyboard.beats[index]?.line ?? null,
     board: serializeStage(stage),
     boardFocus: boardFocus(stage),
@@ -47,6 +57,25 @@ async function main(): Promise<void> {
   console.log(`what they are pointing at: ${context.boardFocus ?? "(nothing specific)"}`);
   console.log(`last lines: ${context.recentLines.map((l) => l.slice(0, 40)).join(" | ")}`);
 
+  console.log(`\nchat context fields (${CHAT_CONTEXT_FIELDS.length}):`);
+  for (const field of CHAT_CONTEXT_FIELDS) console.log(`  · ${field}`);
+  console.log(`\nfull board state as minted (${context.boardState.length} lines):`);
+  for (const line of context.boardState) console.log(`  ${line}`);
+  {
+    const prompt = chatContextPrompt(context);
+    const problems: string[] = [];
+    // Everything on the screen at :44 is in the prompt: all four rods with their beads and values, the glow, the chips, the turn.
+    for (const needle of ["rod:0", "rod:1", "rod:2", "rod:3", "දහසස්ථානය කූර", "එකස්ථානය කූර", "දැන් දිලිසෙනවා", "තෝරන්න දීලා තියෙන උත්තර", "ළමයාගේ වාරය", "සැසිය 1", "placeValue4Digit"]) if (!prompt.includes(needle)) problems.push(`the prompt is missing "${needle}"`);
+    for (const rule of ["SINHALA ONLY", "NEVER invent a number", "VOCABULARY RULE", "NEVER TEACH AHEAD", "YOU MAY NOT", "REGISTER (the style card)", "DO NOT NARRATE WHERE THEY ARE"]) if (!prompt.includes(rule)) problems.push(`the teaching instructions are missing "${rule}"`);
+    if (/YOUR FIRST LINE|names WHAT THEY ARE POINTING AT/u.test(prompt)) problems.push("the prompt still tells her to open by stating the board");
+    if (!context.vocabularyLater.includes("දස දහසස්ථානය") || context.vocabularyAllowed.includes("දස දහසස්ථානය")) problems.push("the vocabulary rule lets a later term through");
+    console.log(`\nprompt block: ${prompt.length} chars · ${problems.length ? `FAILURES: ${problems.join("; ")}` : "PASS  full board + lesson + teaching instructions are in it; no narrate-first-line rule"}`);
+    if (problems.length) process.exit(1);
+  }
+  if (process.argv.includes("--offline")) {
+    console.log("offline: no model was called.");
+    return;
+  }
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error("GEMINI_API_KEY is not set");
   const ai = new GoogleGenAI({ apiKey });

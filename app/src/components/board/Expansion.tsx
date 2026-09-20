@@ -49,6 +49,8 @@ export interface ExpansionProps {
   alone?: boolean;
   /** The next blank to fill glows (Zara's turn to write, or the child's). */
   glowIndex?: number | null;
+  /** What the child has just entered into the next blank: shown in it before the judge (pending), and while it wobbles (wrong). */
+  entry?: { value: string; verdict: "pending" | "correct" | "wrong" } | null;
 }
 
 /** The value of digit `index` of `number` — what flies and what is revealed. */
@@ -58,7 +60,8 @@ export function partValue(number: number, index: number): string {
   return String(digit * 10 ** (digits.length - 1 - index));
 }
 
-export function Expansion({ number, parts, fly = null, onFlyDone, interactive = false, onAnswer, answered, size, dockPad = false, alone = false, glowIndex = null }: ExpansionProps) {
+export function Expansion({ number, parts, fly = null, onFlyDone, interactive = false, onAnswer, answered, size, dockPad = false, alone = false, glowIndex = null, entry = null }: ExpansionProps) {
+  const entryIndex = entry ? parts.findIndex((part, i) => part === null && (answered?.[i] ?? null) === null) : -1;
   const board = useBoard();
   const [active, setActive] = useState<number | null>(null);
   const [draft, setDraft] = useState("");
@@ -98,8 +101,9 @@ export function Expansion({ number, parts, fly = null, onFlyDone, interactive = 
         <HandNumber text={`${formatNumber(number)} =`} size={glyph} draw={false} targetBase={`text:${number}`} />
         {parts.map((part, index) => {
           const flying = inFlight !== null && inFlight.index === index && landed[index] === undefined;
-          const value = flying ? null : (part ?? landed[index] ?? null);
           const child = flying ? null : (answered?.[index] ?? null);
+          // The child's own answer stands in its slot: her later confirmation does not write over it.
+          const value = flying || child !== null ? null : (part ?? landed[index] ?? null);
           return (
             <span key={index} style={{ display: "inline-flex", alignItems: "center", gap: alone ? 12 : 10 }}>
               {index > 0 && <HandNumber text="+" size={glyph} draw={false} />}
@@ -111,6 +115,7 @@ export function Expansion({ number, parts, fly = null, onFlyDone, interactive = 
                 interactive={interactive && value === null && child === null}
                 active={active === index}
                 draft={active === index ? draft : ""}
+                entry={index === entryIndex && value === null && child === null ? entry : null}
                 glow={glowIndex === index && value === null && child === null}
                 onTap={() => setActive((a) => (a === index ? null : index))}
               />
@@ -165,7 +170,7 @@ export function Expansion({ number, parts, fly = null, onFlyDone, interactive = 
   );
 }
 
-function Part({ index, value, childValue, alone, interactive, active, glow, draft = "", onTap }: { index: number; value: string | null; childValue: string | null; alone: boolean; interactive: boolean; active: boolean; glow: boolean; draft?: string; onTap: () => void }) {
+function Part({ index, value, childValue, alone, interactive, active, glow, draft = "", entry = null, onTap }: { index: number; value: string | null; childValue: string | null; alone: boolean; interactive: boolean; active: boolean; glow: boolean; draft?: string; entry?: ExpansionProps["entry"]; onTap: () => void }) {
   const shown = value ?? childValue;
   const ref = useTargetRef<HTMLSpanElement>([`part:${index}`, ...(shown ? [`number:${Number(shown)}`] : [])]);
   const w = alone ? 80 : 64;
@@ -177,6 +182,8 @@ function Part({ index, value, childValue, alone, interactive, active, glow, draf
       ref={ref}
       data-testid={`expansion-part-${index}`}
       data-value={shown ?? ""}
+      data-entry={entry ? entry.value : childValue ?? undefined}
+      data-entry-verdict={entry ? entry.verdict : childValue ? "correct" : undefined}
       className={`${interactive ? "wb-tap" : ""} ${waits ? "wb-glow" : ""}`.trim() || undefined}
       onClick={interactive ? onTap : undefined}
       role={interactive ? "button" : undefined}
@@ -188,10 +195,10 @@ function Part({ index, value, childValue, alone, interactive, active, glow, draf
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
-        minWidth: shown ? (alone ? 100 : 84) : w,
+        minWidth: shown || entry ? (alone ? 100 : 84) : w,
         height: h,
         minHeight: interactive ? TOUCH_MIN : undefined,
-        padding: shown ? (alone ? "0 8px" : "0 6px") : 0,
+        padding: shown || entry ? (alone ? "0 8px" : "0 6px") : 0,
         border: shown ? `2px solid ${BOARD.ink18}` : `3px dashed ${waits ? BOARD.chalkYellow : BOARD.ink40}`,
         borderRadius: r,
         boxSizing: alone ? "content-box" : "border-box",
@@ -200,10 +207,12 @@ function Part({ index, value, childValue, alone, interactive, active, glow, draf
       {value ? (
         <>
           <HandNumber key={value} text={value} size={alone ? 36 : 30} budgetMs={350} />
-          <span aria-hidden style={{ position: "absolute", right: -8, top: -10, width: 22, height: 22, borderRadius: "50%", background: BOARD.markerBlue, color: "#fff", font: `16px/22px ${FONT_LATIN}`, textAlign: "center" }}>
+          <span aria-hidden style={{ position: "absolute", right: -14, top: -16, width: 22, height: 22, borderRadius: "50%", background: BOARD.markerBlue, color: "#fff", font: `16px/22px ${FONT_LATIN}`, textAlign: "center" }}>
             ✎
           </span>
         </>
+      ) : entry ? (
+        /^\d+$/u.test(entry.value) ? <HandNumber key={entry.value} text={entry.value} size={alone ? 36 : 30} color={BOARD.successText} draw={false} registerNumbers={false} /> : <span style={{ font: `700 20px/1.2 ${FONT_LATIN}`, color: BOARD.successText }}>{entry.value}</span>
       ) : active && draft ? (
         <>
           <HandNumber key={draft} text={draft} size={alone ? 36 : 30} color={BOARD.successText} draw={false} registerNumbers={false} />
@@ -212,7 +221,7 @@ function Part({ index, value, childValue, alone, interactive, active, glow, draf
       ) : childValue ? (
         <>
           <HandNumber key={childValue} text={childValue} size={alone ? 36 : 30} color={BOARD.successText} budgetMs={350} />
-          <span aria-hidden style={{ position: "absolute", right: -8, top: -10, width: 22, height: 22, borderRadius: "50%", background: BOARD.markerGreen, color: "#fff", font: `700 16px/22px ${FONT_LATIN}`, textAlign: "center" }}>
+          <span aria-hidden style={{ position: "absolute", right: -14, top: -16, width: 22, height: 22, borderRadius: "50%", background: BOARD.markerGreen, color: "#fff", font: `700 16px/22px ${FONT_LATIN}`, textAlign: "center" }}>
             ✓
           </span>
         </>

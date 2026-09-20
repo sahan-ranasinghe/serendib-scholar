@@ -51,15 +51,17 @@ export interface BlankTableProps {
   dense?: boolean;
   /** A sparkle on this cell (the child just filled it). */
   sparkleAt?: { row: number; field: string } | null;
+  /** What the child has just entered into the active cell: it is IN the cell before the judge (pending), and stays to wobble when wrong. */
+  entry?: { value: string; verdict: "pending" | "correct" | "wrong" } | null;
 }
 
 const PLACE_TEMPLATE = "1.1fr .8fr 1.7fr 1fr 1.3fr";
 const NAME_TEMPLATE = "1fr 2fr";
 
-export function BlankTable({ columns, rows, filled = [], activeBlank = null, interactive = false, onAnswer, dockPad = false, sparkleAt = null }: BlankTableProps) {
+export function BlankTable({ columns, rows, filled = [], activeBlank = null, interactive = false, onAnswer, dockPad = false, sparkleAt = null, entry = null }: BlankTableProps) {
   // The newest tutor fill carries the ✎ (fills arrive in order, newest last).
   const newestTutorFill = [...filled].reverse().find((f) => f.by === "tutor") ?? null;
-  const registerTarget = useTargetRef<HTMLDivElement>("component:blankTable");
+  const registerTarget = useTargetRef<HTMLDivElement>(["component:blankTable", "component:table", "text:table"]);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const headRef = useRef<HTMLDivElement | null>(null);
   const ref = useCallback(
@@ -79,7 +81,7 @@ export function BlankTable({ columns, rows, filled = [], activeBlank = null, int
     // The room is the board's content inset, not the wrapper that hugs the table.
     const box = rootRef.current?.closest(".wb-content") as HTMLElement | null;
     if (!box || typeof ResizeObserver === "undefined") return;
-    const measure = () => setRoom({ height: box.clientHeight, head: headRef.current?.getBoundingClientRect().height ?? 0 });
+    const measure = () => setRoom({ height: box.clientHeight, head: headRef.current?.offsetHeight ?? 0 }); // layout px, not painted px: the board may be scaled to fit
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(box);
@@ -99,11 +101,11 @@ export function BlankTable({ columns, rows, filled = [], activeBlank = null, int
   // the active row is the last one drawn in it.
   const windowRows = activeOpen && dockPad ? (nameSkin ? 3 : 4) : rows.length;
   const visibleRows = room && room.height > 0 ? Math.max(1, Math.floor((room.height - room.head) / rowHeight)) : windowRows;
-  const firstRow =
-    activeOpen && dockPad && active
-      ? Math.max(0, Math.min(active.row - Math.min(windowRows, visibleRows) + 1, rows.length - windowRows))
-      : 0;
-  const shownRows = rows.slice(firstRow, firstRow + windowRows);
+  // NOTHING OVERLAPS: with the pad or bank docked, only the rows that FIT above it are drawn — none runs on beneath the
+  // dock — and the active row is always the LAST of them, so the cell being filled is on the screen, right above the pad.
+  const drawnRows = activeOpen && dockPad ? Math.min(windowRows, visibleRows) : windowRows;
+  const firstRow = activeOpen && dockPad && active ? Math.max(0, Math.min(active.row - drawnRows + 1, rows.length - drawnRows)) : 0;
+  const shownRows = rows.slice(firstRow, firstRow + drawnRows);
   return (
     <div ref={ref} data-testid="blank-table" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, maxWidth: "100%", width: nameSkin ? undefined : "100%", overflowX: "auto" }}>
       <div
@@ -161,6 +163,7 @@ export function BlankTable({ columns, rows, filled = [], activeBlank = null, int
                 fill={fill ?? null}
                 active={isActive}
                 draft={isActive ? draft : ""}
+                entry={isActive ? entry : null}
                 height={rowHeight}
                 // The outlined cell (row_activate) opens its pad or bank by itself: the 30 px cells are never finger targets (rule 7); the storyboard always outlines the cell to answer.
                 interactive={false}
@@ -206,18 +209,20 @@ export function BlankTable({ columns, rows, filled = [], activeBlank = null, int
   );
 }
 
-function Cell({ row, field, printed, fill, active, draft, height, interactive, sparkle, grouped = false, pen = false, onTap }: { row: number; field: string; printed: string | null; fill: FilledCell | null; active: boolean; draft: string; height: number; interactive: boolean; sparkle: boolean; grouped?: boolean; pen?: boolean; onTap: () => void }) {
+function Cell({ row, field, printed, fill, active, draft, entry = null, height, interactive, sparkle, grouped = false, pen = false, onTap }: { row: number; field: string; printed: string | null; fill: FilledCell | null; active: boolean; draft: string; entry?: BlankTableProps["entry"]; height: number; interactive: boolean; sparkle: boolean; grouped?: boolean; pen?: boolean; onTap: () => void }) {
   const ref = useTargetRef<HTMLDivElement>(`cell:${row}/${field}`);
   const value = fill ? String(fill.value) : printed;
   const byChild = fill?.by === "child";
   const colour = fill ? (byChild ? BOARD.successText : BOARD.markerBlue) : active ? BOARD.successText : BOARD.ink;
   // The place-value table prints its numbers plain (2348); the name table groups them (6 528); a blank is the dotted line.
-  const shown = value === null ? (active ? draft : interactive || fill ? "" : "……") : grouped && /^\d{4,}$/u.test(value) ? formatNumber(value) : value;
+  const shown = value === null ? (entry ? entry.value : active ? draft : interactive || fill ? "" : "……") : grouped && /^\d{4,}$/u.test(value) ? formatNumber(value) : value;
   return (
     <motion.div
       ref={ref}
       data-testid={`cell-${row}-${field}`}
       data-active={active || undefined}
+      data-entry={entry ? entry.value : fill?.by === "child" ? String(fill.value) : undefined}
+      data-entry-verdict={entry ? entry.verdict : fill?.by === "child" ? "correct" : undefined}
       data-filled-by={fill?.by}
       data-pen={pen && !!fill && !byChild ? "true" : undefined}
       className={interactive ? "wb-tap" : undefined}
@@ -245,7 +250,7 @@ function Cell({ row, field, printed, fill, active, draft, height, interactive, s
       <span>{shown}</span>
       {fill && byChild && <span style={{ width: 22, height: 22, borderRadius: "50%", background: BOARD.markerGreen, color: "#fff", font: `700 16px/22px ${FONT_LATIN}`, textAlign: "center" }}>✓</span>}
       {fill && !byChild && pen && <span style={{ width: 20, height: 20, borderRadius: "50%", background: BOARD.markerBlue, color: "#fff", font: `16px/20px ${FONT_LATIN}`, textAlign: "center" }}>✎</span>}
-      {active && <span data-testid="cell-caret" style={{ width: 2, height: 22, background: BOARD.successText }} />}
+      {active && !entry && <span data-testid="cell-caret" style={{ width: 2, height: 22, background: BOARD.successText }} />}
       {sparkle && (
         <span aria-hidden style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
           {[["-6px", "-6px"], ["96%", "-6px"], ["50%", "-10px"], ["-4px", "70%"], ["100%", "60%"], ["30%", "100%"]].map(([x, y], i) => (

@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import storyboardJson from "@/data/storyboard/maths-5-1-session-1.json";
 import type { Storyboard } from "@/lib/choreography";
-import { DESIGN_FRAMES, designFrame, stageDesignFrame, stopsFor } from "@/lib/designFrames";
+import { DESIGN_FRAMES, designFrame, momentsFor, stageDesignFrame, stageStoryboardBeat, stopsFor, type BeatMoment } from "@/lib/designFrames";
 import { SessionShell, type SessionSheet } from "@/components/SessionShell";
 
 const storyboard = storyboardJson as unknown as Storyboard;
@@ -50,7 +50,8 @@ export function DesignPreview({ frameId }: { frameId: string }) {
       hint={null}
       sheet={sheet}
       charactersShown
-      handShown={!frame.sheet}
+      handShown={frame.sheet !== "mic"}
+      chatting={frame.sheet === "chat"}
       onHand={noop}
       onPause={noop}
       onRepeat={noop}
@@ -58,6 +59,56 @@ export function DesignPreview({ frameId }: { frameId: string }) {
       onAnswer={noop}
       onTouch={noop}
       data={{ "data-design-frame": frame.id, "data-status": frame.sheet === "chat" ? "chatting" : staged.yourTurn ? (staged.yourTurn.kind === "soft" ? "pausing" : "turn") : "teaching" }}
+    />
+  );
+}
+
+
+/**
+ * /admin/design-preview?beat=<storyboard beat id>[&moment=end|turn|answered] — ANY beat of the lesson, staged the way the
+ * runtime reaches it (the storyboard replayed through the reducer). scripts/board-check.ts walks every beat here and asks
+ * the board's own layout probe whether anything overlaps; it restages in place through `window.__stageBeat(id, moment)`
+ * and reads the list from `window.__storyboardBeats`.
+ */
+export function BeatPreview({ beatId, moment }: { beatId: string; moment: BeatMoment }) {
+  const [at, setAt] = useState<{ beatId: string; moment: BeatMoment }>({ beatId, moment });
+  useEffect(() => {
+    const w = window as unknown as { __stageBeat?: (id: string, m?: BeatMoment) => void; __storyboardBeats?: Array<{ id: string; moments: BeatMoment[] }> };
+    w.__stageBeat = (id, m = "end") => setAt({ beatId: id, moment: m });
+    w.__storyboardBeats = storyboard.beats.map((b) => ({ id: b.id, moments: momentsFor(b) }));
+  }, []);
+  const staged = useMemo(() => {
+    try {
+      return stageStoryboardBeat(storyboard, at.beatId, at.moment);
+    } catch {
+      return null;
+    }
+  }, [at]);
+  if (!staged) return <div style={{ padding: 24, font: "14px/1.5 var(--font-latin)" }}>Unknown beat “{at.beatId}”.</div>;
+  return (
+    <SessionShell
+      stage={staged.stage}
+      yourTurn={staged.yourTurn}
+      zaraState="talking"
+      lenaState="idle"
+      pointerSide={null}
+      talking={false}
+      getAmplitude={() => 0}
+      conceptStops={stopsFor(0)}
+      captionsOn
+      onToggleCaptions={noop}
+      caption={staged.caption}
+      hint={null}
+      sheet={null}
+      charactersShown
+      handShown
+      onHand={noop}
+      onPause={noop}
+      onRepeat={noop}
+      onEnd={noop}
+      onAnswer={noop}
+      onTouch={noop}
+      data={{ "data-staged-beat": at.beatId, "data-staged-moment": at.moment, "data-status": staged.yourTurn ? "turn" : "teaching" }}
     />
   );
 }

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { paidCallAllowed } from "@/lib/paidCalls";
 import { GoogleGenAI } from "@google/genai";
 import { supabaseAdmin } from "@/lib/supabaseClient";
 import { getActiveChildId } from "@/lib/activeChild";
@@ -37,7 +38,7 @@ export async function POST(request: NextRequest) {
   if (typeof transcript !== "string" || !transcript.trim()) {
     return NextResponse.json({ ok: false, error: "transcript (non-empty string) is required" }, { status: 400 });
   }
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = paidCallAllowed("extractInterest") ? process.env.GEMINI_API_KEY : undefined; // off unless INTEREST_EXTRACT=on
   if (!apiKey) return NextResponse.json({ ok: true, interests: [] });
 
   try {

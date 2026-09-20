@@ -35,7 +35,7 @@ export function AppStateBadge() {
   const offline = status === "offline";
   if (!offline && !(updating && snapshot && status === "cached")) return null;
   return (
-    <div data-testid="app-state-badge" data-state={offline ? "offline" : "updating"} style={{ position: "fixed", top: 8, left: "50%", transform: "translateX(-50%)", zIndex: 60, pointerEvents: "none", background: offline ? "rgba(27,27,27,.82)" : "rgba(15,76,92,.82)", color: "#fff", borderRadius: 999, padding: "4px 12px", font: "600 14px/1.4 var(--font-label)", whiteSpace: "nowrap" }}>
+    <div data-testid="app-state-badge" data-state={offline ? "offline" : "updating"} style={{ position: "fixed", top: 4, left: "50%", transform: "translateX(-50%)", zIndex: 60, pointerEvents: "none", background: offline ? "rgba(27,27,27,.82)" : "rgba(15,76,92,.82)", color: "#fff", borderRadius: 999, padding: "4px 12px", font: "600 14px/1.4 var(--font-label)", whiteSpace: "nowrap" }}>
       {offline ? t("app.offlineCached") : t("app.updating")}
     </div>
   );

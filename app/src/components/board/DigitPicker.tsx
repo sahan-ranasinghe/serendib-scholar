@@ -41,12 +41,14 @@ export interface DigitPickerProps {
   /** The five-number puzzle's ledger: numbers built so far (✓), the current row glowing while the child builds. */
   ledger?: string[];
   ledgerRows?: number;
+  /** `built` is what the child has just committed: it stays in the slots (or the ledger's current row) before and through the judge. */
+  entered?: "pending" | "correct" | "wrong" | null;
 }
 
 const SLOT = 56;
 const TILE = 52;
 
-export function DigitPicker({ pool, built, length, builtName = null, builtBy = "child", interactive = false, onChange, glow = false, ledger, ledgerRows = 5 }: DigitPickerProps) {
+export function DigitPicker({ pool, built, length, builtName = null, builtBy = "child", interactive = false, onChange, glow = false, ledger, ledgerRows = 5, entered = null }: DigitPickerProps) {
   const slots = length ?? pool.length;
   const group = useId();
   const number = built.map((i) => pool[i]).join("");
@@ -89,18 +91,20 @@ export function DigitPicker({ pool, built, length, builtName = null, builtBy = "
   const waiting = interactive ? built.length : -1;
   // The design's ring holds four tiles at 200×132; a printed pool (the textbook puzzle deals eleven) widens to six tiles a row, two rows.
   const ringCols = pool.length <= 4 ? 2 : Math.min(6, Math.ceil(pool.length / 2));
-  const ringW = pool.length <= 4 ? 200 : ringCols * 62 + 52;
-  const ringH = pool.length <= 4 ? 132 : Math.ceil(pool.length / ringCols) * 62 + 20;
+  // A tile is 52 + its 2 px borders (the session's boxes are content-box) = 56, with 10 between: six a row need 386 inside the ring's 26 px sides.
+  const ringW = pool.length <= 4 ? 200 : ringCols * 66 - 10 + 52 + 8;
+  const ringH = pool.length <= 4 ? 132 : Math.ceil(pool.length / ringCols) * 66 - 10 + 28 + 8;
   const current = ledger ? ledger.length : -1;
 
   return (
     <LayoutGroup id={group}>
-      <div ref={rootRef} data-testid="digit-picker" style={{ display: "flex", gap: 40, alignItems: "center", justifyContent: "center", flexWrap: "wrap", maxWidth: "100%" }}>
-        <div style={{ display: "grid", gap: 12, justifyItems: "center" }}>
+      {/* the puzzle's hand and its ledger stand side by side and keep their own widths: where the room is short the board scales the pair down (BoardStage's fit) — it never wraps the ledger under the tiles or squeezes the ring */}
+      <div ref={rootRef} data-testid="digit-picker" style={{ display: "flex", gap: ledger ? 28 : 40, alignItems: "center", justifyContent: "center", flexWrap: ledger ? "nowrap" : "wrap", maxWidth: ledger ? undefined : "100%" }}>
+        <div style={{ display: "grid", gap: 12, justifyItems: "center", flex: "none" }}>
           {ledger && <div style={{ font: `600 20px/1.5 ${FONT_LABEL}`, color: BOARD.inkSoft }}>පොතේ ඉලක්කම්</div>}
           {/* the slot row — the puzzle has none: its number forms in the ledger's current row (G6) */}
           {!ledger && (
-          <div style={{ display: "flex", gap: 8 }} data-testid="digit-picker-slots">
+          <div style={{ display: "flex", gap: 8 }} data-testid="digit-picker-slots" data-entry={entered ? number : undefined} data-entry-verdict={entered ?? undefined}>
             {Array.from({ length: slots }).map((_, position) => {
               const poolIndex = built[position];
               const filled = poolIndex !== undefined;
@@ -183,20 +187,23 @@ export function DigitPicker({ pool, built, length, builtName = null, builtBy = "
           </AnimatePresence>
         </div>
         {ledger && (
-          <div data-testid="picker-ledger" style={{ display: "grid", gap: 6 }}>
+          <div data-testid="picker-ledger" style={{ display: "grid", gap: 6, flex: "none" }}>
             <div style={{ font: `600 20px/1.5 ${FONT_LABEL}`, color: BOARD.inkSoft }}>හදපු සංඛ්‍යා {ledgerRows}</div>
-            {Array.from({ length: ledgerRows }).map((_, row) => {
+            {/* the row being built is always ON the ledger: once it is full (the example counted as one), the five rows shown slide down to keep it */}
+            {Array.from({ length: ledgerRows }, (_, i) => i + Math.max(0, ledger.length + (interactive || entered !== null ? 1 : 0) - ledgerRows)).map((row) => {
               const done = ledger[row];
-              const active = row === current && interactive;
+              const active = row === current && (interactive || entered !== null);
               return (
                 <div
                   key={row}
                   data-testid={`ledger-row-${row}`}
                   data-done={done ? "true" : undefined}
                   data-current={active ? "true" : undefined}
-                  role={active && built.length ? "button" : undefined}
+                  data-entry={active && entered ? number : undefined}
+                  data-entry-verdict={active && entered ? entered : undefined}
+                  role={active && interactive && built.length ? "button" : undefined}
                   aria-label={active ? `row ${row + 1}: ${number || "empty"} — tap to take the last digit back` : undefined}
-                  onClick={active && built.length ? () => tapSlot(built.length - 1) : undefined}
+                  onClick={active && interactive && built.length ? () => tapSlot(built.length - 1) : undefined}
                   style={{ display: "flex", alignItems: "center", gap: 12, height: 34, minHeight: active && built.length ? TOUCH_MIN : undefined }}
                 >
                   <span style={{ width: 28, height: 28, borderRadius: "50%", background: done ? BOARD.markerGreen : active ? BOARD.chalkYellow : "rgba(27,27,27,.25)", color: "#fff", font: `700 16px/28px ${FONT_LATIN}`, textAlign: "center" }}>{row + 1}</span>
@@ -217,7 +224,7 @@ export function DigitPicker({ pool, built, length, builtName = null, builtBy = "
                   >
                     {done && <HandNumber text={done} size={26} color={BOARD.successText} draw={false} registerNumbers={false} />}
                     {active && number && <HandNumber text={number} size={26} color={BOARD.successText} draw={false} registerNumbers={false} />}
-                    {active && <span style={{ width: 2, height: 24, background: BOARD.successText }} />}
+                    {active && !entered && <span style={{ width: 2, height: 24, background: BOARD.successText }} />}
                     {done && <span style={{ marginLeft: "auto", width: 22, height: 22, borderRadius: "50%", background: BOARD.markerGreen, color: "#fff", font: `700 16px/22px ${FONT_LATIN}`, textAlign: "center" }}>✓</span>}
                   </div>
                 </div>

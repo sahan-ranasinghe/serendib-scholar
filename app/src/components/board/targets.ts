@@ -165,7 +165,7 @@ export function useTargetRef<T extends Element = HTMLElement>(keys: string | str
  * anything registers, on resize, and again shortly after — because the
  * thing pointed at is usually still animating in when the pointer moves.
  */
-export function useTargetRect(target: Target | null, settleMs = 650): Rect | null {
+export function useTargetRect(target: Target | null, settleMs = 650, layoutKey: string | number = 0): Rect | null {
   const board = useBoard();
   // The rect is stored WITH the key it was measured for. A new target
   // starts from nothing — a highlight must never mount at the previous
@@ -206,6 +206,7 @@ export function useTargetRect(target: Target | null, settleMs = 650): Rect | nul
     };
     // `key` stands in for `target` (a fresh object each render).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, board.version, board.surface, settleMs]);
+    // `layoutKey`: the board around the target changed in a way no ResizeObserver sees (the content scaled to fit, a stage event).
+  }, [key, board.version, board.surface, settleMs, layoutKey]);
   return key && measured?.key === key ? measured.rect : null;
 }

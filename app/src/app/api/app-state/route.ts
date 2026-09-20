@@ -22,6 +22,7 @@ export async function GET(request: NextRequest) {
     const snapshot: AppSnapshot = {
       childId: state.id,
       childName: state.name,
+      kids: profiles.children.map(({ id, name, grade, active }) => ({ id, name, grade, active })),
       home,
       lessons: lessonMapData(state),
       lessonDetail: Object.fromEntries(Object.entries(lessonDetail).filter(([, v]) => v !== null)) as AppSnapshot["lessonDetail"],

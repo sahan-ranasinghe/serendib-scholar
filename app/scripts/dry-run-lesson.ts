@@ -557,7 +557,7 @@ async function runAssertions(
   console.log(`  speech-primary share: ${speechPrimary}/${judged.length} judged questions (${Math.round((100 * speechPrimary) / judged.length)}%) · ${speechPrimaryAll}/${questions.length} counting soft checks (${Math.round((100 * speechPrimaryAll) / questions.length)}%)`);
   assert.equal(speechPrimary, 0, "a judged question leads with speech — the answer path is touch-only");
   const practice = judged.filter((b) => READING_PRACTICE[b.answerMode!]).length;
-  console.log(`  read-aloud (the chips are the question, from the first word; her read-back after a right answer): ${practice} question(s)`);
+  console.log(`  read-aloud (the chips are the question, from the first word; judged on the tap — no read-back): ${practice} question(s)`);
   console.log("\n  every judged question, its mode and its options:");
   const optionProblems: string[] = [];
   for (const beat of judged) {
@@ -1057,12 +1057,47 @@ async function assertSpeechChannel(): Promise<void> {
     !/sendTextInput\([^)]*buildDirectorLine/.test(runtime),
     "director text is never sent to a model as conversation",
   );
-  // The one place a director line may be used as input is writing a line
-  // that has no fixed words (RETEACH) — and that goes to the render route.
-  assert.ok(
-    /goal: text \? undefined : buildDirectorLine\(beat\)/.test(runtime),
-    "director text is only used to WRITE a line when the beat has none",
-  );
+  // 18 Sep 2026, cluster O — NEVER SPEND ON RENDERING NEW LINES. The runtime asks nobody to render or write a line:
+  // a line with no cached clip is read on the board. The only paid call in the app is the ✋ chat's Live session.
+  assert.ok(!/\/api\/speak-line/.test(runtime.replace(/\/\*[\s\S]*?\*\//gu, "").replace(/^\s*\/\/.*$/gmu, "")), "the runtime never calls /api/speak-line (no on-demand render, no writer model)");
+  assert.ok(/read on the board/.test(runtime) && /setNoClipCaption\(text/.test(runtime), "a line with no clip is read on the board as a caption");
+  {
+    const { paidCallAllowed } = await import("../src/lib/paidCalls");
+    const off = {} as Record<string, string | undefined>;
+    for (const kind of ["clipRender", "lineWriter", "planner", "hear", "extractInterest", "syllabusEmbedding", "portalTranscribe"] as const) {
+      assert.equal(paidCallAllowed(kind, off), false, `${kind} must be OFF with no switch set`);
+      assert.equal(paidCallAllowed(kind, { CLIP_RENDER: "off", VOICE_ASSESSMENT: "off" }), false, `${kind} must be OFF when its switch says off`);
+    }
+    assert.equal(paidCallAllowed("chat", off), true, "the ✋ chat's Live session is the one permitted paid call");
+    assert.equal(paidCallAllowed("clipRender", { CLIP_RENDER: "on" }), true, "CLIP_RENDER=on is the only way to render");
+    // Every route that can reach a model goes through the gate.
+    const routes = ["speak-line", "planner", "hear", "extract-interest", "tools/search-syllabus", "portal/submit", "gemini-session"];
+    for (const route of routes) {
+      const source = await readFile(path.join(process.cwd(), "src/app/api", route, "route.ts"), "utf8");
+      assert.ok(/paidCallAllowed\(/.test(source), `/api/${route} reaches a model without asking the paid-call gate`);
+    }
+    const tts = await readFile(path.join(process.cwd(), "src/lib/liveTts.ts"), "utf8");
+    assert.ok(/paidCallAllowed\("clipRender"\)/.test(tts), "ensureClip renders without asking the paid-call gate");
+    console.log(`  PASS  paid calls: every model route is behind src/lib/paidCalls.ts; all OFF by default; only the chat is permitted (${routes.length} routes + the renderer checked)`);
+  }
+  // 18 Sep 2026, cluster K — the answer path has no read-back: not in the runtime, the authored lines, the number
+  // frames, the board vocabulary or the storyboard.
+  {
+    const authored = await readFile(path.join(process.cwd(), "src/lib/authoredLines.ts"), "utf8");
+    const frames = await readFile(path.join(process.cwd(), "src/lib/composeNumberAudio.ts"), "utf8");
+    const vocabulary = await readFile(path.join(process.cwd(), "src/components/board/events.ts"), "utf8");
+    const storyboardJson = await readFile(path.join(process.cwd(), "src/data/storyboard/maths-5-1-session-1.json"), "utf8");
+    assert.ok(!/readBackNumber|NUMBER_FRAMES\.readBack|:readback/.test(runtime), "the runtime still has a read-back beat on the answer path");
+    assert.ok(!/readBack\s*:/.test(authored) && !authored.includes("මම කියන්නම්"), "the read-back frame line is still in authoredLines");
+    assert.ok(!/readBack/.test(frames), "NUMBER_FRAMES still carries the read-back frame");
+    assert.ok(!/read_back/.test(vocabulary) && !/read_back/.test(storyboardJson), "turn.read_back is still in the vocabulary or the storyboard");
+    // Judge → feedback, with nothing awaited in between but one painted frame for the child's own entry.
+    const judge = runtime.slice(runtime.indexOf("const judgeTouch = async"), runtime.indexOf("const judgeSpokenAnswer"));
+    assert.ok(/await nextPaint\(\);[\s\S]*fireFeedback\(/.test(judge) && (judge.match(/await /gu) ?? []).length === 2, "judgeTouch awaits more than the entry's paint and the settle");
+    assert.ok(/void finishBeatLog\(beat, decision\)/.test(runtime), "the praise still waits for the log row's round trip");
+    assert.ok(/enterAnswer\(stageRef\.current, text\)/.test(runtime), "the entered value is not put on the surface in the tap itself");
+    console.log("  PASS  answer path: tap → entry painted → judged → feedback; no read-back beat, frame line or wait; both feedback clips prefetched");
+  }
   // The screen hands the clip's text to the shell, which draws it on the caption line (design: Gemunu 20 at bottom 26).
   const screen = await readFile(path.join(process.cwd(), "src/components/LessonScreen.tsx"), "utf8");
   const shell = await readFile(path.join(process.cwd(), "src/components/SessionShell.tsx"), "utf8");

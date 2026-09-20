@@ -115,11 +115,10 @@ Board at line start: number cards 84 · 101 · 528 · 997
    - `numberCards.highlight_ring` `{"value":84}`
    - `turn.your_turn` `{"answerMode":"readAloud","surface":"chips"}`
    - `choiceChips.show` `{"options":["හතළිස් අට","අසූ හතර","අටසිය හතර"],"correctIndex":1}`
-   - `turn.read_back` `{"number":84}`
 
-Child: **answer** — tap one of 3 name-chips → Zara reads the number back · expects **අසූ හතර**
+Child: **answer** — tap one of 3 name-chips — judged on the tap, the feedback follows at once · expects **අසූ හතර**
 
-_Sees:_ Number cards 84 · 101 · 528 · 997 (ring on 84); a ring around 84 — they answer via tap one of 3 name-chips → Zara reads the number back.
+_Sees:_ Number cards 84 · 101 · 528 · 997 (ring on 84); a ring around 84 — they answer via tap one of 3 name-chips — judged on the tap, the feedback follows at once.
 
 ### `readWrite4Digit:3` · EXPLAIN
 
@@ -138,11 +137,10 @@ Board at line start: number cards 84 · 101 · 528 · 997 (ring on 84)
    - `numberCards.highlight_ring` `{"value":101}`
    - `turn.your_turn` `{"answerMode":"readAloud","surface":"chips"}`
    - `choiceChips.show` `{"options":["එකොළහ","එකසිය එක","එකසිය දහය"],"correctIndex":1}`
-   - `turn.read_back` `{"number":101}`
 
-Child: **answer** — tap one of 3 name-chips → Zara reads the number back · expects **එකසිය එක**
+Child: **answer** — tap one of 3 name-chips — judged on the tap, the feedback follows at once · expects **එකසිය එක**
 
-_Sees:_ Number cards 84 · 101 · 528 · 997 (ring on 101); a ring around 101 — they answer via tap one of 3 name-chips → Zara reads the number back.
+_Sees:_ Number cards 84 · 101 · 528 · 997 (ring on 101); a ring around 101 — they answer via tap one of 3 name-chips — judged on the tap, the feedback follows at once.
 
 ### `readWrite4Digit:3b` · EXPLAIN
 
@@ -171,11 +169,10 @@ Board at line start: number cards 84 · 101 · 528 · 997 (ring on 101)
    - `numberCards.highlight_ring` `{"value":528}`
    - `turn.your_turn` `{"answerMode":"readAloud","surface":"chips"}`
    - `choiceChips.show` `{"options":["පන්සිය විසි අට","පන්සිය අසූ දෙක","දෙසිය පනස් අට"],"correctIndex":0}`
-   - `turn.read_back` `{"number":528}`
 
-Child: **answer** — tap one of 3 name-chips → Zara reads the number back · expects **පන්සිය විසි අට**
+Child: **answer** — tap one of 3 name-chips — judged on the tap, the feedback follows at once · expects **පන්සිය විසි අට**
 
-_Sees:_ Number cards 84 · 101 · 528 · 997 (ring on 528); a ring around 528 — they answer via tap one of 3 name-chips → Zara reads the number back.
+_Sees:_ Number cards 84 · 101 · 528 · 997 (ring on 528); a ring around 528 — they answer via tap one of 3 name-chips — judged on the tap, the feedback follows at once.
 
 ### `readWrite4Digit:5` · ASK · pause ASK
 
@@ -185,11 +182,10 @@ Board at line start: number cards 84 · 101 · 528 · 997 (ring on 528)
    - `numberCards.highlight_ring` `{"value":997}`
    - `turn.your_turn` `{"answerMode":"readAloud","surface":"chips"}`
    - `choiceChips.show` `{"options":["නවසිය හැත්තෑ නවය","නවසිය අනූ හත","නවදහස් අනූ හත"],"correctIndex":1}`
-   - `turn.read_back` `{"number":997}`
 
-Child: **answer** — tap one of 3 name-chips → Zara reads the number back · expects **නවසිය අනූ හත**
+Child: **answer** — tap one of 3 name-chips — judged on the tap, the feedback follows at once · expects **නවසිය අනූ හත**
 
-_Sees:_ Number cards 84 · 101 · 528 · 997 (ring on 997); a ring around 997 — they answer via tap one of 3 name-chips → Zara reads the number back.
+_Sees:_ Number cards 84 · 101 · 528 · 997 (ring on 997); a ring around 997 — they answer via tap one of 3 name-chips — judged on the tap, the feedback follows at once.
 
 ### `readWrite4Digit:5a` · EXPLAIN
 
@@ -299,11 +295,10 @@ Board at line start: card "3058"
    - `pointer.move_to` `{"target":{"text":"3058"}}`
    - `turn.your_turn` `{"answerMode":"readAloud","surface":"chips"}`
    - `choiceChips.show` `{"options":["තුන්දහස් අසූ පහ","තුන්දහස් පනස් අට","තුන්දහස් පන්සිය අට"],"correctIndex":1}`
-   - `turn.read_back` `{"number":3058}`
 
-Child: **answer** — tap one of 3 name-chips → Zara reads the number back · expects **තුන්දහස් පනස් අට**
+Child: **answer** — tap one of 3 name-chips — judged on the tap, the feedback follows at once · expects **තුන්දහස් පනස් අට**
 
-_Sees:_ Card "3058" — they answer via tap one of 3 name-chips → Zara reads the number back.
+_Sees:_ Card "3058" — they answer via tap one of 3 name-chips — judged on the tap, the feedback follows at once.
 
 ### `readWrite4Digit:16` · EXPLAIN
 
@@ -981,11 +976,10 @@ Board at line start: the abacus showing 5 421
    - `pointer.move_to` `{"target":{"text":"abacus"}}`
    - `turn.your_turn` `{"answerMode":"readAloud","surface":"chips"}`
    - `choiceChips.show` `{"options":["පන්දහස් හාරසිය විසි එක","පන්දහස් දෙසිය හතළිස් එක","පන්දහස් හාරසිය දොළහ"],"correctIndex":0}`
-   - `turn.read_back` `{"number":5421}`
 
-Child: **answer** — tap one of 3 name-chips → Zara reads the number back · expects **පන්දහස් හාරසිය විසි එක**
+Child: **answer** — tap one of 3 name-chips — judged on the tap, the feedback follows at once · expects **පන්දහස් හාරසිය විසි එක**
 
-_Sees:_ The abacus showing 5 421; a chalk ring around 5 421 — they answer via tap one of 3 name-chips → Zara reads the number back.
+_Sees:_ The abacus showing 5 421; a chalk ring around 5 421 — they answer via tap one of 3 name-chips — judged on the tap, the feedback follows at once.
 
 ### `placeValue4Digit:59` · EXPLAIN
 
@@ -1028,11 +1022,10 @@ Board at line start: the abacus showing 6 831
    - `pointer.move_to` `{"target":{"text":"abacus"}}`
    - `turn.your_turn` `{"answerMode":"readAloud","surface":"chips"}`
    - `choiceChips.show` `{"options":["හයදහස් තුන්සිය අසූ එක","හයදහස් අටසිය තිස් එක","හයදහස් අටසිය දහතුන"],"correctIndex":1}`
-   - `turn.read_back` `{"number":6831}`
 
-Child: **answer** — tap one of 3 name-chips → Zara reads the number back · expects **හයදහස් අටසිය තිස් එක**
+Child: **answer** — tap one of 3 name-chips — judged on the tap, the feedback follows at once · expects **හයදහස් අටසිය තිස් එක**
 
-_Sees:_ The abacus showing 6 831 — they answer via tap one of 3 name-chips → Zara reads the number back.
+_Sees:_ The abacus showing 6 831 — they answer via tap one of 3 name-chips — judged on the tap, the feedback follows at once.
 
 ### `placeValue4Digit:63` · EXPLAIN
 

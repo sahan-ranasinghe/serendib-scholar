@@ -139,9 +139,9 @@ export function useLiveChat(): LiveChatHandle {
                 client.sendTextInput(
                   opener ??
                     (context
-                      ? `The child has raised their hand during the lesson. Your first line, in Sinhala ONLY (no English words, no quotation marks): ONE short spoken sentence that names what they are pointing at — ${
-                          context.boardFocus ?? "the concept they are on"
-                        } — keeping its exact number, rod or cell, then asks what their doubt is. Do not name the topic alone, and never say a number that is not on the board.`
+                      ? // 18 Sep (the device walk, issue 11): she does NOT narrate where they are. A child on the same screen may ask
+                        // about many different things — she invites the question in a few words, then simply answers it.
+                        "The child has opened the chat during the lesson; the board is still in front of them. Say ONLY a very short, warm Sinhala invitation to ask (three or four words — for example asking what they would like to know). Do NOT describe the board, the lesson or what you were doing, and do not guess their question. Then listen, and answer whatever they ask about anything on the board."
                       : "The child has opened a free chat with you. Say one short, warm Sinhala sentence inviting " +
                         "them to tell you anything, then listen."),
                 );

@@ -842,14 +842,13 @@ function TurnSection({ viewport }: { viewport: Viewport }) {
       id="turn"
       primitive="turn"
       title="— where the child's turn lands"
-      blurb="your_turn { answerMode, surface } is not drawn itself: it says which surface leads, so the glow goes there and nowhere else. On `rod` every rod becomes a button (a tap answers with what that rod shows); on `beads` the whole abacus breathes. pause { ms, cue } is reading practice (a faint 🎤, nothing recorded) or a soft check (no cue); read_back { number } is Zara reading the number herself. over ends it."
+      blurb="your_turn { answerMode, surface } is not drawn itself: it says which surface leads, so the glow goes there and nowhere else. On `rod` every rod becomes a button (a tap answers with what that rod shows); on `beads` the whole abacus breathes. pause { ms, cue } is reading practice (a faint 🎤, nothing recorded) or a soft check (no cue). over ends it."
       viewport={viewport}
       actions={[
         { label: "over", event: "turn.over", run: () => { setTurn(null); setPicked(null); }, role: "reset" },
         { label: "your_turn valueOrPlace on rod", event: "turn.your_turn", role: "animate-in", run: () => { setPicked(null); setTurn("rod"); } },
         { label: "your_turn build on beads", event: "turn.your_turn", run: () => { setPicked(null); setShown([0, 0, 0, 0]); setTurn("beads"); } },
         { label: "pause 2 s (a soft check — the board shows nothing; the pause is time, not a cue)", event: "turn.pause", run: () => { setPicked(null); setTurn("pause"); } },
-        { label: "read_back 5 421", event: "turn.read_back", run: () => { setTurn(null); setPicked(`Zara: මම කියන්නම් — ${sinhalaNumberName(5421)}`); } },
         { label: "retry (paper button)", event: "turn.retry", run: () => { setTurn("retry"); setPicked(null); } },
       ]}
     >

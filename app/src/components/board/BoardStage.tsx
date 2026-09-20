@@ -19,7 +19,7 @@
  * read-aloud step cards, the tap hint pill.
  */
 import { AnimatePresence, motion } from "framer-motion";
-import { memo, useState, type CSSProperties, type ReactNode } from "react";
+import { memo, useLayoutEffect, useState, type CSSProperties, type ReactNode } from "react";
 import type { BoardContent } from "@/lib/board";
 import type { StageState, AnswerSurface } from "@/lib/choreography";
 import type { AnswerMode } from "@/lib/answerMode";
@@ -36,7 +36,7 @@ import { BlankTable } from "./BlankTable";
 import { PlaceValueStrip } from "./PlaceValueStrip";
 import { Money } from "./Money";
 import { Pointer } from "./Pointer";
-import { Highlight } from "./Highlight";
+import { Highlight, RING_PAD } from "./Highlight";
 import { FeedbackFX } from "./FeedbackFX";
 import { NumberPad } from "./NumberPad";
 import { BOARD, FONT_SINHALA, SPRING } from "./tokens";
@@ -168,6 +168,31 @@ export const BoardStage = memo(function BoardStage({ stage, yourTurn, onAnswer, 
   // The chalk sum the child answers on the pad: its "?" is the answer slot (G2).
   const padAnswersChalk = active && !soft && !!yourTurn?.numeric && !touchable && !chipSet;
 
+  // NOTHING OVERLAPS — "if there is no room, the target shrinks to make room". The content is measured against the inset
+  // it lives in (which already stops short of the chips, the dock and the caption); when it — plus the ring drawn OUTSIDE
+  // it, when one is up — would not fit, the whole arrangement scales down, about its centre, until it does. Never below
+  // 60 %, and never up. Overlays (the pointer, the ring) measure what is painted, so they follow.
+  const [fitEl, setFitEl] = useState<HTMLDivElement | null>(null);
+  const [fit, setFit] = useState(1);
+  const ringRoom = stage.highlight?.kind === "circle" ? RING_PAD * 2 + 4 : 0;
+  useLayoutEffect(() => {
+    const box = fitEl?.closest(".wb-content") as HTMLElement | null;
+    if (!fitEl || !box || typeof ResizeObserver === "undefined") return;
+    const measure = () => {
+      const natural = { w: Math.max(fitEl.scrollWidth, fitEl.offsetWidth), h: fitEl.offsetHeight };
+      if (!natural.w || !natural.h || !box.clientHeight) return;
+      const next = Math.max(0.6, Math.min(1, (box.clientHeight - ringRoom) / natural.h, (box.clientWidth - (natural.w < box.clientWidth ? 0 : ringRoom)) / natural.w));
+      setFit((previous) => (Math.abs(previous - next) < 0.01 ? previous : Math.round(next * 100) / 100));
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(box);
+    observer.observe(fitEl);
+    return () => observer.disconnect();
+  }, [fitEl, ringRoom]);
+
+  const enteredDigits = stage.entry && /^\d+$/u.test(stage.entry.value) ? stage.entry : null;
+
   let content: ReactNode = null;
   if (base) {
     switch (base.kind) {
@@ -186,6 +211,8 @@ export const BoardStage = memo(function BoardStage({ stage, yourTurn, onAnswer, 
               animate={!editing && base.animate}
               glowRods={chipsLead ? [] : base.glowRods}
               childAnswer={base.childAnswer}
+              answerRod={base.answerRod ?? null}
+              answerVerdict={stage.entry && base.childAnswer !== null && stage.entry.value.replace(/\s/gu, "") === base.childAnswer ? stage.entry.verdict : null}
               readout={editing ? "live" : base.animate || base.shown.some((n, i) => n < (base.digits[i] ?? 0)) ? "asFilled" : "none"}
               interactive={editing}
               onChange={setBeads}
@@ -199,9 +226,11 @@ export const BoardStage = memo(function BoardStage({ stage, yourTurn, onAnswer, 
                 number={base.expansion.number}
                 parts={base.expansion.parts}
                 fly={base.expansion.fly}
+                answered={base.expansion.answered}
                 interactive={active && touchable && yourTurn?.surface === "expansion"}
                 onAnswer={(_, value) => submit(value)}
                 glowIndex={active && touchable && yourTurn?.surface === "expansion" ? base.expansion.parts.findIndex((p) => p === null) : null}
+                entry={stage.entry}
                 dockPad
               />
             )}
@@ -223,7 +252,8 @@ export const BoardStage = memo(function BoardStage({ stage, yourTurn, onAnswer, 
         );
         break;
       case "chalk":
-        content = <ChalkStack lines={base.lines} size={40} writing={writing} answerSlot={padAnswersChalk ? { draft: padDraft, glow: true } : null} />;
+        // The "?" slot holds the digits as they are typed, then what was committed — before the judge, and while it is marked.
+        content = <ChalkStack lines={base.lines} size={40} writing={writing} answerSlot={enteredDigits ? { draft: enteredDigits.value, glow: false, verdict: enteredDigits.verdict } : padAnswersChalk ? { draft: padDraft, glow: true } : null} />;
         break;
       case "textCard":
         content = <TextCard key={base.text} text={base.text} dimmed={baseVeiled} />;
@@ -242,17 +272,21 @@ export const BoardStage = memo(function BoardStage({ stage, yourTurn, onAnswer, 
         break;
       case "digitPicker": {
         const editing = active && touchable && yourTurn?.surface === "digitPicker";
-        const built = editing ? tiles : pickerBuilt(base.pool, base.built);
+        // What the child has just committed stays in the slots — before the judge, and while it is marked.
+        // (It does not wait for the turn to close: the entry is on the stage in the tap's own update, the close comes a tick later.)
+        const entered = stage.entry && /^\d+$/u.test(stage.entry.value) ? stage.entry : null;
+        const built = entered ? pickerBuilt(base.pool, entered.value) : editing ? tiles : pickerBuilt(base.pool, base.built);
         content = (
           <div style={{ opacity: baseVeiled ? 0.38 : 1, transition: "opacity 300ms" }}>
             <DigitPicker
               pool={base.pool}
               built={built}
-              builtName={editing || baseVeiled ? null : base.builtName}
+              builtName={editing || baseVeiled || entered ? null : base.builtName}
+              entered={entered ? entered.verdict : null}
               builtBy={base.builtBy}
-              interactive={editing}
+              interactive={editing && !entered}
               onChange={setTiles}
-              glow={editing}
+              glow={editing && !entered}
               ledger={base.puzzle ? base.ledger : undefined}
             />
           </div>
@@ -265,9 +299,11 @@ export const BoardStage = memo(function BoardStage({ stage, yourTurn, onAnswer, 
             number={base.expansion.number}
             parts={base.expansion.parts}
             fly={base.expansion.fly}
+            answered={base.expansion.answered}
             interactive={active && touchable && yourTurn?.surface === "expansion"}
             onAnswer={(_, value) => submit(value)}
             glowIndex={active && !soft ? base.expansion.parts.findIndex((p) => p === null) : null}
+            entry={stage.entry}
             alone
             dockPad
           />
@@ -283,6 +319,7 @@ export const BoardStage = memo(function BoardStage({ stage, yourTurn, onAnswer, 
             interactive={active && touchable && yourTurn?.surface === "blankTable"}
             onAnswer={(_, __, value) => submit(value)}
             sparkleAt={stage.feedback.kind === "correct" && stage.feedback.at && "cell" in stage.feedback.at ? stage.feedback.at.cell : null}
+            entry={stage.entry}
             dockPad
           />
         );
@@ -308,8 +345,11 @@ export const BoardStage = memo(function BoardStage({ stage, yourTurn, onAnswer, 
         : null;
 
   const chipStates: Partial<Record<number, ChipState>> = {};
-  if (chipSet && lastPick && lastPick.options === chipSet.options) {
-    if (stage.feedback.kind === "correct" && stage.feedback.nonce > lastPick.nonce) {
+  // The turn's chips and the stage's are different objects holding the same options: the tapped chip is found by value.
+  if (chipSet && lastPick && lastPick.options.join("|") === chipSet.options.join("|")) {
+    // The tapped chip is marked as chosen in the tap itself — before the judge — then turns ✓ or wobbles.
+    if (stage.entry?.verdict === "pending" && stage.entry.value === chipSet.options[lastPick.index]) chipStates[lastPick.index] = "selected";
+    else if (stage.feedback.kind === "correct" && stage.feedback.nonce > lastPick.nonce) {
       chipSet.options.forEach((_, i) => (chipStates[i] = i === lastPick.index ? "correct" : "disabled"));
     } else if (stage.retry || (stage.feedback.kind === "wrong" && stage.feedback.nonce > lastPick.nonce)) {
       chipStates[lastPick.index] = "wrong";
@@ -381,13 +421,16 @@ export const BoardStage = memo(function BoardStage({ stage, yourTurn, onAnswer, 
   return (
     <Whiteboard viewport="stretch" wipeKey={stage.wipe} testId="lesson-board" cornerSlot={sheet ? undefined : cornerSlot} lenaSlot={lenaSlot} handSlot={sheet ? undefined : handSlot} footer={footer} caption={caption} sheet={sheet} frameSlot={frameSlot} onInput={onInput}>
       <div
-        className={active && soft ? "wb-your-turn-soft" : undefined}
+        className={`wb-fit${active && soft ? " wb-your-turn-soft" : ""}`}
         data-soft-tap={soft ? "true" : undefined}
         data-surface={yourTurn?.surface ?? undefined}
         data-answer-mode={yourTurn?.answerMode ?? stage.turn?.answerMode ?? undefined}
         data-turn-surface={stage.turn?.surface ?? undefined}
         onPointerDown={soft ? onTouch : active ? undefined : onIdleTouch}
-        style={{ display: "flex", flexDirection: notesBeside ? "row" : "column", alignItems: "center", justifyContent: "center", gap: notesBeside ? (base?.kind === "digitPicker" ? 44 : base?.kind === "abacus" ? 40 : 22) : 10, maxWidth: "100%", width: "100%" }}
+        ref={setFitEl}
+        data-fit={fit < 1 ? fit : undefined}
+        data-rods-discussed={base?.kind === "abacus" ? base.glowRods.join(",") : undefined}
+        style={{ transform: fit < 1 ? `scale(${fit})` : undefined, display: "flex", flexDirection: notesBeside ? "row" : "column", alignItems: "center", justifyContent: "center", gap: notesBeside ? (base?.kind === "digitPicker" ? 44 : base?.kind === "abacus" ? 40 : 22) : 10, maxWidth: "100%", width: "100%" }}
       >
         {content}
         {/* the chalk stack beside the base: newest at 100 %, older at 60 %, three at most; beside a card, a line that repeats the card's number writes only its tail (G4) */}
@@ -401,15 +444,15 @@ export const BoardStage = memo(function BoardStage({ stage, yourTurn, onAnswer, 
         )}
       </div>
 
-      <Pointer at={stage.pointer} pulseKey={stage.pointerPulse} parked={stage.parked} onSide={onPointerSide} />
-      <Highlight kind={stage.highlight?.kind ?? null} target={stage.highlight?.target ?? null} />
+      <Pointer at={stage.pointer} pulseKey={stage.pointerPulse} parked={stage.parked} onSide={onPointerSide} layoutKey={`${stage.seq}:${active ? 1 : 0}:${chipSet ? chipSet.options.length : 0}:${padOpen ? 1 : 0}:${fit}`} />
+      <Highlight kind={stage.highlight?.kind ?? null} target={stage.highlight?.target ?? null} layoutKey={`${stage.seq}:${fit}:${chipSet ? 1 : 0}`} />
       <FeedbackFX kind={stage.feedback.kind} at={stage.feedback.at} nonce={stage.feedback.nonce} badge={!(stage.feedback.at && "cell" in stage.feedback.at)} />
     </Whiteboard>
   );
 });
 
 /** Up to three chalk lines, top-down: the newest at 100 %, the older at 60 % (rule a); the cursor waits on the newest while she writes. */
-function ChalkStack({ lines, size, writing, answerSlot = null }: { lines: Array<{ key: string | number; text: string; append?: string }>; size: number; writing: boolean; answerSlot?: { draft: string; glow: boolean } | null }) {
+function ChalkStack({ lines, size, writing, answerSlot = null }: { lines: Array<{ key: string | number; text: string; append?: string }>; size: number; writing: boolean; answerSlot?: { draft: string; glow: boolean; verdict?: "pending" | "correct" | "wrong" } | null }) {
   const shown = lines.slice(-CHALK_STACK);
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 8 }}>

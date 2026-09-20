@@ -94,7 +94,10 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const [freshAt, setFreshAt] = useState(0);
   const inFlight = useRef<Promise<void> | null>(null);
 
-  const refresh = useCallback((): Promise<void> => {
+  const queued = useRef<Promise<void> | null>(null);
+
+  /** Background revalidation: one fetch at a time, a second request rides the one in the air. */
+  const revalidate = useCallback((): Promise<void> => {
     if (inFlight.current) return inFlight.current;
     setUpdating(true);
     const run = (async () => {
@@ -129,6 +132,24 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     return run;
   }, []);
 
+  /**
+   * After a write (the PIN entered, a child switched): the caller needs a
+   * snapshot that was fetched AFTER the write. A revalidation already in the
+   * air started before it — riding that one handed the PIN gate a stale
+   * "parent: null" and the gate asked again (18 Sep, the device walk). So a
+   * fetch in flight is followed by exactly one more, and that one is awaited.
+   */
+  const refresh = useCallback((): Promise<void> => {
+    if (!inFlight.current) return revalidate();
+    if (!queued.current) {
+      queued.current = inFlight.current.then(() => {
+        queued.current = null;
+        return revalidate();
+      });
+    }
+    return queued.current;
+  }, [revalidate]);
+
   const clear = useCallback(() => {
     setSnapshot(null);
     setStatus("cold");
@@ -140,19 +161,19 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // The app is interactive from here (React has hydrated): harnesses tap only after this mark, as a child's first tap lands on a painted, live screen.
     document.documentElement.setAttribute("data-hydrated", "1");
-    void refresh();
-  }, [refresh]);
+    void revalidate();
+  }, [revalidate]);
 
   // Revalidate quietly: when the app comes back into view, and on a timer while it is visible.
   useEffect(() => {
     const onVisible = () => {
-      if (document.visibilityState === "visible") void refresh();
+      if (document.visibilityState === "visible") void revalidate();
     };
     document.addEventListener("visibilitychange", onVisible);
     window.addEventListener("focus", onVisible);
     window.addEventListener("online", onVisible);
     const timer = setInterval(() => {
-      if (document.visibilityState === "visible") void refresh();
+      if (document.visibilityState === "visible") void revalidate();
     }, REVALIDATE_MS);
     return () => {
       document.removeEventListener("visibilitychange", onVisible);
@@ -160,7 +181,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       window.removeEventListener("online", onVisible);
       clearInterval(timer);
     };
-  }, [refresh]);
+  }, [revalidate]);
 
   const value = useMemo<AppStore>(() => ({ snapshot, status, updating, noChild, freshAt, refresh, clear }), [snapshot, status, updating, noChild, freshAt, refresh, clear]);
   return <AppStoreContext.Provider value={value}>{children}</AppStoreContext.Provider>;

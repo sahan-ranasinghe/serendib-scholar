@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { paidCallAllowed } from "@/lib/paidCalls";
 import { GoogleGenAI } from "@google/genai";
 import { ensureAudioBucket, ensureClip, readCachedClip } from "@/lib/liveTts";
 import { getActiveChild } from "@/lib/activeChild";
@@ -89,9 +90,9 @@ export async function POST(request: NextRequest) {
     let written = false;
     if (!text) {
       if (!goal) return NextResponse.json({ ok: false, error: "Nothing to say." }, { status: 400 });
-      // CLIP_RENDER=off gates the WRITING model too: a goal-only line (a RETEACH written at runtime) has no cached
-      // clip to find without its words, and writing them is a model call — the runtime reads its fallback on the board.
-      if (process.env.CLIP_RENDER === "off") return NextResponse.json({ ok: false, error: "Rendering is off; the line has no clip yet." }, { status: 503 });
+      // The WRITING model is a paid call, off unless CLIP_RENDER=on (src/lib/paidCalls.ts): a goal-only line (a RETEACH
+      // written at runtime) has no cached clip to find without its words — the lesson carries on without it.
+      if (!paidCallAllowed("lineWriter")) return NextResponse.json({ ok: false, error: "Rendering is off; the line has no clip yet." }, { status: 503 });
       text = resolveAddress(await writeLine(goal, maxSentences, apiKey), child.gender);
       written = true;
     }
@@ -111,10 +112,9 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // CLIP_RENDER=off: a harness (or a pilot with no render budget) never
-    // reaches the voice model — an unrecorded line is read on the board
-    // instead (the runtime's no-clip path), and nothing is billed.
-    if (process.env.CLIP_RENDER === "off") return NextResponse.json({ ok: false, error: "Rendering is off; the line has no clip yet." }, { status: 503 });
+    // Rendering is OFF unless CLIP_RENDER=on (src/lib/paidCalls.ts): the voice model is never reached — an unrecorded
+    // line is read on the board instead (the runtime's no-clip path), and nothing is billed.
+    if (!paidCallAllowed("clipRender")) return NextResponse.json({ ok: false, error: "Rendering is off; the line has no clip yet." }, { status: 503 });
 
     // Only an actual render (a voice-model call) spends the budget — cache
     // hits above are free. 20 per session; a healthy session renders 0-2

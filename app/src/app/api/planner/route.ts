@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { paidCallAllowed } from "@/lib/paidCalls";
 import { GoogleGenAI } from "@google/genai";
 import { answersMatch, answerContains } from "@/lib/answerCheck";
 import type { PlannerDecision } from "@/lib/lessonOrchestrator";
@@ -118,7 +119,7 @@ export async function POST(request: NextRequest) {
   // deterministic stage; this is stage 2 — one model call with the rubric.
   if (rubric && typeof rubric === "object" && Array.isArray((rubric as { acceptIfAnyOf?: unknown }).acceptIfAnyOf)) {
     const rubricValue = rubric as { acceptIfAnyOf: string[]; conceptDescription: string };
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = paidCallAllowed("planner") ? process.env.GEMINI_API_KEY : undefined; // off unless VOICE_ASSESSMENT=on: the no-model path below answers
     if (!apiKey) {
       const decision: PlannerDecision = { understood: false, next: "advance", reason: "No model available for the rubric; not accepted." };
       return NextResponse.json({ ok: true, decision, checked_by: "rubric-unavailable" });
@@ -160,7 +161,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Stage 2 — ambiguous or wrong.
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = paidCallAllowed("planner") ? process.env.GEMINI_API_KEY : undefined; // off unless VOICE_ASSESSMENT=on: the no-model path below answers
   if (!apiKey) {
     // Fail toward teaching rather than toward advancing: without a planner
     // we cannot claim the child understood.

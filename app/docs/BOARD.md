@@ -185,7 +185,7 @@ concept's skill — never typed by hand:
 | cell | tap the cell, then the pad | after a miss |
 | valueOrPlace | tap the rod or column, or 3 chips | from the start |
 | why | 3 chips (the rubric's findings) | from the start |
-| readAloud | reading practice first: 3 s to say it (faint 🎤, nothing recorded), then Zara reads it back ("මම කියන්නම් —" + the composed number) | 3 name-chips from the start of the judged step |
+| readAloud | the chips ARE the question, dealt as she asks (no invitation, no 🎤 cue; since 18 Sep no read-back either — a tap is judged, the feedback plays, the lesson continues) | 3 name-chips from the first word |
 
 The three options come from `src/lib/distractors.ts` (deterministic:
 swapped digits, a zero dropped or added, one place off; the adjacent
@@ -219,6 +219,43 @@ or no surface.
 - The strip's ⏸ ↺ ⏹ keep their small pills but their hit areas reach 56 px
   down into the board frame (`.strip-control::after`); the session check
   probes this.
+
+## Nothing overlaps, and an entry is shown before it is judged (18 Sep 2026)
+
+Two rules every primitive now lives under — both are asserted, not hoped for.
+
+**Nothing overlaps, ever.** `src/components/board/layout.ts` is the one probe:
+every visible text node's own glyph run, plus every stroke-drawn number
+(`data-readable`, glyph by glyph), is a readable box. `npm run board:check`
+stages EVERY storyboard beat (`/admin/design-preview?beat=<id>&moment=end|turn|answered`,
+`stageStoryboardBeat` in `src/lib/designFrames.ts`) at 800×360 and 844×390 and fails a frame
+where two readable boxes intersect, a ring or underline crosses its target's box or any
+text, or the pointer rests on anything readable; `session:check` asks the same probe
+(`window.__boardLayout()`) at every beat of the live session. What keeps frames clean:
+
+- a ring is a chalk LASSO outside its target's box (`strokes.lassoPath`, `Highlight.RING_PAD`
+  14; drawn in closer, never under 6, beside glyphs on the same line); an underline hangs 3 px
+  below its target;
+- the pointer takes the first side of its target where the hand covers nothing readable —
+  below, above, beside, then the small hand; a table cell's row is pointed at from outside
+  the table when the cell is boxed in (`Pointer.tsx`);
+- the content scales down to the room it has (`BoardStage` fit: the inset stops short of the
+  chips, the dock and a wrapped caption — `--wb-foot`, `--wb-cap` — and the ring's pad is
+  room too), never below 60 %;
+- a docked table draws only the rows that fit above the dock, the active row last.
+
+A new primitive gets this for free if its numbers are `HandNumber`s and its labels are
+text; give decoration that is MEANT to sit on something `data-layout-ignore`.
+
+**An entry is on the surface before the judge.** A tap goes through
+`enterAnswer(stage, value)` in the tap itself (the runtime's `submitTypedAnswer`), one frame
+is painted, and only then is it judged (`judgeEntry(stage, correct)`): right → the cell /
+part becomes the child's own (green ✓, it stands against her later confirmation); wrong →
+it stays to wobble until the retry reopens the surface. A surface shows `stage.entry` in
+its active slot and marks the element `data-entry` / `data-entry-verdict` — `session:check`
+reads those as the judge begins and prints the trace per surface. On the abacus the answer
+is written under the rod it answers (`answerRod`) and leaves when another rod comes under
+discussion: only the rod being talked about carries a value.
 
 ## What the runtime does for you
 

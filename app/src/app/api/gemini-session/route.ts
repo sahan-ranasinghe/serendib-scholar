@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { paidCallAllowed } from "@/lib/paidCalls";
 import { ZARA_VOICE as SHARED_ZARA_VOICE } from "@/lib/zaraVoice";
 import { requireSession } from "@/lib/sessionAuth";
 import { limitedResponseBody, takeBudget } from "@/lib/rateLimit";
@@ -55,6 +56,8 @@ export async function POST(request: NextRequest) {
     CHAT_CHARGE_PER_OPEN_SECONDS,
   );
   if (!chatBudget.allowed) return NextResponse.json(limitedResponseBody(), { status: 429 });
+  // The one permitted paid call in the app (src/lib/paidCalls.ts) — counted, so a harness can tell it from any other.
+  paidCallAllowed("chat");
 
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {

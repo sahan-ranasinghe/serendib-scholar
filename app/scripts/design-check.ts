@@ -27,7 +27,7 @@ import http from "node:http";
 import path from "node:path";
 import sharp from "sharp";
 import { connect, evaluate, launch, openPage, wait, type Cdp } from "./lib/cdp";
-import { DESIGN_FRAMES } from "../src/lib/designFrames";
+import { DESIGN_FRAMES, OVERLAP_NOTE } from "../src/lib/designFrames";
 import { initialStage, reduceStage } from "../src/lib/choreography";
 import { ZARA_STATES } from "../src/components/ZaraCharacter";
 import { LENA_STATES } from "../src/components/LenaCharacter";
@@ -569,7 +569,14 @@ const CHILD_SCREENS = new Set(["Splash", "Home", "Lesson map", "Lesson detail", 
 /** Latin tokens the export itself prints on child screens. */
 const LATIN_ALLOWED = new Set(["A4", "art", "Loading", "Offline", "Paused", "Rotate", "phone", "Mic", "permission", "Error", "EN", "Wi", "Fi"]);
 /** Explained gaps per app screen (the export's frame vs the app's component). */
-const SCREEN_GAPS: Record<string, string> = {};
+const SCREEN_GAPS: Record<string, string> = {
+  Home: "since 18 Sep (the device walk, cluster M) the header carries a top bar the export does not have — the child's avatar + name (the child switcher) on the left, the labelled parent entry (≥ 56 px, \"දෙමාපිය\") on the right, under a 36 px strip kept clear for the updating/offline pill — where the export had only a 48 px 🔒 in the corner; everything below it sits 44 px lower than in the export",
+  // Found unexplained on 19 Sep 2026 while verifying the second device walk; neither screen's code was touched by that work.
+  // Both come from f8d4688 ("names"): the export's "නිවස" became "මුල් පිටුව" — a wider label in the bottom nav and on the
+  // error state's second button — and Rewards' locked outfits carry a 🔒 the export does not draw.
+  Rewards: "since f8d4688 the bottom nav's first tab reads මුල් පිටුව (the export: නිවස), wider and wrapping the nav taller, and locked outfits carry a 🔒 the export does not draw",
+  Error: "since f8d4688 the second button reads මුල් පිටුවට (the export: නිවසට), wider, which shifts the button pair; Zara's portrait is the talking state where the export drew her mouth closed",
+};
 
 interface ScreenRef extends RenderedRef {
   w: number;
@@ -666,8 +673,10 @@ async function checkCarryOver(page: Cdp, gotoFrame: (id: string) => Promise<void
   add("3 who wrote it", "✓ success green", "rgb(60, 140, 90)", badges.tick, badges.tick === "rgb(60, 140, 90)");
   add("e table skin", "filled + active + pointer coexist", "filled ≥1 · active 1 · pointer", `filled ${badges.filled} · active ${badges.active} · pointer ${badges.pointer}`, badges.filled >= 1 && badges.active === 1 && badges.pointer);
   await gotoFrame("M10");
-  const docked = await q<{ pad: boolean; rows: number }>(`(() => ({ pad: !!document.querySelector('[data-testid="number-pad"]'), rows: new Set([...document.querySelectorAll('[data-testid^="cell-"]')].map((c) => c.getAttribute('data-testid').split('-')[1]).filter((r) => /^\\d+$/.test(r))).size }))()`);
-  add("e table skin", "3–4 rows while docked (M10)", "pad docked · 3–4 rows", `pad ${docked.pad} · ${docked.rows} rows`, docked.pad && docked.rows >= 3 && docked.rows <= 4);
+  // Since 18 Sep 2026 (nothing overlaps): the docked table draws only the rows that FIT above the pad — the export drew
+  // 3–4 with the last ones running on behind the dock — and the active row is the last of them, fully above the pad.
+  const docked = await q<{ pad: boolean; rows: number; activeAbovePad: boolean }>(`(() => ({ pad: !!document.querySelector('[data-testid="number-pad"]'), activeAbovePad: (() => { const a = document.querySelector('[data-testid^="cell-"][data-active]'); const p = document.querySelector('[data-testid="number-pad"]'); return !!a && !!p && a.getBoundingClientRect().bottom <= p.getBoundingClientRect().top + 1; })(), rows: new Set([...document.querySelectorAll('[data-testid^="cell-"]')].map((c) => c.getAttribute('data-testid').split('-')[1]).filter((r) => /^\\d+$/.test(r))).size }))()`);
+  add("e table skin", "1–4 rows while docked, none behind the pad, the active row above it (M10)", "pad docked · 1–4 rows · active row above the pad", `pad ${docked.pad} · ${docked.rows} rows · active row above the pad ${docked.activeAbovePad}`, docked.pad && docked.rows >= 1 && docked.rows <= 4 && docked.activeAbovePad);
 
   // Rule 4 — labels beneath: Yaldevi 600 20 px ink-70 under the abacus.
   await gotoFrame("M6");
@@ -1293,7 +1302,7 @@ async function main(): Promise<void> {
       const b = best!;
       await writePng(b.refCrop, path.join(OUT, "session", `${safe(frame.id)}-ref.png`));
       await sideBySide(ours, b.refCrop, b.d.mask, path.join(OUT, "session", `${safe(frame.id)}-diff.png`));
-      ssimRows.push({ frame: frame.id, ssim: b.s, diff: b.d.share, top: b.d.regions.slice(0, 3).map((r) => `${r.name} ${Math.round(r.share * 100)} %`), gap: frame.knownGap ? `${frame.knownGap}; and ${STRIP_NOTE}` : STRIP_NOTE, ref: source === "html" ? "export html" : refName.replace(/\n/gu, " ").slice(0, 50), source, split: boxes.length });
+      ssimRows.push({ frame: frame.id, ssim: b.s, diff: b.d.share, top: b.d.regions.slice(0, 3).map((r) => `${r.name} ${Math.round(r.share * 100)} %`), gap: `${frame.knownGap ? `${frame.knownGap}; and ` : ""}${STRIP_NOTE}; ${OVERLAP_NOTE}`, ref: source === "html" ? "export html" : refName.replace(/\n/gu, " ").slice(0, 50), source, split: boxes.length });
     }
     console.log(`\n== SESSION FRAMES (SSIM at 844×390, nothing masked, vs the export's own render (html) or its PNG (png); target ≥ ${SSIM_TARGET}) ==`);
     console.log(`${"frame".padEnd(32)} ${"SSIM".padEnd(7)} ${"source".padEnd(7)} ${"px diff".padEnd(8)} top differences`);

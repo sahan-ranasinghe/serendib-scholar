@@ -224,8 +224,9 @@ and nowhere else (a soft check glows nothing).
   - `pause { ms }` — up to 3000 ms. A soft check: she pauses for the child
     to chime in. Nothing is drawn — a pause is time, not a cue. Clears any
     chips.
-  - `read_back { number }` — 400 ms. Zara reads the number herself
-    ("මම කියන්නම් —" + the composed number); the board does not change.
+  - (`read_back` was removed on 18 Sep 2026 — the device walk: a tap is
+    judged, the feedback plays, the lesson continues. No read-back beat, no
+    frame line, no composed number on the answer path.)
   - `retry` — 300 ms. A wrong answer's visible way back: the paper button
     "ආයෙත් උත්සාහ කරන්න" top-right; a tap reopens the surface.
   - `over` — 150 ms. The glow, the chips and the retry button go.

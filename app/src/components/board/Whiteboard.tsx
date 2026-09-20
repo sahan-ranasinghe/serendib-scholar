@@ -15,6 +15,7 @@
  * "desktop" is 16:9 at 1024 wide, "fill" takes the parent's width,
  * "stretch" fills the parent's box entirely (the lesson screen's column).
  */
+import { installLayoutProbe } from "./layout";
 import "./board.css";
 import { AnimatePresence, MotionConfig, motion } from "framer-motion";
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
@@ -75,6 +76,18 @@ export function Whiteboard({ viewport = "fill", children, wipeKey, showTray = tr
     observer.observe(footEl);
     return () => observer.disconnect();
   }, [footEl]);
+  // The caption's real height: a line that wraps lifts the foot and the content inset clear of it (`--wb-cap`).
+  const [capEl, setCapEl] = useState<HTMLDivElement | null>(null);
+  const [capH, setCapH] = useState(0);
+  useEffect(() => {
+    if (!capEl) return;
+    const measure = () => setCapH(Math.round(capEl.getBoundingClientRect().height));
+    measure();
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(capEl);
+    return () => observer.disconnect();
+  }, [capEl]);
   const noteDock = useCallback((delta: number) => setDocked((n) => Math.max(0, n + delta)), []);
   const dockUp = docked > 0;
   // Surfaces with input in them, by name: the board reports "something is being typed" as one boolean.
@@ -103,6 +116,9 @@ export function Whiteboard({ viewport = "fill", children, wipeKey, showTray = tr
     [registry.resolve],
   );
 
+  // The layout probe (nothing overlaps): harnesses ask the page, and the page answers with the board's own code.
+  useEffect(() => installLayoutProbe(), []);
+
   const [wiping, setWiping] = useState(false);
   const lastWipe = useRef(wipeKey);
   useEffect(() => {
@@ -122,10 +138,11 @@ export function Whiteboard({ viewport = "fill", children, wipeKey, showTray = tr
           data-viewport={viewport}
           data-testid={testId}
           data-board
+          data-board-root
           data-corner={cornerSlot ? "true" : undefined}
           data-footer={footer && !dockUp ? "true" : undefined}
           data-foot={foot}
-          style={{ "--wb-foot": `${footH}px` } as CSSProperties}
+          style={{ "--wb-foot": `${footH}px`, "--wb-cap": `${caption ? capH : 0}px` } as CSSProperties}
         >
           <div className="wb-surface" ref={attachSurface} data-testid="board-surface">
             <div className="wb-content" data-testid="board-content" style={{ opacity: wiping ? 0 : 1, transition: `opacity ${WIPE_MS * 0.6}ms ease-out` }}>
@@ -152,7 +169,7 @@ export function Whiteboard({ viewport = "fill", children, wipeKey, showTray = tr
           <div className="wb-dock" data-testid="board-dock" data-up={dockUp || undefined} ref={setDock} />
           {frameSlot}
           {caption && (
-            <div className="wb-caption" data-testid="caption">
+            <div className="wb-caption" data-testid="caption" ref={setCapEl}>
               {caption}
             </div>
           )}

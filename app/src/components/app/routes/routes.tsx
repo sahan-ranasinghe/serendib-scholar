@@ -24,10 +24,11 @@ import { StartLessonButton } from "@/components/app/StartLessonButton";
 import { SessionActions } from "@/components/app/SessionActions";
 import { CertificateScreen } from "@/components/app/screens/Certificate";
 import { CertificateActions } from "@/components/app/CertificateActions";
-import { DeleteClient, PinChangeClient, SettingsClient } from "@/components/app/ParentClients";
+import { DeleteClient, PinChangeClient, ReportShare, SettingsClient } from "@/components/app/ParentClients";
 import type { AppSnapshot } from "@/lib/appSnapshot";
 import { InstallPrompt } from "@/components/app/InstallPrompt";
 import { PinGate } from "@/components/app/PinGate";
+import { ChildSwitcher } from "@/components/app/ChildSwitcher";
 import { ProfilesClient } from "@/components/app/ParentClients";
 import { PrimaryButton } from "@/components/app/Screen";
 import { FIXTURE_DETAIL, FIXTURE_HOME, FIXTURE_MAP, FIXTURE_PARENT, FIXTURE_PRACTICE, FIXTURE_PROFILES, FIXTURE_PROGRESS, FIXTURE_REPORT, FIXTURE_REWARDS, FIXTURE_SUMMARY, FIXTURE_CERTIFICATE } from "@/lib/appFixtures";
@@ -64,7 +65,7 @@ export function HomeRoute() {
   }
   return (
     <Ready route="home">
-      <HomeScreen data={snapshot.home} start={<StartLessonButton height={56} style={{ flex: 1 }} />} />
+      <HomeScreen data={snapshot.home} start={<StartLessonButton height={56} style={{ flex: 1 }} />} child={<ChildSwitcher name={snapshot.home.name} kids={snapshot.kids ?? []} />} />
     </Ready>
   );
 }
@@ -199,6 +200,10 @@ export function SummaryRoute() {
 function ParentGate({ route, skeleton, children }: { route: string; skeleton: ReactNode; children: (parent: NonNullable<AppSnapshot["parent"]>, snapshot: AppSnapshot) => ReactNode }) {
   useChildGate();
   const { snapshot, status } = useAppState();
+  // The zone renders from the device's snapshot at once, like every screen (cluster H: a tap never waits on a fetch — on
+  // Slow 3G or offline a "wait for the server" rule left the parent routes on their skeleton). The snapshot only carries
+  // the zone when this device held the parent cookie at its last fetch; the revalidation behind it puts the gate up if
+  // the cookie has since lapsed, and every parent WRITE is checked server-side (parentGuard) whatever the screen shows.
   if (!snapshot) {
     return (
       <Skeleton screen="parent" line={noDataLine(status)}>
@@ -246,7 +251,7 @@ export function DeleteRoute() {
 export function ReportRoute() {
   return (
     <ParentGate route="parent-report" skeleton={<WeeklyReportScreen data={FIXTURE_REPORT} />}>
-      {(parent) => <WeeklyReportScreen data={parent.report} />}
+      {(parent) => <WeeklyReportScreen data={parent.report} share={<ReportShare />} />}
     </ParentGate>
   );
 }

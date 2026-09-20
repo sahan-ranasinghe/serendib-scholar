@@ -94,8 +94,25 @@ export interface SessionShellProps {
   confirm?: SessionConfirm | null;
 }
 
+/** A small friendly bot: the chat's persistent icon. */
+function BotIcon({ size = 30 }: { size?: number }) {
+  return (
+    <svg viewBox="0 0 32 32" width={size} height={size} aria-hidden style={{ display: "block" }}>
+      <line x1="16" y1="3" x2="16" y2="8" stroke="var(--color-teal)" strokeWidth="2.4" strokeLinecap="round" />
+      <circle cx="16" cy="3.4" r="2.2" fill="var(--color-saffron)" />
+      <rect x="4.5" y="8" width="23" height="18" rx="7" fill="var(--color-teal)" />
+      <circle cx="11.5" cy="16" r="2.6" fill="#fff" />
+      <circle cx="20.5" cy="16" r="2.6" fill="#fff" />
+      <path d="M11.5 21.2c2.8 2 6.2 2 9 0" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" />
+      <rect x="1.5" y="14" width="3" height="7" rx="1.5" fill="var(--color-teal)" />
+      <rect x="27.5" y="14" width="3" height="7" rx="1.5" fill="var(--color-teal)" />
+    </svg>
+  );
+}
+
 export function SessionShell({ stage, yourTurn, zaraState, lenaState, pointerSide, talking, getAmplitude, zaraDimmed = false, paused = false, conceptStops, captionsOn, onToggleCaptions, caption, hint, sheet, charactersShown, handShown, chatting = false, onHand, onPause, onRepeat, onEnd, onAnswer, onTouch, onIdleTouch, onPointerSide, onInput, renderLegacy, onTitleTap, onRootPointerDown, data, children, confirm = null }: SessionShellProps) {
   const [pressed, setPressed] = useState<string | null>(null);
+  const chatOpen = chatting || sheet?.kind === "chat";
   // Zara in the frame's corner. The mouth's amplitude is the portrait's
   // own state (ZaraPortrait polls it), so her talking never re-renders the
   // board — and the board's props are stable, so BoardStage (memoised)
@@ -106,17 +123,20 @@ export function SessionShell({ stage, yourTurn, zaraState, lenaState, pointerSid
   const handSlot = useMemo(
     () =>
       handShown ? (
-        <button type="button" className="wb-hand wb-tap" data-testid="hand" onClick={onHand} aria-label={chatting ? "කතාව ඉවරයි" : "Zara එක්ක කතා කරන්න"}>
-          ✋
+        // The chat's door, always there: a small bot with the ✋ it answers to. It opens the chat panel and closes it again —
+        // the child comes and goes as they like, the board in front of them the whole time.
+        <button type="button" className="wb-hand wb-tap" data-testid="hand" data-open={chatOpen || undefined} onClick={onHand} aria-pressed={chatOpen} aria-label={chatOpen ? "කතාව වහන්න" : "සාරාගෙන් අහන්න"}>
+          <BotIcon />
+          <span className="wb-hand-badge" aria-hidden>✋</span>
         </button>
       ) : undefined,
-    [handShown, onHand, chatting],
+    [handShown, onHand, chatOpen],
   );
-  const boardSheet = sheet
-    ? sheet.kind === "mic"
-      ? { kind: "mic" as const, testId: "mic-ask", zara: large, content: <MicAskSheet onAllow={sheet.onAllow} onType={sheet.onType} /> }
-      : { kind: "chat" as const, testId: "chat-sheet", zara: large, content: <ChatSheet child={sheet.child} zara={sheet.zara} listening={sheet.listening} onReturn={sheet.onReturn} /> }
-    : null;
+  // Only the first-time microphone explanation is a sheet over the board. THE CHAT IS NOT (18 Sep, the device walk): it is a
+  // compact panel docked BESIDE the board (below it in portrait) — the board reflows into the room that is left, fully
+  // visible and undimmed, with the pointer and the ring still working on it while she explains.
+  const boardSheet = sheet?.kind === "mic" ? { kind: "mic" as const, testId: "mic-ask", zara: large, content: <MicAskSheet onAllow={sheet.onAllow} onType={sheet.onType} /> } : null;
+  const chat = sheet?.kind === "chat" ? sheet : null;
 
   return (
     <div className="lesson-screen" onPointerDown={onRootPointerDown} {...data} data-character={zaraState} data-lena={lenaState} data-paused={paused || undefined} data-pause={stage.pause ? "soft" : undefined} style={{ position: "fixed", inset: 0, display: "flex", flexDirection: "column", background: "var(--color-wood)", color: "var(--color-ink)" }}>
@@ -143,7 +163,8 @@ export function SessionShell({ stage, yourTurn, zaraState, lenaState, pointerSid
       </header>
 
       {/* ---- the board, edge to edge ---------------------------------------- */}
-      <main data-testid="session-main" style={{ position: "relative", minHeight: 0, flex: 1, overflow: "hidden" }}>
+      <main data-testid="session-main" className="session-main" data-chat-panel={chat ? "open" : undefined} style={{ position: "relative", minHeight: 0, flex: 1, overflow: "hidden" }}>
+        <div data-testid="session-board" className="session-board">
         <BoardStage
           stage={stage}
           yourTurn={yourTurn}
@@ -161,6 +182,8 @@ export function SessionShell({ stage, yourTurn, zaraState, lenaState, pointerSid
           hint={hint}
           writing={talking}
         />
+        </div>
+        {chat && <ChatPanel child={chat.child} zara={chat.zara} listening={chat.listening} onClose={chat.onReturn} portrait={<ZaraPortrait state={zaraState} side={null} talking={talking} getAmplitude={getAmplitude} dimmed={false} size={40} />} />}
         {children}
       </main>
 
@@ -330,30 +353,32 @@ function MicAskSheet({ onAllow, onType }: { onAllow: () => void; onType: () => v
   );
 }
 
-/** The ✋ chat (S3): the listening pill, the last two lines, one way back. */
-function ChatSheet({ child, zara, listening, onReturn }: { child: string | null; zara: string | null; listening: boolean; onReturn: () => void }) {
+/**
+ * The ✋ chat, as a compact panel (18 Sep 2026 — it used to be a sheet over a dimmed board, so a child could not see what
+ * they were asking about). Zara small, the listening pill, the live transcript (what the child said, what she is saying),
+ * and a close button. It sits beside the board in landscape and beneath it — at most a third of the height — in portrait.
+ */
+function ChatPanel({ child, zara, listening, onClose, portrait }: { child: string | null; zara: string | null; listening: boolean; onClose: () => void; portrait: ReactNode }) {
   return (
-    <>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <span style={{ font: "700 24px/1.5 var(--font-display)", color: "var(--color-ink)" }}>✋ Zara එක්කම කතා කරන්න</span>
-        <span data-testid="chat-listening" style={{ display: "flex", alignItems: "center", gap: 8, height: 40, padding: "0 14px", borderRadius: 999, background: "var(--color-coral-soft)", font: "600 20px/1.5 var(--font-label)", color: "var(--color-coral-text)", opacity: listening ? 1 : 0.5 }}>
-          <span style={{ width: 12, height: 12, borderRadius: "50%", background: "var(--color-coral)" }} />
+    <aside className="chat-panel" data-testid="chat-sheet" aria-label="සාරා එක්ක කතාව">
+      <div className="chat-panel-head">
+        <span className="chat-panel-zara">{portrait}</span>
+        <span data-testid="chat-listening" className="chat-panel-pill" style={{ opacity: listening ? 1 : 0.55 }}>
+          <span className="chat-panel-dot" />
           🎤 {listening ? "අහගෙන ඉන්නවා" : "සම්බන්ධ වෙනවා…"}
         </span>
+        <button type="button" className="chat-panel-close wb-tap" data-testid="chat-return" onClick={onClose} aria-label="කතාව වහලා පාඩමට යන්න">
+          ✕
+        </button>
       </div>
-      <div style={{ flex: 1, display: "grid", gap: 8, alignContent: "start", overflow: "hidden" }}>
-        <div data-testid="chat-line-child" style={{ justifySelf: "end", maxWidth: "78%", padding: "6px 14px", borderRadius: "14px 14px 4px 14px", background: "var(--color-success-soft)", font: "400 20px/1.6 var(--font-body)", color: "var(--color-ink)" }}>
+      <div className="chat-panel-lines" data-testid="chat-transcript">
+        <div data-testid="chat-line-child" className="chat-line chat-line-child" style={{ visibility: child ? "visible" : "hidden" }}>
           {child ?? "…"}
         </div>
-        <div data-testid="chat-line-zara" style={{ justifySelf: "start", maxWidth: "82%", padding: "6px 14px", borderRadius: "14px 14px 14px 4px", background: "var(--color-card)", font: "400 20px/1.6 var(--font-body)", color: "var(--color-ink)", visibility: zara ? "visible" : "hidden" }}>
+        <div data-testid="chat-line-zara" className="chat-line chat-line-zara" style={{ visibility: zara ? "visible" : "hidden" }}>
           {zara ?? ""}
         </div>
       </div>
-      <div style={{ display: "flex", justifyContent: "flex-end" }}>
-        <button type="button" data-testid="chat-return" onClick={onReturn} style={{ height: 48, padding: "0 24px", border: 0, borderRadius: 12, background: "var(--color-teal)", color: "#fff", font: "700 22px/1.5 var(--font-display)", boxShadow: "var(--shadow-button)", cursor: "pointer" }}>
-          පාඩමට ආයෙත්
-        </button>
-      </div>
-    </>
+    </aside>
   );
 }

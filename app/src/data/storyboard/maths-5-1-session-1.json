@@ -303,24 +303,16 @@
             ],
             "correctIndex": 1
           }
-        },
-        {
-          "sentenceIndex": 0,
-          "primitive": "turn",
-          "event": "read_back",
-          "args": {
-            "number": 84
-          }
         }
       ],
       "child": {
         "kind": "answer",
-        "via": "tap one of 3 name-chips → Zara reads the number back",
+        "via": "tap one of 3 name-chips — judged on the tap, the feedback follows at once",
         "expects": "අසූ හතර",
         "answerMode": "readAloud",
         "surface": "chips"
       },
-      "sees": "Number cards 84 · 101 · 528 · 997 (ring on 84); a ring around 84 — they answer via tap one of 3 name-chips → Zara reads the number back."
+      "sees": "Number cards 84 · 101 · 528 · 997 (ring on 84); a ring around 84 — they answer via tap one of 3 name-chips — judged on the tap, the feedback follows at once."
     },
     {
       "id": "authored:readWrite4Digit:3",
@@ -386,24 +378,16 @@
             ],
             "correctIndex": 1
           }
-        },
-        {
-          "sentenceIndex": 0,
-          "primitive": "turn",
-          "event": "read_back",
-          "args": {
-            "number": 101
-          }
         }
       ],
       "child": {
         "kind": "answer",
-        "via": "tap one of 3 name-chips → Zara reads the number back",
+        "via": "tap one of 3 name-chips — judged on the tap, the feedback follows at once",
         "expects": "එකසිය එක",
         "answerMode": "readAloud",
         "surface": "chips"
       },
-      "sees": "Number cards 84 · 101 · 528 · 997 (ring on 101); a ring around 101 — they answer via tap one of 3 name-chips → Zara reads the number back."
+      "sees": "Number cards 84 · 101 · 528 · 997 (ring on 101); a ring around 101 — they answer via tap one of 3 name-chips — judged on the tap, the feedback follows at once."
     },
     {
       "id": "authored:readWrite4Digit:3b",
@@ -501,24 +485,16 @@
             ],
             "correctIndex": 0
           }
-        },
-        {
-          "sentenceIndex": 0,
-          "primitive": "turn",
-          "event": "read_back",
-          "args": {
-            "number": 528
-          }
         }
       ],
       "child": {
         "kind": "answer",
-        "via": "tap one of 3 name-chips → Zara reads the number back",
+        "via": "tap one of 3 name-chips — judged on the tap, the feedback follows at once",
         "expects": "පන්සිය විසි අට",
         "answerMode": "readAloud",
         "surface": "chips"
       },
-      "sees": "Number cards 84 · 101 · 528 · 997 (ring on 528); a ring around 528 — they answer via tap one of 3 name-chips → Zara reads the number back."
+      "sees": "Number cards 84 · 101 · 528 · 997 (ring on 528); a ring around 528 — they answer via tap one of 3 name-chips — judged on the tap, the feedback follows at once."
     },
     {
       "id": "authored:readWrite4Digit:5",
@@ -560,24 +536,16 @@
             ],
             "correctIndex": 1
           }
-        },
-        {
-          "sentenceIndex": 0,
-          "primitive": "turn",
-          "event": "read_back",
-          "args": {
-            "number": 997
-          }
         }
       ],
       "child": {
         "kind": "answer",
-        "via": "tap one of 3 name-chips → Zara reads the number back",
+        "via": "tap one of 3 name-chips — judged on the tap, the feedback follows at once",
         "expects": "නවසිය අනූ හත",
         "answerMode": "readAloud",
         "surface": "chips"
       },
-      "sees": "Number cards 84 · 101 · 528 · 997 (ring on 997); a ring around 997 — they answer via tap one of 3 name-chips → Zara reads the number back."
+      "sees": "Number cards 84 · 101 · 528 · 997 (ring on 997); a ring around 997 — they answer via tap one of 3 name-chips — judged on the tap, the feedback follows at once."
     },
     {
       "id": "authored:readWrite4Digit:5a",
@@ -937,24 +905,16 @@
             ],
             "correctIndex": 1
           }
-        },
-        {
-          "sentenceIndex": 0,
-          "primitive": "turn",
-          "event": "read_back",
-          "args": {
-            "number": 3058
-          }
         }
       ],
       "child": {
         "kind": "answer",
-        "via": "tap one of 3 name-chips → Zara reads the number back",
+        "via": "tap one of 3 name-chips — judged on the tap, the feedback follows at once",
         "expects": "තුන්දහස් පනස් අට",
         "answerMode": "readAloud",
         "surface": "chips"
       },
-      "sees": "Card \"3058\" — they answer via tap one of 3 name-chips → Zara reads the number back."
+      "sees": "Card \"3058\" — they answer via tap one of 3 name-chips — judged on the tap, the feedback follows at once."
     },
     {
       "id": "authored:readWrite4Digit:16",
@@ -3165,24 +3125,16 @@
             ],
             "correctIndex": 0
           }
-        },
-        {
-          "sentenceIndex": 0,
-          "primitive": "turn",
-          "event": "read_back",
-          "args": {
-            "number": 5421
-          }
         }
       ],
       "child": {
         "kind": "answer",
-        "via": "tap one of 3 name-chips → Zara reads the number back",
+        "via": "tap one of 3 name-chips — judged on the tap, the feedback follows at once",
         "expects": "පන්දහස් හාරසිය විසි එක",
         "answerMode": "readAloud",
         "surface": "chips"
       },
-      "sees": "The abacus showing 5 421; a chalk ring around 5 421 — they answer via tap one of 3 name-chips → Zara reads the number back."
+      "sees": "The abacus showing 5 421; a chalk ring around 5 421 — they answer via tap one of 3 name-chips — judged on the tap, the feedback follows at once."
     },
     {
       "id": "authored:placeValue4Digit:59",
@@ -3345,24 +3297,16 @@
             ],
             "correctIndex": 1
           }
-        },
-        {
-          "sentenceIndex": 0,
-          "primitive": "turn",
-          "event": "read_back",
-          "args": {
-            "number": 6831
-          }
         }
       ],
       "child": {
         "kind": "answer",
-        "via": "tap one of 3 name-chips → Zara reads the number back",
+        "via": "tap one of 3 name-chips — judged on the tap, the feedback follows at once",
         "expects": "හයදහස් අටසිය තිස් එක",
         "answerMode": "readAloud",
         "surface": "chips"
       },
-      "sees": "The abacus showing 6 831 — they answer via tap one of 3 name-chips → Zara reads the number back."
+      "sees": "The abacus showing 6 831 — they answer via tap one of 3 name-chips — judged on the tap, the feedback follows at once."
     },
     {
       "id": "authored:placeValue4Digit:63",

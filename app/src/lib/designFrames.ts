@@ -9,7 +9,8 @@
  * own reducer), then applying the frame's extra events (the turn, the
  * chips, a fill, a wrong answer) exactly as the runtime would dispatch them.
  */
-import { initialStage, isKnownEvent, reduceStage, type StageState, type Storyboard, type StoryboardEvent, type TableColumn } from "@/lib/choreography";
+import { answerSurfaceFor, enterAnswer, initialStage, isKnownEvent, judgeEntry, reduceStage, type StageState, type Storyboard, type StoryboardEvent, type TableColumn } from "@/lib/choreography";
+import { valueOfAnswer } from "@/lib/answerMode";
 import type { YourTurn } from "@/components/board/BoardStage";
 import type { ZaraState } from "@/components/ZaraCharacter";
 import type { LenaState } from "@/components/LenaCharacter";
@@ -43,6 +44,14 @@ export interface DesignFrame {
   /** How the frame differs from what the runtime can stage, for the report. */
   knownGap?: string;
 }
+
+/**
+ * Every ringed frame since 18 Sep 2026 (the device walk, issue 4 — "nothing overlaps, ever"): the export's ring is an
+ * ellipse stretched over the target's box, which cuts the box's corners (round the abacus it ran through the "1000"
+ * label). The product's ring is a chalk lasso drawn OUTSIDE the target's bounding box with clearance, the underline hangs
+ * below its target, and the pointer moves to a side of its target where it covers nothing readable.
+ */
+export const OVERLAP_NOTE = "rings are lassos outside the target's box, underlines hang below it, and the pointer never rests on anything readable (18 Sep — nothing overlaps)";
 
 const CAPTION_WRONG = "හ්ම්, ඒක නෙමෙයි. ආයෙ පොඩ්ඩක් හිතලා බලන්න.";
 
@@ -193,7 +202,7 @@ export const DESIGN_FRAMES: DesignFrame[] = [
     knownGap: "the export rendered every chips frame with the dock inset (bottom 190: Session.dc.html's frame data sets contentBottom twice and the later 190 wins); the README says 124 with chips and the product keeps 124, so the content sits 33 px higher in the export",
   },
   { id: "P1", page: "Session B", label: "First-time ✋ — mic permission", note: 'first ever ✋ tap: board dims, Zara (160 px) explains in Sinhala why she listens and that nothing is stored; the system prompt follows only after "හරි"', beat: "authored:placeValue4Digit:54", sheet: "mic", zara: "talking", lena: "idle", stop: 2, talking: true },
-  { id: "S3", page: "Session B", label: "✋ chat open", note: "on M7 — board dims, Zara enlarges to 160 px, transcript sheet; the ONLY place the mic exists", beat: "authored:placeValue4Digit:54", sheet: "chat", zara: "talking", lena: "idle", stop: 2, talking: true },
+  { id: "S3", page: "Session B", label: "✋ chat open", note: "on M7 — board dims, Zara enlarges to 160 px, transcript sheet; the ONLY place the mic exists", beat: "authored:placeValue4Digit:54", sheet: "chat", zara: "talking", lena: "idle", stop: 2, talking: true, knownGap: "since 18 Sep (the device walk, issue 9) the chat no longer dims and covers the board: it is a compact panel docked beside the board (≤ a third of the width; beneath it in portrait) with Zara small, the live transcript and a close button — the board reflows, fully visible, and the pointer and ring still work on it. The export drew a sheet over a dimmed board with a 160 px Zara" },
   // --- the gap frames -------------------------------------------------------
   { id: "opening:4–5", page: "Session Gaps", label: "Title card persists; text cards stack beside it", note: "textCard.show ×2 while the title card stays (dimmed to 60 %); pointer on 100 000. Rule (b) persistent board.", beat: "authored:opening:5", zara: "idle", lena: "idle", stop: 1 },
   { id: "readWrite:6–8", page: "Session Gaps", label: "Chalk stack of three (older lines at 60 %) + docked number pad", note: "chalkText.write ×3: 9 + 1 = 10 · 99 + 1 = 100 · 999 + 1 = ▢ — the newest line at 100 %, the blank glowing; the child types on the pad.", beat: "authored:readWrite4Digit:8", turn: { kind: "ask", surface: null, touchable: false, numeric: true, answerMode: "build", padFirst: true }, zara: "encourage", lena: "alert", stop: 1 },
@@ -243,4 +252,70 @@ export function stageDesignFrame(storyboard: Storyboard, frame: DesignFrame): St
   if (frame.turn && frame.turn.kind === "ask") stage = { ...stage, parked: true };
   if (frame.id === "readWrite:30–30f" && stage.base?.kind === "digitPicker") stage = { ...stage, base: { ...stage.base, ledger: ["1364", "6431", "3146"] } };
   return { stage, yourTurn: frame.turn ?? null };
+}
+
+// ---------------------------------------------------------------------------
+// EVERY storyboard beat, staged (board:check's overlap assertion — 18 Sep 2026)
+// ---------------------------------------------------------------------------
+
+/** The textbook items the storyboard names, as the content bank would hand them to the runtime. */
+const ITEM_BASES: Record<string, NonNullable<StageState["base"]>> = {
+  "4c2aa078": NAME_TABLE,
+  "7b58e436": PLACE_VALUE_TABLE,
+  "7daf0141": { kind: "digitPicker", pool: [1, 8, 5, 2, 0, 3, 4, 9, 2, 7, 6], built: null, builtName: null, builtBy: "child", itemId: "7daf0141", ledger: [] },
+};
+
+/**
+ * Which moment of the beat: `end` — every event fired (what stays on the board while she finishes the line);
+ * `turn` — the child's window open on it (chips dealt, the surface live); `answered` — the child's entry on the
+ * surface, judged right (the value in its cell / under its rod / in its slot, with the feedback burst).
+ */
+export type BeatMoment = "end" | "turn" | "answered";
+
+/** The moments worth photographing for one beat: every beat's end; a question's open turn and its answered state as well. */
+export function momentsFor(beat: Storyboard["beats"][number]): BeatMoment[] {
+  return beat.events.some((e) => e.primitive === "turn" && e.event === "your_turn") ? ["end", "turn", "answered"] : ["end"];
+}
+
+/** One storyboard beat, staged the way the runtime reaches it: the whole storyboard replayed up to and including it. */
+export function stageStoryboardBeat(storyboard: Storyboard, beatId: string, moment: BeatMoment = "end"): StagedFrame & { caption: string } {
+  const index = storyboard.beats.findIndex((b) => b.id === beatId);
+  if (index < 0) throw new Error(`${beatId} is not in the storyboard`);
+  let stage = initialStage();
+  for (const beat of storyboard.beats.slice(0, index + 1)) {
+    for (const event of beat.events) {
+      if (!isKnownEvent(event)) continue;
+      const item = typeof event.args?.item === "string" ? ITEM_BASES[event.args.item] : undefined;
+      stage = reduceStage(stage, event, { legacy: item, lastBuilt: 1364 });
+    }
+  }
+  const beat = storyboard.beats[index]!;
+  const caption = beat.line ?? "";
+  if (moment === "end" || !stage.turn) return { stage, yourTurn: null, caption };
+
+  const surface = answerSurfaceFor(stage);
+  const mode = stage.turn.answerMode;
+  const rod = stage.turn.surface === "rod";
+  const touchable = surface !== null && (surface.surface !== "abacus" || rod || mode === "build");
+  const yourTurn: YourTurn = {
+    kind: "ask",
+    surface: surface?.surface ?? null,
+    touchable,
+    answerMode: mode,
+    chips: stage.chips ?? undefined,
+    rodPick: rod ? "count" : undefined,
+    numeric: mode === "cell" || mode === "build" || !stage.chips,
+  };
+  if (moment === "turn") return { stage: { ...stage, parked: true }, yourTurn, caption };
+
+  // Answered: what the child entered is ON the surface (enterAnswer), then judged right (judgeEntry) — the runtime's own two steps.
+  const expects = beat.child?.expects ?? "";
+  const chipAnswer = stage.chips ? stage.chips.options[stage.chips.correctIndex] : null;
+  const digits = valueOfAnswer(expects);
+  const value = surface?.surface === "blankTable" && stage.base?.kind === "blankTable" && stage.base.activeBlank?.field === "numberName" ? expects : digits !== null ? String(digits) : (chipAnswer ?? expects);
+  let answered = enterAnswer(stage, rod && stage.base?.kind === "abacus" ? String(stage.base.shown[stage.base.glowRods[0] ?? 0] ?? value) : value);
+  answered = reduceStage(answered, { primitive: "turn", event: "over", args: {} });
+  answered = judgeEntry(answered, true);
+  const at = surface?.target ?? null;
+  return { stage: { ...answered, feedback: { kind: "correct", at, nonce: answered.feedback.nonce + 1 } }, yourTurn: null, caption };
 }

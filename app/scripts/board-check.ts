@@ -242,6 +242,66 @@ async function main(): Promise<void> {
     }
   }
 
+  // ---- NOTHING OVERLAPS, EVER (18 Sep 2026) -------------------------------------------------------------------------
+  // Every beat of the storyboard, staged the way the runtime reaches it (/admin/design-preview?beat=…): its end state,
+  // and for a question its open turn and its answered state. The board's own probe (src/components/board/layout.ts,
+  // window.__boardLayout) says whether two text-bearing boxes intersect, whether a ring or underline crosses its target's
+  // box or anything readable, and whether the pointer rests on anything readable. One viewport per phone shape.
+  if (!ONLY || ONLY === "overlap") {
+    const overlapDir = path.join(OUT_DIR, "overlap");
+    await mkdir(overlapDir, { recursive: true });
+    const shapes = [
+      { name: "800x360", width: 800, height: 360 },
+      { name: "844x390", width: 844, height: 390 },
+    ];
+    type Report = { readable: number; textOverlaps: Array<{ a: string; b: string; area: number }>; marks: Array<{ kind: string; insideTarget: number; hits: string[] }>; pointer: { visible: boolean; hits: string[] }; ok: boolean };
+    let framesChecked = 0;
+    let ringsChecked = 0;
+    const overlapFailures: string[] = [];
+    for (const shape of shapes) {
+      await page.send("Emulation.setDeviceMetricsOverride", { width: shape.width, height: shape.height, deviceScaleFactor: 2, mobile: true });
+      await page.send("Page.navigate", { url: `${BASE}/admin/design-preview?beat=${encodeURIComponent("authored:opening:0")}` });
+      await wait(3500);
+      const beats = await evaluate<Array<{ id: string; moments: string[] }>>(page, `window.__storyboardBeats ?? []`);
+      if (!beats.length) {
+        failures.push(`overlap: the beat preview did not publish the storyboard at ${shape.name}`);
+        continue;
+      }
+      for (const beat of beats) {
+        for (const moment of beat.moments) {
+          await evaluate(page, `window.__stageBeat(${JSON.stringify(beat.id)}, ${JSON.stringify(moment)})`);
+          // Springs settle, the pointer re-places itself, rings draw (250 ms) and re-measure (650 ms).
+          // A RESTING frame is what is judged: the hand's last look at what it would cover comes 1.3 s after the board changes.
+          await wait(1700);
+          const reports = await evaluate<Report[]>(page, `window.__boardLayout ? window.__boardLayout() : []`);
+          const report = reports[0];
+          if (!report) {
+            overlapFailures.push(`${shape.name} ${beat.id} [${moment}]: no board to measure`);
+            continue;
+          }
+          framesChecked += 1;
+          ringsChecked += report.marks.length;
+          if (report.ok) continue;
+          const why = [
+            ...report.textOverlaps.map((o) => `"${o.a}" ∩ "${o.b}" (${o.area}px²)`),
+            ...report.marks.filter((m) => m.insideTarget > 0 || m.hits.length).map((m) => `${m.kind}${m.insideTarget ? ` crosses its own target (${m.insideTarget} pts)` : ""}${m.hits.length ? ` runs over ${m.hits.map((h) => `"${h}"`).join(", ")}` : ""}`),
+            ...(report.pointer.hits.length ? [`pointer covers ${report.pointer.hits.map((h) => `"${h}"`).join(", ")}`] : []),
+          ];
+          overlapFailures.push(`${shape.name} ${beat.id.replace("authored:", "")} [${moment}]: ${why.join(" · ")}`);
+          const shot = (await page.send("Page.captureScreenshot", { format: "png" })) as { data?: string };
+          if (shot.data) await writeFile(path.join(overlapDir, `${shape.name}-${beat.id.replace(/[^\w]+/gu, "-")}-${moment}.png`), Buffer.from(shot.data, "base64"));
+        }
+      }
+    }
+    console.log(`\n== OVERLAP ASSERTION (every staged frame: no two text-bearing boxes intersect; no ring/underline across its target or any text; the pointer on nothing readable) ==`);
+    console.log(`  frames checked: ${framesChecked} (every storyboard beat × its moments × ${shapes.map((s) => s.name).join(", ")}) · rings/underlines measured: ${ringsChecked}`);
+    if (overlapFailures.length) {
+      console.log(`  ✗ ${overlapFailures.length} frame(s) with an overlap:`);
+      for (const line of overlapFailures.slice(0, 60)) console.log(`    - ${line}`);
+      failures.push(`overlap: ${overlapFailures.length} staged frame(s) have overlapping elements (screenshots in .board-check/overlap/)`);
+    } else console.log(`  ✓ 0 overlaps in ${framesChecked} frames`);
+  }
+
   // --- touch: the abacus, with a finger -----------------------------------
   if (ONLY && ONLY !== "touch") {
     console.log(`\nScreenshots (${written.length}): ${path.relative(process.cwd(), OUT_DIR)}/`);

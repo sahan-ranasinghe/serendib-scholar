@@ -14,7 +14,7 @@ import { createPortal } from "react-dom";
 import { HandNumber } from "./HandNumber";
 import { useTargetRef } from "./targets";
 import { BOARD, SPRING, TOUCH_MIN } from "./tokens";
-import { RING_D, scaledPath } from "./strokes";
+import { lassoPath } from "./strokes";
 import { playSound } from "./sound";
 import { hitTest, useDrag, type DragPoint } from "./useDrag";
 
@@ -183,8 +183,8 @@ function Card({
     >
       <CardFace value={value} size={size} box={box} lifted={selected} />
       {ringed && measured && (
-        <svg viewBox={`0 0 ${measured.w + ringInset * 2} ${measured.h + ringInset * 2}`} className="chalk-stroke" data-testid="card-ring" style={{ position: "absolute", inset: -ringInset, width: `calc(100% + ${ringInset * 2}px)`, height: `calc(100% + ${ringInset * 2}px)`, overflow: "visible", pointerEvents: "none" }} preserveAspectRatio="none" aria-hidden>
-          <motion.path d={scaledPath(RING_D, measured.w + ringInset * 2, measured.h + ringInset * 2)} fill="none" stroke="var(--color-saffron)" strokeWidth="3.5" strokeLinecap="round" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.25, ease: "easeOut" }} />
+        <svg viewBox={`0 0 ${measured.w + ringInset * 2} ${measured.h + ringInset * 2}`} className="chalk-stroke" data-testid="card-ring" data-pad={ringInset} style={{ position: "absolute", inset: -ringInset, width: `calc(100% + ${ringInset * 2}px)`, height: `calc(100% + ${ringInset * 2}px)`, overflow: "visible", pointerEvents: "none" }} preserveAspectRatio="none" aria-hidden>
+          <motion.path d={lassoPath(measured.w + ringInset * 2, measured.h + ringInset * 2, ringInset)} fill="none" stroke="var(--color-saffron)" strokeWidth="3.5" strokeLinecap="round" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.25, ease: "easeOut" }} />
         </svg>
       )}
     </motion.div>

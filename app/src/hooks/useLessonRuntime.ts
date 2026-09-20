@@ -15,9 +15,11 @@ import {
   answerSurfaceFor,
   conceptTitle,
   describeStage,
+  enterAnswer,
   eventKey,
   initialStage,
   isKnownEvent,
+  judgeEntry,
   reduceStage,
   stageFromLegacy,
   type AlignedSpans,
@@ -35,7 +37,7 @@ import { renderNumberMarkers } from "@/lib/sinhalaNumber";
 import { parseTargetKey } from "@/lib/choreography";
 import { valueOfAnswer } from "@/lib/answerMode";
 import type { TurnSurface } from "@/components/board/events";
-import { boardFocus, serializeStage, type ChatAnswer, type ChatContext } from "@/lib/chatContext";
+import { boardFocus, fullBoardState, serializeStage, vocabularyAt, type ChatAnswer, type ChatContext } from "@/lib/chatContext";
 import type { Target } from "@/components/board/events";
 import type { YourTurn } from "@/components/board/BoardStage";
 import type { ConceptStop } from "@/components/ProgressStrip";
@@ -105,12 +107,13 @@ import {
  * So speech and hearing were separated:
  *   - SPEAKING is playback. Every scripted line is pre-rendered in the
  *     pinned voice (scripts/render-lesson-audio.ts) and played from the
- *     clip cache; the few lines that can only be written at runtime go
- *     through /api/speak-line, which renders and caches them too. No model
- *     is in the loop while she teaches.
- *   - HEARING is a request. When a question's window opens the app records
- *     the child (silence ends the recording), posts the clip to /api/hear,
- *     and judges the transcript with the existing planner.
+ *     clip cache. A line with no clip is READ ON THE BOARD for as long as
+ *     saying it would take — the runtime never renders a line and never asks
+ *     a model to write one (src/lib/paidCalls.ts). No model is in the loop
+ *     while she teaches.
+ *   - ANSWERING is a touch, judged on the device. (The opt-in reading
+ *     assessment — VOICE_ASSESSMENT=on — records the child and posts the clip
+ *     to /api/hear; off, nothing on the lesson path reaches a model.)
  *   - LIVE is opt-in. A full-duplex voice session exists only for free
  *     conversation the child asks for (see useLiveChat).
  *
@@ -405,6 +408,41 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
     return debug ? Math.round((debug.currentTime - clipStartRef.current) * 1000) : 0;
   };
 
+  /** One painted frame (≤ 50 ms where the tab is not painting): what was just put on the stage is on the screen. */
+  const nextPaint = (): Promise<void> =>
+    new Promise((resolve) => {
+      let done = false;
+      const finish = () => {
+        if (done) return;
+        done = true;
+        resolve();
+      };
+      // The frame, then one task more: React commits what the tap put on the stage before the judge looks at it.
+      if (typeof requestAnimationFrame === "function") requestAnimationFrame(() => setTimeout(finish, 0));
+      setTimeout(finish, 60);
+    });
+
+  /**
+   * For the harness (session:check): every entered value, when it was entered, whether the DOM already
+   * showed it when the judge began, and on which surface — "the entered value is rendered before the judge returns".
+   */
+  const noteInputTrace = (value: string, phase: "entered" | "judge") => {
+    if (typeof window === "undefined") return;
+    const w = window as unknown as { __inputTrace?: Array<{ value: string; surface: string; beatId?: string; enteredAt: number; judgeAt: number | null; renderedBeforeJudge: boolean | null }> };
+    const trace = (w.__inputTrace ??= []);
+    if (phase === "entered") {
+      const stage = stageRef.current;
+      const surface = stage.turn?.surface ?? "?";
+      trace.push({ value, surface: `${stage.base?.kind ?? "none"}/${surface}`, beatId: activeBeatRef.current?.id, enteredAt: performance.now(), judgeAt: null, renderedBeforeJudge: null });
+      return;
+    }
+    const last = trace[trace.length - 1];
+    if (!last || last.judgeAt !== null) return;
+    last.judgeAt = performance.now();
+    const shown = [...document.querySelectorAll<HTMLElement>("[data-entry]")].some((el) => (el.getAttribute("data-entry") ?? "") === value && el.getAttribute("data-entry-verdict") === "pending");
+    last.renderedBeforeJudge = shown;
+  };
+
   const fireFeedback = (kind: "correct" | "wrong" | "celebrate", at: Target | null) => {
     setStage({ ...stageRef.current, feedback: { kind, at, nonce: stageRef.current.feedback.nonce + 1 } });
     // For the harness: tap-to-feedback latency, on the page's own clock.
@@ -573,15 +611,13 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
    * the current clip plus the preload horizon).
    */
   const clipCacheRef = useRef(new Map<string, Promise<{ text: string; audio: ArrayBuffer; meta: ClipMeta } | null>>());
-  const CLIP_CACHE_MAX = 12;
+  const CLIP_CACHE_MAX = 24; // the current clip, three beats ahead, and both verdicts' lines for the questions among them
 
   /** One clip from /api/clip/<key> (302 → 10-min signed URL; fetch follows it). */
   // A clip fetch that hangs (a signed storage URL that never answers) must
   // become a failure, not a frozen lesson: the missing-clip path then reads
   // the line on the board and runs its events on estimated spans.
   const CLIP_META_TIMEOUT_MS = 10_000;
-  /** The render route (a cache miss) — it renders and uploads, so it gets longer than a cached clip, but never forever. */
-const SPEAK_LINE_TIMEOUT_MS = 20_000;
 const CLIP_AUDIO_TIMEOUT_MS = 25_000;
   const loadClipByKey = async (key: string, text: string): Promise<{ text: string; audio: ArrayBuffer; meta: ClipMeta } | null> => {
     const metaResponse = await fetch(`/api/clip/${key}?meta=1`, { signal: AbortSignal.timeout(CLIP_META_TIMEOUT_MS) });
@@ -594,59 +630,31 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
 
   /**
    * Resolves a line to a playable clip, via the session-gated clip door
-   * (/api/clip → signed URL; the bucket itself is private). A miss — a
-   * line the batch render hasn't reached, or one written at runtime —
-   * falls back to /api/speak-line, which renders, caches, and hands back
-   * the key.
+   * (/api/clip → signed URL; the bucket itself is private). A miss — a line
+   * nobody has recorded or rendered yet — is a MISS: null, and the caller
+   * reads the line on the board for as long as saying it would take. The
+   * runtime never asks for a render and never asks a model to write a line
+   * (18 Sep, cluster O: the only paid call in the app is the ✋ chat).
    */
-  const fetchClip = (
-    text: string,
-    fallback: { goal?: string; maxSentences?: number } = {},
-  ): Promise<{ text: string; audio: ArrayBuffer; meta: ClipMeta } | null> => {
+  const fetchClip = (text: string): Promise<{ text: string; audio: ArrayBuffer; meta: ClipMeta } | null> => {
     const config = audioConfigRef.current;
-    const cacheKey = text && config ? clipKey(text, config.voice) : `goal:${fallback.goal ?? ""}`;
+    if (!text || !config) return Promise.resolve(null);
+    const cacheKey = clipKey(text, config.voice);
     const cached = clipCacheRef.current.get(cacheKey);
     if (cached) return cached;
 
     const load = (async () => {
-      if (text && config) {
-        try {
-          const clip = await loadClipByKey(clipKey(text, config.voice), text);
-          if (clip) {
-            metricsRef.current.clipsPlayed += 1;
-            return clip;
-          }
-        } catch {
-          // fall through to the render route
-        }
-      }
       try {
-        // Bounded like the clip fetches: a network that drops mid-lesson (a half-open connection never errors on its own)
-        // must fall through to the read-on-the-board path, never hang the beat.
-        const response = await fetch("/api/speak-line", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          signal: AbortSignal.timeout(SPEAK_LINE_TIMEOUT_MS),
-          body: JSON.stringify({
-            text,
-            goal: fallback.goal,
-            max_sentences: fallback.maxSentences ?? 2,
-            session_id: sessionIdRef.current,
-          }),
-        });
-        const payload = await response.json();
-        if (!payload?.ok) throw new Error(payload?.error ?? "no clip");
-        metricsRef.current.clipsPlayed += 1;
-        if (!payload.from_cache) metricsRef.current.clipsRendered += 1;
-        logEvent(`render ${payload.from_cache ? "cache" : "NEW"} "${String(payload.text).slice(0, 30)}…"`);
-        const clip = await loadClipByKey(payload.key as string, payload.text as string);
-        if (!clip) throw new Error("rendered clip not fetchable");
-        return clip;
+        const clip = await loadClipByKey(cacheKey, text);
+        if (clip) {
+          metricsRef.current.clipsPlayed += 1;
+          return clip;
+        }
       } catch (err) {
-        console.error("[useLessonRuntime] Could not get a clip for:", text.slice(0, 60), err);
-        clipCacheRef.current.delete(cacheKey); // never cache a failure
-        return null;
+        console.warn("[useLessonRuntime] clip fetch failed for:", text.slice(0, 60), err);
       }
+      clipCacheRef.current.delete(cacheKey); // never cache a miss: the clip may be recorded by the next sitting
+      return null;
     })();
 
     clipCacheRef.current.set(cacheKey, load);
@@ -663,6 +671,18 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
   const prefetchClip = (text: string | undefined) => {
     if (!text || !audioConfigRef.current) return;
     void fetchClip(text);
+  };
+
+  /**
+   * Both verdicts' lines for a question, into memory before the child can tap: the praise (or the miss line) starts on the
+   * tap, never after a fetch — the pause after a correct tap on a real phone was this round trip. Called from the
+   * look-ahead (beats before the question) and again as the question opens.
+   */
+  const prefetchFeedbackClips = (beat: Beat) => {
+    for (const correct of [true, false]) {
+      const feedback = resolveBeatAddress(buildFeedbackBeat(beat, correct, beat.expectedAnswer), childGenderRef.current);
+      prefetchClip(lineFor(feedback) ?? undefined);
+    }
   };
 
   /** The exact words this beat speaks, address token resolved. */
@@ -685,13 +705,15 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
    * playing — and nothing stacks (the ↺ pile-up of the device walk).
    */
   const speechLockRef = useRef<Promise<void>>(Promise.resolve());
+  const testToneRef = useRef(false);
   const withSpeech = async <T,>(fn: () => Promise<T>): Promise<T> => {
     const previous = speechLockRef.current;
     let release: () => void = () => undefined;
     speechLockRef.current = new Promise<void>((resolve) => {
       release = resolve;
     });
-    playerRef.current?.clear();
+    // (DEV_MODE's test tone holds the floor like a line, but must not be cut by the line queued behind it.)
+    if (!testToneRef.current) playerRef.current?.clear();
     await previous.catch(() => undefined);
     try {
       return await fn();
@@ -700,20 +722,23 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
     }
   };
 
+  /** For the harness: when each line began (its clip, or its caption when there is no clip) — tap → spoken feedback is measured from this. */
+  const noteLineStart = (beatId: string, via: "clip" | "caption") => {
+    if (typeof window === "undefined") return;
+    (window as unknown as { __lastLineStart?: { beatId: string; via: string; at: number } }).__lastLineStart = { beatId, via, at: performance.now() };
+  };
+
   const speak = (beat: Beat): Promise<void> => withSpeech(() => speakNow(beat));
   const speakNow = async (beat: Beat): Promise<void> => {
     const player = playerRef.current;
     if (!player || stoppedRef.current) return;
     const text = lineFor(beat);
-    const clip = await fetchClip(text ?? "", {
-      // Only beats with no fixed words need a line written for them: today
-      // that is RETEACH (re-explaining the sub-skill this child missed).
-      goal: text ? undefined : buildDirectorLine(beat),
-      maxSentences: beat.maxSentences,
-    });
+    // A beat with no fixed words (a RETEACH, which used to be written by a model at runtime) has nothing to fetch.
+    const clip = await fetchClip(text ?? "");
     if (stoppedRef.current) return;
     if (!clip) {
-      // No clip at all (not cached, and the render budget is spent): the
+      noteLineStart(beat.id, "caption");
+      // No clip at all (nobody has recorded or rendered the line): the
       // board still follows the storyboard, on spans estimated from the
       // sentences, over the time the line would have taken — a silent beat
       // is not a skipped one.
@@ -755,6 +780,7 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
       }
       return;
     }
+    noteLineStart(beat.id, "clip");
     setCaption(clip.text);
     setNoClipCaption(null);
     recentLinesRef.current.push(clip.text);
@@ -915,8 +941,7 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
     });
 
   /**
-   * A recorded authored line (the nudge, the mic explanation, the read-back
-   * frame) — played from its clip when the actor has recorded it, else read
+   * A recorded authored line (the nudge, the mic explanation) — played from its clip when the actor has recorded it, else read
    * on the board for a moment. Never rendered on demand: these are the
    * lines docs/RECORDING.md lists for the next session.
    */
@@ -950,6 +975,7 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
     padAnswerRef.current = null;
     setRuntimeStatus("turn");
     openTurn(beat);
+    prefetchFeedbackClips(beat);
     let tapped = await awaitTap(TOUCH_NUDGE_MS);
     if (!tapped && !stoppedRef.current) {
       logEvent("no tap for 12s — one nudge");
@@ -965,45 +991,6 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
     padAnswerRef.current = null;
     if (tapped) logEvent(`answer (tapped) "${tapped}"`);
     return tapped;
-  };
-
-  /**
-   * The read-back: after the child's chip was judged right, Zara reads the
-   * number herself (the recorded frame "මම කියන්නම් —" and the composed
-   * number), confirming it. Its text reaches the caption only as it plays,
-   * and the board does not change — the row she is reading stays as it was.
-   * (17 Sep, the device walk: the 3 s "🎤 කියන්න බලන්න" invitation that used
-   * to come first is gone — the chips are the question, from the first word.)
-   */
-  const readBackNumber = async (beat: Beat): Promise<void> => {
-    const value = valueOfAnswer(beat.expectedAnswer);
-    if (value === null || stoppedRef.current) return;
-    dispatchStage({ primitive: "turn", event: "read_back", args: { number: value } });
-    const readBack: Beat = {
-      ...beat,
-      id: `${beat.id}:readback`,
-      type: "EXPLAIN",
-      goal: "Reading practice: she reads the number herself (verbatim frame + composed number), confirming the answer.",
-      spokenText: `${AUTHORED_LINES.readBack} ${sinhalaNumberName(value)}`,
-      sayCandidates: undefined,
-      board: { kind: "none" },
-      expectedAnswer: undefined,
-      rubric: undefined,
-      choices: undefined,
-      endBy: "pausing",
-    };
-    activeBeatRef.current = readBack;
-    const spoken = await speakComposedNumber(value, NUMBER_FRAMES.readBack);
-    if (!spoken) {
-      // The frame is not recorded yet: the line is read on the board, not rendered.
-      logEvent("read-back clips not recorded yet — shown on the board");
-      setCaption(readBack.spokenText!);
-      setNoClipCaption(readBack.spokenText!);
-      await lessonWait(2000);
-      setNoClipCaption(null);
-    }
-    await finishBeatLog(readBack, null);
-    activeBeatRef.current = beat;
   };
 
   /**
@@ -1195,6 +1182,8 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
     // sentences (see speak). A repeat (↺) starts from the board as it was
     // before the beat, so the events replay over the audio.
     const storyboarded = storyboardRef.current.get(beat.id) ?? null;
+    // The lesson moving on takes the marked entry (and the chips it was tapped on) with it; a right cell or part already stands as the child's own.
+    if (storyboarded && stageRef.current.entry && stageRef.current.entry.verdict !== "pending") setStage({ ...stageRef.current, entry: null, chips: null, seq: stageRef.current.seq + 1 });
     const repeating = storyboarded !== null && activeChoreoRef.current?.beat.id === beat.id;
     if (repeating) setStage(activeChoreoRef.current!.snapshot);
     const snapshot = repeating ? activeChoreoRef.current!.snapshot : stageRef.current;
@@ -1230,7 +1219,7 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
         if (storyboarded && activeChoreoRef.current) activeChoreoRef.current.legacy = base;
         // A beat outside the storyboard (a framing beat: the close, a recap) starts from a clean turn — no chips, no
         // pause, no read-aloud step cards left over from the question before it.
-        else setStage({ ...stageRef.current, base, notes: [], highlight: null, pointer: null, turn: null, chips: null, pause: null, retry: false, seq: stageRef.current.seq + 1 });
+        else setStage({ ...stageRef.current, base, notes: [], highlight: null, pointer: null, turn: null, chips: null, pause: null, retry: false, entry: null, seq: stageRef.current.seq + 1 });
       } else if (staged.viewPatch) {
         const patched = applyViewPatch(boardContentRef.current, staged.viewPatch as ViewPatch);
         boardContentRef.current = patched;
@@ -1367,13 +1356,12 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
   };
 
   /**
-   * A question the child answers by touch. readAloud opens with the
-   * unjudged reading practice (not on a retry); then the surface is open
+   * A question the child answers by touch: the surface is open
    * until a tap — a nudge at 12 s, and at 25 s she demonstrates the answer
    * and the lesson moves on (logged NOT ATTEMPTED — no mastery credit, no
    * reteach spiral).
    */
-  const runQuestion = async (beat: Beat, scripted: boolean, options: { retry?: boolean } = {}): Promise<void> => {
+  const runQuestion = async (beat: Beat, scripted: boolean): Promise<void> => {
     if (stoppedRef.current) return;
     const tapped = await answerByTouch(beat);
     if (stoppedRef.current) return;
@@ -1407,15 +1395,16 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
    */
   const judgeTouch = async (beat: Beat, scripted: boolean, tapped: string): Promise<void> => {
     childTranscriptRef.current = tapped;
+    // The entry went onto the surface in the tap itself (submitTypedAnswer → enterAnswer). One frame for it to paint,
+    // so the child always SEES what they entered before it is marked; the trace records that it was in the DOM first.
+    await nextPaint();
+    noteInputTrace(tapped, "judge");
     const understood = beat.rubric ? judgePhraseLocally(tapped, beat.rubric).accepted : Boolean(beat.expectedAnswer && answersMatch(beat.expectedAnswer, tapped));
+    setStage(judgeEntry(stageRef.current, understood));
     fireFeedback(understood ? "correct" : "wrong", answerTargetRef.current);
     setCharacterMood(understood ? "celebrate" : "encourage");
-    // Reading practice: a right chip earns her reading of the number back — the
-    // confirmation. A wrong one gets the ladder as usual; reading the name out
-    // then would hand the retry its answer.
-    if (understood && beat.answerMode === "readAloud") await readBackNumber(beat);
-    // ⏸ during the read-back holds here too: the feedback beat is not served until the child resumes.
-    while (pausedRef.current && !stoppedRef.current) await wait(200);
+    // Nothing stands between the tap and the feedback (18 Sep, the device walk): no read-back, no frame
+    // line, no composed number, no wait — the praise or miss clip is the very next thing she says.
     const decision: PlannerDecision = { understood, next: "advance", reason: understood ? "touch: matches the expected answer" : "touch: does not match the expected answer" };
     await settleAnswer(beat, scripted, tapped, decision, { feedbackFired: true });
   };
@@ -1528,7 +1517,8 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
     // The overlay under the abacus is drawn in the hand-digit face, which has
     // no Sinhala: a name answer (a read-aloud's chip) would render as tofu.
     // Digits go under the rods; a name is on the chip the child tapped.
-    if (stageRef.current.base?.kind === "abacus" && said && !beat.rubric && /^[\d\s]+$/u.test(said)) dispatchStage({ primitive: "abacus", event: "child_answer_overlay", args: { text: said.replace(/\s/gu, "").slice(0, 24) } });
+    // (A touch answer is already there: enterAnswer wrote it under its rod before the judge.)
+    if (!options.feedbackFired && stageRef.current.base?.kind === "abacus" && said && !beat.rubric && /^[\d\s]+$/u.test(said)) dispatchStage({ primitive: "abacus", event: "child_answer_overlay", args: { text: said.replace(/\s/gu, "").slice(0, 24) } });
 
     if (decision.understood) {
       sessionStatsRef.current.correct += 1;
@@ -1539,7 +1529,8 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
         const digits = said.replace(/\D/g, "");
         if (digits) lastBuiltNumberRef.current = Number(digits);
       }
-      await finishBeatLog(beat, decision);
+      // The log row is written behind her voice, never in front of it: the praise starts now, not after a round trip.
+      void finishBeatLog(beat, decision);
       if (!scripted) {
         await runBeat(buildFeedbackBeat(beat, true, beat.expectedAnswer), false);
         setCharacterMood("none");
@@ -1558,13 +1549,13 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
     const misses = (missesRef.current.get(beat.id) ?? 0) + 1;
     missesRef.current.set(beat.id, misses);
     logEvent(`miss ${misses} on ${beat.id.slice(0, 40)}`);
-    await finishBeatLog(beat, { ...decision, reason: `${decision.reason ?? ""} (miss ${misses} of 3)`.trim() });
+    void finishBeatLog(beat, { ...decision, reason: `${decision.reason ?? ""} (miss ${misses} of 3)`.trim() });
 
     if (misses === 1) {
       await runBeat(buildFeedbackBeat(beat, false, beat.expectedAnswer), false);
       setCharacterMood("none");
       await awaitRetry();
-      await runQuestion(beat, scripted, { retry: true });
+      await runQuestion(beat, scripted);
       return;
     }
     if (misses === 2) {
@@ -1577,7 +1568,7 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
         await runBeat(reteach, false);
       }
       await awaitRetry();
-      await runQuestion(beat, scripted, { retry: true });
+      await runQuestion(beat, scripted);
       return;
     }
 
@@ -1633,6 +1624,7 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
     const tag = beat?.conceptTag && beat.conceptTag !== FRAMING_CONCEPT ? beat.conceptTag : (currentConceptTag ?? "");
     const summary = script?.concepts.find((c) => c.conceptTag === tag);
     const next = script?.beats[stateRef.current.beatIndex];
+    const vocabulary = vocabularyAt(tag);
     let weakest: string | null = null;
     let weakestRatio = 1;
     for (const [conceptTag, entry] of masteryRef.current) {
@@ -1647,12 +1639,17 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
       subject,
       lesson: `${lesson} · සංඛ්‍යා - 1`,
       concept: { tag, title: conceptTitle(tag, summary?.description), objective: summary?.description ?? "" },
-      recentLines: recentLinesRef.current.slice(-3),
-      nextLine: next?.spokenText ?? null,
+      session: `සැසිය ${Math.max(0, sessionIndexRef.current) + 1}`,
+      recentLines: recentLinesRef.current.slice(-5),
+      nextLine: next?.spokenText ? resolveAddress(next.spokenText, childGenderRef.current) : null,
       board: serializeStage(stageRef.current),
+      boardState: fullBoardState(stageRef.current),
       boardFocus: boardFocus(stageRef.current),
-      recentAnswers: recentAnswersRef.current.slice(-2),
+      recentAnswers: recentAnswersRef.current.slice(-4),
       weakestConcept: weakestRatio < 1 ? weakest : null,
+      address: resolveAddress("{address}", childGenderRef.current),
+      vocabularyAllowed: vocabulary.allowed,
+      vocabularyLater: vocabulary.later,
     };
   };
 
@@ -1783,6 +1780,8 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
         if (!following) break;
         const line = lineFor(following);
         if (line) prefetchClip(resolveAddress(line, childGenderRef.current));
+        // A question coming up: both verdicts' lines come with it, beats ahead of the tap (answerByTouch asks again, as a net).
+        if (beatSpec(following.type).onChildResponse === "judge") prefetchFeedbackClips(following);
       }
 
       if (next.type === "RECAP") {
@@ -2188,8 +2187,15 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
     hasInputRef.current = false;
     padAnswerRef.current = text;
     (window as unknown as { __lastTapAt?: number }).__lastTapAt = performance.now();
+    // What the child entered is on the surface NOW, before anything judges it (the retry button's tap is not an answer).
+    if (text !== "(retry)" && stageRef.current.turn) {
+      setStage(enterAnswer(stageRef.current, text));
+      noteInputTrace(text, "entered");
+    }
     tapResolveRef.current?.();
     recorderRef.current?.finish();
+    // setStage and noteInputTrace touch only refs and a state setter: the first render's are as good as any.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const resumeAudioOutput = useCallback(() => {
@@ -2237,13 +2243,37 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
         const player = playerRef.current;
         if (!player) return false;
         const rate = 24000;
-        const seconds = [0.6, 0.15, 0.04, 0];
+        // Peak amplitudes whose RMS (peak / √2) lands mid-band for each mouth shape (ZaraCharacter.mouthShapeFor: < 0.05 → 1,
+        // < 0.14 → 2, else 3). The soft band was 0.04 (RMS 0.028): through the player it read as silence once the tone had the
+        // floor to itself — 0.055 (RMS 0.039) sits clear of the 0.012 silence floor and under the 0.05 band edge.
+        const seconds = [0.6, 0.15, 0.055, 0];
         const pcm = new Int16Array(rate * seconds.length);
         for (let i = 0; i < pcm.length; i += 1) {
           const amp = seconds[Math.floor(i / rate)] ?? 0;
           pcm[i] = Math.round(Math.sin((2 * Math.PI * 220 * i) / rate) * amp * 0x7fff);
         }
-        player.enqueue(arrayBufferToBase64(pcm.buffer));
+        // The tone takes the floor the way a line does: it waits for whatever she is saying to finish, and the next line
+        // waits for it — so the mouth is judged on the tone alone (it used to play under her voice and be cut by the next
+        // beat, which made the harness's lip-sync drill a matter of timing). The window is published for the harness.
+        const w = window as unknown as { __testClip?: { state: "queued" | "playing" | "done"; startedAt?: number; endedAt?: number } };
+        w.__testClip = { state: "queued" };
+        testToneRef.current = true;
+        const previous = speechLockRef.current;
+        let release: () => void = () => undefined;
+        speechLockRef.current = new Promise<void>((resolve) => {
+          release = resolve;
+        });
+        void previous
+          .catch(() => undefined)
+          .then(async () => {
+            const startedAt = performance.now();
+            w.__testClip = { state: "playing", startedAt };
+            player.enqueue(arrayBufferToBase64(pcm.buffer));
+            await wait(seconds.length * 1000 + 200);
+            w.__testClip = { state: "done", startedAt, endedAt: performance.now() };
+            testToneRef.current = false;
+            release();
+          });
         return true;
       },
     };

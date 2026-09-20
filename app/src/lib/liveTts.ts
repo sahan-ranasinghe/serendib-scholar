@@ -13,6 +13,7 @@
  * purpose: it is the voice the child has been hearing, byte for byte.
  */
 import { GoogleGenAI, Modality } from "@google/genai";
+import { paidCallAllowed } from "@/lib/paidCalls";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { ZARA_VOICE } from "@/lib/zaraVoice";
 import {
@@ -128,6 +129,8 @@ export async function ensureClip(text: string, apiKey: string, options: { force?
     if (cached) return cached;
   }
 
+  // A render is a paid call: off unless CLIP_RENDER=on, for the app and the batch scripts alike (src/lib/paidCalls.ts).
+  if (!paidCallAllowed("clipRender")) throw new Error("rendering is off (CLIP_RENDER is not on): the line has no cached clip and none will be rendered");
   const key = clipKey(trimmed, ZARA_VOICE);
   const clip = await renderPacedClip(trimmed, apiKey);
   const meta: ClipMeta = {

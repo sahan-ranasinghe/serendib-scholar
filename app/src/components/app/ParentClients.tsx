@@ -3,10 +3,10 @@
 import { useLang } from "@/lib/useLang";
 import { useAppState } from "@/lib/appStore";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Screen } from "./Screen";
 import { ParentHeader, SettingsRow } from "./screens/ParentZone";
-import { PinBoxes } from "./PinGate";
+import { PinBoxes, PinEye } from "./PinGate";
 import { sx } from "./sx";
 import { t } from "@/lib/appCopy";
 import { postJson } from "@/lib/clientSession";
@@ -14,6 +14,7 @@ import type { ChildSettings, ProfilesData } from "@/lib/appTypes";
 
 const ROOT = "background:#FFFDF8;display:flex;flex-direction:column;padding:0 20px";
 const LABEL = "font:600 16px/1.5 var(--font-label);color:var(--color-ink-70)";
+const PIN_LABEL = "font:600 18px/1.5 var(--font-label);color:var(--color-ink-70)";
 const PRIMARY = "height:52px;border:2px solid var(--color-teal);border-radius:12px;background:var(--color-card);color:var(--color-teal);font:600 18px/1.5 var(--font-body)";
 
 /** Daily limit (15 · 20 · 30), sound and captions — the parent's settings, saved as they change. */
@@ -75,6 +76,11 @@ export function PinChangeClient({ pinSet, create = false }: { pinSet: boolean; c
   const [state, setState] = useState<"idle" | "busy" | "saved" | "wrong" | "error">("idle");
   const [resetOpen, setResetOpen] = useState(false);
   const [accessCode, setAccessCode] = useState("");
+  const [reveal, setReveal] = useState(false);
+  const newRef = useRef<HTMLInputElement | null>(null);
+  const againRef = useRef<HTMLInputElement | null>(null);
+  // Both in and different: said at once, not left as a dead button.
+  const mismatch = pin.length === 4 && again.length === 4 && again !== pin;
   const ready = pin.length === 4 && again === pin && (!pinSet || current.length === 4);
   const submit = async () => {
     if (!ready) return;
@@ -100,19 +106,37 @@ export function PinChangeClient({ pinSet, create = false }: { pinSet: boolean; c
       <form onSubmit={(e) => { e.preventDefault(); void submit(); }} style={sx("display:grid;gap:14px;margin-top:16px")} data-testid={create ? "pin-create" : "pin-change"}>
         {pinSet && (
           <div style={sx("display:grid;gap:6px")}>
-            <span style={sx(LABEL)}>PIN</span>
-            <PinBoxes value={current} onChange={setCurrent} active testId="pin-current" />
+            <div style={sx("display:flex;align-items:center;justify-content:space-between")}>
+              <span style={sx(PIN_LABEL)}>{t("pin.current")}</span>
+              <PinEye reveal={reveal} onToggle={() => setReveal((v) => !v)} />
+            </div>
+            <PinBoxes value={current} onChange={(v) => { setCurrent(v); if (state === "wrong") setState("idle"); }} active reveal={reveal} invalid={state === "wrong"} onComplete={() => newRef.current?.focus()} testId="pin-current" label={t("pin.current")} />
           </div>
         )}
         <div style={sx("display:grid;gap:6px")}>
-          <span style={sx(LABEL)}>PIN ·</span>
-          <PinBoxes value={pin} onChange={setPin} active={!pinSet} testId="pin-new" />
+          <div style={sx("display:flex;align-items:center;justify-content:space-between;min-height:56px")}>
+            <span style={sx(PIN_LABEL)} data-testid="pin-new-label">{pinSet ? t("pin.new") : t("pin.label")}</span>
+            {!pinSet && <PinEye reveal={reveal} onToggle={() => setReveal((v) => !v)} />}
+          </div>
+          <PinBoxes value={pin} onChange={setPin} active={!pinSet} reveal={reveal} inputRef={newRef} onComplete={() => againRef.current?.focus()} testId="pin-new" label={pinSet ? t("pin.new") : t("pin.label")} />
         </div>
         <div style={sx("display:grid;gap:6px")}>
-          <span style={sx(LABEL)}>PIN · ·</span>
-          <PinBoxes value={again} onChange={setAgain} active={false} testId="pin-again" />
+          <span style={sx(PIN_LABEL)} data-testid="pin-again-label">{t("pin.again")}</span>
+          <PinBoxes
+            value={again}
+            onChange={(v) => {
+              setAgain(v);
+            }}
+            active={false}
+            reveal={reveal}
+            invalid={mismatch}
+            inputRef={againRef}
+            testId="pin-again"
+            label={t("pin.again")}
+          />
         </div>
-        {state === "wrong" && <span style={sx("font:400 16px/1.5 var(--font-body);color:var(--color-coral-text)")}>{t("parent.pinWrong")}</span>}
+        {mismatch && <span role="alert" style={sx("font:600 18px/1.5 var(--font-body);color:var(--color-coral-text)")} data-testid="pin-mismatch">{t("pin.mismatch")}</span>}
+        {state === "wrong" && <span role="alert" data-testid="pin-error" style={sx("font:600 18px/1.5 var(--font-body);color:var(--color-coral-text)")}>{t("parent.pinWrong")}</span>}
         {state === "error" && <span style={sx("font:400 16px/1.5 var(--font-body);color:var(--color-coral-text)")}>{t("session.connectFail")}</span>}
         {state === "saved" && <span style={sx("font:400 16px/1.5 var(--font-body);color:var(--color-success-text)")} data-testid="pin-saved">{t("parent.pinSet")}</span>}
         <button type="submit" disabled={!ready || state === "busy"} data-testid="pin-change-submit" style={sx("height:56px;border:0;border-radius:12px;background:var(--color-teal);color:#fff;font:700 24px/1.5 var(--font-display);box-shadow:var(--shadow-button)", { opacity: ready ? 1 : 0.45 })}>
@@ -184,6 +208,24 @@ export function DeleteClient({ childName }: { childName: string }) {
   );
 }
 
+/** "PDF ලෙස බෙදාගන්න": the report through the system print sheet (its "save as PDF" is the PDF). The press shows at once. */
+export function ReportShare() {
+  useLang();
+  const [busy, setBusy] = useState(false);
+  const share = () => {
+    setBusy(true);
+    // Let the pressed state paint before the print dialog freezes the page.
+    setTimeout(() => window.print(), 60);
+    // The pressed look stays for its moment (as the certificate's buttons do): the sheet may take a while to appear.
+    setTimeout(() => setBusy(false), 1400);
+  };
+  return (
+    <button type="button" onClick={share} data-testid="report-share" data-busy={busy || undefined} style={sx("width:100%;height:52px;border:2px solid var(--color-ink-18);border-radius:12px;background:#fff;color:var(--color-teal);font:600 18px/1.5 var(--font-body)", { opacity: busy ? 0.6 : 1 })}>
+      {t("report.sharePdf")}
+    </button>
+  );
+}
+
 /** The children this parent looks after; tapping one makes it the active child on this device. */
 export function ProfilesClient({ profiles }: { profiles: ProfilesData }) {
   useLang();
@@ -195,8 +237,9 @@ export function ProfilesClient({ profiles }: { profiles: ProfilesData }) {
     const r = await postJson("/api/parent/switch", { child_id: id });
     setBusy(null);
     if (r.ok) {
+      // Home at once (its skeleton until the new child's snapshot lands) — the tap never waits on the fetch.
       clear();
-      await refresh();
+      void refresh();
       router.push("/home");
     }
   };

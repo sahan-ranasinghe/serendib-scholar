@@ -12,6 +12,8 @@ export interface AppSnapshot {
   /** Whose records these are: the store drops a snapshot for another child. */
   childId: string;
   childName: string;
+  /** Every child on this device (the same parent contact) — the home header's switcher. Not PIN-gated: the splash shows the same list. */
+  kids: Array<{ id: string; name: string; grade: number; active: boolean }>;
   home: HomeData;
   lessons: LessonMapData;
   /** By lesson number. */
@@ -31,4 +33,4 @@ export interface AppSnapshot {
   at: string;
 }
 
-export const APP_SNAPSHOT_VERSION = 2;
+export const APP_SNAPSHOT_VERSION = 3;

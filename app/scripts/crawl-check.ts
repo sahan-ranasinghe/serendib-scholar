@@ -16,16 +16,21 @@
 import { supabaseAdmin } from "../src/lib/supabaseAdmin";
 import { launch, connect, openPage, evaluate, wait, type Cdp } from "./lib/cdp";
 import { ONBOARD_VIA_API_JS } from "./lib/onboard";
-import { readFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 const BASE = process.argv.find((a) => a.startsWith("http")) ?? "http://localhost:3001";
 const CHILD_NAME = "ක්‍රෝල් දරුවා";
+/** `--only-m`: skip the dead-control crawl and run only cluster M's parent-zone / home-header assertions. */
+const ONLY_M = process.argv.includes("--only-m");
 
 interface Result { route: string; control: string; verdict: "navigates" | "opens" | "changes" | "prints" | "external" | "disabled" | "selected" | "DEAD"; detail: string }
 
 /** Every route to crawl. Sheets and dialogs are discovered from the controls that open them. */
-const ROUTES = ["/home", "/lessons", "/lessons/1", "/practice", "/rewards", "/rewards/certificate", "/progress", "/session/summary", "/parent", "/parent/settings", "/parent/pin", "/parent/profiles", "/parent/subscription", "/parent/report", "/parent/delete", "/offline"];
+const ROUTE_FILTER = process.argv.find((a) => a.startsWith("--routes="))?.slice(9).split(",") ?? null;
+const ALL_ROUTES = ["/home", "/lessons", "/lessons/1", "/practice", "/rewards", "/rewards/certificate", "/progress", "/session/summary", "/parent", "/parent/settings", "/parent/pin", "/parent/profiles", "/parent/subscription", "/parent/report", "/parent/delete", "/offline"];
+/** `--routes=/parent,/home` narrows the crawl (debugging one screen); the gate is the full list. */
+const ROUTES = ROUTE_FILTER ? ALL_ROUTES.filter((r) => ROUTE_FILTER.includes(r)) : ALL_ROUTES;
 
 const CONTROLS_JS = `(() => {
   const els = [...document.querySelectorAll('a[href], button, [role="button"], input[type="submit"], [role="tab"], summary')];
@@ -54,11 +59,166 @@ const STATE_JS = `(() => ({
 }))()`;
 
 async function ready(page: Cdp): Promise<void> {
-  for (let i = 0; i < 60; i += 1) {
+  for (let i = 0; i < 180; i += 1) {
     const ok = await evaluate<boolean>(page, `document.documentElement.hasAttribute('data-hydrated') && !!document.querySelector('[data-screen-ready], [data-app-screen]:not(.app-skeleton [data-app-screen]), form, main, .lesson-screen') && !document.querySelector('.app-skeleton')`).catch(() => false);
     if (ok) return;
+    // Still a skeleton after 4 s (and every 4 s after): the store's fetch was refused (proxy.ts: 60 API requests a minute per IP, and a crawl
+    // spends them). Wait for the window to reopen and revalidate — a PIN-gated zone is never drawn from the cached copy.
+    if (i % 27 === 26 && (await evaluate<boolean>(page, `!!document.querySelector('.app-skeleton')`).catch(() => false))) {
+      await apiWindow(page);
+      await evaluate(page, `window.dispatchEvent(new Event('focus'))`).catch(() => undefined);
+    }
     await wait(150);
   }
+}
+
+interface Check { name: string; ok: boolean; detail: string }
+
+const SHOT_DIR = path.join(process.cwd(), ".board-check", "cluster-m");
+const shot = async (page: Cdp, name: string): Promise<void> => {
+  mkdirSync(SHOT_DIR, { recursive: true });
+  const png = (await page.send("Page.captureScreenshot", { format: "png" })) as { data: string };
+  writeFileSync(path.join(SHOT_DIR, `${name}.png`), Buffer.from(png.data, "base64"));
+};
+
+const goto = async (page: Cdp, route: string): Promise<void> => {
+  await page.send("Page.navigate", { url: `${BASE}${route}` });
+  await wait(600);
+  await ready(page);
+};
+/**
+ * proxy.ts allows 60 API requests a minute per IP, and the crawl has just spent them: a PIN POST would get a 429
+ * ("සම්බන්ධ වෙන්න බැරි වුණා") that says nothing about the screen. Wait for the window to reopen before a step that writes.
+ */
+async function apiWindow(page: Cdp): Promise<void> {
+  for (let i = 0; i < 16; i += 1) {
+    const status = await evaluate<number>(page, `fetch("/api/build", { cache: "no-store" }).then((r) => r.status).catch(() => 0)`).catch(() => 0);
+    if (status !== 429) return;
+    await wait(5000);
+  }
+}
+/** Focus a PIN field's input and type into it the way a keypad does (one input event per digit). */
+const typePin = async (page: Cdp, testId: string | null, digits: string): Promise<void> => {
+  if (testId) await evaluate(page, `document.querySelector('[data-testid="${testId}"] input').focus()`);
+  for (const d of digits) {
+    await page.send("Input.insertText", { text: d });
+    await wait(40);
+  }
+};
+const FIELD_JS = (testId: string) => `(() => { const f = document.querySelector('[data-testid="${testId}"]'); if (!f) return null; const caret = f.querySelector('[data-testid="pin-caret"]'); const cr = caret ? caret.getBoundingClientRect() : null; const boxes = [...f.querySelectorAll('[data-pin-box]')]; return { focused: f.hasAttribute('data-focused'), active: document.activeElement === f.querySelector('input'), filled: Number(f.getAttribute('data-filled')), caretBox: boxes.findIndex((b) => b.hasAttribute('data-caret')), caretW: cr ? cr.width : 0, caretH: cr ? cr.height : 0, caretShown: caret ? getComputedStyle(caret).display !== 'none' && getComputedStyle(caret).backgroundColor : '', boxH: boxes[0] ? boxes[0].getBoundingClientRect().height : 0, text: boxes.map((b) => (b.querySelector('[data-pin-digit]') || {}).textContent || '').join(''), inputMode: f.querySelector('input').getAttribute('inputmode'), invalid: f.hasAttribute('data-invalid') }; })()`;
+interface Field { focused: boolean; active: boolean; filled: number; caretBox: number; caretW: number; caretH: number; caretShown: string; boxH: number; text: string; inputMode: string; invalid: boolean }
+
+/** Issues 7 + 8: the labelled parent entry (≥ 56 px), the child's avatar + name, the switcher with "add a child", nothing in the header overlapping. */
+async function homeHeaderChecks(page: Cdp, checks: Check[]): Promise<void> {
+  for (const [w, h] of [[360, 800], [412, 915]] as const) {
+    await page.send("Emulation.setDeviceMetricsOverride", { width: w, height: h, deviceScaleFactor: 2, mobile: true });
+    await goto(page, "/home");
+    const m = await evaluate<{ parent: { w: number; h: number; label: string; labelPx: number } | null; chip: { w: number; h: number; text: string } | null; overlaps: string[]; overflowX: boolean }>(page, `(() => {
+      const rect = (el) => { const r = el.getBoundingClientRect(); return { l: r.left, t: r.top, r: r.right, b: r.bottom, w: r.width, h: r.height }; };
+      const p = document.querySelector('[data-testid="parent-lock"]');
+      const pl = document.querySelector('[data-testid="parent-lock-label"]');
+      const c = document.querySelector('[data-testid="child-switcher-open"]');
+      const named = [['state-badge', document.querySelector('[data-testid="app-state-badge"]')], ['parent', p], ['child', c], ['greeting', document.querySelector('[data-testid="home-greeting"]')], ['goal-ring', document.querySelector('[data-testid="goal-ring"]')], ['streak', document.querySelector('[data-testid="streak"]')], ['continue-card', document.querySelector('[data-testid="continue-card"]')]].filter(([, el]) => el).map(([n, el]) => [n, rect(el)]);
+      const overlaps = [];
+      for (let i = 0; i < named.length; i += 1) for (let j = i + 1; j < named.length; j += 1) { const a = named[i][1], b = named[j][1]; if (a.l < b.r - 0.5 && b.l < a.r - 0.5 && a.t < b.b - 0.5 && b.t < a.b - 0.5) overlaps.push(named[i][0] + '×' + named[j][0]); }
+      return { parent: p ? { w: rect(p).w, h: rect(p).h, label: pl ? pl.textContent.trim() : '', labelPx: pl ? parseFloat(getComputedStyle(pl).fontSize) : 0 } : null, chip: c ? { w: rect(c).w, h: rect(c).h, text: c.textContent.trim() } : null, overlaps, overflowX: document.documentElement.scrollWidth > window.innerWidth + 1 };
+    })()`);
+    await shot(page, `home-${w}x${h}`);
+    checks.push({ name: `home ${w}×${h}: parent entry ≥ 56 px with a Sinhala label`, ok: !!m.parent && m.parent.w >= 56 && m.parent.h >= 56 && /[඀-෿]/u.test(m.parent.label) && m.parent.labelPx >= 16, detail: m.parent ? `${Math.round(m.parent.w)}×${Math.round(m.parent.h)} px · "${m.parent.label}" ${m.parent.labelPx}px` : "missing" });
+    checks.push({ name: `home ${w}×${h}: child avatar + name in the header (≥ 56 px)`, ok: !!m.chip && m.chip.h >= 56 && m.chip.text.includes(CHILD_NAME), detail: m.chip ? `${Math.round(m.chip.w)}×${Math.round(m.chip.h)} px · "${m.chip.text}"` : "missing" });
+    checks.push({ name: `home ${w}×${h}: nothing in the header overlaps, no sideways scroll`, ok: m.overlaps.length === 0 && !m.overflowX, detail: m.overlaps.length ? m.overlaps.join(", ") : m.overflowX ? "page scrolls sideways" : "0 intersections" });
+  }
+  await evaluate(page, `document.querySelector('[data-testid="child-switcher-open"]').click()`);
+  await wait(400);
+  await shot(page, "child-switcher");
+  const sheet = await evaluate<{ open: boolean; kids: number; active: string; add: string | null; addText: string }>(page, `(() => { const s = document.querySelector('[data-testid="child-switcher-sheet"]'); const add = s && s.querySelector('[data-testid="switcher-add-child"]'); const act = s && s.querySelector('[data-testid="switch-child"][aria-pressed="true"]'); return { open: !!s, kids: s ? s.querySelectorAll('[data-testid="switch-child"]').length : 0, active: act ? act.textContent.trim() : '', add: add ? add.getAttribute('href') : null, addText: add ? add.textContent.trim() : '' }; })()`);
+  checks.push({ name: "home: the avatar opens the child switcher with add-a-child", ok: sheet.open && sheet.kids >= 1 && sheet.active.includes(CHILD_NAME) && sheet.add === "/parent/profiles/new", detail: `${sheet.kids} child(ren), active "${sheet.active.slice(0, 24)}", add → ${sheet.add} "${sheet.addText}"` });
+  await evaluate(page, `document.querySelector('[data-testid="child-switcher-close"]').click()`);
+  await wait(300);
+  const closed = await evaluate<boolean>(page, `!document.querySelector('[data-testid="child-switcher-sheet"]')`);
+  checks.push({ name: "home: the switcher closes again", ok: closed, detail: closed ? "closed" : "still open" });
+  await page.send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
+}
+
+/** Issue 6, setting a PIN: two labelled fields, caret, auto-advance, the eye, the mismatch error — then the PIN is saved through the screen. */
+async function pinCreateChecks(page: Cdp, checks: Check[]): Promise<void> {
+  await apiWindow(page);
+  await goto(page, "/parent");
+  const labels = await evaluate<{ form: boolean; first: string; second: string; fields: number }>(page, `(() => ({ form: !!document.querySelector('[data-testid="pin-create"]'), first: (document.querySelector('[data-testid="pin-new-label"]') || {}).textContent || '', second: (document.querySelector('[data-testid="pin-again-label"]') || {}).textContent || '', fields: document.querySelectorAll('[data-testid="pin-create"] [data-pin-box]').length / 4 }))()`);
+  checks.push({ name: "set PIN: two fields, labelled PIN එක / ආයෙත් ටයිප් කරන්න", ok: labels.form && labels.fields === 2 && labels.first.trim() === "PIN එක" && labels.second.trim() === "ආයෙත් ටයිප් කරන්න", detail: `${labels.fields} field(s): "${labels.first}" / "${labels.second}"` });
+  const start = await evaluate<Field>(page, FIELD_JS("pin-new"));
+  checks.push({ name: "set PIN: first field focused on arrival, caret visible in box 1", ok: start.active && start.caretBox === 0 && start.caretW >= 2 && start.caretH >= 20, detail: `focused ${start.active}, caret box ${start.caretBox + 1}, ${start.caretW}×${start.caretH} px ${start.caretShown}` });
+  checks.push({ name: "set PIN: boxes ≥ 56 px, numeric keypad", ok: start.boxH >= 56 && start.inputMode === "numeric", detail: `${start.boxH} px · inputmode=${start.inputMode}` });
+  await typePin(page, null, "12");
+  const mid = await evaluate<Field>(page, FIELD_JS("pin-new"));
+  checks.push({ name: "set PIN: the caret advances digit by digit", ok: mid.filled === 2 && mid.caretBox === 2 && mid.text === "••", detail: `after 2 digits: caret box ${mid.caretBox + 1}, shows "${mid.text}"` });
+  await typePin(page, null, "34");
+  await wait(150);
+  const again0 = await evaluate<Field>(page, FIELD_JS("pin-again"));
+  checks.push({ name: "set PIN: focus moves to the second field after 4 digits", ok: again0.active && again0.caretBox === 0, detail: `second field focused ${again0.active}, caret box ${again0.caretBox + 1}` });
+  await evaluate(page, `document.querySelector('[data-testid="pin-eye"]').click()`);
+  await wait(150);
+  const shown = await evaluate<Field>(page, FIELD_JS("pin-new"));
+  const eye = await evaluate<string>(page, `document.querySelector('[data-testid="pin-eye"]').getAttribute('aria-pressed')`);
+  checks.push({ name: "set PIN: the eye reveals the digits", ok: shown.text === "1234" && eye === "true", detail: `shows "${shown.text}", aria-pressed=${eye}` });
+  await evaluate(page, `document.querySelector('[data-testid="pin-eye"]').click()`);
+  await typePin(page, "pin-again", "1235");
+  await wait(200);
+  await shot(page, "pin-set-mismatch");
+  const mismatch = await evaluate<{ text: string; disabled: boolean; invalid: boolean }>(page, `(() => ({ text: (document.querySelector('[data-testid="pin-mismatch"]') || {}).textContent || '', disabled: document.querySelector('[data-testid="pin-change-submit"]').disabled, invalid: document.querySelector('[data-testid="pin-again"]').hasAttribute('data-invalid') }))()`);
+  checks.push({ name: "set PIN: a mismatch says so at once, in Sinhala", ok: /[඀-෿]/u.test(mismatch.text) && mismatch.disabled && mismatch.invalid, detail: `"${mismatch.text}" · field marked ${mismatch.invalid} · save disabled ${mismatch.disabled}` });
+  // Correct it (backspace, the right digit) and save.
+  await page.send("Input.dispatchKeyEvent", { type: "keyDown", key: "Backspace", code: "Backspace", windowsVirtualKeyCode: 8 });
+  await page.send("Input.dispatchKeyEvent", { type: "keyUp", key: "Backspace", code: "Backspace", windowsVirtualKeyCode: 8 });
+  await typePin(page, null, "4");
+  await wait(200);
+  const fixed = await evaluate<{ gone: boolean; disabled: boolean }>(page, `(() => ({ gone: !document.querySelector('[data-testid="pin-mismatch"]'), disabled: document.querySelector('[data-testid="pin-change-submit"]').disabled }))()`);
+  checks.push({ name: "set PIN: backspace + retype clears the error", ok: fixed.gone && !fixed.disabled, detail: `error gone ${fixed.gone}, save enabled ${!fixed.disabled}` });
+  await evaluate(page, `document.querySelector('[data-testid="pin-change-submit"]').click()`);
+  let zone = false;
+  for (let i = 0; i < 100 && !zone; i += 1) {
+    await wait(150);
+    zone = await evaluate<boolean>(page, `!!document.querySelector('[data-screen-ready="parent"]')`);
+  }
+  const saveState = zone ? "" : await evaluate<string>(page, `'saved: ' + !!document.querySelector('[data-testid="pin-saved"]') + ' · form text: ' + (document.querySelector('[data-testid="pin-create"]') || { textContent: '' }).textContent.slice(-80)`);
+  checks.push({ name: "set PIN: saving it opens the zone (no second ask)", ok: zone, detail: zone ? "parent zone shown" : `zone never appeared (${saveState})` });
+}
+
+/** Issue 5: entering the PIN is ONCE — with a background revalidation of /api/app-state in the air when the PIN is submitted. */
+async function pinEntryChecks(page: Cdp, checks: Check[]): Promise<void> {
+  await apiWindow(page);
+  await goto(page, "/parent");
+  // The device's cached snapshot still carries the zone for a moment; the revalidation (no cookie now) brings the gate.
+  for (let i = 0; i < 100; i += 1) {
+    if (await evaluate<boolean>(page, `!!document.querySelector('[data-testid="pin-gate"]')`)) break;
+    await wait(150);
+  }
+  const gate = await evaluate<{ gate: boolean; fields: number }>(page, `(() => ({ gate: !!document.querySelector('[data-testid="pin-gate"]'), fields: document.querySelectorAll('[data-testid="pin-gate"] [data-pin-box]').length / 4 }))()`);
+  checks.push({ name: "enter PIN: the gate has ONE field", ok: gate.gate && gate.fields === 1, detail: `${gate.fields} field(s)` });
+  if (!gate.gate) {
+    const where = await evaluate<string>(page, `location.pathname + ' · screens: ' + [...document.querySelectorAll('[data-app-screen]')].map((e) => e.getAttribute('data-app-screen')).join(',') + ' · skeleton: ' + !!document.querySelector('.app-skeleton')`);
+    const cookies = ((await page.send("Network.getCookies", { urls: [BASE] })) as { cookies: Array<{ name: string }> }).cookies.map((c) => c.name).join(",");
+    const status = await evaluate<string>(page, `(document.querySelector('[data-store-status]') || { getAttribute: () => '?' }).getAttribute('data-store-status')`);
+    checks.push({ name: "enter PIN: asked once, with a stale app-state fetch in flight", ok: false, detail: `the gate never appeared (${where} · store ${status} · cookies ${cookies})` });
+    return;
+  }
+  // Hold every /api/app-state response for 2.5 s (the server answers at once — BEFORE the cookie — and the answer lands late), and count the door's POSTs.
+  await evaluate(page, `(() => { const real = window.fetch.bind(window); window.__enterPosts = 0; window.__stateGets = 0; window.fetch = (input, init) => { const url = typeof input === 'string' ? input : input.url; if (url.includes('/api/parent/enter')) window.__enterPosts += 1; if (url.includes('/api/app-state')) { window.__stateGets += 1; const n = window.__stateGets; return real(input, init).then((r) => n === 1 ? new Promise((res) => setTimeout(() => res(r), 2500)) : r); } return real(input, init); }; window.dispatchEvent(new Event('focus')); })()`);
+  await wait(300);
+  await typePin(page, "pin-boxes", "12");
+  await shot(page, "pin-enter");
+  await typePin(page, null, "34");
+  await evaluate(page, `document.querySelector('[data-testid="pin-submit"]').click()`);
+  let zone = false;
+  let sawEmptyGate = false;
+  for (let i = 0; i < 150 && !zone; i += 1) {
+    await wait(100);
+    const s = await evaluate<{ zone: boolean; gateIdle: boolean }>(page, `(() => { const g = document.querySelector('[data-testid="pin-gate"]'); const b = document.querySelector('[data-testid="pin-submit"]'); return { zone: !!document.querySelector('[data-screen-ready="parent"]'), gateIdle: !!g && !!b && !b.hasAttribute('data-busy') }; })()`);
+    zone = s.zone;
+    if (s.gateIdle) sawEmptyGate = true;
+  }
+  const counts = await evaluate<{ posts: number; gets: number }>(page, `({ posts: window.__enterPosts, gets: window.__stateGets })`);
+  checks.push({ name: "enter PIN: asked once, with a stale app-state fetch in flight", ok: zone && !sawEmptyGate && counts.posts === 1, detail: `zone ${zone ? "opened" : "NEVER opened"} · gate asked again: ${sawEmptyGate} · PIN posts ${counts.posts} · app-state fetches ${counts.gets} (1 stale in flight + 1 after the PIN)` });
 }
 
 async function main(): Promise<void> {
@@ -91,7 +251,8 @@ async function main(): Promise<void> {
       await wait(500);
     }
     const controls = await evaluate<Array<{ index: number; label: string; href: string | null; disabled: boolean; selected: boolean; tag: string; inDialog: boolean }>>(page, CONTROLS_JS).catch(() => []);
-    const scope = opener ? controls.filter((c) => c.inDialog) : controls;
+    // The one control that ends the crawl's own child (the delete screen's confirm really deletes) goes last on its screen.
+    const scope = (opener ? controls.filter((c) => c.inDialog) : controls).sort((a, b) => Number(a.label === "delete-confirm") - Number(b.label === "delete-confirm"));
     for (const control of scope) {
       if (control.disabled) {
         results.push({ route: label, control: control.label, verdict: "disabled", detail: "disabled until input (expected)" });
@@ -136,13 +297,20 @@ async function main(): Promise<void> {
     }
   };
 
-  for (const route of ROUTES) await crawl(route, null);
+  if (!ONLY_M) for (const route of ROUTES) await crawl(route, null);
   // The parent zone has three states: no PIN (crawled above: the create-a-PIN screen), unlocked, and gated.
   const PARENT_ROUTES = ROUTES.filter((r) => r.startsWith("/parent"));
-  await evaluate(page, `fetch("/api/parent/pin", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pin: "1234" }) }).then((r) => r.status)`);
-  for (const route of PARENT_ROUTES) await crawl(route, null, "unlocked");
+  // Cluster M: the PIN is SET through the screen (new + again), which leaves the zone unlocked…
+  const checks: Check[] = [];
+  await evaluate(page, `(() => { try { localStorage.setItem("ss:lang", "si"); } catch {} })()`);
+  await homeHeaderChecks(page, checks);
+  await pinCreateChecks(page, checks);
+  // …and ENTERED once, even with a revalidation in the air. (Before the unlocked crawl: that one ends by really deleting the child.)
   await page.send("Network.deleteCookies", { name: "ss_parent", url: BASE });
-  await crawl("/parent", null, "gated");
+  await pinEntryChecks(page, checks);
+  if (!ONLY_M) for (const route of PARENT_ROUTES) await crawl(route, null, "unlocked");
+  await page.send("Network.deleteCookies", { name: "ss_parent", url: BASE });
+  if (!ONLY_M) await crawl("/parent", null, "gated");
 
   console.log(`\nroute × control (${results.length} controls):`);
   let currentRoute = "";
@@ -153,11 +321,16 @@ async function main(): Promise<void> {
   const dead = results.filter((r) => r.verdict === "DEAD");
   console.log(`\ncrawl: ${ROUTES.length} routes, ${[...crawled].filter((c) => c.includes("›")).length} sheet(s), ${results.length} controls · dead ${dead.length}`);
 
+  console.log(`\ncluster M — parent zone and navigation (${checks.length} assertions):`);
+  for (const c of checks) console.log(`    ${c.ok ? "✓" : "✗"} ${c.name.padEnd(64)} ${c.detail}`);
+  const failed = checks.filter((c) => !c.ok);
+  console.log(`cluster M: ${checks.length - failed.length}/${checks.length} passed`);
+
   // Cleanup: the crawl's child and its rows.
   await cleanup();
   page.close();
   browser.kill();
-  process.exit(dead.length === 0 ? 0 : 1);
+  process.exit(dead.length === 0 && failed.length === 0 ? 0 : 1);
 }
 
 const cleanup = async (): Promise<void> => {

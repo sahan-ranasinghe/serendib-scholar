@@ -53,6 +53,8 @@ export function ChoiceChips({ options, interactive = false, onPick, glow = false
               data-testid="turn-choice"
               data-chip={index}
               data-state={state}
+              data-entry={state === "selected" || state === "correct" || state === "wrong" ? option : undefined}
+              data-entry-verdict={state === "selected" ? "pending" : state === "correct" || state === "wrong" ? state : undefined}
               aria-label={option}
               disabled={!interactive || state === "disabled"}
               onClick={() => {

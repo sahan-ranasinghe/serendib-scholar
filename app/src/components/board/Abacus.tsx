@@ -37,6 +37,10 @@ export interface AbacusProps {
   glowRods?: number[];
   /** The child's number, in green, beneath the rods. */
   childAnswer?: string | null;
+  /** The rod the answer belongs to: it is written under that rod (null: centred, a whole number or a name). */
+  answerRod?: number | null;
+  /** The answer is what the child has just entered, and how the judge found it (pending until it has). */
+  answerVerdict?: "pending" | "correct" | "wrong" | null;
   readout?: "asFilled" | "live" | "none";
   interactive?: boolean;
   /** Touch: the beads changed (a new `shown`). */
@@ -67,6 +71,8 @@ export function Abacus({
   animate = false,
   glowRods = [],
   childAnswer = null,
+  answerRod = null,
+  answerVerdict = null,
   readout = "asFilled",
   interactive = false,
   onChange,
@@ -213,7 +219,7 @@ export function Abacus({
         </div>
         {/* the number forming beneath: Zara's in blue, the child's in green */}
         {(readoutDigits || childDigits) && (
-          <div data-testid="abacus-readout" style={{ display: "grid", gridTemplateColumns: `repeat(${rods}, 1fr)`, justifyItems: "center", marginTop: 4 }}>
+          <div data-testid="abacus-readout" data-entry={answerVerdict && childDigits ? (childAnswer ?? undefined) : undefined} data-entry-verdict={answerVerdict && childDigits ? answerVerdict : undefined} style={{ display: "grid", gridTemplateColumns: `repeat(${rods}, 1fr)`, justifyItems: "center", marginTop: 4 }}>
             {digits.map((_, rod) => {
               const child = childDigits?.[rod];
               const d = child ?? readoutDigits?.[rod] ?? null;
@@ -227,16 +233,20 @@ export function Abacus({
           </div>
         )}
         {/* a short answer (a count, a value) the child gave, in green */}
-        <AnimatePresence>
+        <AnimatePresence mode="wait">
           {childAnswer && !childDigits && (
             <motion.div
               key={childAnswer}
               data-testid="abacus-child-answer"
+              data-rod={answerRod ?? undefined}
+              data-entry={answerVerdict ? childAnswer : undefined}
+              data-entry-verdict={answerVerdict ?? undefined}
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, transition: { duration: 0.15 } }}
               transition={{ ...SPRING_BOUNCY }}
-              style={{ display: "flex", justifyContent: "center", marginTop: 4 }}
+              // Under the rod it answers (one value, under the rod under discussion); a name or a whole number is centred.
+              style={{ display: "flex", justifyContent: "center", marginTop: 4, ...(answerRod !== null && answerRod >= 0 && answerRod < rods ? { width: `${100 / rods}%`, marginLeft: `${(100 / rods) * answerRod}%`, whiteSpace: "nowrap" } : {}) }}
             >
               {/* digits in the hand face; anything else (a name) in the Sinhala face — the hand glyphs have no Sinhala */}
               {/^\d+$/u.test(childAnswer) ? (

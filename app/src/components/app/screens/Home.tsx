@@ -6,15 +6,56 @@ import { sx } from "../sx";
 import { t } from "@/lib/appCopy";
 import type { HomeData } from "@/lib/appTypes";
 
-/** Screens A · Child home. `start` is the continue card's button (it starts the session). */
-export function HomeScreen({ data, frame, start }: { data: HomeData; frame?: boolean; start: React.ReactNode }) {
+/** The first letter of a name as a reader sees it (a Sinhala letter with its vowel sign is one). */
+export function initialOf(name: string): string {
+  const trimmed = name.trim();
+  if (!trimmed) return "";
+  try {
+    const first = new Intl.Segmenter("si", { granularity: "grapheme" }).segment(trimmed)[Symbol.iterator]().next();
+    if (!first.done) return first.value.segment;
+  } catch {
+    // no Segmenter: the first code point will do
+  }
+  return Array.from(trimmed)[0] ?? "";
+}
+
+/** The header's child: avatar, name, and the ▾ that says it opens. The switcher (ChildSwitcher) wraps it in its button. */
+export function ChildChip({ name }: { name: string }) {
+  return (
+    <span data-testid="child-chip" style={sx("display:inline-flex;align-items:center;gap:8px;min-height:56px;max-width:100%;padding:0 12px 0 4px;border-radius:999px;background:var(--color-paper);border:2px solid var(--color-ink-10);box-sizing:border-box")}>
+      <span style={sx("width:44px;height:44px;border-radius:50%;background:var(--color-saffron-soft);border:2px solid var(--color-saffron);display:flex;align-items:center;justify-content:center;font:700 20px/1 var(--font-display);color:var(--color-ink);flex:none")}>{initialOf(name)}</span>
+      <span style={sx("font:700 20px/1.5 var(--font-display);color:var(--color-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0")}>{name}</span>
+      <span aria-hidden style={sx("font:600 14px/1 var(--font-latin);color:var(--color-ink-70);flex:none")}>▾</span>
+    </span>
+  );
+}
+
+/**
+ * Screens A · Child home. `start` is the continue card's button (it starts
+ * the session); `child` is the header's child switcher (the live route
+ * passes ChildSwitcher; without it the chip is drawn, inert).
+ */
+export function HomeScreen({ data, frame, start, child }: { data: HomeData; frame?: boolean; start: React.ReactNode; child?: React.ReactNode }) {
   const c = data.continue;
   const card = "background:var(--color-paper);border:2px solid var(--color-ink-10);border-radius:16px;padding:10px 8px;display:grid;gap:2px;min-height:96px;align-content:start;box-shadow:0 2px 0 #D8D1C2";
   return (
     <Screen label="Home" frame={frame} root="background:var(--color-board);display:flex;flex-direction:column">
-      <div style={sx("padding:52px 20px 0;display:flex;align-items:flex-start;gap:12px")}>
+      {/* The first 36 px stay clear: the "updating / offline" pill (AppStateBadge, fixed at the top) lands there, over nothing. */}
+      <div style={sx("padding:36px 12px 0 16px;display:flex;align-items:center;justify-content:space-between;gap:12px")} data-testid="home-topbar">
+        <div style={sx("min-width:0;flex:0 1 auto;display:flex")}>{child ?? <ChildChip name={data.name} />}</div>
+        <Link href="/parent" aria-label={t("home.parent")} data-testid="parent-lock" style={sx("flex:none;min-height:56px;min-width:56px;padding:0 14px 0 10px;border-radius:999px;background:var(--color-paper);border:2px solid var(--color-ink-10);display:inline-flex;align-items:center;gap:8px;box-sizing:border-box;color:var(--color-teal)")}>
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="currentColor" aria-hidden>
+            <circle cx="12" cy="8" r="5" />
+            <path d="M3 28v-6a9 9 0 0 1 18 0v6Z" />
+            <circle cx="24.5" cy="15.5" r="3.5" />
+            <path d="M19 28v-3a5.5 5.5 0 0 1 11 0v3Z" opacity=".7" />
+          </svg>
+          <span data-testid="parent-lock-label" style={sx("font:700 20px/1.5 var(--font-display);color:var(--color-ink)")}>{t("home.parent")}</span>
+        </Link>
+      </div>
+      <div style={sx("padding:4px 20px 0;display:flex;align-items:flex-start;gap:12px")}>
         <ZaraCharacter state="talking" amplitude={0} mouth={2} portrait size={64} />
-        <div style={sx("flex:1;display:grid;gap:2px;padding-top:4px")}>
+        <div style={sx("flex:1;display:grid;gap:2px;padding-top:4px")} data-testid="home-greeting">
           <div style={sx("font:700 28px/1.5 var(--font-display);color:var(--color-ink)")}>{t("home.greeting", { name: data.name })}</div>
           <div style={sx("font:400 20px/1.5 var(--font-body);color:var(--color-ink-70)")}>{t("home.startToday")}</div>
         </div>
@@ -80,9 +121,6 @@ export function HomeScreen({ data, frame, start }: { data: HomeData; frame?: boo
         </Link>
       </div>
       <BottomNav active={0} />
-      <Link href="/parent" title={t("home.parent")} aria-label={t("home.parent")} data-testid="parent-lock" style={sx("position:absolute;top:8px;right:12px;width:48px;height:48px;border-radius:50%;background:rgba(27,27,27,.08);display:flex;align-items:center;justify-content:center;font:20px/1 var(--font-latin);color:var(--color-ink-70)")}>
-        🔒
-      </Link>
     </Screen>
   );
 }

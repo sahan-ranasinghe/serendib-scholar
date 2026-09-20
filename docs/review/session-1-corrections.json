@@ -1865,5 +1865,43 @@
         }
       }
     ]
+  },
+  "answerFlow": {
+    "$comment": "Answer-flow round (the second device walk, 18 Sep 2026 — issues 1, 3, 12). No authored beat changed its words. What changed is what is SAID and SHOWN around an answer.",
+    "removedLines": {
+      "$comment": "Removed from src/lib/authoredLines.ts and from the recording list: nothing else used it.",
+      "readBack": "මම කියන්නම් —"
+    },
+    "removedBeats": {
+      "$comment": "The runtime-made read-back beat (<ask id>:readback — the frame line above + the composed number, with a 2 s caption fallback) no longer exists. A readAloud answer is now: tap → the entry marked on the chip → judged → the FEEDBACK beat. The storyboard's turn.read_back event is gone from the vocabulary and from every readAloud ASK.",
+      "pattern": "<readAloud ASK>:readback",
+      "affectedAsks": [
+        "authored:readWrite4Digit:2",
+        "authored:readWrite4Digit:3a",
+        "authored:readWrite4Digit:4a",
+        "authored:readWrite4Digit:5",
+        "authored:readWrite4Digit:15",
+        "authored:placeValue4Digit:58",
+        "authored:placeValue4Digit:62"
+      ],
+      "storyboardEventRemoved": "turn.read_back { number }"
+    },
+    "abacusRodRun": {
+      "$comment": "placeValue4Digit:43–52 (and every later rod question): the child's answer is written UNDER the rod it answers, in the tap itself, and leaves when another rod comes under discussion (rod_glow / bead_add / pointer to another rod), when the whole number is ringed, when the expansion opens beneath the abacus, and when the next question opens. Only the rod under discussion carries a value. The whole number is shown once, deliberately, in its own beat — placeValue4Digit:59 writes \"5 421 - පන්දහස් හාරසිය විසි එක\" — not as leftovers. No words changed.",
+      "beats": [
+        "authored:placeValue4Digit:44",
+        "authored:placeValue4Digit:45",
+        "authored:placeValue4Digit:46",
+        "authored:placeValue4Digit:48",
+        "authored:placeValue4Digit:49",
+        "authored:placeValue4Digit:50",
+        "authored:placeValue4Digit:59"
+      ]
+    },
+    "reteachWithoutAWriter": {
+      "$comment": "Cluster O: the runtime never asks a model to write or render a line. The RETEACH beat after a second miss had no fixed words (it was written at runtime through /api/speak-line): it is now silent and instant, and the reteach is carried by what already follows it — the miss line that announces it (feedbackWrong, reteachFollows) and the concept's own MODE 1 demonstration beats (<id>:reteach-demo), all of which have fixed, recordable words. If a spoken reteach line is wanted, it has to be AUTHORED here per concept and recorded; none was invented.",
+      "pattern": "<ask id>:reteach"
+    },
+    "noClipRule": "A line with no cached clip is read on the board as a caption for as long as saying it would take (estimated from its sentences). CLIP_RENDER is off unless the server sets CLIP_RENDER=on; so are the writer, the planner, /api/hear, interest extraction, the syllabus-search embedding and the portal's take check (src/lib/paidCalls.ts). The only paid call in the app is the ✋ chat's Live session."
   }
 }

@@ -59,3 +59,20 @@
 @media (prefers-reduced-motion: reduce) {
   .app-skeleton [data-app-screen] > :not([data-testid="bottom-nav"]) { animation: none; }
 }
+
+/* The PIN field's caret: a teal bar in the box the next digit lands in. */
+.pin-caret {
+  display: inline-block;
+  width: 3px;
+  height: 30px;
+  border-radius: 2px;
+  background: #0f4c5c;
+  animation: pin-caret-blink 1s steps(1, end) infinite;
+}
+@keyframes pin-caret-blink {
+  0%, 55% { opacity: 1; }
+  56%, 100% { opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pin-caret { animation: none; }
+}

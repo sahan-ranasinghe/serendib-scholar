@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { paidCallAllowed } from "@/lib/paidCalls";
 import { GoogleGenAI } from "@google/genai";
 import { requireSession } from "@/lib/sessionAuth";
 import { limitedResponseBody, takeBudget } from "@/lib/rateLimit";
@@ -47,6 +48,8 @@ export async function POST(request: NextRequest) {
   const session = await requireSession(request);
   if (!session) return NextResponse.json({ ok: false, error: "unauthenticated" }, { status: 401 });
 
+  // Transcribing a hearing is a paid call, off unless VOICE_ASSESSMENT=on (src/lib/paidCalls.ts): the lesson is answered by touch.
+  if (!paidCallAllowed("hear")) return NextResponse.json({ ok: false, error: "Hearing is off (VOICE_ASSESSMENT is not on)." }, { status: 503 });
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     return NextResponse.json({ ok: false, error: "GEMINI_API_KEY is not set." }, { status: 500 });

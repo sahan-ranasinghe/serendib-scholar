@@ -12,6 +12,10 @@
  *   npm run render:audio -- --all
  *   npm run render:audio -- --gender girl # clips for a girl child
  *   npm run render:audio -- --limit 20    # first N unrendered lines only
+ *
+ * RENDERING IS A PAID CALL AND IS OFF BY DEFAULT (src/lib/paidCalls.ts): run
+ * it as `CLIP_RENDER=on npm run render:audio` — deliberately. Without the
+ * switch the script only reports what is cached and what is missing.
  */
 import { readFile } from "node:fs/promises";
 import path from "node:path";
@@ -125,6 +129,7 @@ async function main() {
       `${texts.length} distinct lines, voice ${ZARA_VOICE}, address form: ${GENDER}\n`,
   );
   await ensureAudioBucket();
+  if (process.env.CLIP_RENDER !== "on") console.log("CLIP_RENDER is not on: nothing will be rendered — cached lines are listed, missing ones are reported as FAILED.\n");
 
   let rendered = 0;
   let cached = 0;

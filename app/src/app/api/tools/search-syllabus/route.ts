@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { paidCallAllowed } from "@/lib/paidCalls";
 import { GoogleGenAI } from "@google/genai";
 import { supabaseAdmin } from "@/lib/supabaseClient";
 import type { BoardContent } from "@/lib/board";
@@ -161,9 +162,11 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const apiKey = process.env.GEMINI_API_KEY;
+  // Embedding the question is a paid call outside the Live session: off unless SYLLABUS_SEARCH=on. The chat is given the
+  // lesson, the board and the teaching instructions up front (src/lib/chatContext.ts), so she answers from those.
+  const apiKey = paidCallAllowed("syllabusEmbedding") ? process.env.GEMINI_API_KEY : undefined;
   if (!apiKey) {
-    console.error("[search-syllabus] GEMINI_API_KEY is not configured");
+    if (process.env.SYLLABUS_SEARCH === "on") console.error("[search-syllabus] GEMINI_API_KEY is not configured");
     return NextResponse.json({ results: [], found: false });
   }
 

@@ -117,6 +117,7 @@ export function HandNumber({
     <span
       ref={rootRef}
       className={`hand-number ${className ?? ""}`}
+      data-readable={String(text)}
       style={{ display: "inline-flex", alignItems: "flex-end", lineHeight: 0, verticalAlign: "middle", ...style }}
       aria-label={String(text)}
     >

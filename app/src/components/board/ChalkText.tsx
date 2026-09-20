@@ -34,7 +34,7 @@ export interface ChalkTextProps {
   /** Mid-write: the marker cursor waits at the end of the line. */
   cursor?: boolean;
   /** The child answers this line on the pad: a trailing "?" becomes the glowing answer slot showing their digits so far (G2). */
-  answerSlot?: { draft: string; glow: boolean } | null;
+  answerSlot?: { draft: string; glow: boolean; /** The draft is a committed entry, and how the judge found it. */ verdict?: "pending" | "correct" | "wrong" } | null;
 }
 
 interface Token {
@@ -127,13 +127,13 @@ export function ChalkText({ text: fullText, append: fullAppend, size = 34, color
         ),
       )}
       {slotted && answerSlot && (
-        <span data-testid="chalk-answer-slot" className={answerSlot.glow ? "wb-glow" : undefined} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 4, width: 120, height: 52, border: `3px dashed ${BOARD.chalkYellow}`, borderRadius: 10, background: BOARD.saffronSoft }}>
+        <span data-testid="chalk-answer-slot" data-entry={answerSlot.verdict ? answerSlot.draft : undefined} data-entry-verdict={answerSlot.verdict} className={answerSlot.glow ? "wb-glow" : undefined} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 4, width: 120, height: 52, border: `3px dashed ${BOARD.chalkYellow}`, borderRadius: 10, background: BOARD.saffronSoft }}>
           {answerSlot.draft && <HandNumber text={answerSlot.draft} size={34} color={BOARD.successText} draw={false} registerNumbers={false} />}
-          <span aria-hidden style={{ width: 2, height: 30, background: BOARD.successText }} />
+          {!answerSlot.verdict && <span aria-hidden style={{ width: 2, height: 30, background: BOARD.successText }} />}
         </span>
       )}
       {nextSlot && answerSlot && (
-        <span data-testid="chalk-next-slot" className={answerSlot.glow ? "wb-glow" : undefined} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 64, height: 46, border: `3px dashed ${BOARD.chalkYellow}`, borderRadius: 10, background: BOARD.saffronSoft }}>
+        <span data-testid="chalk-next-slot" data-entry={answerSlot.verdict ? answerSlot.draft : undefined} data-entry-verdict={answerSlot.verdict} className={answerSlot.glow ? "wb-glow" : undefined} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 64, height: 46, border: `3px dashed ${BOARD.chalkYellow}`, borderRadius: 10, background: BOARD.saffronSoft }}>
           {answerSlot.draft && <HandNumber text={answerSlot.draft} size={30} color={BOARD.successText} draw={false} registerNumbers={false} />}
         </span>
       )}

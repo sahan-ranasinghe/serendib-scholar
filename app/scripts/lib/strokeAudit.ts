@@ -108,14 +108,14 @@ export const MEASURE_JS = `(function (sectionId, ask) {
   const out = { strokes, boardRect: { left: origin.left, top: origin.top, width: origin.width, height: origin.height, right: origin.right, bottom: origin.bottom } };
   if (ask.target) { const el = byKey(ask.target); out.target = el ? rect(el) : null; out.targetLabel = el ? label(el) : null; }
   const hl = board.querySelector('[data-testid^="highlight-"]');
-  out.highlight = hl ? { kind: hl.getAttribute('data-testid').slice(10), box: rect(hl), opacity: parseFloat(getComputedStyle(hl).opacity) } : null;
+  out.highlight = hl ? { kind: hl.getAttribute('data-testid').slice(10), box: rect(hl), opacity: parseFloat(getComputedStyle(hl).opacity), pad: Number(hl.getAttribute('data-pad') || 0) } : null;
   if (ask.ring !== undefined) { const card = board.querySelector('[data-card="' + ask.ring + '"]'); const ring = card && card.querySelector('svg.chalk-stroke'); out.card = card ? rect(card) : null; out.ring = ring ? rect(ring) : null; }
   if (ask.glow !== undefined) { const rod = board.querySelector('[data-testid="abacus-rod-' + ask.glow + '"]'); const halo = rod && rod.firstElementChild; out.rod = rod ? { box: rect(rod), glowing: rod.hasAttribute('data-glow') } : null; out.halo = halo ? { box: rect(halo), opacity: parseFloat(getComputedStyle(halo).opacity) } : null; }
   out.writeOns = [...board.querySelectorAll('.write-on')].map((el) => ({ text: el.textContent.slice(0, 20), clip: getComputedStyle(el).clipPath }));
   if (ask.part !== undefined) { const part = board.querySelector('[data-testid="expansion-part-' + ask.part + '"]'); out.part = part ? { value: part.getAttribute('data-value'), box: rect(part) } : null; }
   if (ask.cell) { const cell = board.querySelector('[data-testid="' + ask.cell + '"]'); out.cell = cell ? { active: cell.hasAttribute('data-active'), shadow: getComputedStyle(cell).boxShadow } : null; }
   const pointer = board.querySelector('[data-testid="pointer"]');
-  out.pointer = pointer ? { box: rect(pointer), opacity: parseFloat(getComputedStyle(pointer).opacity), missing: pointer.hasAttribute('data-missing') } : null;
+  out.pointer = pointer ? { box: rect(pointer), opacity: parseFloat(getComputedStyle(pointer).opacity), missing: pointer.hasAttribute('data-missing'), placed: pointer.getAttribute('data-placed') || 'below' } : null;
   return out;
 })`;
 
@@ -133,7 +133,7 @@ export interface Measured {
   boardRect: Box;
   target?: Box | null;
   targetLabel?: string | null;
-  highlight: { kind: string; box: Box; opacity: number } | null;
+  highlight: { kind: string; box: Box; opacity: number; pad?: number } | null;
   card?: Box | null;
   ring?: Box | null;
   rod?: { box: Box; glowing: boolean } | null;
@@ -141,7 +141,7 @@ export interface Measured {
   writeOns: Array<{ text: string; clip: string }>;
   part?: { value: string | null; box: Box } | null;
   cell?: { active: boolean; shadow: string } | null;
-  pointer: { box: Box; opacity: number; missing: boolean } | null;
+  pointer: { box: Box; opacity: number; missing: boolean; placed?: string } | null;
 }
 
 const PAD = 10;
@@ -166,15 +166,17 @@ export function judgeAtRest(probe: StrokeProbe, m: Measured): string[] {
       const h = m.highlight.box;
       if (m.highlight.kind !== kind) problems.push(`drew a ${m.highlight.kind}, expected a ${kind}`);
       if (m.highlight.opacity < 0.98) problems.push(`${kind} is faded (opacity ${m.highlight.opacity})`);
-      // The design's ring insets −14 (−8 round a target wider than 200 px); the underline hangs under the target's edge.
-      const pad = kind === "circle" ? (t.width > 200 ? 8 : 14) : 0;
+      // The ring's box is the target's plus 14 on every side (Highlight.RING_PAD) — the lasso runs in the outer few px of it,
+      // outside the target's bounding box; the underline hangs 3 px BELOW the target's bottom edge, never across it.
+      // In close quarters (a card between its neighbours, a digit inside a line) the ring draws in — never under 6 — and says so (data-pad).
+      const pad = kind === "circle" ? (m.highlight.pad && m.highlight.pad >= 6 && m.highlight.pad <= 14 ? m.highlight.pad : 14) : 0;
       if (!near(h.left, t.left - pad) || !near(h.width, t.width + pad * 2)) {
         problems.push(`${kind} is the wrong width/position: spans ${Math.round(h.left)}…${Math.round(h.right)} for a target at ${Math.round(t.left)}…${Math.round(t.right)} (${m.targetLabel})`);
       }
       if (kind === "circle" && (!near(h.top, t.top - pad) || !near(h.height, t.height + pad * 2))) {
         problems.push(`circle is the wrong height/position: ${Math.round(h.top)}…${Math.round(h.bottom)} for a target at ${Math.round(t.top)}…${Math.round(t.bottom)}`);
       }
-      if (kind === "underline" && !near(h.top, t.bottom - 2, 4)) problems.push(`underline sits at ${Math.round(h.top)}, the target's bottom is ${Math.round(t.bottom)}`);
+      if (kind === "underline" && !near(h.top, t.bottom + 3, 4)) problems.push(`underline sits at ${Math.round(h.top)}, the target's bottom is ${Math.round(t.bottom)}`);
     }
   }
   if (expect.ring !== undefined) {
@@ -208,13 +210,21 @@ export function judgeAtRest(probe: StrokeProbe, m: Measured): string[] {
     if (!m.target) problems.push(`pointer target ${expect.pointerAt} is not registered`);
     else if (!m.pointer || m.pointer.missing || m.pointer.opacity < 0.98) problems.push(`pointer is hidden or aimed at nothing for ${expect.pointerAt}`);
     else {
-      // the design's hand is 40 wide with the chalk at its centre
-      const tipX = m.pointer.box.left + 20;
-      const tipY = m.pointer.box.top;
-      const cx = m.target.left + m.target.width / 2;
-      if (!near(tipX, cx, 4) || !near(tipY, m.target.bottom - 4, 4)) {
-        problems.push(`pointer tip at (${Math.round(tipX)}, ${Math.round(tipY)}) but the target's bottom-centre is (${Math.round(cx)}, ${Math.round(m.target.bottom - 4)})`);
-      }
+      // NOTHING OVERLAPS (18 Sep 2026): the hand rests on whichever side of its target covers nothing readable (data-placed)
+      // — beneath it by default — with its tip 2 px off that edge and centred on it. The box is the hand's painted box.
+      const hand = m.pointer.box;
+      const t = m.target;
+      const placed = m.pointer.placed ?? "below";
+      const cx = t.left + t.width / 2;
+      const cy = t.top + t.height / 2;
+      const handCx = hand.left + hand.width / 2;
+      const handCy = hand.top + hand.height / 2;
+      const ok =
+        placed === "below" ? near(handCx, cx, 6) && near(hand.top, t.bottom + 2, 5)
+        : placed === "above" ? near(handCx, cx, 6) && near(hand.bottom, t.top - 2, 5)
+        : placed === "left" ? near(handCy, cy, 6) && near(hand.right, t.left - 2, 5)
+        : near(handCy, cy, 6) && near(hand.left, t.right + 2, 5);
+      if (!ok) problems.push(`pointer (${placed}) at ${Math.round(hand.left)},${Math.round(hand.top)} ${Math.round(hand.width)}×${Math.round(hand.height)} does not touch the ${placed === "below" ? "bottom" : placed === "above" ? "top" : placed} edge of its target ${Math.round(t.left)},${Math.round(t.top)} ${Math.round(t.width)}×${Math.round(t.height)}`);
     }
   }
   return problems;
