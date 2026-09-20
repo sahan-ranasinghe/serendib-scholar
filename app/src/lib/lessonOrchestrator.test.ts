@@ -22,6 +22,7 @@ import {
   type OrchestratorState,
   type TeachingMode,
 } from "./lessonOrchestrator";
+import { RETEACH_LINES } from "./authoredLines";
 import { BEAT_REGISTRY, estimateSeconds } from "./beatRegistry";
 
 /**
@@ -221,6 +222,43 @@ test("reteach builds a targeted sub-skill beat on an unused angle plus a fresh d
 
   const second = buildReteachBeats(script, missedAsk, [first.angleUsed!]);
   assert.equal(second.angleUsed, "count the beads out loud one rod at a time", "the next reteach takes a DIFFERENT angle");
+});
+
+test("the reteach speaks its concept's own line, never the missed question's words", () => {
+  const script = scriptOf([
+    beat({ type: "SHOW_BOARD", segmentIndex: 0, mode: 1, itemId: "demo-item", conceptTag: "placeValue4Digit" }),
+    beat({ type: "REVEAL_PART", segmentIndex: 0, mode: 1, itemId: "demo-item", conceptTag: "placeValue4Digit" }),
+    beat({
+      type: "ASK",
+      segmentIndex: 1,
+      mode: 3,
+      itemId: "missed-item",
+      conceptTag: "placeValue4Digit",
+      endBy: "asking",
+      expectedAnswer: "3000",
+      spokenText: "මේ හිස්තැනට එන්නේ මොකක්ද කියන්න බලන්න.",
+      goal: "Ask the child for the place value for 3007. Ask only this one thing.",
+    }),
+  ]);
+  const missedAsk = script.beats[2]!;
+  const reteach = buildReteachBeats(script, missedAsk, []).beats[0]!;
+
+  // Silence was the bug this line closed: the writer is off, so a RETEACH with
+  // no words of its own says nothing at all between the miss and the demo.
+  assert.equal(reteach.spokenText, RETEACH_LINES.placeValue4Digit);
+  assert.notEqual(reteach.spokenText, missedAsk.spokenText, "never the missed question read back at her");
+  assert.equal(reteach.sayCandidates, undefined, "one line, not a choice of them");
+});
+
+test("a concept with no authored reteach line is silent, not written by a model", () => {
+  const script = scriptOf([
+    beat({ type: "SHOW_BOARD", segmentIndex: 0, mode: 1, itemId: "demo-item" }),
+    beat({ type: "ASK", segmentIndex: 1, mode: 3, itemId: "missed-item", endBy: "asking", expectedAnswer: "7", spokenText: "කීයද?" }),
+  ]);
+  // "testConcept" is in no design file, so it has no line — the beat must fall
+  // back to saying nothing rather than to /api/speak-line (src/lib/paidCalls.ts).
+  const reteach = buildReteachBeats(script, script.beats[1]!, []).beats[0]!;
+  assert.equal(reteach.spokenText, undefined);
 });
 
 test("REGRESSION (live bug): a CONFIRM answered yes on a correct value is judged correct", () => {

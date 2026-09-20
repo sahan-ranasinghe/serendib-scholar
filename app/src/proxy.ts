@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { DEVICE_COOKIE, SESSION_COOKIE, readCookie, verifyToken } from "@/lib/sessionAuth";
 import { hasPortalAccess } from "@/lib/portalAuth";
+import { HARNESS_HEADER } from "@/lib/harness";
 
 /**
  * The API's front door (Next 16's proxy — the artist formerly known as
@@ -25,15 +26,43 @@ import { hasPortalAccess } from "@/lib/portalAuth";
  *    holds across serverless instances. The check fails OPEN on a DB
  *    error or slow response (>400ms): a rate limiter must never become
  *    the outage, and every failure is logged loudly. Every 429 is logged.
+ *
+ *    THE HARNESS IS NOT A CHILD. One headless session walks a whole
+ *    lesson in twenty minutes and spends hundreds of requests doing it;
+ *    a check that was killed leaves a browser polling behind it. Sharing
+ *    the 60/min bucket with the phone in the room meant three runs hung
+ *    on a limit that was never meant for them. So harness traffic carries
+ *    its own identity — the header in src/lib/harness.ts, holding the value of
+ *    HARNESS_TOKEN — and is counted in its own per-IP bucket at
+ *    HARNESS_LIMIT_PER_MINUTE. This is a BUDGET, not a door: it changes
+ *    which bucket the request is counted in and nothing else. Every
+ *    authentication check below still applies, unchanged.
+ *
+ *    HARNESS_TOKEN unset (the production default) means the header is
+ *    ignored entirely — there is no way to opt into the bigger bucket on
+ *    a server that has not deliberately configured one.
  */
 
 // /api/build carries no child data — it is the running build's identity, and
 // the update banner must be able to ask for it before any session exists.
 const PUBLIC_API_ROUTES = new Set(["/api/session-start", "/api/build"]);
 const IP_LIMIT_PER_MINUTE = 60;
+/** A whole headless lesson, its drills and its screenshots, with room for a second check on the same machine. */
+const HARNESS_LIMIT_PER_MINUTE = 6_000;
 const RATE_CHECK_TIMEOUT_MS = 400;
 
-async function takeIpToken(ip: string): Promise<"allowed" | "limited" | "unknown"> {
+/**
+ * Is this request a harness's? Only when the server has a HARNESS_TOKEN
+ * configured AND the header carries exactly it. The comparison is a plain
+ * one: the secret guards a rate BUDGET, not data, so the timing of a
+ * mismatch tells an attacker nothing worth having.
+ */
+function isHarness(request: NextRequest): boolean {
+  const token = (process.env.HARNESS_TOKEN ?? "").trim();
+  return token.length > 0 && request.headers.get(HARNESS_HEADER) === token;
+}
+
+async function takeIpToken(ip: string, limit: number, bucketPrefix: string): Promise<"allowed" | "limited" | "unknown"> {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!supabaseUrl || !serviceKey) return "unknown";
@@ -42,7 +71,7 @@ async function takeIpToken(ip: string): Promise<"allowed" | "limited" | "unknown
     Authorization: `Bearer ${serviceKey}`,
     "Content-Type": "application/json",
   };
-  const bucket = `ip:${ip}`;
+  const bucket = `${bucketPrefix}:${ip}`;
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), RATE_CHECK_TIMEOUT_MS);
   try {
@@ -55,7 +84,7 @@ async function takeIpToken(ip: string): Promise<"allowed" | "limited" | "unknown
     const now = Date.now();
     const row = rows[0];
     const windowExpired = !row || now - new Date(row.window_started_at).getTime() > 60_000;
-    if (!windowExpired && row.count >= IP_LIMIT_PER_MINUTE) return "limited";
+    if (!windowExpired && row.count >= limit) return "limited";
     // Not atomic — two racing requests can both count as the same slot.
     // Fine for a limiter meant to stop abuse, not to bill by the request.
     const write = windowExpired
@@ -84,9 +113,12 @@ export default async function proxy(request: NextRequest) {
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
     request.headers.get("x-real-ip") ||
     "local";
-  const verdict = await takeIpToken(ip);
+  const harness = isHarness(request);
+  const verdict = harness
+    ? await takeIpToken(ip, HARNESS_LIMIT_PER_MINUTE, "harness")
+    : await takeIpToken(ip, IP_LIMIT_PER_MINUTE, "ip");
   if (verdict === "limited") {
-    console.warn(`[proxy] 429 ip-limit ${ip} ${path}`);
+    console.warn(`[proxy] 429 ${harness ? "harness-limit" : "ip-limit"} ${ip} ${path}`);
     return NextResponse.json(
       { ok: false, error: "rate_limited", message: "පොඩ්ඩක් ඉන්න — ටිකකින් ආයෙ උත්සාහ කරන්න." },
       { status: 429 },

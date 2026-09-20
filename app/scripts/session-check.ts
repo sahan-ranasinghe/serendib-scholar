@@ -12,7 +12,12 @@
  *   npm run session:check -- [baseUrl] [--max-minutes=25]
  *
  * Needs the dev server up with ACCESS_CODE set (.env.local), and the
- * same code in this process's env. At the end it prints:
+ * same code in this process's env — and started with DEV_CHILD_ID UNSET,
+ * or the walk has no fresh device to onboard (see the splash check below):
+ *
+ *   DEV_CHILD_ID= DEV_ONBOARDING=stub npm run dev
+ *
+ * At the end it prints:
  *   - beats whose choreography events fired OUTSIDE their clip (from the
  *     runtime's own trace, window.__choreoLog),
  *   - storyboard events with no matching primitive,
@@ -232,6 +237,23 @@ async function main(): Promise<void> {
   await page.send("Page.navigate", { url: `${BASE}/` });
   await waitFor(`!!document.querySelector('[data-testid="splash-start"], [data-testid="child-chooser"]')`);
   const splash = await step("splash (fresh device: no ss_child cookie)");
+  /**
+   * A FRESH BROWSER IS NOT ALWAYS A FRESH DEVICE.
+   *
+   * With DEV_CHILD_ID set and DEV_MODE=on, a development server hands every
+   * browser the dev child before it has onboarded (src/lib/activeChild.ts),
+   * so the splash goes straight to /home and there is no onboarding to walk.
+   * Everything after this point then measures a child that was never made:
+   * the run wanders through screens that are not up and eventually parks on
+   * a wait that cannot come. Said here, once, rather than found again.
+   */
+  if (splash.screen !== "Splash") {
+    throw new Error(
+      `the splash did not open on a fresh device (it showed "${splash.screen || "?"}" at ${splash.url}). ` +
+        `Start the server for this check with DEV_CHILD_ID unset — with it set, DEV_MODE gives every ` +
+        `browser the dev child and onboarding is unreachable: DEV_CHILD_ID= DEV_ONBOARDING=stub npm run dev`,
+    );
+  }
   await tapInView('[data-testid="splash-start"]');
   // The device gate may cover the step the moment it mounts (a fresh device has no device cookie): the route is the assertion, the gate is handled next.
   const toOnboarding = await waitFor(`location.pathname === '/onboarding/1'`);
@@ -432,7 +454,10 @@ async function main(): Promise<void> {
     const walker = document.createTreeWalker(content, NodeFilter.SHOW_TEXT);
     while (walker.nextNode()) { const node = walker.currentNode; if (!node.textContent.trim()) continue; const el = node.parentElement; if (!el || !visible(el) || el.closest('[aria-hidden="true"]')) continue; const size = parseFloat(getComputedStyle(el).fontSize); if (size < 16) tinyText.push(node.textContent.trim().slice(0, 16) + ' ' + Math.round(size) + 'px'); }
     // The strip controls' hit areas: probed, since the reach is a pseudo-element — how far below the strip's top a touch still lands on the button.
-    const strip = [...document.querySelectorAll('header button[aria-label]')].map((el) => { const r = el.getBoundingClientRect(); const x = r.left + r.width / 2; let reach = 0; for (let y = r.top + 2; y < r.top + 80; y += 2) { const hit = document.elementFromPoint(x, y); if (hit && (hit === el || el.contains(hit))) reach = Math.round(y - r.top); else if (y > r.bottom) break; } return { label: el.getAttribute('aria-label'), h: reach, w: Math.round(r.width + 8) }; });
+    // Stepped 1 px and reported as the HEIGHT COVERED, not as the last point inside it: a hit area
+    // of exactly 56 px has its last live pixel at +55, and a probe that returned that read 54 (it
+    // stepped by two from +2) and called a correct control "UNDER 56 px" on every run.
+    const strip = [...document.querySelectorAll('header button[aria-label]')].map((el) => { const r = el.getBoundingClientRect(); const x = r.left + r.width / 2; let reach = 0; for (let y = r.top + 1; y < r.top + 80; y += 1) { const hit = document.elementFromPoint(x, y); if (hit && (hit === el || el.contains(hit))) reach = Math.round(y - r.top) + 1; else if (y > r.bottom) break; } return { label: el.getAttribute('aria-label'), h: reach, w: Math.round(r.width + 8) }; });
     const runningList = document.getAnimations().filter((a) => a.playState === 'running' && board.contains(a.effect && a.effect.target));
     const runningNames = [...new Set(runningList.map((a) => { const t = a.effect && a.effect.target; const name = a.animationName || (a.effect && a.effect.getKeyframes ? 'motion:' + Object.keys((a.effect.getKeyframes()[0] || {})).filter((k) => !['offset','computedOffset','easing','composite'].includes(k)).join('/') : 'js'); return name + ' on ' + (t ? (t.tagName.toLowerCase() + (t.className && typeof t.className === 'string' ? '.' + t.className.split(' ')[0] : '') + (t.dataset && t.dataset.testid ? '#' + t.dataset.testid : '')) : '?'); }))].slice(0, 8);
     return { overlap, portraitOverlap, cutOff, small: [...new Set(small)], tinyText: [...new Set(tinyText)].slice(0, 6), running: runningList.length, runningNames, strip };
@@ -814,12 +839,36 @@ async function main(): Promise<void> {
       }
       await wait(600);
       const sheets = await evaluate<number>(page, `document.querySelectorAll('[data-testid="confirm-sheet"]').length`);
-      const beforeCancel = await evaluate<string>(page, `document.querySelector('.lesson-screen')?.dataset.beatId ?? '—'`);
+      /**
+       * THE QUESTION HOLDS THE LESSON (20 Sep 2026).
+       *
+       * What this drill has to prove is that the board the child comes BACK
+       * to is the board they left: while the sheet is up the lesson is
+       * frozen — no beat change, no choreography, no new clip — and cancel
+       * puts them back on that same beat rather than restarting.
+       *
+       * It used to compare the beat 900 ms AFTER cancel with the beat before
+       * it, which no correct build could ever pass: cancel is "දිගටම" —
+       * carry on — so the lesson resumes and plays, and 900 ms later it is
+       * legitimately somewhere else. The real thing to measure is the hold
+       * itself, before the tap, and the beat cancel lands on.
+       */
+      const heldFrom = await evaluate<{ beat: string; events: number; started: number }>(page, `(() => { const el = document.querySelector('.lesson-screen'); const a = window.__audio ?? { started: 0 }; return { beat: el?.dataset.beatId ?? '—', events: (window.__choreoLog ?? []).length, started: a.started ?? 0 }; })()`);
+      await wait(3000);
+      const heldTo = await evaluate<{ beat: string; events: number; started: number; paused: boolean; pausedCard: boolean }>(page, `(() => { const el = document.querySelector('.lesson-screen'); const a = window.__audio ?? { started: 0 }; return { beat: el?.dataset.beatId ?? '—', events: (window.__choreoLog ?? []).length, started: a.started ?? 0, paused: el?.hasAttribute('data-paused') ?? false, pausedCard: !!document.querySelector('[data-edge="paused"]') }; })()`);
+      const frozen = heldTo.beat === heldFrom.beat && heldTo.events === heldFrom.events && heldTo.started === heldFrom.started;
       await tapSelector('[data-testid="confirm-no"]');
       await wait(900);
       const afterCancel = await evaluate<{ beat: string; sheet: boolean; status: string; started: number }>(page, `(() => { const el = document.querySelector('.lesson-screen'); const a = window.__audio ?? { started: 0 }; return { beat: el?.dataset.beatId ?? '—', sheet: !!document.querySelector('[data-testid="confirm-sheet"]'), status: el?.dataset.status ?? '—', started: a.started ?? 0 }; })()`);
-      replayTrace = `${portraitTrace} · 3 ↺ taps → ${sheets} confirm sheet(s) · cancel → beat ${afterCancel.beat === beforeCancel ? "unchanged" : `CHANGED to ${afterCancel.beat}`}, sheet ${afterCancel.sheet ? "STILL UP" : "gone"}, status ${afterCancel.status}`;
-      drillNote("three ↺ taps are one question; cancel changes nothing", sheets === 1 && afterCancel.beat === beforeCancel && !afterCancel.sheet, `3 ↺ taps → ${sheets} confirm sheet(s) · cancel → beat ${afterCancel.beat === beforeCancel ? "unchanged" : `CHANGED to ${afterCancel.beat}`}, sheet ${afterCancel.sheet ? "STILL UP" : "gone"}, status ${afterCancel.status}`);
+      // Carrying on means the lesson went ON from where it was held, never back to the start.
+      const restarted = /:(0|1)$/u.test(afterCancel.beat) || afterCancel.beat.includes("opening:");
+      const detail =
+        `3 ↺ taps → ${sheets} confirm sheet(s) · held at ${heldFrom.beat.replace(/^authored:/u, "")} for 3 s: ` +
+        `${heldTo.paused ? "held" : "NOT HELD"}, ${frozen ? "frozen (beat, choreography and clips all unchanged)" : `NOT frozen — beat ${heldTo.beat === heldFrom.beat ? "unchanged" : `→ ${heldTo.beat}`}, events ${heldFrom.events} → ${heldTo.events}, clips ${heldFrom.started} → ${heldTo.started}`}` +
+        ` · no paused card under the sheet: ${heldTo.pausedCard ? "NO — one is mounted" : "yes"}` +
+        ` · cancel → ${afterCancel.beat.replace(/^authored:/u, "")}, sheet ${afterCancel.sheet ? "STILL UP" : "gone"}, status ${afterCancel.status}, restarted ${restarted ? "YES" : "no"}`;
+      replayTrace = `${portraitTrace} · ${detail}`;
+      drillNote("three ↺ taps are one question; the lesson is held under it and carries on after cancel", sheets === 1 && heldTo.paused && frozen && !heldTo.pausedCard && !afterCancel.sheet && !restarted, detail);
     }
     // 4. A clip that cannot be fetched: :6's line is read on the board and its events still run. The
     //    runtime preloads the next three clips, so the door is shut at :4 — :6 is the first beat whose
@@ -1376,8 +1425,11 @@ async function main(): Promise<void> {
   }
   {
     const strip = audits.find((a) => a.audit?.strip?.length)?.audit?.strip ?? [];
-    const controls = strip.filter((b) => ["විරාමය", "නැවත කියන්න", "අවසන් කරන්න"].includes(b.label ?? ""));
-    console.log(`strip controls ⏸ ↺ ⏹ hit areas: ${controls.map((b) => `${b.label} ${b.w}×${b.h}`).join(" · ") || "not seen"} — ${controls.length === 3 && controls.every((b) => b.h >= 56) ? "all reach 56 px" : "UNDER 56 px"}`);
+    // The labels as SessionShell.tsx writes them today. They were renamed and this list was not,
+    // so the filter matched only ⏸ and the run reported "UNDER 56 px" whatever the controls measured.
+    // ⏸ carries two labels because it is also the resume control.
+    const controls = strip.filter((b) => ["විරාමය", "දිගටම", "මුල ඉඳන් ආයෙත්", "නවත්වන්න"].includes(b.label ?? ""));
+    console.log(`strip controls ⏸ ↺ ⏹ hit areas: ${controls.map((b) => `${b.label} ${b.w}×${b.h}`).join(" · ") || "not seen"} — ${controls.length === 3 && controls.every((b) => b.h >= 56) ? "all reach 56 px" : controls.length !== 3 ? `only ${controls.length} of the 3 found — the labels in this filter no longer match the strip` : "UNDER 56 px"}`);
   }
   if (REDUCED_MOTION) {
     console.log(`reduced motion: ${audits.filter((a) => a.audit && a.audit.running > 0).length} beat(s) had a running animation on the board (expected 0)`);

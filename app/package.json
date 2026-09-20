@@ -46,6 +46,7 @@
     "test:phrase": "tsx --test src/lib/phraseJudge.test.ts",
     "chat:check": "node --env-file=.env.local ./node_modules/.bin/tsx scripts/chat-check.ts",
     "test:answer-mode": "tsx --test src/lib/answerMode.test.ts",
+    "test:authored-lines": "tsx --test src/lib/authoredLines.test.ts",
     "test:distractors": "tsx --test src/lib/distractors.test.ts",
     "build:check": "node --env-file=.env.local ./node_modules/.bin/tsx scripts/build-check.ts",
     "crawl:check": "node --env-file=.env.local ./node_modules/.bin/tsx scripts/crawl-check.ts",

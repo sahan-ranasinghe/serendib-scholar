@@ -11,7 +11,7 @@
  *   npm run build:check
  */
 import { spawn, type ChildProcess } from "node:child_process";
-import { connect, evaluate, launch, openPage, wait } from "./lib/cdp";
+import { connect, evaluate, harnessHeaders, launch, openPage, wait } from "./lib/cdp";
 
 const PORT = Number(process.argv.find((a) => a.startsWith("--port="))?.slice(7) ?? 3007);
 const BASE = `http://127.0.0.1:${PORT}`;
@@ -30,7 +30,7 @@ async function serve(sha: string, time: string): Promise<ChildProcess> {
   });
   for (let i = 0; i < 120; i += 1) {
     await wait(250);
-    const ok = await fetch(`${BASE}/api/build`).then((r) => r.json()).then((j) => j?.sha === sha).catch(() => false);
+    const ok = await fetch(`${BASE}/api/build`, { headers: harnessHeaders() }).then((r) => r.json()).then((j) => j?.sha === sha).catch(() => false);
     if (ok) return server;
   }
   stopServer(server);
@@ -48,7 +48,7 @@ function stopServer(server: ChildProcess): void {
 /** The port is free again (the old deploy is really gone) before the next one starts. */
 async function portFree(): Promise<void> {
   for (let i = 0; i < 40; i += 1) {
-    const up = await fetch(`${BASE}/api/build`).then(() => true).catch(() => false);
+    const up = await fetch(`${BASE}/api/build`, { headers: harnessHeaders() }).then(() => true).catch(() => false);
     if (!up) return;
     await wait(250);
   }

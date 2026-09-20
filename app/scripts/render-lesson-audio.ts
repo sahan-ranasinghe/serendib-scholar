@@ -23,7 +23,7 @@ import { supabaseAdmin } from "../src/lib/supabaseAdmin";
 import { buildScriptFromRows, type BankRow } from "../src/lib/lessonScriptBuilder";
 import { LESSON_1_NUMBERS_STEPS, LESSON_1_NUMBERS_TITLE } from "../src/data/lessons/lesson1-numbers";
 import { ensureAudioBucket, ensureClip, readCachedClip } from "../src/lib/liveTts";
-import { AUTHORED_LINES } from "../src/lib/authoredLines";
+import { AUTHORED_LINES, RETEACH_LINES } from "../src/lib/authoredLines";
 import { parseAuthoredScript } from "../src/lib/authoredScript";
 import { resolveAddress, type ChildGender } from "../src/lib/addressToken";
 import { ZARA_VOICE } from "../src/lib/zaraVoice";
@@ -111,9 +111,12 @@ async function main() {
   // in the cache regardless of which session is being rendered.
   const beats = sessions.flatMap((session) => script.beats.slice(session.firstBeat, session.lastBeat + 1));
   const scriptedLines = beats.flatMap(linesOfBeat);
-  const authored = Object.values(AUTHORED_LINES).flatMap((value) =>
-    Array.isArray(value) ? value : [value],
-  ) as string[];
+  const authored = [
+    ...(Object.values(AUTHORED_LINES).flatMap((value) => (Array.isArray(value) ? value : [value])) as string[]),
+    // The reteach line of EVERY concept, not only this session's: the beat
+    // fires at a second miss, which is the worst moment to wait for a clip.
+    ...Object.values(RETEACH_LINES),
+  ];
 
   // Resolved for THIS child's address form, deduplicated: the same
   // sentence said in five places is one clip.

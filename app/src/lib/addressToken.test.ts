@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { resolveAddress, resolveBeatAddress } from "./addressToken";
-import { AUTHORED_LINES } from "./authoredLines";
+import { AUTHORED_LINES, RETEACH_LINES } from "./authoredLines";
 
 test("every child is addressed පුතේ — boy, girl and unspecified alike", () => {
   const line = "දැන් බලන්න {address}, මම පෙන්නන්නම්.";
@@ -40,7 +40,7 @@ test("resolution covers every speakable field of a beat", () => {
 });
 
 test("no authored line hard-codes an address word; tokens only", () => {
-  for (const value of Object.values(AUTHORED_LINES)) {
+  for (const value of [...Object.values(AUTHORED_LINES), ...Object.values(RETEACH_LINES)]) {
     for (const line of Array.isArray(value) ? value : [value]) {
       assert.ok(!/පුතේ|දුවේ/u.test(line), `hard-coded address in: ${line}`);
     }

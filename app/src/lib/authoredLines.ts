@@ -81,6 +81,54 @@ export const AUTHORED_LINES = {
 } as const;
 
 /**
+ * THE RETEACH LINE, ONE PER CONCEPT (20 Sep 2026).
+ *
+ * After a second miss the lesson re-teaches: the miss line announces it
+ * (feedbackWrongBeforeReteach above), then a MODE 1 demonstration of a
+ * DIFFERENT item is played. Between the two sat a beat with no words at
+ * all — the one beat a model used to write at runtime — and once the
+ * writer was switched off (18 Sep, cluster O; src/lib/paidCalls.ts) the
+ * child heard nothing there. Silence is the one thing a re-teaching
+ * moment cannot be.
+ *
+ * So each concept carries ONE short line, written here from that
+ * concept's own objective in docs/design/maths-5-1.json: what they are
+ * about to look at again, said as an invitation, before the
+ * demonstration shows it. It is not a new explanation — the
+ * demonstration is the explanation — only the sentence that carries the
+ * child into it.
+ *
+ * The rules they are written under, asserted by authoredLines.test.ts:
+ * at most fourteen words, the style card's spoken register
+ * (docs/design/style-card.md), and NO word a later concept has yet to
+ * introduce and nothing from vocabularyNotSpoken — a second miss is the
+ * worst moment to meet a new term.
+ *
+ * No model wrote these and none may. A line the child hears is authored
+ * here, reviewed by a native speaker, and recorded in her voice like
+ * every other: the portal lists them as their own group, and
+ * scripts/render-lesson-audio.ts puts them in the batch.
+ */
+export const RETEACH_LINES: Record<string, string> = {
+  /** 9 999 තෙක් කුමන සංඛ්‍යාවක් වුව ද කියවයි. ඉලක්කමෙන් හා වචනයෙන් ලියයි. */
+  readWrite4Digit: "සංඛ්‍යාව කියවලා, ඒකේ සංඛ්‍යා නාමය ලියන හැටි ආයෙ බලමු.",
+  /** ඉලක්කම් හතරේ සංඛ්‍යාවල ස්ථානීය අගය දක්වයි. */
+  placeValue4Digit: "ඉලක්කම තියෙන ස්ථානය බලමු — එතකොට ඒකේ ස්ථානීය අගය හොයාගන්න පුළුවන්.",
+  /** ඉලක්කම් හතරේ සංඛ්‍යාවල ස්ථානීය අගය දක්වයි — සහ ඒවා විහිදුවා ලියයි. */
+  expandedForm4Digit: "හැම ඉලක්කමේම අගය වෙන වෙනම ලියලා, ආයෙ එකතු කරලා බලමු.",
+  /** 100 000 තෙක් සංඛ්‍යා කියයි. ලියයි. සංඛ්‍යා නාමය ලියයි. */
+  beyond9999: "දස දහස ඉඳන් උඩට යන සංඛ්‍යා ආයෙ පොඩ්ඩක් එකට බලමු.",
+  /** 100 000 තෙක් සංඛ්‍යා කියයි. ලියයි — ඉලක්කම් තුන් තුනට වෙන් කරලා. */
+  digitGroupingRule: "එකස්ථානයේ ඉඳන් වම් පැත්තට තුනක් ගණන් කරලා, එතන පොඩි ඉඩක් තියමු.",
+  /** 100 000 තෙක් සංඛ්‍යා කියයි. ලියයි. සංඛ්‍යා නාමය ලියයි. */
+  tenThousandsPlace: "දස දහසස්ථානයේ ඉඳන් පටන් අරන්, කියවෙන්නේ නැති ස්ථානයට බින්දුව ලියමු.",
+  /** දස දහසස්ථානය තෙක් සංඛ්‍යාවල එක් එක් ඉලක්කමෙන් නිරූපිත අගය දක්වයි. */
+  placeValueTable5Digit: "වගුවේ හැම ස්ථානයකම ඉලක්කම බලලා, ඒ ස්ථානයේ කීයක් තියෙනවද කියලා බලමු.",
+  /** 99 999ට නොවැඩි සංඛ්‍යා ස්ථානීය අගය අනුව විහිදුවා ලියයි. */
+  expandedForm5Digit: "හැම ස්ථානයකම අගය වෙන වෙනම ලියමු — බින්දුව තියෙන ස්ථානයත් අත්හරින්නේ නෑ.",
+};
+
+/**
  * Does this sentence open one of Zara's own turns? A cell she fills in a
  * MODE 2 alternation must say so first (the device walk, 17 Sep): the long
  * frame opens the first turn of an exercise, the short one the rest. The
@@ -100,12 +148,13 @@ export function announcesTutorTurn(sentence: string): boolean {
     .some((frame) => frame.length > 0 && opener.includes(frame));
 }
 
-/** Flat list for review printing: [label, line]. */
+/** Flat list for review printing: [label, line]. The reteach lines are in it — they are lines the child hears. */
 export function listAuthoredLines(): Array<[string, string]> {
   const rows: Array<[string, string]> = [];
   for (const [key, value] of Object.entries(AUTHORED_LINES) as Array<[string, string | readonly string[]]>) {
     if (Array.isArray(value)) value.forEach((line, i) => rows.push([`${key}[${i}]`, line]));
     else rows.push([key, value as string]);
   }
+  for (const [tag, line] of Object.entries(RETEACH_LINES)) rows.push([`reteach:${tag}`, line]);
   return rows;
 }

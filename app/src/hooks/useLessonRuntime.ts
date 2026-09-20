@@ -2104,13 +2104,26 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
 
   /**
    * An automatic hold — the phone turned to portrait, the tab went to the
-   * background — freezes the lesson exactly like ⏸ and lets go when the
-   * reason does; the parent's own ⏸ is separate and stays.
+   * background, a question put to the child over the board — freezes the
+   * lesson exactly like ⏸ and lets go when the reason does; the parent's
+   * own ⏸ is separate and stays.
+   *
+   * "asking" is the ⏹/↺ confirm sheet (20 Sep 2026). It used to hold
+   * nothing: the sheet went up and Zara carried on teaching and advancing
+   * behind it, so a child who tapped ↺, read the question and chose
+   * "දිගටම" came back to a different beat than the one they left — and the
+   * word on that button promises exactly the opposite. The session check
+   * measured the beat moving under the sheet within 900 ms.
+   *
+   * Portrait and background say what has happened, because nothing else
+   * on screen does. The sheet is its own explanation, so it stays quiet.
    */
-  const holdFor = useCallback((reason: "portrait" | "background", on: boolean) => {
+  const holdFor = useCallback((reason: "portrait" | "background" | "asking", on: boolean) => {
     if (on) holdsRef.current.add(reason);
     else holdsRef.current.delete(reason);
-    if (on) showHint(reason === "portrait" ? "දුරකථනය හරවන්න — පාඩම නවත්තලා" : "ආයෙ ආවම අපි දිගටම යමු", 2500);
+    if (on && reason !== "asking") {
+      showHint(reason === "portrait" ? "දුරකථනය හරවන්න — පාඩම නවත්තලා" : "ආයෙ ආවම අපි දිගටම යමු", 2500);
+    }
     applyPause();
   }, [applyPause]);
 

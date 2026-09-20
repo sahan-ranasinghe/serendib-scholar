@@ -53,6 +53,10 @@ export function LineList({
               {line.group === "number words" && (
                 <span className="shrink-0 rounded bg-teal-100 px-1 text-xs text-teal-900">number word</span>
               )}
+              {/* One per concept, reached from any of its questions after a second miss — not from a beat she can find it under. */}
+              {line.group === "reteach" && (
+                <span className="shrink-0 rounded bg-violet-100 px-1 text-xs text-violet-900">reteach</span>
+              )}
               {needsReview && <span className="shrink-0 rounded bg-amber-100 px-1 text-xs text-amber-900">needs review</span>}
               <span className={`w-24 shrink-0 text-right text-xs font-medium ${status?.text ?? "text-stone-600"}`}>
                 {status?.label ?? "not recorded"}

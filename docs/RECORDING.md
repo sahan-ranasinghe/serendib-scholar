@@ -87,6 +87,29 @@ After every take it plays back to you once, automatically. Then: **keep**,
 
 ---
 
+## The kinds of line you will see
+
+Most of the list is the lesson, in the order the child hears it. Four
+tags appear in it, marking lines that are not read the same way:
+
+- **if right / if wrong** — the two things she says straight after an
+  answer. They follow the question they belong to, so you record the pair
+  in one breath rather than meeting the second half an hour later in a
+  different mood. The praise is quick and pleased; the miss is gentle and
+  already moving on, never disappointed.
+- **reteach** (violet) — one line per part of the lesson, said after a
+  child has missed the same question twice. She is not explaining again
+  here — a worked example follows immediately — she is opening the door to
+  it. Warm and unhurried, with no hint that anything has gone wrong. There
+  are eight of them, together just after the lesson and before the number
+  words.
+- **number word** (teal) — the 77 words every Sinhala number is built
+  from. Say each one flat and even, the way it sounds in the MIDDLE of a
+  number, not with the fall of a sentence ending — they get joined
+  together to speak numbers nobody recorded.
+
+---
+
 ## When a line reads badly
 
 Some lines will feel wrong in your mouth. Sinhala on paper is not Sinhala

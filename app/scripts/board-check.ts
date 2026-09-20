@@ -2,7 +2,7 @@
  * Drives a real Chromium at /admin/board-gallery and photographs every
  * primitive in its animated-in state.
  *
- *   npm run board:check -- [baseUrl]
+ *   npm run board:check -- [baseUrl] [--only=overlap|strokes] [--shapes=WxH,…]
  *
  * Two viewports: a 390×844 phone held sideways (844×390, DPR 2) and a
  * desktop. For each `[data-primitive]` section the harness presses the
@@ -29,6 +29,8 @@ import { describeMid, judgeAtRest, judgeJump, MEASURE_JS, STROKE_PROBES, type Me
 
 const BASE = process.argv.find((a) => a.startsWith("http")) ?? "http://localhost:3000";
 const ONLY = process.argv.find((a) => a.startsWith("--only="))?.slice(7) ?? null;
+/** `--shapes=390x844[,…]`: measure the overlap walk in viewports other than the two the lesson ships in. */
+const SHAPES = process.argv.find((a) => a.startsWith("--shapes="))?.slice(9) ?? null;
 const OUT_DIR = path.join(process.cwd(), ".board-check");
 const SETTLE_MS = 1100;
 /** When the stroke audit photographs a stroke mid-flight — inside every ≤ 250 ms draw. */
@@ -250,10 +252,19 @@ async function main(): Promise<void> {
   if (!ONLY || ONLY === "overlap") {
     const overlapDir = path.join(OUT_DIR, "overlap");
     await mkdir(overlapDir, { recursive: true });
-    const shapes = [
-      { name: "800x360", width: 800, height: 360 },
-      { name: "844x390", width: 844, height: 390 },
-    ];
+    // The two phone shapes the lesson is actually held in. `--shapes=390x844`
+    // measures a viewport the lesson never runs in (portrait holds the lesson
+    // behind the rotate card — SessionShell.tsx); the preview stages the board
+    // there anyway, which is how portrait gets a number instead of a guess.
+    const shapes = SHAPES
+      ? SHAPES.split(",").map((shape) => {
+          const [width, height] = shape.split("x").map(Number) as [number, number];
+          return { name: shape, width, height };
+        })
+      : [
+          { name: "800x360", width: 800, height: 360 },
+          { name: "844x390", width: 844, height: 390 },
+        ];
     type Report = { readable: number; textOverlaps: Array<{ a: string; b: string; area: number }>; marks: Array<{ kind: string; insideTarget: number; hits: string[] }>; pointer: { visible: boolean; hits: string[] }; ok: boolean };
     let framesChecked = 0;
     let ringsChecked = 0;

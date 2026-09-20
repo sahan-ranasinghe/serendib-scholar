@@ -49,6 +49,13 @@ const ROTATION: Record<Side, number> = { below: 0, above: 180, left: 90, right: 
 const SMALL_HAND = 0.7;
 /** Air between the chalk's tip and what it points at. */
 const TIP_GAP = 2;
+/**
+ * When the hand looks again after the board changes around it. Chips fade
+ * in, a dock slides up, a table lands — measuring mid-animation measures a
+ * moving target, so it re-checks rather than trusts the first reading, and
+ * stays out of sight until one of these finds a clear spot (see below).
+ */
+const SETTLE_MS = [350, 800, 1300];
 
 interface Placement {
   /** The hand's unrotated top-left, in surface px (it rotates and scales about its centre). */
@@ -56,6 +63,8 @@ interface Placement {
   y: number;
   side: Side;
   scale: number;
+  /** Readable area this spot covers, in surface px². 0 is the only acceptable resting place. */
+  covers: number;
 }
 
 /** The hand's VISUAL box for a side of `rect` — after rotation and scale — in surface px. */
@@ -81,7 +90,7 @@ export function Pointer({ at, pulseKey = 0, parked = false, onSide, inverted = f
   useEffect(() => {
     onSide?.(parked ? null : side);
   }, [side, parked, onSide]);
-  const [last, setLast] = useState<Placement>({ x: 40, y: 40, side: "below", scale: 1 });
+  const [last, setLast] = useState<Placement>({ x: 40, y: 40, side: "below", scale: 1, covers: 0 });
   // A table cell is pointed at with the smaller hand (M10, S1, G13: 30×39); a whole chalk line from its start (G2: the hand under the line).
   const atCell = at !== null && "cell" in at;
   const atLine = !atCell && at !== null && "text" in at && !("place" in at && at.place) && rect !== null && rect.width > 120;
@@ -91,9 +100,13 @@ export function Pointer({ at, pulseKey = 0, parked = false, onSide, inverted = f
   // NOTHING OVERLAPS: the hand goes to the first side of its target where it covers nothing readable — below (the design's
   // resting place), above, then beside — and stays on the board. If every side covers something, the side that covers least.
   // What arrives around the target arrives animated (chips fade in, a dock slides up): the hand looks again once it has.
-  const [settled, setSettled] = useState(0);
+  const [settled, setSettled] = useState(SETTLE_MS.length);
   useEffect(() => {
-    const timers = [350, 800, 1300].map((ms) => setTimeout(() => setSettled((n) => n + 1), ms));
+    // Counted from 0 again for each new layout, so the render below can tell
+    // "still looking for a clear spot" from "there is no clear spot".
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSettled(0);
+    const timers = SETTLE_MS.map((ms) => setTimeout(() => setSettled((n) => n + 1), ms));
     return () => timers.forEach(clearTimeout);
   }, [layoutKey, rectKey]);
   useEffect(() => {
@@ -123,13 +136,13 @@ export function Pointer({ at, pulseKey = 0, parked = false, onSide, inverted = f
       const covered = obstacles.reduce((sum, o) => sum + intersectionArea(o, handBox), 0);
       const cost = covered + off * 200;
       // The element is HAND_W × HAND_H and transforms about its centre: place the centre where the visual box's is.
-      const placement: Placement = { x: box.left + box.width / 2 - HAND_W / 2, y: box.top + box.height / 2 - HAND_H / 2, side: candidate, scale: handScale };
+      const placement: Placement = { x: box.left + box.width / 2 - HAND_W / 2, y: box.top + box.height / 2 - HAND_H / 2, side: candidate, scale: handScale, covers: covered };
       if (!best || cost < best.cost) best = { placement, cost };
       if (cost === 0) break;
     }
     // A placement is MEASURED from the painted board (what is readable, and where): it cannot be known before the effect.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (best && (best.placement.x !== last.x || best.placement.y !== last.y || best.placement.side !== last.side || best.placement.scale !== last.scale)) setLast(best.placement);
+    if (best && (best.placement.x !== last.x || best.placement.y !== last.y || best.placement.side !== last.side || best.placement.scale !== last.scale || best.placement.covers !== last.covers)) setLast(best.placement);
     // `rectKey` stands in for `rect` (a fresh object per measure); `board.version` re-places the hand when the board's content changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rectKey, board.version, board.surface, inverted, scale, atLine, atCell, layoutKey, settled]);
@@ -141,6 +154,22 @@ export function Pointer({ at, pulseKey = 0, parked = false, onSide, inverted = f
   if (!board.overlay) return null;
   // Parked (the child's turn): the hand rests where it last pointed (M3, M4).
   const pos = last;
+  /**
+   * NOTHING OVERLAPS, INCLUDING FOR A MOMENT (20 Sep 2026).
+   *
+   * Every side of the target can be occupied while the board is still
+   * arriving — the table at readWrite4Digit:18c lands under a hand that was
+   * placed against the card before it, and the least-bad spot sat on
+   * "9 015" until the next re-check moved it. The live session probe caught
+   * exactly that frame, and so would a child reading the row.
+   *
+   * So a hand with nowhere clean to go WAITS instead: hidden while the
+   * re-checks are still running, shown wherever it landed once they are
+   * done. A layout with genuinely no clear spot still gets a hand — after
+   * 1.3 s, not a flash of one on top of a number the child is reading.
+   */
+  const stillLooking = settled < SETTLE_MS.length;
+  const hidden = pos.covers > 0 && stillLooking;
   return createPortal(
     <motion.div
       data-testid="pointer"
@@ -148,8 +177,12 @@ export function Pointer({ at, pulseKey = 0, parked = false, onSide, inverted = f
       data-side={side ?? undefined}
       data-placed={pos.side}
       initial={false}
-      animate={{ left: pos.x, top: pos.y, opacity: visible || parked ? (parked ? 0.85 : 1) : 0, rotate: ROTATION[pos.side], scale: pos.scale }}
-      transition={reduced ? { duration: 0 } : SPRING_SNAPPY}
+      data-waiting={hidden || undefined}
+      animate={{ left: pos.x, top: pos.y, opacity: hidden || !(visible || parked) ? 0 : parked ? 0.85 : 1, rotate: ROTATION[pos.side], scale: pos.scale }}
+      // Going out of sight is instant — a spring would leave the hand legible
+      // on top of a number for the length of its own fade, which is the very
+      // frame this is here to remove. Coming back is an ordinary fade.
+      transition={reduced ? { duration: 0 } : { ...SPRING_SNAPPY, opacity: { duration: hidden ? 0 : 0.15 } }}
       style={{ position: "absolute", width: HAND_W, height: HAND_H, pointerEvents: "none", zIndex: 8, transformOrigin: "center" }}
       aria-hidden
     >

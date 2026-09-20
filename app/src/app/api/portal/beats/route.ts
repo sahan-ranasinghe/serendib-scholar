@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { readFile } from "node:fs/promises";
 import { parseAuthoredScript, type AuthoredBeat } from "@/lib/authoredScript";
 import { authoredPath } from "@/lib/buildLessonScript";
-import { AUTHORED_LINES } from "@/lib/authoredLines";
+import { AUTHORED_LINES, RETEACH_LINES } from "@/lib/authoredLines";
 import { resolveAddress } from "@/lib/addressToken";
 import { clipKey } from "@/lib/audioCache";
 import { ZARA_VOICE } from "@/lib/zaraVoice";
@@ -150,6 +150,49 @@ export async function GET() {
       : null,
   }));
 
+  /**
+   * THE RETEACH LINES — one per concept, their own group.
+   *
+   * They belong to no single beat (any question of that concept can reach
+   * one at a second miss), so they are listed on their own rather than
+   * hanging off a beat she would never find them under. Ordinary lines
+   * with ordinary clip keys: recording them is no different.
+   */
+  const reteachLines = Object.entries(RETEACH_LINES).map(([conceptTag, text]) => {
+    const resolved = resolveAddress(text, "unspecified");
+    const id = `reteach:${conceptTag}`;
+    const take = takeByBeat.get(id);
+    const line = lineByBeat.get(id);
+    return {
+      id,
+      beatId: id,
+      branchLabel: "after a second miss",
+      group: "reteach",
+      concept: conceptTag,
+      type: "RETEACH",
+      pauseType: null,
+      text: resolved,
+      canonicalText: line?.status === "accepted" && line.actor_text ? line.actor_text : resolved,
+      numbers: [],
+      expectedAnswer: null,
+      clipKey: clipKey(resolved, ZARA_VOICE),
+      note: line?.note ?? null,
+      lineStatus: line?.status ?? null,
+      actorText: line?.actor_text ?? null,
+      take: take
+        ? {
+            status: take.status,
+            durationMs: take.duration_ms,
+            clipKey: take.clip_key,
+            trimStartMs: take.trim_start_ms,
+            trimEndMs: take.trim_end_ms,
+            sentences: take.sentences,
+            peakDbfs: take.peak_dbfs,
+          }
+        : null,
+    };
+  });
+
   // The fixed words around a spoken number, so the whole sentence is one voice.
   const frames = Object.values(NUMBER_FRAMES).flatMap((frame) => [frame.before, frame.after]);
   const frameLines = [...new Set(frames.map((text) => resolveAddress(text, "unspecified")))]
@@ -179,6 +222,6 @@ export async function GET() {
     numberWordCount: numberWords.length,
     lesson: `${file.subject}-${file.grade}-${file.lesson}`,
     concepts: file.concepts,
-    lines: [...lines.map((line) => ({ ...line, group: "lesson" })), ...numberWords, ...frameLines],
+    lines: [...lines.map((line) => ({ ...line, group: "lesson" })), ...reteachLines, ...numberWords, ...frameLines],
   });
 }

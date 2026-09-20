@@ -180,6 +180,15 @@ export default function LessonScreen() {
   const [asking, setAsking] = useState<"leave" | "restart" | null>(null);
   const [leaving, setLeaving] = useState(false);
 
+  // A question over the board HOLDS the lesson, like a rotation or a
+  // backgrounded tab. Without this the sheet covered a lesson that kept
+  // playing: Zara talked on behind it and the beat moved while the child
+  // was reading, so "දිගටම" — carry on — came back somewhere else. Cancel
+  // now returns to the exact beat the question interrupted.
+  useEffect(() => {
+    holdFor("asking", asking !== null);
+  }, [asking, holdFor]);
+
   // The sitting's end: the summary screen (real lines from the log). The
   // moment on the board is given a beat so the celebration lands first.
   const { refresh: refreshAppState } = useAppState();
@@ -361,8 +370,12 @@ export default function LessonScreen() {
         </div>
       )}
 
-      {/* ⏸ — the designed paused state over the dimmed board (the rotate card covers it in portrait) */}
-      {paused && inLesson && !micAsk && status !== "chatting" && !portrait && (
+      {/* ⏸ — the designed paused state over the dimmed board (the rotate card covers it in portrait).
+          NOT while a question is up: ⏹ and ↺ now hold the lesson, so `paused` is true behind their
+          sheet, and without this the "පාඩම නවත්තලා" card mounted underneath it — read by the layout
+          probe, and flashed across the board for a frame when the child chose දිගටම. One thing at a
+          time on the board: the sheet IS the paused state while it is asking. */}
+      {paused && !asking && inLesson && !micAsk && status !== "chatting" && !portrait && (
         <div style={{ position: "absolute", inset: 0, zIndex: 24 }}>
           <EdgeState kind="paused" onCta={togglePause} onAlt={() => setAsking("leave")} />
         </div>

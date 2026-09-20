@@ -22,7 +22,7 @@
 
 import { BEAT_REGISTRY, beatSpec, estimateBeatSeconds, type BeatType, type DirectorContext } from "@/lib/beatRegistry";
 import type { LessonComponent } from "@/data/lessons/lesson1-numbers";
-import { AUTHORED_LINES } from "@/lib/authoredLines";
+import { AUTHORED_LINES, RETEACH_LINES } from "@/lib/authoredLines";
 
 export type { BeatType, DirectorContext };
 import type { PhraseRubric } from "@/lib/authoredScript";
@@ -459,13 +459,17 @@ export function buildReteachBeats(
     ...missedAsk,
     id: `${missedAsk.id}:reteach`,
     type: "RETEACH",
-    // A RETEACH is the one beat written at runtime, from the goal below.
-    // Spreading the missed ask carries its fields across, and an AUTHORED
-    // beat brings fixed spokenText with it — which made the reteach say the
-    // missed question back word for word, immediately before advance()
-    // rewound and played that very beat again. Same words twice, and the
-    // "different way in" the angle asks for never happened.
-    spokenText: undefined,
+    // THE CONCEPT'S OWN RETEACH LINE (20 Sep 2026), so the child hears
+    // something before the demonstration. Spreading the missed ask carries
+    // its fields across, and an AUTHORED beat brings its own fixed
+    // spokenText with it — which made the reteach say the missed question
+    // back word for word, immediately before advance() rewound and played
+    // that very beat again. Same words twice, and the "different way in"
+    // the angle asks for never happened. So the ask's words are dropped and
+    // the concept's line put in their place; a concept with no line
+    // authored yet is silent rather than written by a model (cluster O),
+    // and the goal below stays only to say what the beat is FOR.
+    spokenText: RETEACH_LINES[missedAsk.conceptTag],
     sayCandidates: undefined,
     goal:
       `The child just missed ${subskill}. Re-explain ONLY that one piece — not the whole idea` +

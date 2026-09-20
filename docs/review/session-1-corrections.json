@@ -1899,9 +1899,61 @@
       ]
     },
     "reteachWithoutAWriter": {
-      "$comment": "Cluster O: the runtime never asks a model to write or render a line. The RETEACH beat after a second miss had no fixed words (it was written at runtime through /api/speak-line): it is now silent and instant, and the reteach is carried by what already follows it — the miss line that announces it (feedbackWrong, reteachFollows) and the concept's own MODE 1 demonstration beats (<id>:reteach-demo), all of which have fixed, recordable words. If a spoken reteach line is wanted, it has to be AUTHORED here per concept and recorded; none was invented.",
-      "pattern": "<ask id>:reteach"
+      "$comment": "Cluster O: the runtime never asks a model to write or render a line. The RETEACH beat after a second miss had no fixed words (it was written at runtime through /api/speak-line), so switching the writer off left it SILENT — the child met a second miss and heard nothing between the miss line and the demonstration. Closed on 20 Sep 2026 by reteachLines below: one authored line per concept, in the repo, in the portal's recording list, rendered into the clip cache with every other authored line. The rest of the reteach is unchanged — the miss line that announces it (feedbackWrongBeforeReteach, reteachFollows) and the concept's own MODE 1 demonstration beats (<id>:reteach-demo). No model wrote a word of it.",
+      "pattern": "<ask id>:reteach",
+      "nowCarriedBy": "answerFlow.reteachLines"
     },
-    "noClipRule": "A line with no cached clip is read on the board as a caption for as long as saying it would take (estimated from its sentences). CLIP_RENDER is off unless the server sets CLIP_RENDER=on; so are the writer, the planner, /api/hear, interest extraction, the syllabus-search embedding and the portal's take check (src/lib/paidCalls.ts). The only paid call in the app is the ✋ chat's Live session."
+    "noClipRule": "A line with no cached clip is read on the board as a caption for as long as saying it would take (estimated from its sentences). CLIP_RENDER is off unless the server sets CLIP_RENDER=on; so are the writer, the planner, /api/hear, interest extraction, the syllabus-search embedding and the portal's take check (src/lib/paidCalls.ts). The only paid call in the app is the ✋ chat's Live session.",
+    "reteachLines": {
+      "$comment": "THE RETEACH LINE, ONE PER CONCEPT (20 Sep 2026). What the child hears after a second miss, before the demonstration. Each was written from that concept's own objective in docs/design/maths-5-1.json — not from a model, and not from the missed question (the RETEACH used to inherit the ask's words and say the question back verbatim immediately before it was asked again). It is not a new explanation: the MODE 1 demonstration that follows is the explanation. This is the sentence that carries the child into it.",
+      "wherePronounced": "src/lib/authoredLines.ts RETEACH_LINES; spoken by the <ask id>:reteach beat (buildReteachBeats, src/lib/lessonOrchestrator.ts).",
+      "rules": [
+        "At most fourteen words.",
+        "The style card's spoken register (docs/design/style-card.md): colloquial, singular ඔයා, the -මු/-නවා forms, no English, an invitation rather than a lecture.",
+        "No vocabulary the concept has not already introduced, and nothing from vocabularyNotSpoken — a second miss is the worst moment to meet a new word.",
+        "No number in the words, so one recorded clip serves every question of the concept.",
+        "Asserted on every run by src/lib/authoredLines.test.ts (npm run test:authored-lines)."
+      ],
+      "recording": "Listed in the portal as its own group, \"reteach\" (src/app/api/portal/beats/route.ts), id reteach:<conceptTag>; scripts/render-lesson-audio.ts puts all eight in the batch whichever session is being rendered, because the beat fires at a second miss and that is the worst moment to wait for a clip.",
+      "reachableInSession1": [
+        "readWrite4Digit",
+        "placeValue4Digit"
+      ],
+      "$note": "The other six concepts are not authored into a session yet (the authored script covers session 1 only). Their lines are written now so the beat is never silent on the day they are.",
+      "lines": {
+        "readWrite4Digit": {
+          "line": "සංඛ්‍යාව කියවලා, ඒකේ සංඛ්‍යා නාමය ලියන හැටි ආයෙ බලමු.",
+          "fromObjective": "9 999 තෙක් කුමන සංඛ්‍යාවක් වුව ද කියවයි. ඉලක්කමෙන් හා වචනයෙන් ලියයි. (Reads any number up to 9 999; writes it in digits and in words.)"
+        },
+        "placeValue4Digit": {
+          "line": "ඉලක්කම තියෙන ස්ථානය බලමු — එතකොට ඒකේ ස්ථානීය අගය හොයාගන්න පුළුවන්.",
+          "fromObjective": "ඉලක්කම් හතරේ සංඛ්‍යාවල ස්ථානීය අගය දක්වයි."
+        },
+        "expandedForm4Digit": {
+          "line": "හැම ඉලක්කමේම අගය වෙන වෙනම ලියලා, ආයෙ එකතු කරලා බලමු.",
+          "fromObjective": "ඉලක්කම් හතරේ සංඛ්‍යාවල ස්ථානීය අගය දක්වයි. (States the place value of digits in 4-digit numbers and writes them in expanded form.)"
+        },
+        "beyond9999": {
+          "line": "දස දහස ඉඳන් උඩට යන සංඛ්‍යා ආයෙ පොඩ්ඩක් එකට බලමු.",
+          "fromObjective": "100 000 තෙක් සංඛ්‍යා කියයි. ලියයි. සංඛ්‍යා නාමය ලියයි. දස දහසස්ථානය තෙක් සංඛ්‍යාවල එක් එක් ඉලක්කමෙන් නිරූපිත අගය දක්වයි."
+        },
+        "digitGroupingRule": {
+          "line": "එකස්ථානයේ ඉඳන් වම් පැත්තට තුනක් ගණන් කරලා, එතන පොඩි ඉඩක් තියමු.",
+          "fromObjective": "100 000 තෙක් සංඛ්‍යා කියයි. ලියයි. සංඛ්‍යා නාමය ලියයි. (Focusing on writing formatting: separating digits in threes)."
+        },
+        "tenThousandsPlace": {
+          "line": "දස දහසස්ථානයේ ඉඳන් පටන් අරන්, කියවෙන්නේ නැති ස්ථානයට බින්දුව ලියමු.",
+          "fromObjective": "100 000 තෙක් සංඛ්‍යා කියයි. ලියයි. සංඛ්‍යා නාමය ලියයි."
+        },
+        "placeValueTable5Digit": {
+          "line": "වගුවේ හැම ස්ථානයකම ඉලක්කම බලලා, ඒ ස්ථානයේ කීයක් තියෙනවද කියලා බලමු.",
+          "fromObjective": "100 000 තෙක් සංඛ්‍යා කියයි. ලියයි. සංඛ්‍යා නාමය ලියයි. දස දහසස්ථානය තෙක් සංඛ්‍යාවල එක් එක් ඉලක්කමෙන් නිරූපිත අගය දක්වයි."
+        },
+        "expandedForm5Digit": {
+          "line": "හැම ස්ථානයකම අගය වෙන වෙනම ලියමු — බින්දුව තියෙන ස්ථානයත් අත්හරින්නේ නෑ.",
+          "fromObjective": "99 999ට නොවැඩි සංඛ්‍යා ස්ථානීය අගය අනුව විහිදුවා ලියයි. (Writes numbers up to 99 999 in expanded form by place value.)"
+        }
+      }
+    }
   }
 }
