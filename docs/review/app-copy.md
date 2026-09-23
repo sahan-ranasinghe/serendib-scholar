@@ -6,7 +6,7 @@ Every child-facing and parent-facing string outside the session, extracted from 
 - **drafted**: from the design export (Screens A/B/C) or the runtime — needs sign-off (README "Copy").
 - **missing**: the app needs the line and the export has no Sinhala for it; the screen leaves the spot empty or reuses an export string, and the English gloss says what is needed.
 
-Counts: fromScript 21 · drafted 233 · missing 16
+Counts: fromScript 21 · drafted 244 · missing 18
 
 Terms: ගණක රාමුව (never අබකසය) · සාරා · සාරා ටීචර් (Latin "Zara Teacher" only on the splash wordmark, the manifest and the parent zone's English; "Serendib Scholar" is the company, parent-zone footer only). `{name}`-style holes are filled at runtime.
 
@@ -212,6 +212,16 @@ Terms: ගණක රාමුව (never අබකසය) · සාරා · ස�
 | Parent zone | `parent.row.delete` | ගිණුම සහ දත්ත මකන්න | Delete account and data | drafted |
 | Parent zone | `parent.whatsapp` | WhatsApp උදව් — {number} | WhatsApp help — {number} | drafted |
 | Parent zone | `parent.pinSet` | PIN සකසා ඇත | PIN is set | drafted |
+| Parent zone | `pin.label` | PIN එක | The PIN (field label) | drafted |
+| Parent zone | `pin.again` | ආයෙත් ටයිප් කරන්න | Type it again (second field when setting a PIN) | drafted |
+| Parent zone | `pin.current` | දැන් තියෙන PIN එක | The current PIN (change-PIN screen) | drafted |
+| Parent zone | `pin.new` | අලුත් PIN එක | The new PIN (change-PIN screen) | drafted |
+| Parent zone | `pin.mismatch` | PIN දෙක ගැළපෙන්නේ නෑ. ආයෙත් ටයිප් කරන්න. | The two PINs do not match. Type it again. | drafted |
+| Parent zone | `pin.show` | PIN එක පෙන්වන්න | Show the PIN (eye button) | drafted |
+| Parent zone | `pin.hide` | PIN එක හංගන්න | Hide the PIN (eye button) | drafted |
+| Home | `home.switchChild` | දරුවා මාරු කරන්න | Switch child (header avatar, sheet title) | drafted |
+| Home | `home.addChild` | + දරුවෙක් එක් කරන්න | + Add a child | drafted |
+| all | `common.close` | වහන්න | Close | drafted |
 | Parent zone | `parent.pinWrong` | කේතය වැරදියි. ආයෙ බලලා ලියන්න. | Wrong code. Check and type it again. | drafted |
 | Subscription | `parent.active` | සක්‍රීයයි | Active | drafted |
 | Weekly report | `report.title` | සතිපතා වාර්තාව | Weekly report | drafted |
@@ -250,6 +260,7 @@ Terms: ගණක රාමුව (never අබකසය) · සාරා · ස�
 | Edge | `edge.paused.body` | ලෑස්ති වුණාම දිගටම යමු. | When you're ready, let's continue. | drafted |
 | Edge | `edge.paused.resume` | ▶ දිගටම | ▶ Continue | drafted |
 | Edge | `edge.paused.stop` | නවත්වන්න | Stop | drafted |
+| Session | `chat.childSpoke` | ඔයා කතා කළා | You spoke (the child's turn in the chat, in place of a transcript) | drafted |
 | Edge | `edge.rotate.title` | ෆෝන් එක හරහට කරන්න | Turn your phone sideways | drafted |
 | Edge | `edge.rotate.body` | පුවරුව හොඳට පේන්න පාඩම හරහට තියෙන්නේ. | The lesson is landscape so the board shows well. | drafted |
 | Edge | `edge.mic.title` | මයික් එකට අවසර දෙන්න | Allow the microphone | drafted |
@@ -275,7 +286,6 @@ Terms: ගණක රාමුව (never අබකසය) · සාරා · ස�
 | Session summary | `install.accept` | Add to home screen (button) | the install prompt — එකඟයි (from consent) stands in |
 | Parent zone | `pin.create` | Create a 4-digit PIN for the parent zone | the PIN gate on first use — shows only the label PIN |
 | Parent zone | `pin.enter` | Enter your PIN | the PIN gate — shows only the label PIN |
-| Parent zone | `pin.confirm` | Type the PIN again | the change-PIN screen |
 | Parent zone | `pin.saved` | PIN saved | the change-PIN screen — PIN සකසා ඇත stands in |
 | Session summary | `limit.reached` | Today's time is up — see you tomorrow | the summary when the daily limit ends a sitting — හෙට ආයෙත් එන්න stands in |
 | Parent zone | `delete.confirm` | This deletes the child's account and every record. It cannot be undone. | the delete screen — the consent card's මකන්න ඕනෑම වෙලාවක text stands in |
@@ -287,3 +297,6 @@ Terms: ගණක රාමුව (never අබකසය) · සාරා · ස�
 | Practice hub | `practice.empty` | Nothing to practise yet — finish a session first | the hub with no concept worked on — the list is empty and තාම නෑ stands in |
 | Onboarding | `onboarding.devStub` | DEV ONLY — OTP and payment are stubs (English, parent surface) | the dev-only label under the stubbed steps (English on a parent surface) |
 | Quiz | `quiz.expansionAsk` | Which number is missing? (for an expansion item) | the quiz shows the expansion line with ▢ and the recap ask line |
+| Session | `nav.back` | Back a step (⏮ on the paused card's playback panel) | the control is the ⏮ glyph alone; its accessible name is English |
+| Session | `nav.forward` | Forward a step (⏭ on the paused card's playback panel) | the control is the ⏭ glyph alone; its accessible name is English |
+| Session | `nav.steps` | The steps of this session (the row of step marks on the playback panel) | the strip has no visible label; its accessible name is English |

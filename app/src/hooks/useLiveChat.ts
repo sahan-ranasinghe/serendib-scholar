@@ -56,6 +56,8 @@ export interface LiveChatHandle {
   }) => Promise<void>;
   /** Ends the chat now (the button, or the lesson stopping). */
   endChat: () => void;
+  /** DEV_MODE / the harness: set the transcript lines as if the session had delivered them. */
+  injectTranscript: (lines: { child?: string; zara?: string }) => void;
 }
 
 export function useLiveChat(): LiveChatHandle {
@@ -216,5 +218,10 @@ export function useLiveChat(): LiveChatHandle {
     return true;
   }, []);
 
-  return { chatting, transcript, liveSecondsRef, runChat, endChat, error, sendText };
+  /** DEV_MODE / the harness: what the transcription channel would have delivered, without a session — for asserting where it does and does not appear. */
+  const injectTranscript = useCallback((lines: { child?: string; zara?: string }) => {
+    setTranscript((t) => ({ child: lines.child ?? t.child, zara: lines.zara ?? t.zara }));
+  }, []);
+
+  return { chatting, transcript, liveSecondsRef, runChat, endChat, error, sendText, injectTranscript };
 }

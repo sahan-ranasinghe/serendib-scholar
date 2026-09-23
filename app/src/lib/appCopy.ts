@@ -301,6 +301,9 @@ export const COPY = {
   "edge.paused.body": { screen: "Edge", si: "ලෑස්ති වුණාම දිගටම යමු.", en: "When you're ready, let's continue." },
   "edge.paused.resume": { screen: "Edge", si: "▶ දිගටම", en: "▶ Continue" },
   "edge.paused.stop": { screen: "Edge", si: "නවත්වන්න", en: "Stop" },
+  // The ✋ chat shows the child's turn as this neutral bubble, never as the Live API's input transcription (23 Sep 2026: the
+  // transcription channel misdetects the language independently of the model's understanding — the words shown were wrong).
+  "chat.childSpoke": { screen: "Session", si: "ඔයා කතා කළා", en: "You spoke (the child's turn in the chat, in place of a transcript)" },
   "edge.rotate.title": { screen: "Edge", si: "ෆෝන් එක හරහට කරන්න", en: "Turn your phone sideways" },
   "edge.rotate.body": { screen: "Edge", si: "පුවරුව හොඳට පේන්න පාඩම හරහට තියෙන්නේ.", en: "The lesson is landscape so the board shows well." },
   "edge.mic.title": { screen: "Edge", si: "මයික් එකට අවසර දෙන්න", en: "Allow the microphone" },
@@ -355,6 +358,9 @@ export const MISSING: Array<{ key: string; screen: string; en: string; where: st
   { key: "practice.empty", screen: "Practice hub", en: "Nothing to practise yet — finish a session first", where: "the hub with no concept worked on — the list is empty and තාම නෑ stands in" },
   { key: "onboarding.devStub", screen: "Onboarding", en: "DEV ONLY — OTP and payment are stubs (English, parent surface)", where: "the dev-only label under the stubbed steps (English on a parent surface)" },
   { key: "quiz.expansionAsk", screen: "Quiz", en: "Which number is missing? (for an expansion item)", where: "the quiz shows the expansion line with ▢ and the recap ask line" },
+  { key: "nav.back", screen: "Session", en: "Back a step (⏮ on the paused card's playback panel)", where: "the control is the ⏮ glyph alone; its accessible name is English" },
+  { key: "nav.forward", screen: "Session", en: "Forward a step (⏭ on the paused card's playback panel)", where: "the control is the ⏭ glyph alone; its accessible name is English" },
+  { key: "nav.steps", screen: "Session", en: "The steps of this session (the row of step marks on the playback panel)", where: "the strip has no visible label; its accessible name is English" },
 ];
 
 export const LESSON_NAMES: Record<number, string> = { 1: t("lesson.1"), 2: t("lesson.2"), 3: t("lesson.3"), 4: t("lesson.4"), 5: t("lesson.5"), 6: t("lesson.6") };

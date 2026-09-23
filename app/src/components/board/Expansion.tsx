@@ -117,7 +117,8 @@ export function Expansion({ number, parts, fly = null, onFlyDone, interactive = 
                 draft={active === index ? draft : ""}
                 entry={index === entryIndex && value === null && child === null ? entry : null}
                 glow={glowIndex === index && value === null && child === null}
-                onTap={() => setActive((a) => (a === index ? null : index))}
+                // A tap on the part being filled, with digits in the pad, changes nothing: the pad never closes while it holds a digit.
+                onTap={() => setActive((a) => (a === index ? (draft ? a : null) : index))}
               />
             </span>
           );
@@ -127,15 +128,10 @@ export function Expansion({ number, parts, fly = null, onFlyDone, interactive = 
         {interactive && active !== null && (
           <NumberPad
             key={active}
-            mode="number"
             docked={dockPad}
             onChange={setDraft}
             onCommit={(value) => {
               onAnswer?.(active, value);
-              setActive(null);
-              setDraft("");
-            }}
-            onCancel={() => {
               setActive(null);
               setDraft("");
             }}

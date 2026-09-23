@@ -414,7 +414,7 @@ export const BoardStage = memo(function BoardStage({ stage, yourTurn, onAnswer, 
           </motion.div>
         )}
       </AnimatePresence>
-      {active && !soft && yourTurn?.numeric && !touchable && padOpen && <NumberPad mode="number" onCommit={submit} onChange={setPadDraft} onCancel={() => setPadOpen(false)} docked />}
+      {active && !soft && yourTurn?.numeric && !touchable && padOpen && <NumberPad onCommit={submit} onChange={setPadDraft} docked />}
     </>
   );
 

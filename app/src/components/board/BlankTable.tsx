@@ -199,9 +199,9 @@ export function BlankTable({ columns, rows, filled = [], activeBlank = null, int
                   ? { tiles: PLACE_NAMES.slice(0, Math.max(4, String(Number.isFinite(rowNumber) ? rowNumber : 0).length)) as unknown as string[] }
                   : null;
             return bank ? (
-              <WordBank key={`${active.row}:${active.field}`} tiles={bank.tiles} label={label} docked={dockPad} onCommit={commit} onChange={setDraft} onCancel={() => setTapped(null)} />
+              <WordBank key={`${active.row}:${active.field}`} tiles={bank.tiles} label={label} docked={dockPad} onCommit={commit} onChange={setDraft} />
             ) : (
-              <NumberPad key={`${active.row}:${active.field}`} mode="number" docked={dockPad} label={label} onCommit={commit} onChange={setDraft} onCancel={() => setTapped(null)} />
+              <NumberPad key={`${active.row}:${active.field}`} docked={dockPad} label={label} onCommit={commit} onChange={setDraft} />
             );
           })()}
       </AnimatePresence>

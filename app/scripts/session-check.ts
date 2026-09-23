@@ -58,6 +58,8 @@ const DRILLS = process.argv.includes("--drills");
 const OTP_ONLY = process.argv.includes("--otp-only");
 /** --wrong=readWrite4Digit:8 — answer that question wrongly every time it is asked, to walk the retry ladder. */
 const WRONG_BEAT = arg("wrong") ? `authored:${arg("wrong")!.replace(/^authored:/u, "")}` : null;
+/** What the ✋ transcription channel might deliver for a Sinhala child (23 Sep 2026: wrong script, another language, fragments) — injected, never shown. */
+const INJECTED_TRANSCRIPT = "こんにちは 123 hello";
 /** --from=<beat>: a partial run for one stretch of the lesson (DEV_MODE's jump) — the completion and mastery checks do not apply to it. */
 const FROM_BEAT = arg("from") ? `authored:${arg("from")!.replace(/^authored:/u, "")}` : null;
 const RUN_TAG = arg("tag") ?? `${VIEW_W}x${VIEW_H}-${SCHEME}${REDUCED_MOTION ? "-reduced" : ""}`;
@@ -810,6 +812,27 @@ async function main(): Promise<void> {
       })()`);
       chatPanel = sheet;
       await shoot(snap.beatId, "-drill-first-hand");
+      // THE CHILD'S TURN IS A NEUTRAL BUBBLE (23 Sep 2026): the Live API's input transcription misdetects the language on its
+      // own (other scripts, other Asian languages, fragments), so what it delivers never reaches the panel — the bubble says
+      // "ඔයා කතා කළා" with a small waveform, and the words go to the debug overlay only. Simulated here through the DEV hook.
+      const injected = await evaluate<boolean>(page, `(() => { const d = window.__dev; if (!d || !d.chatInject) return false; return d.chatInject({ child: ${JSON.stringify(INJECTED_TRANSCRIPT)}, zara: "" }); })()`).catch(() => false);
+      await wait(300);
+      const bubble = await evaluate<{ text: string; turn: string | null; leak: boolean; wave: boolean }>(page, `(() => { const s = document.querySelector('[data-testid="chat-sheet"]'); const c = s && s.querySelector('[data-testid="chat-line-child"]'); return { text: c ? (c.textContent || '').trim() : '', turn: c ? c.getAttribute('data-child-turn') : null, leak: !!s && (s.textContent || '').includes(${JSON.stringify(INJECTED_TRANSCRIPT)}), wave: !!(c && c.querySelector('.chat-wave')) }; })()`);
+      for (let i = 0; i < 5; i += 1) {
+        await clickSelector('[data-testid="session-title"]');
+        await wait(120);
+      }
+      let overlayHas = false;
+      for (let i = 0; i < 12 && !overlayHas; i += 1) {
+        await wait(300);
+        overlayHas = await evaluate<boolean>(page, `(document.querySelector('[data-testid="debug-chat-child"]')?.textContent ?? '').includes(${JSON.stringify(INJECTED_TRANSCRIPT)})`).catch(() => false);
+      }
+      await shoot(snap.beatId, "-drill-chat-bubble");
+      for (let i = 0; i < 5; i += 1) {
+        await clickSelector('[data-testid="session-title"]');
+        await wait(120);
+      }
+      drillNote("the chat shows the child's turn as a neutral bubble, never the transcript", injected && bubble.turn === "spoke" && bubble.text === "ඔයා කතා කළා" && !bubble.leak && bubble.wave && overlayHas, `transcript injected ${injected ? "yes" : "NO (window.__dev.chatInject missing)"} · child bubble "${bubble.text}" (${bubble.turn ?? "—"}, waveform ${bubble.wave ? "yes" : "NO"}) · transcript text in the panel ${bubble.leak ? "LEAKED" : "none"} · in the debug overlay ${overlayHas ? "yes" : "NO"}`);
       // The bot button closes it again — the child comes and goes freely.
       const returned = await tapSelector('[data-testid="hand"]');
       await wait(1200);
@@ -817,6 +840,98 @@ async function main(): Promise<void> {
       await page.send("Fetch.disable");
       const status = (await snapshot()).status;
       drillNote("first ✋ asks for the microphone; the chat is a panel beside the board", before === 0 && micAsk.up && micAsk.portrait >= 150 && micAsk.dimmed && micAsk.buttons === 2 && gumBeforeAllow === 0 && after === 1 && sheet.up && sheet.portrait > 0 && sheet.portrait <= 64 && sheet.lines === 2 && !sheet.dimmed && sheet.coverage === 0 && sheet.share <= 33.4 && sheet.bot && sheet.close && sheet.veil === 1 && returned && status !== "chatting", `getUserMedia calls before ✋: ${before} · P1 sheet ${micAsk.up ? "up" : "MISSING"} (Zara ${micAsk.portrait} px, dimmed ${micAsk.dimmed ? "yes" : "NO"}, ${micAsk.buttons} buttons, "${micAsk.title.trim().slice(0, 30)}") · calls before හරි: ${gumBeforeAllow} · after: ${after}${explained ? ` · her explanation: "${explained.slice(0, 40)}"` : ""} · chat panel ${sheet.up ? "up" : "MISSING"}: covers ${sheet.coverage} % of the board, takes ${sheet.share} % of the screen's long side, board dimmed ${sheet.dimmed ? "YES" : "no"} (opacity ${sheet.veil}), Zara ${sheet.portrait} px, ${sheet.lines} transcript lines, close button ${sheet.close ? "yes" : "NO"}, bot button ${sheet.bot ? "still there" : "GONE"}, board layout beside it ${sheet.boardOk ? "clean" : "HAS OVERLAPS"} · bot tapped to close ${returned ? "yes" : "NO"} → ${status}`);
+    }
+    // 3a. BACK AND FORWARD (23 Sep 2026, the director's request): the paused card's playback panel. ⏮ more than two seconds
+    // into a line replays the line; ⏮ inside its first two seconds goes back a beat and the board is that beat's snapshot;
+    // ⏭ never passes the furthest beat reached; a revisited answered question shows its answer, may be tried again, and
+    // leaves mastery and the beat's log rows unchanged (the record is a NAV row). Run on :9, the beat after the pad question.
+    if (short === "readWrite4Digit:9" && !drillDone.has("nav") && snap.status === "teaching" && childA) {
+      drillDone.add("nav");
+      const QUESTION = "authored:readWrite4Digit:8";
+      const here = () => evaluate<{ beat: string; paused: boolean; status: string; index: string; furthest: string; revisit: boolean; lineAt: number; stage: string | null; entry: string | null; verdict: string | null }>(page, `(() => { const el = document.querySelector('.lesson-screen'); const d = el ? el.dataset : {}; const e = document.querySelector('[data-entry]'); return { beat: d.beatId ?? '—', paused: !!el && el.hasAttribute('data-paused'), status: d.status ?? '—', index: d.beatIndex ?? '?', furthest: d.furthestIndex ?? '?', revisit: d.revisit === 'true', lineAt: window.__lastLineStart ? window.__lastLineStart.at : 0, stage: window.__stage ?? null, entry: e ? e.getAttribute('data-entry') : null, verdict: e ? e.getAttribute('data-entry-verdict') : null }; })()`);
+      const panel = () => evaluate<{ up: boolean; steps: number; current: string | null; forwardDisabled: boolean | null; backH: number; forwardH: number; stripH: number }>(page, `(() => { const p = document.querySelector('[data-testid="playback-panel"]'); if (!p) return { up: false, steps: 0, current: null, forwardDisabled: null, backH: 0, forwardH: 0, stripH: 0 }; const b = p.querySelector('[data-testid="nav-back"]'), f = p.querySelector('[data-testid="nav-forward"]'), s = p.querySelector('[data-testid="nav-steps"]'); return { up: true, steps: p.querySelectorAll('[data-step]').length, current: p.querySelector('[data-step][data-current]')?.getAttribute('data-step') ?? null, forwardDisabled: f ? f.disabled : null, backH: b ? Math.round(b.getBoundingClientRect().height) : 0, forwardH: f ? Math.round(f.getBoundingClientRect().height) : 0, stripH: s ? Math.round(s.getBoundingClientRect().height) : 0 }; })()`);
+      const pauseAndPanel = async () => {
+        await tapSelector('[aria-label="විරාමය"]');
+        await waitFor(`!!document.querySelector('[data-testid="playback-panel"]')`, 3000);
+        await wait(250);
+        return panel();
+      };
+      const untilBeat = async (id: string, ms = 8000) => {
+        let h = await here();
+        for (let i = 0; i < ms / 250 && h.beat !== id; i += 1) {
+          await wait(250);
+          h = await here();
+        }
+        return h;
+      };
+      const masteryBefore = (await supabaseAdmin.from("child_progress").select("*", { count: "exact", head: true }).eq("child_id", childA)).count ?? 0;
+      const rows8Before = (await supabaseAdmin.from("session_log").select("*", { count: "exact", head: true }).eq("child_id", childA).eq("beat_id", QUESTION)).count ?? 0;
+      const frameOf8 = shots.find((s) => s.beatId === QUESTION)?.stage ?? null;
+      // (a) ⏮ more than two seconds into the line: the same beat, its line started again.
+      await wait(1400);
+      const before = await here();
+      const p1 = await pauseAndPanel();
+      await shoot(snap.beatId, "-drill-playback-panel");
+      await tapSelector('[data-testid="nav-back"]');
+      await wait(1200);
+      const replayed = await here();
+      const replayOk = p1.up && p1.backH >= 56 && p1.forwardH >= 56 && p1.stripH >= 56 && replayed.beat === snap.beatId && !replayed.paused && replayed.lineAt > before.lineAt;
+      drillNote("⏮ mid-line replays the line", replayOk, `panel ${p1.up ? `up: ${p1.steps} step marks, current ${p1.current}, ⏮ ${p1.backH} px, ⏭ ${p1.forwardH} px, strip ${p1.stripH} px` : "MISSING"} · ⏮ at ${Math.round(performance.now() - before.lineAt) > 0 ? ">2 s" : "?"} into ${short} → ${replayed.beat.replace(/^authored:/u, "")} ${replayed.paused ? "STILL PAUSED" : "playing"}, line ${replayed.lineAt > before.lineAt ? "restarted" : "NOT restarted"}`);
+      // (b) ⏮ inside the first two seconds: back a beat; the board is that beat's snapshot (its own events replay over it, so
+      // within a few seconds it matches the frame the walk photographed there). The replayed line is under a second old here.
+      const p2 = await pauseAndPanel();
+      await tapSelector('[data-testid="nav-back"]');
+      const back = await untilBeat(QUESTION, 3000);
+      let boardMatch = frameOf8 === null;
+      for (let i = 0; i < 16 && !boardMatch; i += 1) {
+        await wait(250);
+        boardMatch = (await here()).stage === frameOf8;
+      }
+      const boardNow = (await here()).stage;
+      await shoot(QUESTION, "-drill-nav-back");
+      const backOk = p2.up && back.beat === QUESTION && back.revisit && !back.paused && boardMatch;
+      drillNote("⏮ at line start goes back and the board matches", backOk, `${short} → ${back.beat.replace(/^authored:/u, "")} (revisit ${back.revisit ? "yes" : "NO"}, ${back.paused ? "STILL PAUSED" : "playing"}) · board ${boardMatch ? "matches the frame photographed at :8" : `DIFFERS — "${(boardNow ?? "").slice(0, 60)}" vs "${(frameOf8 ?? "").slice(0, 60)}"`}`);
+      // (c) ⏭ stops at the furthest reached: forward from :8 lands on :9 (the furthest), where ⏭ is disabled and does nothing.
+      const p3 = await pauseAndPanel();
+      await tapSelector('[data-testid="nav-forward"]');
+      const forward = await untilBeat(snap.beatId, 3000);
+      const p4 = await pauseAndPanel();
+      await tapSelector('[data-testid="nav-forward"]');
+      await wait(800);
+      const stuck = await here();
+      await tapSelector('[aria-label="දිගටම"]');
+      await wait(300);
+      const forwardOk = p3.forwardDisabled === false && forward.beat === snap.beatId && p4.forwardDisabled === true && stuck.beat === snap.beatId && stuck.paused;
+      drillNote("⏭ stops at the furthest reached", forwardOk, `from :8 ⏭ (${p3.forwardDisabled === false ? "enabled" : "DISABLED"}) → ${forward.beat.replace(/^authored:/u, "")} (furthest index ${forward.furthest}, at ${forward.index}) · ⏭ there ${p4.forwardDisabled ? "disabled" : "ENABLED"}, tapped → ${stuck.beat === snap.beatId ? "unchanged" : `MOVED to ${stuck.beat}`}`);
+      // (d) a revisited answered question: back to :8 (⏮ twice at most — the first may replay :9 when the line is over two
+      // seconds old), the answer given earlier shown in its slot, answered again, mastery and its log rows unchanged.
+      let again = await here();
+      for (let attempt = 0; attempt < 2 && again.beat !== QUESTION; attempt += 1) {
+        await pauseAndPanel();
+        await tapSelector('[data-testid="nav-back"]');
+        again = await untilBeat(QUESTION, 2500);
+      }
+      let turn = await here();
+      for (let i = 0; i < 80 && !(turn.beat === QUESTION && turn.status === "turn"); i += 1) {
+        await wait(250);
+        turn = await here();
+      }
+      await shoot(QUESTION, "-drill-revisit-turn");
+      const entryShown = turn.entry === "1000";
+      const asked = await snapshot();
+      if (turn.status === "turn") await answer(asked);
+      let judged = await here();
+      for (let i = 0; i < 60 && judged.beat === QUESTION && judged.status === "turn"; i += 1) {
+        await wait(250);
+        judged = await here();
+      }
+      await wait(1500);
+      const masteryAfter = (await supabaseAdmin.from("child_progress").select("*", { count: "exact", head: true }).eq("child_id", childA)).count ?? 0;
+      const rows8After = (await supabaseAdmin.from("session_log").select("*", { count: "exact", head: true }).eq("child_id", childA).eq("beat_id", QUESTION)).count ?? 0;
+      const { data: navRows } = await supabaseAdmin.from("session_log").select("beat_id, planner_decision").eq("child_id", childA).eq("beat_type", "NAV").order("sequence", { ascending: true }).limit(20);
+      const navKinds = ((navRows ?? []) as Array<{ beat_id: string }>).map((r) => r.beat_id.replace(/^nav:/u, ""));
+      const revisitOk = again.beat === QUESTION && turn.status === "turn" && turn.revisit && entryShown && masteryAfter === masteryBefore && rows8After === rows8Before && navKinds.includes("back") && navKinds.includes("forward") && navKinds.includes("replay");
+      drillNote("a revisited answered question shows its answer and leaves mastery unchanged", revisitOk, `back on ${again.beat.replace(/^authored:/u, "")} (revisit ${turn.revisit ? "yes" : "NO"}) · its turn ${turn.status === "turn" ? "opened" : `NOT opened (${turn.status})`} with the earlier answer ${entryShown ? `"${turn.entry}" shown (${turn.verdict})` : `NOT shown (entry ${turn.entry ?? "none"})`} · answered again → ${judged.beat.replace(/^authored:/u, "")} · child_progress ${masteryBefore} → ${masteryAfter} · rows for :8 ${rows8Before} → ${rows8After} · NAV rows: ${navKinds.join(", ") || "NONE"}`);
     }
     // 3b. Zara is not a control: ten taps on her portrait change nothing and
     // start no audio. And three rapid ↺ taps ask ONCE; cancelling changes nothing.
@@ -1148,12 +1263,46 @@ async function main(): Promise<void> {
         const at24 = await padUp();
         const ok = at11.pad && at11.status === "turn" && at23.pad && at23.status === "turn" && at23.beat === snap.beatId && at23.value === "1" && at24.pad && at24.status === "turn" && at24.value === "10";
         drillNote("type at 11 s and 23 s: no auto-close, no demonstrate", ok, `pad at 11 s ${at11.pad ? "open" : "CLOSED"} (${at11.status}) · typed 1 · at 23 s ${at23.pad ? "open" : "CLOSED"} (${at23.status}, value "${at23.value}", beat ${at23.beat === snap.beatId ? "unchanged" : "CHANGED"}) · typed 0 · at 24.5 s ${at24.pad ? "open" : "CLOSED"} (value "${at24.value}")`);
-        for (const digit of ["0", "0"]) {
-          await key(digit);
-          await wait(80);
+        // THE PAD AT A HUMAN PACE AND AT A FAST PACE (23 Sep 2026, the director's demo): 1-0-0-0 with REAL touch events on the
+        // same open pad. The pad used to cancel on a double-click, and two taps on one key inside the browser's double-tap
+        // window are one — so "1000" closed the pad after "100" and lost the digits. The .click() the drill above uses never
+        // produces a dblclick, which is why it never caught it. One tap = one digit, nothing closes, only ✓ submits.
+        const keyTouch = (label: string) => tapSelector(`[data-testid="number-pad"] button[aria-label="${label}"]`);
+        const clearPad = async () => {
+          for (let i = 0; i < 6; i += 1) {
+            if (!(await padUp()).value) break;
+            await keyTouch("backspace");
+            await wait(120);
+          }
+        };
+        const pace = async (delay: () => number) => {
+          const trace: string[] = [];
+          for (const digit of ["1", "0", "0", "0"]) {
+            const hit = await keyTouch(digit);
+            await wait(delay());
+            const s = await padUp();
+            trace.push(`${digit}${hit ? "" : "(NO KEY)"}→${s.pad ? `"${s.value}"` : "CLOSED"}`);
+          }
+          const s = await padUp();
+          return { ok: s.pad && s.value === "1000" && s.status === "turn" && s.beat === snap.beatId, trace: trace.join(" "), s };
+        };
+        await clearPad();
+        const fast = await pace(() => 150);
+        drillNote("pad at a fast pace (150 ms, real touch): 1-0-0-0 stays open, one tap = one digit", fast.ok, `${fast.trace} · pad ${fast.s.pad ? "open" : "CLOSED"}, value "${fast.s.value}", ${fast.s.status} on ${fast.s.beat === snap.beatId ? "the same beat" : `a DIFFERENT beat (${fast.s.beat})`}`);
+        await clearPad();
+        const human = await pace(() => 300 + Math.floor(Math.random() * 300));
+        drillNote("pad at a human pace (300–600 ms, real touch): 1-0-0-0 stays open, one tap = one digit", human.ok, `${human.trace} · pad ${human.s.pad ? "open" : "CLOSED"}, value "${human.s.value}", ${human.s.status} on ${human.s.beat === snap.beatId ? "the same beat" : `a DIFFERENT beat (${human.s.beat})`}`);
+        // Only ✓ submits: the digits are still on the pad, and the touch on ✓ is what closes it (the click is the net, as everywhere).
+        const beforeDone = await padUp();
+        await keyTouch("done");
+        let submitted = false;
+        for (let i = 0; i < 8 && !submitted; i += 1) {
+          await wait(250);
+          submitted = (await padUp()).status !== "turn";
         }
-        await evaluate(page, `(() => { const k = document.querySelector('[data-testid="number-pad"] button[aria-label="done"]'); k && k.click(); return true; })()`);
-        note({ beatId: snap.beatId, via: "number pad (one digit at 11 s, one at 23 s, then the rest)", answer: "1000" });
+        if (!submitted) await evaluate(page, `(() => { const k = document.querySelector('[data-testid="number-pad"] button[aria-label="done"]'); k && k.click(); return true; })()`);
+        drillNote("the pad submits only on ✓", beforeDone.pad && beforeDone.value === "1000" && beforeDone.status === "turn", `before ✓: pad ${beforeDone.pad ? "open" : "CLOSED"} with "${beforeDone.value}" (${beforeDone.status}) · ✓ by touch ${submitted ? "taken" : "swallowed — clicked"}`);
+        note({ beatId: snap.beatId, via: "number pad (11 s / 23 s, then 150 ms and 300–600 ms by touch, ✓)", answer: "1000" });
       } else if (DRILLS && shortTurn === "readWrite4Digit:18f" && !drillDone.has("five")) {
         // Cluster B, issue 14: five digits on a four-digit answer are accepted and judged wrong normally.
         drillDone.add("five");
@@ -1414,7 +1563,7 @@ async function main(): Promise<void> {
   if (DRILLS) {
     console.log(`\nfailure-mode drills (${drillResults.filter((r) => r.startsWith("PASS")).length}/${drillResults.length} handled visibly):`);
     for (const line of drillResults) console.log(`  ${line}`);
-    for (const name of ["touch during playback", "rotation mid-beat", "backgrounded tab", "missing clip", "first ✋ asks for the microphone", "Zara's portrait is not a control", "three ↺ taps are one question", "pause at beat 5", "pause at beat 40", "pause at beat 80", "type at 11 s and 23 s", "10000 on a 4-digit answer", "reading practice readWrite4Digit:2"]) if (!drillResults.some((r) => r.includes(name))) console.log(`  SKIP  ${name}: its beat was not reached`);
+    for (const name of ["touch during playback", "rotation mid-beat", "backgrounded tab", "missing clip", "first ✋ asks for the microphone", "the chat shows the child's turn as a neutral bubble", "Zara's portrait is not a control", "three ↺ taps are one question", "pause at beat 5", "pause at beat 40", "pause at beat 80", "type at 11 s and 23 s", "pad at a fast pace", "pad at a human pace", "the pad submits only on ✓", "⏮ mid-line replays the line", "⏮ at line start goes back", "⏭ stops at the furthest reached", "a revisited answered question", "10000 on a 4-digit answer", "read-aloud readWrite4Digit:2"]) if (!drillResults.some((r) => r.includes(name))) console.log(`  SKIP  ${name}: its beat was not reached`);
   }
   if (fpsSamples.length) console.log(`fps while animating${CPU_THROTTLE > 1 ? ` at cpu×${CPU_THROTTLE}` : ""}: ${fpsSamples.map((s) => `${s.beatId.replace(/^authored:/u, "")} ${s.fps}`).join(", ")}`);
   const flagged = audits.filter((a) => a.audit && (a.audit.overlap || a.audit.portraitOverlap || a.audit.cutOff || a.audit.small.length || a.audit.tinyText.length));

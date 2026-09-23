@@ -25,6 +25,7 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "
 import { useRouter } from "next/navigation";
 import { useLessonRuntime } from "@/hooks/useLessonRuntime";
 import { EdgeState } from "@/components/app/EdgeState";
+import { PlaybackPanel } from "@/components/PlaybackPanel";
 import { leaveLessonDisplay } from "@/components/app/StartLessonButton";
 import { pageBuildStamp } from "@/components/app/UpdateBanner";
 import { t } from "@/lib/appCopy";
@@ -78,6 +79,8 @@ export default function LessonScreen() {
     devLimit,
     cycleDailyLimit,
     jumpTo,
+    navInfo,
+    requestNav,
   } = useLessonRuntime();
   const router = useRouter();
 
@@ -312,7 +315,7 @@ export default function LessonScreen() {
   const sheet: SessionSheet | null = micAsk
     ? { kind: "mic", onAllow: () => answerMicAsk(true), onType: () => answerMicAsk(false) }
     : status === "chatting"
-      ? { kind: "chat", child: chatTranscript.child, zara: chatTranscript.zara, listening: chatting && !muted && !paused, onReturn: requestChat }
+      ? { kind: "chat", childSpoke: chatTranscript.child.length > 0, zara: chatTranscript.zara, listening: chatting && !muted && !paused, onReturn: requestChat }
       : null;
 
   return (
@@ -361,6 +364,10 @@ export default function LessonScreen() {
         "data-error": error ?? undefined,
         "data-chat": chatting ? "connected" : chatError ? "error" : "idle",
         "data-chat-error": chatError ?? undefined,
+        // the navigation's view, for the harness: where the cursor is, how far the sitting reached, and whether this is a revisit
+        "data-beat-index": navInfo ? String(navInfo.current) : undefined,
+        "data-furthest-index": navInfo ? String(navInfo.furthest) : undefined,
+        "data-revisit": navInfo?.revisit ? "true" : undefined,
       }}
     >
       {/* the designed error state — Zara, two buttons, never a stack trace (the message sits in data-error for the harness) */}
@@ -377,7 +384,10 @@ export default function LessonScreen() {
           time on the board: the sheet IS the paused state while it is asking. */}
       {paused && !asking && inLesson && !micAsk && status !== "chatting" && !portrait && (
         <div style={{ position: "absolute", inset: 0, zIndex: 24 }}>
-          <EdgeState kind="paused" onCta={togglePause} onAlt={() => setAsking("leave")} />
+          {/* the playback panel at the card's foot: ⏮ ⏭ and this session's step marks (src/components/PlaybackPanel.tsx) */}
+          <EdgeState kind="paused" onCta={togglePause} onAlt={() => setAsking("leave")} style={navInfo ? { paddingBottom: 92 } : undefined}>
+            {navInfo && <PlaybackPanel info={navInfo} onBack={() => requestNav("back")} onForward={() => requestNav("forward")} onGoto={(index) => requestNav("goto", index)} />}
+          </EdgeState>
         </div>
       )}
 
@@ -447,6 +457,10 @@ export default function LessonScreen() {
           </div>
           <div data-testid="debug-chat" style={debug.chatError ? { color: "#F87171" } : undefined}>
             ✋ {debug.chatStatus}{debug.chatError ? ` — ${debug.chatError}` : ""}
+          </div>
+          {/* the Live API's input transcription — misdetects the language, so it is shown HERE only, never in the chat panel */}
+          <div data-testid="debug-chat-child" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            ✋ heard: {debug.chatChild || "—"}
           </div>
           {childSettings?.devMode && (
             <form

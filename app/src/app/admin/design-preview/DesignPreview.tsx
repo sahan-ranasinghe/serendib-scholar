@@ -31,7 +31,7 @@ export function DesignPreview({ frameId }: { frameId: string }) {
     frame.sheet === "mic"
       ? { kind: "mic", onAllow: noop, onType: noop }
       : frame.sheet === "chat"
-        ? { kind: "chat", child: "ටීචර්, එකස්ථානය කියන්නේ මොකක්ද?", zara: "එකස්ථානය කියන්නේ සංඛ්‍යාවේ දකුණු පැත්තේ අන්තිම ඉලක්කම තියෙන තැන පුතේ. 5 421 කියන සංඛ්‍යාවේ එකස්ථානයේ තියෙන්නේ 1.", listening: true, onReturn: noop }
+        ? { kind: "chat", childSpoke: true, zara: "එකස්ථානය කියන්නේ සංඛ්‍යාවේ දකුණු පැත්තේ අන්තිම ඉලක්කම තියෙන තැන පුතේ. 5 421 කියන සංඛ්‍යාවේ එකස්ථානයේ තියෙන්නේ 1.", listening: true, onReturn: noop }
         : null;
   return (
     <SessionShell

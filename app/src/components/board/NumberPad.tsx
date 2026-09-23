@@ -5,18 +5,24 @@
  * on a wood dock — 1–5 ⌫ over 6–0 ✓ — docked at the foot of the board
  * (the content inset's bottom becomes 190 px while it is). Top-row keys
  * round at the top, bottom-row keys at the bottom; ✓ is the only teal key.
+ *
+ * THE PAD'S CONTRACT (23 Sep 2026, the director's demo — "999 + 1" closed
+ * after 100): it submits on ✓ and on nothing else; it never closes itself
+ * while it holds a digit; it takes up to six digits; one tap is one digit.
+ * The pad used to cancel on a double-click, and two taps on the same key
+ * inside the browser's double-tap window (the two 0s of 1000) ARE a
+ * double-click — the pad vanished with the digits in it. There is no cancel
+ * gesture now: the pad leaves with the turn, or with its ✓.
  */
 import { motion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useBoard } from "./targets";
 import { BOARD, FONT_SINHALA, FONT_LATIN, EASE_SPRING } from "./tokens";
 import { playSound } from "./sound";
 
 export interface NumberPadProps {
-  mode: "digit" | "number";
   onCommit: (value: string) => void;
-  onCancel?: () => void;
   label?: string;
   /** Docked at the foot (the board's footer). */
   docked?: boolean;
@@ -30,14 +36,17 @@ export interface NumberPadProps {
  * blocked at the fourth key (which would also give the length away). ⌫
  * always works.
  */
-const MAX_DIGITS = 6;
+export const MAX_DIGITS = 6;
+/** Two presses of one key closer than this are one press fired twice (a touch and its compatibility click), never two digits. */
+const DOUBLE_FIRE_MS = 30;
 
 const TOP = ["1", "2", "3", "4", "5", "⌫"] as const;
 const BOTTOM = ["6", "7", "8", "9", "0", "✓"] as const;
 
-export function NumberPad({ mode, onCommit, onCancel, label, docked = false, onChange }: NumberPadProps) {
+export function NumberPad({ onCommit, label, docked = false, onChange }: NumberPadProps) {
   const [value, setValueState] = useState("");
   const board = useBoard();
+  const lastPressRef = useRef<{ key: string; at: number }>({ key: "", at: 0 });
   const setValue = (next: string | ((v: string) => string)) => {
     setValueState((v) => {
       const out = typeof next === "function" ? next(v) : next;
@@ -51,9 +60,11 @@ export function NumberPad({ mode, onCommit, onCancel, label, docked = false, onC
     board.noteDock(1);
     return () => board.noteDock(-1);
   }, [docked, board]);
-  // The pad leaving (committed, cancelled, the turn over) clears its input claim.
+  // The pad leaving (committed, the turn over) clears its input claim.
   useEffect(() => () => board.noteInput("pad", false), [board]);
-  const press = (key: string) => {
+  const press = (key: string, at: number) => {
+    if (lastPressRef.current.key === key && at - lastPressRef.current.at < DOUBLE_FIRE_MS) return;
+    lastPressRef.current = { key, at };
     if (key === "⌫") {
       setValue((v) => v.slice(0, -1));
       return;
@@ -64,10 +75,6 @@ export function NumberPad({ mode, onCommit, onCancel, label, docked = false, onC
       return;
     }
     playSound("beadClick");
-    if (mode === "digit") {
-      onCommit(key);
-      return;
-    }
     setValue((v) => (v.length >= MAX_DIGITS ? v : v + key));
   };
   const keys = [...TOP, ...BOTTOM];
@@ -75,6 +82,7 @@ export function NumberPad({ mode, onCommit, onCancel, label, docked = false, onC
     <motion.div
       data-testid="number-pad"
       data-docked={docked || undefined}
+      data-value={value}
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 12, transition: { duration: 0.15 } }}
@@ -89,8 +97,9 @@ export function NumberPad({ mode, onCommit, onCancel, label, docked = false, onC
         boxShadow: "0 -6px 14px rgba(27,27,27,.15)",
         width: "max-content",
         position: "relative",
+        // No double-tap zoom over the keys: the two 0s of 1000 are two digits, not a gesture.
+        touchAction: "manipulation",
       }}
-      onDoubleClick={onCancel}
     >
       <span data-testid="number-pad-value" aria-label={label} style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0 0 0 0)" }}>
         {value}
@@ -105,7 +114,7 @@ export function NumberPad({ mode, onCommit, onCancel, label, docked = false, onC
             type="button"
             className="wb-tap"
             aria-label={tick ? "done" : back ? "backspace" : key}
-            onClick={() => press(key)}
+            onClick={(event) => press(key, event.timeStamp)}
             style={{
               width: 56,
               height: 56,
@@ -119,7 +128,7 @@ export function NumberPad({ mode, onCommit, onCancel, label, docked = false, onC
               justifyContent: "center",
               font: tick ? `700 22px/1 ${FONT_LATIN}` : back ? `700 20px/1 ${FONT_LATIN}` : `700 26px/1 ${FONT_SINHALA}`,
               cursor: "pointer",
-              opacity: tick && !value && mode === "number" ? 0.6 : 1,
+              opacity: tick && !value ? 0.6 : 1,
             }}
           >
             {key}

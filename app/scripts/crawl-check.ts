@@ -253,6 +253,17 @@ async function main(): Promise<void> {
     const controls = await evaluate<Array<{ index: number; label: string; href: string | null; disabled: boolean; selected: boolean; tag: string; inDialog: boolean }>>(page, CONTROLS_JS).catch(() => []);
     // The one control that ends the crawl's own child (the delete screen's confirm really deletes) goes last on its screen.
     const scope = (opener ? controls.filter((c) => c.inDialog) : controls).sort((a, b) => Number(a.label === "delete-confirm") - Number(b.label === "delete-confirm"));
+    // A control's number is its DOM position at collection time. A click that PERSISTS (switching the active child on
+    // /parent/profiles re-orders the list on every render after it) moves the later controls to other positions, so a
+    // control is also known by its label and its ordinal among same-labelled controls — the second "profile-row" is the
+    // second profile-row whatever position it now has. A control found neither way has genuinely vanished.
+    const ordinals = new Map<number, number>();
+    const seenLabels = new Map<string, number>();
+    for (const control of scope) {
+      const n = seenLabels.get(control.label) ?? 0;
+      ordinals.set(control.index, n);
+      seenLabels.set(control.label, n + 1);
+    }
     for (const control of scope) {
       if (control.disabled) {
         results.push({ route: label, control: control.label, verdict: "disabled", detail: "disabled until input (expected)" });
@@ -276,8 +287,14 @@ async function main(): Promise<void> {
         await wait(500);
       }
       await evaluate(page, CONTROLS_JS);
+      // THE DEVICE STAYS THE CRAWL'S OWN (23 Sep 2026). A control may persist device state in a cookie — a profile row on
+      // /parent/profiles switches the active child, and the crawl's parent unlock is bound to its own child — and whether
+      // that lands before the next fresh render was a race with the server (a warm server won it; a cold one lost it),
+      // which surfaced as every later parent route "gated" and its controls "vanished". The cookies are snapshotted here
+      // and put back after the verdict, so one click never changes the device the next control is judged on.
+      const cookiesBefore = ((await page.send("Network.getCookies")) as { cookies: Array<Record<string, unknown>> }).cookies;
       const before = await evaluate<{ url: string; html: number; dialogs: number; pressed: string; focus: string; printed: number }>(page, STATE_JS);
-      const clicked = await evaluate<boolean>(page, `(() => { const el = document.querySelector('[data-crawl="${control.index}"]'); if (!el) return false; el.scrollIntoView({ block: 'center' }); el.click(); return true; })()`).catch(() => false);
+      const clicked = await evaluate<boolean>(page, `(() => { const labelOf = (el) => (el.getAttribute('aria-label') || el.getAttribute('data-testid') || (el.textContent || '').trim().replace(/\\s+/g, ' ').slice(0, 28) || el.tagName.toLowerCase()); let el = document.querySelector('[data-crawl="${control.index}"]'); if (!el) el = [...document.querySelectorAll('[data-crawl]')].filter((e) => labelOf(e) === ${JSON.stringify(control.label)})[${ordinals.get(control.index) ?? 0}] ?? null; if (!el) return false; el.scrollIntoView({ block: 'center' }); el.click(); return true; })()`).catch(() => false);
       if (!clicked) {
         results.push({ route: label, control: control.label, verdict: "DEAD", detail: "control vanished before it could be clicked" });
         continue;
@@ -293,6 +310,15 @@ async function main(): Promise<void> {
         if (after.pressed !== before.pressed || Math.abs(after.html - before.html) > 40 || (after.focus !== before.focus && after.focus !== "BODY")) { verdict = "changes"; detail = after.pressed !== before.pressed ? "state" : Math.abs(after.html - before.html) > 40 ? `DOM Δ ${after.html - before.html}` : `focus → ${after.focus}`; break; }
       }
       results.push({ route: label, control: control.label, verdict, detail });
+      const cookiesAfter = ((await page.send("Network.getCookies")) as { cookies: Array<Record<string, unknown>> }).cookies;
+      const sameCookies = cookiesAfter.length === cookiesBefore.length && cookiesAfter.every((c) => cookiesBefore.some((b) => b.name === c.name && b.value === c.value));
+      if (!sameCookies) {
+        await page.send("Network.clearBrowserCookies");
+        await page.send("Network.setCookies", { cookies: cookiesBefore.map((c) => ({ name: c.name, value: c.value, domain: c.domain, path: c.path, secure: c.secure, httpOnly: c.httpOnly, sameSite: c.sameSite, expires: c.expires })) });
+        // The app's own cache of the snapshot went with the switch; the next fresh render refetches it for the restored child.
+        await evaluate(page, `(() => { try { Object.keys(localStorage).filter((k) => k.startsWith('ss:app-state')).forEach((k) => localStorage.removeItem(k)); } catch {} return true; })()`).catch(() => undefined);
+        results.push({ route: label, control: control.label, verdict: "changes", detail: "(persisted device state — the crawl's cookies were restored)" });
+      }
       if (verdict === "opens" && !opener) await crawl(route, control.label, state);
     }
   };

@@ -23,13 +23,20 @@ import LenaCharacter, { type LenaState } from "@/components/LenaCharacter";
 import { BoardStage, type YourTurn } from "@/components/board/BoardStage";
 import { ProgressStrip, type ConceptStop } from "@/components/ProgressStrip";
 import { EdgeState } from "@/components/app/EdgeState";
+import { t } from "@/lib/appCopy";
 
 /** How often the amplitude state refreshes while Zara talks (~12fps is plenty for 3 mouth shapes). */
 const AMPLITUDE_INTERVAL_MS = 80;
 /** A press this long names the control instead of pressing it. */
 const LONG_PRESS_MS = 500;
 
-export type SessionSheet = { kind: "mic"; onAllow: () => void; onType: () => void } | { kind: "chat"; child: string | null; zara: string | null; listening: boolean; onReturn: () => void };
+/**
+ * The chat panel never receives the child's transcript: it is told only THAT the child has spoken (`childSpoke`), and shows
+ * the neutral bubble. The Live API's input transcription misdetects the language independently of the model's
+ * understanding (23 Sep 2026 demo — other scripts, other Asian languages, fragments), and correcting it would cost a call
+ * per turn and risk showing words the child never said. The transcript lives in the debug overlay only.
+ */
+export type SessionSheet = { kind: "mic"; onAllow: () => void; onType: () => void } | { kind: "chat"; childSpoke: boolean; zara: string | null; listening: boolean; onReturn: () => void };
 
 /** A one-tap confirmation over the dimmed board: ⏹ (leave) and ↺ (restart) each ask once. */
 export interface SessionConfirm {
@@ -183,7 +190,7 @@ export function SessionShell({ stage, yourTurn, zaraState, lenaState, pointerSid
           writing={talking}
         />
         </div>
-        {chat && <ChatPanel child={chat.child} zara={chat.zara} listening={chat.listening} onClose={chat.onReturn} portrait={<ZaraPortrait state={zaraState} side={null} talking={talking} getAmplitude={getAmplitude} dimmed={false} size={40} />} />}
+        {chat && <ChatPanel childSpoke={chat.childSpoke} zara={chat.zara} listening={chat.listening} onClose={chat.onReturn} portrait={<ZaraPortrait state={zaraState} side={null} talking={talking} getAmplitude={getAmplitude} dimmed={false} size={40} />} />}
         {children}
       </main>
 
@@ -358,7 +365,7 @@ function MicAskSheet({ onAllow, onType }: { onAllow: () => void; onType: () => v
  * they were asking about). Zara small, the listening pill, the live transcript (what the child said, what she is saying),
  * and a close button. It sits beside the board in landscape and beneath it — at most a third of the height — in portrait.
  */
-function ChatPanel({ child, zara, listening, onClose, portrait }: { child: string | null; zara: string | null; listening: boolean; onClose: () => void; portrait: ReactNode }) {
+function ChatPanel({ childSpoke, zara, listening, onClose, portrait }: { childSpoke: boolean; zara: string | null; listening: boolean; onClose: () => void; portrait: ReactNode }) {
   return (
     <aside className="chat-panel" data-testid="chat-sheet" aria-label="සාරා එක්ක කතාව">
       <div className="chat-panel-head">
@@ -372,8 +379,14 @@ function ChatPanel({ child, zara, listening, onClose, portrait }: { child: strin
         </button>
       </div>
       <div className="chat-panel-lines" data-testid="chat-transcript">
-        <div data-testid="chat-line-child" className="chat-line chat-line-child" style={{ visibility: child ? "visible" : "hidden" }}>
-          {child ?? "…"}
+        {/* the child's turn: a neutral bubble with a small waveform — never the transcript (see SessionSheet) */}
+        <div data-testid="chat-line-child" data-child-turn={childSpoke ? "spoke" : "none"} className="chat-line chat-line-child" style={{ visibility: childSpoke ? "visible" : "hidden", display: "flex", alignItems: "center", gap: 8 }}>
+          <svg className="chat-wave" viewBox="0 0 28 16" width="28" height="16" aria-hidden>
+            {[2, 6, 10, 14, 18, 22, 26].map((x, i) => (
+              <rect key={x} x={x - 1.5} y={8 - [3, 6, 8, 5, 7, 4, 2][i]! / 2} width="3" height={[3, 6, 8, 5, 7, 4, 2][i]} rx="1.5" fill="var(--color-success)" />
+            ))}
+          </svg>
+          <span>{t("chat.childSpoke")}</span>
         </div>
         <div data-testid="chat-line-zara" className="chat-line chat-line-zara" style={{ visibility: zara ? "visible" : "hidden" }}>
           {zara ?? ""}

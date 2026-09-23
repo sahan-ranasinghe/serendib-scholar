@@ -262,7 +262,7 @@ export function DesignGallery() {
           </div>
           <div style={{ display: "grid", gap: 10 }}>
             <div style={CAPTION}>Number pad — docked, two rows of six, keys 56×56 (1–5 ⌫ / 6–0 ✓; ✓ is the only teal key)</div>
-            <NumberPad mode="number" onCommit={() => {}} />
+            <NumberPad onCommit={() => {}} />
           </div>
         </div>
       </Section>

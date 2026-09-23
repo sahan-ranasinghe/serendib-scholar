@@ -20,14 +20,13 @@ export interface WordBankProps {
   /** Which cell this writes into, for the label. */
   label?: string;
   onCommit: (text: string) => void;
-  onCancel?: () => void;
   /** Docked at the foot (the board's footer). */
   docked?: boolean;
   /** Reports the line so far, for the cell's caret preview. */
   onChange?: (line: string) => void;
 }
 
-export function WordBank({ tiles, label, onCommit, onCancel, docked = false, onChange }: WordBankProps) {
+export function WordBank({ tiles, label, onCommit, docked = false, onChange }: WordBankProps) {
   const [picked, setPicked] = useState<number[]>([]);
   const board = useBoard();
   useEffect(() => {
@@ -51,7 +50,6 @@ export function WordBank({ tiles, label, onCommit, onCancel, docked = false, onC
       exit={{ opacity: 0, y: 12, transition: { duration: 0.15 } }}
       transition={{ duration: 0.3, ease: [...EASE_SPRING] }}
       aria-label={label}
-      onDoubleClick={onCancel}
       style={{
         display: "flex",
         gap: 8,

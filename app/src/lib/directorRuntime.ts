@@ -208,6 +208,37 @@ export async function logBeat(payload: SessionLogPayload): Promise<void> {
   }
 }
 
+export type NavKind = "replay" | "back" | "forward" | "goto";
+
+/**
+ * A navigation event (⏮ ⏭ or a step mark on the paused card's playback
+ * panel) on session_log: a NAV row, never an answer. Its beat_id is not a
+ * script beat's, so the resume anchor (src/lib/sessionRows.ts) and the
+ * app's reads ignore it; the row is the record that the child went back.
+ */
+export async function logNav(payload: { sessionId: string; sequence: number; kind: NavKind; fromBeatId: string | null; toBeatId: string; furthestBeatId: string | null }): Promise<void> {
+  try {
+    const now = new Date().toISOString();
+    await post("/api/session-log", {
+      session_id: payload.sessionId,
+      sequence: payload.sequence,
+      beat_id: `nav:${payload.kind}`,
+      beat_type: "NAV",
+      concept_tag: null,
+      mode: null,
+      board_state: null,
+      director_text: `${payload.kind}: ${payload.fromBeatId ?? "—"} → ${payload.toBeatId} (furthest ${payload.furthestBeatId ?? "—"})`,
+      output_audio_ms: 0,
+      child_transcript: null,
+      planner_decision: { nav: payload.kind, from: payload.fromBeatId, to: payload.toBeatId, furthest: payload.furthestBeatId },
+      started_at: now,
+      ended_at: now,
+    });
+  } catch (error) {
+    console.error("[directorRuntime] Nav log write failed:", error);
+  }
+}
+
 /**
  * Whether what the child said is a genuine attempt at the current beat, or
  * an unrelated aside.

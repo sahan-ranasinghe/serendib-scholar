@@ -39,11 +39,13 @@ export async function closedBeatIds(childId: string): Promise<Set<string>> {
 
 /**
  * Where this child resumes: the FIRST packed session with no logged close.
- * Within it, the anchor is the last beat of that session the child actually
- * finished — ⏹ leaves without closing anything and never logs the beat it
- * interrupted, so the child comes back to the very beat they were on.
- * With nothing logged in that session yet, the anchor is the previous
- * session's close (or null: start from the very beginning).
+ * Within it, the anchor is the FURTHEST beat of that session the child
+ * actually finished — ⏹ leaves without closing anything and never logs the
+ * beat it interrupted, so the child comes back to the very beat they were
+ * on; and a beat revisited through ⏮ (23 Sep 2026) logs no beat row, only a
+ * NAV row whose id is no script beat's, so going back never moves the
+ * anchor back. With nothing logged in that session yet, the anchor is the
+ * previous session's close (or null: start from the very beginning).
  *
  * The runtime starts at the beat AFTER the anchor (useLessonRuntime).
  */
@@ -52,15 +54,23 @@ export async function resumeAnchor(script: LessonScript, childId: string): Promi
   for (let i = 0; i < script.sessions.length; i += 1) {
     const close = sessionCloseBeatId(script, i);
     if (close && closed.has(close)) continue;
-    const inSession = new Set(sessionBeatIds(script, i));
+    const order = new Map(sessionBeatIds(script, i).map((id, position) => [id, position]));
     const { data } = await supabaseAdmin
       .from("session_log")
       .select("beat_id, created_at")
       .eq("child_id", childId)
       .order("created_at", { ascending: false })
       .limit(500);
-    const lastInSession = (data ?? []).find((row) => inSession.has(row.beat_id as string))?.beat_id as string | undefined;
-    if (lastInSession) return { sessionIndex: i, lastBeatId: lastInSession, finished: false };
+    let furthest: string | undefined;
+    let furthestAt = -1;
+    for (const row of data ?? []) {
+      const position = order.get(row.beat_id as string);
+      if (position !== undefined && position > furthestAt) {
+        furthestAt = position;
+        furthest = row.beat_id as string;
+      }
+    }
+    if (furthest) return { sessionIndex: i, lastBeatId: furthest, finished: false };
     return { sessionIndex: i, lastBeatId: i > 0 ? sessionCloseBeatId(script, i - 1) : null, finished: false };
   }
   const last = script.sessions.length - 1;

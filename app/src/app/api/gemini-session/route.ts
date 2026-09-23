@@ -100,7 +100,10 @@ export async function POST(request: NextRequest) {
         systemInstruction: { parts: [{ text: systemPrompt }] },
         tools: [{ functionDeclarations: [...GEMINI_LIVE_TOOLS, ...CHAT_BOARD_TOOLS] }],
         outputAudioTranscription: {},
-        inputAudioTranscription: {},
+        // A language hint for the input transcription (the SDK's AudioTranscriptionConfig.languageCodes). The channel is
+        // known to misdetect the language on its own; the hint helps the overlay's copy, and nothing child-facing relies on
+        // it — the chat panel never shows the transcript (SessionShell's ChatPanel).
+        inputAudioTranscription: { languageCodes: ["si-LK"] },
         // One voice, forever: pinned here and locked by the token (the
         // whole LiveConnectConfig is locked — see the lockAdditionalFields
         // note below), so neither the client nor a reconnect can produce a
