@@ -283,6 +283,8 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
 
   /** The lesson may use the speaker (the one audio manager, src/lib/audioManager.ts, plays everything the app plays). */
   const speakerOnRef = useRef(false);
+  /** A driver (runLesson) is running: start() will not begin a second one. */
+  const drivingRef = useRef(false);
   const streamRef = useRef<MediaStream | null>(null);
   const scriptRef = useRef<LessonScript | null>(null);
   const stateRef = useRef<OrchestratorState>(createInitialState());
@@ -847,10 +849,32 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
    * A request whose token only a pause moved — not a newer line, a stop or a navigation — is asked for again once ▶:
    * a line is never lost to ⏸, and never starts while paused.
    */
+  /** A line never claims the speaker while ⏸ holds the lesson: it waits here, and starts (under a fresh token) after ▶. */
+  const holdWhilePaused = async () => {
+    while (pausedRef.current && !stoppedRef.current && !cut()) await wait(100);
+  };
   const askAgainAfterPause = async (token: number): Promise<boolean> => {
     if (cut() || audio.superseded(token)) return false;
     while (pausedRef.current && !stoppedRef.current) await wait(100);
     return !cut() && !audio.superseded(token);
+  };
+  /**
+   * A start the audio manager REFUSED (play → "stale") while the token is still current: the manager is holding a pause.
+   * If the lesson is paused too, the line waits for ▶ and is asked again (a few times at most). If the lesson is NOT
+   * paused, the two disagree — that is a bug, said loudly with both states, and the line is given up rather than asked
+   * again in a loop.
+   */
+  const refusedStart = async (token: number, attempt: number, label: string): Promise<boolean> => {
+    if (!pausedRef.current && audio.isCurrent(token)) {
+      const state = audio.debug();
+      console.error(`[useLessonRuntime] the audio manager refused "${label}" while the lesson is not paused (manager paused ${state.paused}, context ${state.contextState}) — the line is given up`);
+      logEvent(`✗ audio refused ${label.slice(0, 32)} while not paused (manager paused ${state.paused})`);
+      return false;
+    }
+    if (attempt >= 5) return false;
+    const again = await askAgainAfterPause(token);
+    if (again) logEvent(`line asked again after ⏸: ${label.slice(0, 40)}`);
+    return again;
   };
   const withSpeech = async <T,>(fn: () => Promise<T>): Promise<T> => {
     const previous = speechLockRef.current;
@@ -883,7 +907,7 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
   };
 
   const speak = (beat: Beat): Promise<void> => withSpeech(() => speakNow(beat));
-  const speakNow = async (beat: Beat): Promise<void> => {
+  const speakNow = async (beat: Beat, attempt = 0): Promise<void> => {
     if (!speakerOnRef.current || cut()) return;
     const text = lineFor(beat);
     // The request, under its own token: the clip fetched and decoded — asked for again if only ⏸ took the token.
@@ -891,6 +915,8 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
     let buffer: AudioBuffer | null = null;
     let token = 0;
     for (;;) {
+      await holdWhilePaused();
+      if (cut()) return;
       token = audio.claim(beat.id);
       // A beat with no fixed words (a RETEACH, which used to be written by a model at runtime) has nothing to fetch.
       const fetched = text ? await audio.unlessStale(token, fetchClip(text)) : null;
@@ -980,6 +1006,8 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
         if (choreo && spans && index > 0) fireSentence(choreo, index, spans, heard.meta.durationMs);
       },
     });
+    // Refused because ⏸ came first (and nothing newer took the floor): the line is said after ▶, never dropped.
+    if (result === "stale" && (await refusedStart(token, attempt, beat.id))) return speakNow(beat, attempt + 1);
     if (result !== "ended" || cut()) return;
     // The echo guard the mic path relied on before: never start listening
     // over the tail of her own voice.
@@ -1127,7 +1155,10 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
     const config = audioConfigRef.current;
     if (!config || !speakerOnRef.current || cut()) return false;
     const label = `${activeBeatRef.current?.id ?? "—"} (authored)`;
+    let attempts = 0;
     for (;;) {
+      await holdWhilePaused();
+      if (cut()) return false;
       const token = audio.claim(label);
       const clip = await audio.unlessStale(token, loadClipByKey(clipKey(text, config.voice), text).catch(() => null));
       if (clip === STALE) {
@@ -1145,6 +1176,7 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
       if (clip && buffer) {
         beatAudioMsRef.current += clip.meta.durationMs;
         const result = await audio.play(buffer, { token, label, sentences: clip.meta.sentences });
+        if (result === "stale" && (await refusedStart(token, (attempts += 1), label))) continue;
         if (result !== "ended") return false;
         await lessonWait(MIC_TAIL_MS);
         return true;
@@ -1333,7 +1365,10 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
     words.push(...plan.words.map((w) => w.word));
     if (frame?.after) words.push(frame.after);
     const label = `${activeBeatRef.current?.id ?? "—"} (number ${value})`;
+    let attempts = 0;
     for (;;) {
+      await holdWhilePaused();
+      if (cut()) return false;
       const token = audio.claim(label);
       const clips: Uint8Array[] = [];
       let stale = false;
@@ -1373,6 +1408,7 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
       beatAudioMsRef.current += durationMs;
       logEvent(`composed number ${value} (${plan.spoken}) from ${clips.length} clip(s)`);
       const result = await audio.play(buffer, { token, label, sentences: [{ startMs: 0 }] });
+      if (result === "stale" && (await refusedStart(token, (attempts += 1), label))) continue;
       if (result !== "ended") return result === "stopped";
       await lessonWait(MIC_TAIL_MS);
       return true;
@@ -1955,6 +1991,8 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
     await chat.runChat({
       stream,
       context: buildChatContext(),
+      // A chat that cannot go on stays on its panel with her line; the reason is logged here, for the debug overlay.
+      onFailure: (failure) => logEvent(`✋ chat could not go on — ${failure.kind}: ${failure.reason}`),
       onBoardTool: (name, args) => {
         const target = typeof args.target === "string" ? parseTargetKey(args.target) : null;
         if (!target) return;
@@ -2098,6 +2136,9 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
       revisitRef.current = finishedBeatsRef.current.has(next.id);
       runningIndexRef.current = index;
       publishNav(index);
+      // A ⏸ that landed while this beat was being chosen (the recap's fetch) holds it here, before anything of it is served.
+      while (pausedRef.current && !stoppedRef.current) await wait(200);
+      if (stoppedRef.current) break;
       await runBeat(next, true);
       if (navRequestRef.current === null && !stoppedRef.current) finishedBeatsRef.current.add(next.id);
       revisitRef.current = false;
@@ -2269,6 +2310,14 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
   };
 
   const start = useCallback(async () => {
+    logEvent(`start() — status ${statusRef.current}, paused ${pausedRef.current}`);
+    // One driver per lesson: a start while one is still running would reset the pause under the child's feet (the ref
+    // cleared, the screen still saying ⏸) and run two drivers over one speaker. It is refused, and said.
+    if (drivingRef.current) {
+      console.warn("[useLessonRuntime] start() refused: a lesson is already running");
+      logEvent("start() refused — a lesson is already running");
+      return;
+    }
     setError(null);
     setRuntimeStatus("preparing");
     const auth = await ensureSession();
@@ -2283,6 +2332,8 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
     }
     stoppedRef.current = false;
     pausedRef.current = false;
+    // Today's ✋ chat time, for the debug overlay.
+    void chat.refreshBudget();
     pendingBeatsRef.current = [];
     usedReteachAnglesRef.current = [];
     sequenceRef.current = 0;
@@ -2390,7 +2441,12 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
       speakerOnRef.current = true;
 
       setRuntimeStatus("teaching");
-      await runLesson();
+      drivingRef.current = true;
+      try {
+        await runLesson();
+      } finally {
+        drivingRef.current = false;
+      }
     } catch (err) {
       console.error("[useLessonRuntime] Could not start the lesson:", err);
       closeReasonRef.current = "error";
@@ -2419,6 +2475,7 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
   const applyPause = useCallback(() => {
     const next = manualPauseRef.current || holdsRef.current.size > 0;
     if (next === pausedRef.current) return;
+    logEvent(`${next ? "⏸ paused" : "▶ resumed"} (manual ${manualPauseRef.current}, holds ${[...holdsRef.current].join(",") || "none"})`);
     pausedRef.current = next;
     setPaused(next);
     if (next) {
@@ -2701,6 +2758,11 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
         return true;
       },
       chatError: () => chat.error,
+      /** The pause drill's diagnostics: the runtime's pause state and the audio manager's, as they are right now. */
+      pauseState: () =>
+        settingsRef.current.devMode
+          ? { paused: pausedRef.current, manual: manualPauseRef.current, holds: [...holdsRef.current], status: statusRef.current, audio: audio.debug() }
+          : null,
       /** The soft double-tap drill: `n` more soft checks open straight after the current one (no line between). */
       softChecksBackToBack: (n = 1) => {
         if (!settingsRef.current.devMode) return false;
@@ -2787,7 +2849,9 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
       closeReason: closeReasonRef.current + (limitPendingRef.current ? " (pending — finishing the exercise)" : ""),
       /** The ✋ connection's last error (cluster H item 12) — shown in the overlay, never swallowed. */
       chatError: chat.error,
-      chatStatus: chat.chatting ? "connected" : "idle",
+      chatStatus: chat.chatting ? "connected" : chat.failure ? `failed (${chat.failure.kind})` : "idle",
+      /** Today's ✋ chat time: what is left (DEV_MODE: not counted). */
+      chatBudget: chat.budget,
       /** The input transcription, for the overlay only — the panel never shows it. */
       chatChild: chat.transcript.child,
     }),
@@ -2832,6 +2896,8 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
     chatError: chat.error,
     /** The ✋ sheet's two-line live transcript. */
     chatTranscript: chat.transcript,
+    /** A chat that could not go on: its panel stays, with Zara's line, until the child closes it. */
+    chatFailure: chat.failure,
     start,
     stop,
     togglePause,

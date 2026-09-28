@@ -6,7 +6,7 @@ Every child-facing and parent-facing string outside the session, extracted from 
 - **drafted**: from the design export (Screens A/B/C) or the runtime — needs sign-off (README "Copy").
 - **missing**: the app needs the line and the export has no Sinhala for it; the screen leaves the spot empty or reuses an export string, and the English gloss says what is needed.
 
-Counts: fromScript 21 · drafted 246 · missing 18
+Counts: fromScript 21 · drafted 253 · missing 18
 
 Terms: ගණක රාමුව (never අබකසය) · සාරා · සාරා ටීචර් (Latin "Zara Teacher" only on the splash wordmark, the manifest and the parent zone's English; "Serendib Scholar" is the company, parent-zone footer only). `{name}`-style holes are filled at runtime.
 
@@ -202,6 +202,8 @@ Terms: ගණක රාමුව (never අබකසය) · සාරා · ස�
 | Parent zone | `parent.row.billing` | දායකත්වය සහ බිල්පත් | Subscription and billing | drafted |
 | Parent zone | `parent.row.limit` | දිනපතා කාල සීමාව | Daily time limit | drafted |
 | Parent zone | `parent.row.limitSub` | 15 · 20 · 30 | 15 · 20 · 30 (minutes) | drafted |
+| Parent zone | `parent.row.chatLimit` | සාරා එක්ක කතා කරන කාලය (දිනකට) | Time to talk with Zara (per day) | drafted |
+| Parent zone | `parent.row.chatLimitSub` | 15 · 30 · 60 | 15 · 30 · 60 (minutes of ✋ chat a day) | drafted |
 | Parent zone | `parent.row.sound` | ශබ්දය සහ උපසිරැසි | Sound and captions | drafted |
 | Parent zone | `parent.row.soundOn` | ශබ්දය ✓ | Sound ✓ | drafted |
 | Parent zone | `parent.row.captionsOn` | උපසිරැසි ✓ | Captions ✓ | drafted |
@@ -263,6 +265,11 @@ Terms: ගණක රාමුව (never අබකසය) · සාරා · ස�
 | Session | `nav.stepN` | {n} වෙනි පියවර | Step {n} (the playback panel's position, after the concept's name) | drafted |
 | Session | `nav.listen` | 🔊 ආයෙත් අහන්න | 🔊 Hear it again (plays the selected step's line once) | drafted |
 | Session | `chat.childSpoke` | ඔයා කතා කළා | You spoke (the child's turn in the chat, in place of a transcript) | drafted |
+| Session | `chat.outOfTime` | අද කතා කරන්න පුළුවන් වෙලාව ඉවරයි, හෙට ආයෙත් කතා කරමු | Today's chat time is used up — let's talk again tomorrow (the daily chat budget is spent) | drafted |
+| Session | `chat.failNetwork` | අන්තර්ජාලය නෑ වගේ. ටිකකින් ආයෙත් කතා කරමු. | Looks like there's no internet. Let's talk again in a little while (the chat could not reach the server) | drafted |
+| Session | `chat.failStart` | සම්බන්ධ වෙන්න බැරි වුණා. ආයෙ උත්සාහ කරන්න. | Couldn't connect. Try again (the chat session could not be started) | drafted |
+| Session | `chat.failDropped` | කතාව මැදින් නැවතුණා. ආයෙත් ✋ ඔබන්න. | The chat stopped part-way. Tap ✋ again (the live connection closed) | drafted |
+| Session | `chat.enoughForNow` | දැන් ටිකක් පාඩම කරමු, පස්සේ ආයෙත් කතා කරමු. | Let's do some of the lesson now, and talk again later (one chat's longest stretch is over) | drafted |
 | Edge | `edge.rotate.title` | ෆෝන් එක හරහට කරන්න | Turn your phone sideways | drafted |
 | Edge | `edge.rotate.body` | පුවරුව හොඳට පේන්න පාඩම හරහට තියෙන්නේ. | The lesson is landscape so the board shows well. | drafted |
 | Edge | `edge.mic.title` | මයික් එකට අවසර දෙන්න | Allow the microphone | drafted |

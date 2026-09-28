@@ -1,10 +1,11 @@
 import "server-only";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { DEFAULT_CHAT_MINUTES, isChatMinutes, type ChatMinutes } from "@/lib/chatBudgetRules";
 
 /**
  * The per-child fields the app shell needs beyond the lesson: the avatar
  * slot, the parent's PIN (hashed) and the settings the parent zone edits
- * (captions, sound, the daily time limit).
+ * (captions, sound, the daily time limit, the daily ✋ chat time).
  *
  * Home: the three columns added to `children` (supabase/schema.sql, the
  * Integration C ALTER). Until that ALTER has run on a database the same
@@ -17,6 +18,8 @@ export interface ChildSettings {
   captions: boolean;
   sound: boolean;
   dailyLimitMinutes: 15 | 20 | 30;
+  /** The ✋ chat's daily budget (src/lib/chatBudgetRules.ts): charged by the connected second, 30 by default. */
+  chatMinutes: ChatMinutes;
 }
 
 export interface ChildExtras {
@@ -29,7 +32,7 @@ export interface ChildExtras {
 
 // 30 by default (the device walk, 17 Sep: a 15-minute limit closed a sitting
 // in the middle of the abacus reading). A parent can bring it down to 20 or 15.
-export const DEFAULT_SETTINGS: ChildSettings = { captions: true, sound: true, dailyLimitMinutes: 30 };
+export const DEFAULT_SETTINGS: ChildSettings = { captions: true, sound: true, dailyLimitMinutes: 30, chatMinutes: DEFAULT_CHAT_MINUTES };
 
 const BUCKET = "child-extras";
 const MISSING_COLUMN = /column .* does not exist|schema cache/u;
@@ -41,6 +44,7 @@ function normaliseSettings(raw: unknown): ChildSettings {
     captions: typeof o.captions === "boolean" ? o.captions : DEFAULT_SETTINGS.captions,
     sound: typeof o.sound === "boolean" ? o.sound : DEFAULT_SETTINGS.sound,
     dailyLimitMinutes: limit === 15 || limit === 20 || limit === 30 ? limit : DEFAULT_SETTINGS.dailyLimitMinutes,
+    chatMinutes: isChatMinutes(o.chatMinutes) ? o.chatMinutes : DEFAULT_SETTINGS.chatMinutes,
   };
 }
 

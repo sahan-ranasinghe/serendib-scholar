@@ -53,7 +53,9 @@ harness asserts a full session makes zero transcription calls. Details in
 Every money-spending route is budgeted on the server, per session and per
 child: at most 40 reading-assessment transcriptions per 10 minutes (a
 route the shipped lesson path never calls), 20 on-demand
-voice renders per session, 15 minutes of live chat per day, and 60
+voice renders per session, the parent's daily live-chat time (30 minutes by
+default; each opening charged its connected seconds, at least 15 s, at most
+10 minutes, `src/lib/chatBudgetRules.ts`), and 60
 requests per minute from any one internet address. Past a ceiling the app
 says, kindly, to take a break. (The counters live in a database table —
 `api_rate_limits` in `supabase/schema.sql` — and the limits switch on

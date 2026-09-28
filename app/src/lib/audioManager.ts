@@ -140,10 +140,15 @@ class AudioManager {
     return new OfflineAudioContext(1, 1, 44100).decodeAudioData(data);
   }
 
-  /** The lesson's first gesture (and every later one): let the speaker run — unless ⏸ holds it. */
+  /**
+   * The lesson's first gesture (and every later one): let the speaker run — unless ⏸ holds it. suspend() and resume()
+   * are asked for UNCONDITIONALLY: the context applies them in the order they are called, but its `state` changes only
+   * when each one lands — deciding by `state` let a resume still in flight outlive a pause (the lesson paused, the voice
+   * running on) and let a start-of-lesson resume be skipped while a suspend was still on its way.
+   */
   unlock(): void {
     const ctx = this.context();
-    if (ctx && ctx.state === "suspended" && !this.paused) void ctx.resume();
+    if (ctx && !this.paused && ctx.state !== "closed") void ctx.resume().catch(() => undefined);
   }
 
   // ---------------------------------------------------------------- the token
@@ -217,7 +222,7 @@ class AudioManager {
       voice.token = token;
       voice.frozen = true;
     }
-    if (this.ctx && this.ctx.state === "running") void this.ctx.suspend();
+    if (this.ctx && this.ctx.state !== "closed") void this.ctx.suspend().catch(() => undefined);
   }
 
   /** ▶: the token moves on again; the frozen line plays on, a preview started while paused (🔊) ends here. */
@@ -230,7 +235,7 @@ class AudioManager {
         voice.frozen = false;
       } else voice.stop();
     }
-    if (this.ctx && this.ctx.state === "suspended") void this.ctx.resume();
+    if (this.ctx && this.ctx.state !== "closed") void this.ctx.resume().catch(() => undefined);
   }
 
   isPaused(): boolean {
@@ -241,7 +246,7 @@ class AudioManager {
   release(reason: string): void {
     this.stopAll(reason);
     this.paused = false;
-    if (this.ctx && this.ctx.state === "running") void this.ctx.suspend();
+    if (this.ctx && this.ctx.state !== "closed") void this.ctx.suspend().catch(() => undefined);
   }
 
   // ---------------------------------------------------------------- fetching
@@ -285,7 +290,7 @@ class AudioManager {
     if (!ctx || !bus || !this.isCurrent(options.token)) return Promise.resolve("stale");
     if (this.paused && !options.whilePaused) return Promise.resolve("stale");
     this.assertAlone(options.label, null);
-    if (options.whilePaused && ctx.state === "suspended") void ctx.resume();
+    if (options.whilePaused) void ctx.resume().catch(() => undefined);
     const source = ctx.createBufferSource();
     source.buffer = buffer;
     (source as AudioBufferSourceNode & { __label?: string }).__label = options.label;
@@ -316,7 +321,7 @@ class AudioManager {
         }
         this.setSounding(-1);
         // A preview that ends while ⏸ still holds the lesson puts the speaker back to sleep with it.
-        if (options.whilePaused && this.paused && ctx.state === "running") void ctx.suspend();
+        if (options.whilePaused && this.paused) void ctx.suspend().catch(() => undefined);
         resolve(result);
       };
       // Sentence boundaries and the end, on the audio clock: 'ended' is unreliable on some phones, and a wall-clock timer
@@ -422,8 +427,10 @@ class AudioManager {
     const bus = this.effectBus;
     if (!ctx || !bus || this.paused) return;
     // Outside a lesson (the gallery) nothing else wakes the speaker; inside one, a pause never gets this far.
-    if (ctx.state === "suspended") void ctx.resume();
-    if (ctx.state !== "running") return;
+    if (ctx.state !== "running") {
+      void ctx.resume().catch(() => undefined);
+      return;
+    }
     for (const part of build(ctx, bus)) {
       part.node.start(part.at);
       if (part.stopAt !== undefined) part.node.stop(part.stopAt);

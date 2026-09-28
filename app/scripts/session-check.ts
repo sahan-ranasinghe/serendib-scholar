@@ -61,6 +61,41 @@ const OTP_ONLY = process.argv.includes("--otp-only");
 const WRONG_BEAT = arg("wrong") ? `authored:${arg("wrong")!.replace(/^authored:/u, "")}` : null;
 /** What the ✋ transcription channel might deliver for a Sinhala child (23 Sep 2026: wrong script, another language, fragments) — injected, never shown. */
 const INJECTED_TRANSCRIPT = "こんにちは 123 hello";
+/** What Zara says when the day's ✋ chat time is spent (src/lib/appCopy.ts chat.outOfTime — the owner's own words). */
+const OUT_OF_TIME = "අද කතා කරන්න පුළුවන් වෙලාව ඉවරයි, හෙට ආයෙත් කතා කරමු";
+/**
+ * The chat drill's Live socket: a WebSocket to the Live API that only answers `setup` with `setupComplete` — the chat
+ * is "connected" and nothing is ever sent to Google. Any other URL gets the real WebSocket.
+ */
+const FAKE_LIVE_SOCKET_JS = `(() => {
+  if (window.__fakeLive) return true;
+  const Real = window.WebSocket;
+  class FakeLive {
+    constructor(url, protocols) {
+      if (!String(url).includes('generativelanguage')) return new Real(url, protocols);
+      this.url = String(url);
+      this.readyState = 0;
+      window.__fakeLive.sockets.push(this);
+      setTimeout(() => { this.readyState = 1; if (this.onopen) this.onopen({ type: 'open' }); }, 30);
+    }
+    send(data) {
+      let message = null;
+      try { message = JSON.parse(String(data)); } catch (e) {}
+      if (message && message.setup) setTimeout(() => { if (this.onmessage) this.onmessage({ data: JSON.stringify({ setupComplete: {} }) }); }, 30);
+    }
+    close(code, reason) {
+      if (this.readyState === 3) return;
+      this.readyState = 3;
+      setTimeout(() => { if (this.onclose) this.onclose({ code: code || 1000, reason: reason || '', wasClean: true }); }, 0);
+    }
+    addEventListener() {}
+    removeEventListener() {}
+  }
+  FakeLive.CONNECTING = 0; FakeLive.OPEN = 1; FakeLive.CLOSING = 2; FakeLive.CLOSED = 3;
+  window.__fakeLive = { Real, sockets: [] };
+  window.WebSocket = FakeLive;
+  return true;
+})()`;
 /** --from=<beat>: a partial run for one stretch of the lesson (DEV_MODE's jump) — the completion and mastery checks do not apply to it. */
 const FROM_BEAT = arg("from") ? `authored:${arg("from")!.replace(/^authored:/u, "")}` : null;
 const RUN_TAG = arg("tag") ?? `${VIEW_W}x${VIEW_H}-${SCHEME}${REDUCED_MOTION ? "-reduced" : ""}`;
@@ -654,6 +689,8 @@ async function main(): Promise<void> {
   let rodRunBad = 0;
   let inputNotShown = 0;
   let chatPanel: { coverage: number; share: number; dimmed: boolean; portrait: number; boardOk: boolean } | null = null;
+  /** The ✋ chat budget drill's trace, printed at the end. */
+  let chatBudgetTrace: string[] = [];
   let paidCallCount = 0;
   const asksOf = new Map<string, number>();
   /** Open builds per hand (digits → how many times built), so each build is a different permutation. */
@@ -704,17 +741,36 @@ async function main(): Promise<void> {
     if ([5, 40, 80].includes(ordinal) && !drillDone.has(`pause-${ordinal}`)) {
       drillDone.add(`pause-${ordinal}`);
       const eventsBefore = await choreoCount();
+      const consoleAt = consoleLines.length;
       await tapSelector('[aria-label="විරාමය"]');
       await wait(400);
       const pausedNow = await isPaused();
       const eventsAtPause = await choreoCount();
       const beatAtPause = await evaluate<string>(page, `document.querySelector('.lesson-screen')?.dataset.beatId ?? '—'`);
-      await wait(4000);
+      // A timeline of the hold, printed when the drill fails: the pause flag, the board's events, the beat, and what the
+      // audio context itself did (its state changes, from the browser's own log) — so a failure explains itself.
+      const markHold = await pageNow();
+      const timeline: string[] = [];
+      let lastRow = "";
+      for (let i = 0; i < 16; i += 1) {
+        await wait(250);
+        const row = await evaluate<string>(page, `(() => { const el = document.querySelector('.lesson-screen'); const st = window.__dev && window.__dev.pauseState ? window.__dev.pauseState() : null; return (el && el.hasAttribute('data-paused') ? 'P' : 'p') + ' ' + ((window.__choreoLog ?? []).length) + ' ' + (el?.dataset.beatId ?? '—').replace(/^authored:/, '') + (st ? ' [runtime ' + (st.paused ? 'paused' : 'RUNNING') + ' manual ' + st.manual + ' holds ' + (st.holds.join(',') || '—') + ' · audio ' + (st.audio.paused ? 'paused' : 'RUNNING') + ' ctx ' + st.audio.contextState + ']' : ''); })()`);
+        if (row !== lastRow) timeline.push(`+${(i + 1) * 250} ${row}`);
+        lastRow = row;
+      }
       const during = { paused: await isPaused(), events: await choreoCount(), beat: await evaluate<string>(page, `document.querySelector('.lesson-screen')?.dataset.beatId ?? '—'`) };
+      const underResume = await evaluate<string>(page, `(() => { const b = document.querySelector('[aria-label="දිගටම"]'); if (!b) return 'no ▶ in the page'; const r = b.getBoundingClientRect(); const h = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return h ? (h === b || b.contains(h) ? 'the strip ▶' : 'COVERED by ' + h.tagName + ' ' + (h.getAttribute('data-testid') || h.className || '')) : 'nothing'; })()`);
       await tapSelector('[aria-label="දිගටම"]');
       await wait(300);
       const after = { paused: await isPaused(), beat: await evaluate<string>(page, `document.querySelector('.lesson-screen')?.dataset.beatId ?? '—'`) };
       const ok = pausedNow && during.paused && during.events === eventsAtPause && during.beat === beatAtPause && !after.paused && after.beat === beatAtPause;
+      if (!ok) {
+        const contextStates = await evaluate<string>(page, `(() => { const T = window.__audioTruth; if (!T) return '—'; return T.contexts.map((c) => c.id + ': ' + c.anchors.filter((a, i, all) => a.p >= ${markHold} - 1500 && (i === 0 || all[i - 1].s !== a.s)).map((a) => Math.round(a.p - ${markHold}) + 'ms ' + a.s).join(', ')).join(' | '); })()`);
+        const refusedTaps = await evaluate<string>(page, `JSON.stringify((window.__singleFire?.refused ?? []).slice(-4))`);
+        console.log(`      pause timeline (P paused / p playing · board events · beat): ${timeline.join(" ‖ ")}`);
+        console.log(`      audio context state changes around the hold: ${contextStates || "none"} · ▶ tap point: ${underResume} · guard refused: ${refusedTaps}`);
+        console.log(`      the lesson's log during the hold: ${consoleLines.slice(consoleAt).map((l) => l.replace(/^debug: /u, "")).join(" ‖ ").slice(0, 900) || "—"}`);
+      }
       drillNote(`pause at beat ${ordinal}`, ok, `${short} · paused ${pausedNow ? "yes" : "NO"} · 4 s later: beat ${during.beat === beatAtPause ? "unchanged" : `CHANGED to ${during.beat}`}, events while paused ${during.events - eventsAtPause} (${eventsBefore} → ${eventsAtPause} at the pause) · resumed ${after.paused ? "NO" : "yes"} on ${after.beat === beatAtPause ? "the same beat" : `a DIFFERENT beat (${after.beat})`}`);
     }
     // 1. A tap on the board while she is talking: a hint, not an answer.
@@ -860,6 +916,129 @@ async function main(): Promise<void> {
       const status = (await snapshot()).status;
       drillNote("first ✋ asks for the microphone; the chat is a panel beside the board", before === 0 && micAsk.up && micAsk.portrait >= 150 && micAsk.dimmed && micAsk.buttons === 2 && gumBeforeAllow === 0 && after === 1 && sheet.up && sheet.portrait > 0 && sheet.portrait <= 64 && sheet.lines === 2 && !sheet.dimmed && sheet.coverage === 0 && sheet.share <= 33.4 && sheet.bot && sheet.close && sheet.veil === 1 && returned && status !== "chatting", `getUserMedia calls before ✋: ${before} · P1 sheet ${micAsk.up ? "up" : "MISSING"} (Zara ${micAsk.portrait} px, dimmed ${micAsk.dimmed ? "yes" : "NO"}, ${micAsk.buttons} buttons, "${micAsk.title.trim().slice(0, 30)}") · calls before හරි: ${gumBeforeAllow} · after: ${after}${explained ? ` · her explanation: "${explained.slice(0, 40)}"` : ""} · chat panel ${sheet.up ? "up" : "MISSING"}: covers ${sheet.coverage} % of the board, takes ${sheet.share} % of the screen's long side, board dimmed ${sheet.dimmed ? "YES" : "no"} (opacity ${sheet.veil}), Zara ${sheet.portrait} px, ${sheet.lines} transcript lines, close button ${sheet.close ? "yes" : "NO"}, bot button ${sheet.bot ? "still there" : "GONE"}, board layout beside it ${sheet.boardOk ? "clean" : "HAS OVERLAPS"} · bot tapped to close ${returned ? "yes" : "NO"} → ${status}`);
     }
+    // 3c. THE ✋ CHAT'S TIME, AND NEVER A SILENT FAILURE (28 Sep 2026). A 429 from our own chat budget used to close the chat
+    // at once (the panel flashed and vanished), and the day was charged 5 minutes per opening. No paid call here: the
+    // server's DEV_MODE mock hands back a fake token (ss_chat_mock=on — nothing reaches Google) and the page's Live
+    // WebSocket is the harness's own fake, which only answers the setup. The budget itself is the REAL accounting: the
+    // ss_chat_budget=enforce cookie lifts DEV_MODE's exemption for this throwaway child.
+    if (DRILLS && childA && drillDone.has("chat") && !drillDone.has("chat-budget") && snap.status === "teaching") {
+      drillDone.add("chat-budget");
+      const dayBucket = `chat:${childA}:${new Date().toISOString().slice(0, 10)}`;
+      const setUsed = async (seconds: number) => {
+        await supabaseAdmin.from("api_rate_limits").upsert({ bucket: dayBucket, window_started_at: new Date().toISOString(), count: seconds }, { onConflict: "bucket" });
+      };
+      const readUsed = async () => ((await supabaseAdmin.from("api_rate_limits").select("count").eq("bucket", dayBucket).maybeSingle()).data as { count?: number } | null)?.count ?? 0;
+      const openHolds = async () => (await supabaseAdmin.from("api_rate_limits").select("bucket", { count: "exact", head: true }).like("bucket", `chat-open:${childA}:%`)).count ?? 0;
+      type ChatState = { up: boolean; failure: string | null; line: string; listening: boolean; status: string; chat: string };
+      const chatState = () => evaluate<ChatState>(page, `(() => { const s = document.querySelector('[data-testid="chat-sheet"]'); const el = document.querySelector('.lesson-screen'); return { up: !!s, failure: s ? s.getAttribute('data-chat-failure') : null, line: ((s && s.querySelector('[data-testid="chat-line-zara"]')?.textContent) ?? '').trim(), listening: !!(s && s.querySelector('[data-testid="chat-listening"]')), status: el?.dataset.status ?? '—', chat: el?.dataset.chat ?? '—' }; })()`);
+      const waitChat = async (test: (c: ChatState) => boolean, ms: number) => {
+        let c = await chatState();
+        for (let i = 0; i < ms / 150 && !test(c); i += 1) {
+          await wait(150);
+          c = await chatState();
+        }
+        return c;
+      };
+      /**
+       * ✋, as a child would: tapped only while no chat panel is up (a tap on an open panel closes it), and again if the
+       * first tap found no ✋ on screen (a question's turn hides it) — until the chat is connected or has failed visibly.
+       */
+      const openByHand = async (): Promise<ChatState> => {
+        let c = await chatState();
+        for (let attempt = 0; attempt < 10; attempt += 1) {
+          if (!c.up) await tapSelector('[data-testid="hand"]');
+          c = await waitChat((x) => x.up && (x.chat === "connected" || x.failure !== null), 6000);
+          if (c.up && (c.chat === "connected" || c.failure !== null)) return c;
+          if (!c.up) await wait(1500);
+        }
+        return c;
+      };
+      const overlay = async () => {
+        for (let i = 0; i < 5; i += 1) {
+          await clickSelector('[data-testid="session-title"]');
+          await wait(120);
+        }
+        let text = { chat: "", budget: "" };
+        for (let i = 0; i < 12 && !text.budget.includes("min"); i += 1) {
+          await wait(300);
+          text = await evaluate<{ chat: string; budget: string }>(page, `({ chat: (document.querySelector('[data-testid="debug-chat"]')?.textContent ?? '').trim(), budget: (document.querySelector('[data-testid="debug-chat-budget"]')?.textContent ?? '').trim() })`);
+        }
+        for (let i = 0; i < 5; i += 1) {
+          await clickSelector('[data-testid="session-title"]');
+          await wait(120);
+        }
+        return text;
+      };
+      await evaluate(page, FAKE_LIVE_SOCKET_JS);
+      await evaluate(page, `(() => { document.cookie = "ss_chat_budget=enforce; path=/"; document.cookie = "ss_chat_mock=on; path=/"; return true; })()`);
+      const limit = (await evaluate<{ budget?: { limitSeconds: number } }>(page, `fetch('/api/chat-usage').then((r) => r.json())`))?.budget?.limitSeconds ?? 1800;
+      const trace: string[] = [];
+
+      // (a) The day's chat time spent: the 429 keeps the panel OPEN with her line until the child closes it.
+      await setUsed(limit);
+      const spentUp = await openByHand();
+      const samples: ChatState[] = [];
+      for (let i = 0; i < 16; i += 1) {
+        await wait(250);
+        samples.push(await chatState());
+      }
+      const stayed = spentUp.up && samples.every((c) => c.up && c.failure === "budget");
+      const spent = samples[samples.length - 1]!;
+      const spentOverlay = await overlay();
+      await shoot(snap.beatId, "-drill-chat-spent");
+      await tapSelector('[data-testid="chat-return"]');
+      const afterSpent = await waitChat((c) => !c.up, 4000);
+      const spentOk = stayed && spent.line === OUT_OF_TIME && !spent.listening && spent.status === "chatting" && spent.chat === "failed" && spentOverlay.chat.includes("budget") && spentOverlay.budget.includes("0.0 of") && !afterSpent.up;
+      trace.push(`spent (${limit} of ${limit} s used): ✋ → panel ${spentUp.up ? "up" : "NEVER UP"} · 4 s of samples: ${samples.filter((c) => c.up).length}/16 up, failure "${spent.failure}" · Zara: "${spent.line}" · listening pill ${spent.listening ? "SHOWN" : "gone"} · status ${spent.status} · overlay "${spentOverlay.chat.slice(0, 80)}" / "${spentOverlay.budget}" · closed by the child → panel ${afterSpent.up ? "STILL UP" : "gone"}`);
+      drillNote("the chat's time spent: the panel stays open with her Sinhala line until the child closes it", spentOk, trace[trace.length - 1]!);
+
+      // (b) Time left: the chat opens, STAYS open (connected), and closed after 10 s is charged 15 s — not 5 minutes.
+      await setUsed(0);
+      await wait(1500);
+      const connected = await openByHand();
+      const connectedAt = Date.now();
+      const heldWhileOpen = await readUsed();
+      const openSamples: ChatState[] = [];
+      while (Date.now() - connectedAt < 10_000) {
+        await wait(500);
+        openSamples.push(await chatState());
+      }
+      await evaluate(page, `(() => { window.__chatUsage = null; return true; })()`);
+      await tapSelector('[data-testid="chat-return"]');
+      let usage: { settled?: boolean; reportedSeconds?: number; heldSeconds?: number; chargedSeconds?: number; refundedSeconds?: number; budget?: { remainingSeconds: number } } | null = null;
+      // The settle goes through the proxy and a few database round trips: on a slow link it takes seconds.
+      for (let i = 0; i < 150 && !usage; i += 1) {
+        await wait(200);
+        usage = await evaluate(page, `window.__chatUsage ?? null`);
+      }
+      const usedAfter = await readUsed();
+      const holdsLeft = await openHolds();
+      const openOverlay = await overlay();
+      const stayedOpen = connected.chat === "connected" && openSamples.length >= 3 && openSamples.every((c) => c.up && c.chat === "connected" && c.failure === null);
+      const chargeOk = !!usage?.settled && usage.chargedSeconds === 15 && usedAfter === 15 && holdsLeft === 0 && (usage.reportedSeconds ?? 0) >= 9 && (usage.reportedSeconds ?? 99) <= 12;
+      trace.push(`time left: ✋ → ${connected.chat === "connected" ? "connected" : `NOT connected (${connected.chat}, failure ${connected.failure})`} · held while open ${heldWhileOpen} s · open for 10 s: ${openSamples.filter((c) => c.up && c.chat === "connected").length}/${openSamples.length} samples up and connected · closed → reported ${usage?.reportedSeconds ?? "—"} s, held ${usage?.heldSeconds ?? "—"} s, CHARGED ${usage?.chargedSeconds ?? "—"} s, refunded ${usage?.refundedSeconds ?? "—"} s · the day now ${usedAfter} s (was charged 300 s per opening before) · holds left ${holdsLeft} · overlay "${openOverlay.budget}"`);
+      drillNote("time left: the chat stays open, and closed after 10 s it is charged 15 s, not 5 minutes", stayedOpen && chargeOk && openOverlay.budget.includes("29.8 of 30"), trace[trace.length - 1]!);
+
+      // (c) DEV_MODE: without the enforce cookie the budget is not counted — a spent day still opens, and nothing is charged.
+      await setUsed(limit);
+      await evaluate(page, `(() => { document.cookie = "ss_chat_budget=; path=/; max-age=0"; return true; })()`);
+      await wait(1500);
+      const exempt = await openByHand();
+      await wait(2000);
+      const exemptOverlay = await overlay();
+      await tapSelector('[data-testid="chat-return"]');
+      await waitChat((c) => !c.up, 4000);
+      await wait(800);
+      const exemptUsed = await readUsed();
+      const exemptOk = exempt.chat === "connected" && exempt.failure === null && exemptUsed === limit && exemptOverlay.budget.includes("not counted");
+      trace.push(`DEV_MODE (no enforce cookie), day spent: ✋ → ${exempt.chat === "connected" ? "connected" : `NOT connected (${exempt.failure})`} · the day ${exemptUsed === limit ? "unchanged" : `CHANGED to ${exemptUsed}`} (${exemptUsed} s) · overlay "${exemptOverlay.budget}"`);
+      drillNote("DEV_MODE exempts the chat budget: a spent day still opens and is not charged", exemptOk, trace[trace.length - 1]!);
+
+      // Put the device and the child back.
+      await evaluate(page, `(() => { document.cookie = "ss_chat_mock=; path=/; max-age=0"; if (window.__fakeLive) { window.WebSocket = window.__fakeLive.Real; } return true; })()`);
+      await supabaseAdmin.from("api_rate_limits").delete().eq("bucket", dayBucket);
+      chatBudgetTrace = trace;
+    }
     // 3a. THE PLAYBACK PANEL SCRUBS (23 Sep 2026, from a real device): ⏸ opens it beside the board and the lesson stays
     // paused; ⏮ ⏭ and the concept chips SELECT a beat silently (its board and its line, no audio, no resume); 🔊 plays the
     // selected line once; ▶ දිගටම plays from the selected beat. Audio is measured throughout by the BROWSER (heard(): the
@@ -901,7 +1080,16 @@ async function main(): Promise<void> {
       }
       return h;
     };
-    const masteryRows = async () => (await supabaseAdmin.from("child_progress").select("*", { count: "exact", head: true }).eq("child_id", childA!)).count ?? 0;
+    /** A database read that says so when it fails (a transient Supabase error read as "0 rows" once failed a drill). */
+    const masteryRows = async () => {
+      for (let attempt = 0; attempt < 4; attempt += 1) {
+        const { count, error } = await supabaseAdmin.from("child_progress").select("*", { count: "exact", head: true }).eq("child_id", childA!);
+        if (!error && count !== null) return count;
+        console.log(`      (child_progress read failed: ${error?.message ?? "no count"} — retrying)`);
+        await wait(1000);
+      }
+      return -1;
+    };
 
     if (short === "readWrite4Digit:9" && !drillDone.has("nav") && snap.status === "teaching" && childA) {
       drillDone.add("nav");
@@ -965,7 +1153,13 @@ async function main(): Promise<void> {
       const back6Heard = await heard(beforeResume.now, back6.now);
       const played = await lineStartsSince(startsBefore);
       const masteryAfter = await masteryRows();
-      const { data: navRows } = await supabaseAdmin.from("session_log").select("beat_id, planner_decision").eq("child_id", childA).eq("beat_type", "NAV").order("sequence", { ascending: false }).limit(1);
+      let navRows: unknown[] | null = null;
+      for (let attempt = 0; attempt < 4 && !navRows?.length; attempt += 1) {
+        const { data, error } = await supabaseAdmin.from("session_log").select("beat_id, planner_decision").eq("child_id", childA).eq("beat_type", "NAV").order("sequence", { ascending: false }).limit(1);
+        if (error) console.log(`      (NAV row read failed: ${error.message} — retrying)`);
+        navRows = data;
+        if (!navRows?.length) await wait(1000);
+      }
       const navRow = (navRows ?? [])[0] as { beat_id: string; planner_decision: { from?: string; to?: string; steps?: number } } | undefined;
       // The first clip that REALLY sounded after ▶ is the selected beat's (its label is the beat id).
       const resumeOk = firstLine?.beatId === idOf(target) && back6Heard.sounding[0]?.label === idOf(target) && !afterResume.paused && !afterResume.panel;
@@ -1699,9 +1893,10 @@ async function main(): Promise<void> {
   console.log(`first paint${NETWORK === "3g" ? " on 3G" : ""} (page clock, fresh load after the gate): first contentful paint ${ms(firstPaintMs.fcp)} · board surface ${ms(firstPaintMs.surface)} · first primitive on it ${ms(firstPaintMs.primitive)}`);
   if (DRILLS) {
     if (navTrace.length) console.log(`\nplayback panel (navigation) traces:\n${navTrace.map((l) => `  ${l}`).join("\n")}`);
+    if (chatBudgetTrace.length) console.log(`\n✋ chat budget drill (fake socket, DEV_MODE mock token — no paid call; the server's accounting is real):\n${chatBudgetTrace.map((l) => `  ${l}`).join("\n")}`);
     console.log(`\nfailure-mode drills (${drillResults.filter((r) => r.startsWith("PASS")).length}/${drillResults.length} handled visibly):`);
     for (const line of drillResults) console.log(`  ${line}`);
-    for (const name of ["touch during playback", "rotation mid-beat", "backgrounded tab", "missing clip", "first ✋ asks for the microphone", "the chat shows the child's turn as a neutral bubble", "Zara's portrait is not a control", "three ↺ taps are one question", "pause at beat 5", "pause at beat 40", "pause at beat 80", "type at 11 s and 23 s", "pad at a fast pace", "pad at a human pace", "the pad submits only on ✓", "two touches 80 ms apart on the soft check", "an unreached concept chip is not selectable", "⏭ stops at the furthest reached", "rapid double-tap on ⏮", "five taps on ⏮", "resume plays only the selected beat", "step back 6 beats then resume", "tapping a concept chip", "🔊 plays the selected beat", "resume from a concept chip", "10000 on a 4-digit answer", "read-aloud readWrite4Digit:2"]) if (!drillResults.some((r) => r.includes(name))) console.log(`  SKIP  ${name}: its beat was not reached`);
+    for (const name of ["touch during playback", "rotation mid-beat", "backgrounded tab", "missing clip", "first ✋ asks for the microphone", "the chat shows the child's turn as a neutral bubble", "the chat's time spent", "time left: the chat stays open", "DEV_MODE exempts the chat budget", "Zara's portrait is not a control", "three ↺ taps are one question", "pause at beat 5", "pause at beat 40", "pause at beat 80", "type at 11 s and 23 s", "pad at a fast pace", "pad at a human pace", "the pad submits only on ✓", "two touches 80 ms apart on the soft check", "an unreached concept chip is not selectable", "⏭ stops at the furthest reached", "rapid double-tap on ⏮", "five taps on ⏮", "resume plays only the selected beat", "step back 6 beats then resume", "tapping a concept chip", "🔊 plays the selected beat", "resume from a concept chip", "10000 on a 4-digit answer", "read-aloud readWrite4Digit:2"]) if (!drillResults.some((r) => r.includes(name))) console.log(`  SKIP  ${name}: its beat was not reached`);
   }
   if (fpsSamples.length) console.log(`fps while animating${CPU_THROTTLE > 1 ? ` at cpu×${CPU_THROTTLE}` : ""}: ${fpsSamples.map((s) => `${s.beatId.replace(/^authored:/u, "")} ${s.fps}`).join(", ")}`);
   const flagged = audits.filter((a) => a.audit && (a.audit.overlap || a.audit.portraitOverlap || a.audit.cutOff || a.audit.small.length || a.audit.tinyText.length));
@@ -1768,7 +1963,7 @@ async function main(): Promise<void> {
     const server = await evaluate<{ allowed?: Record<string, number>; refused?: Record<string, number>; switches?: Record<string, string> } | null>(page, `fetch('/api/paid-calls').then((r) => r.json()).catch(() => null)`).catch(() => null);
     const serverAllowed = Object.entries(server?.allowed ?? {}).filter(([kind]) => kind !== "chat");
     paidCallCount += serverAllowed.reduce((sum, [, n]) => sum + n, 0);
-    console.log(`\nPAID CALLS this session: ${paidCallCount}  (requests — ${paidRoutes.map((r) => `/api/${r} ${apiCalls.get(r) ?? 0}`).join(" · ")} · chat token /api/gemini-session ${apiCalls.get("gemini-session") ?? 0}${DRILLS ? " (the ✋ drill's, held at the door and never answered)" : ""})`);
+    console.log(`\nPAID CALLS this session: ${paidCallCount}  (requests — ${paidRoutes.map((r) => `/api/${r} ${apiCalls.get(r) ?? 0}`).join(" · ")} · chat token /api/gemini-session ${apiCalls.get("gemini-session") ?? 0}${DRILLS ? " (the first ✋ drill's, held at the door and never answered; the budget drill's, answered by the DEV_MODE mock — no call to Google)" : ""})`);
     console.log(`  server gate (src/lib/paidCalls.ts, this process): allowed ${JSON.stringify(server?.allowed ?? {})} · refused ${JSON.stringify(server?.refused ?? {})} · switches ${JSON.stringify(server?.switches ?? {})}`);
     console.log(`tap → feedback latency: median ${median === null ? "n/a" : `${median} ms`} over ${latencies.length} judged answers${sorted.length ? ` (min ${sorted[0]}, max ${sorted[sorted.length - 1]})` : ""}`);
     {

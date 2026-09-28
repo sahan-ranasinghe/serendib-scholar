@@ -17,7 +17,7 @@ const LABEL = "font:600 16px/1.5 var(--font-label);color:var(--color-ink-70)";
 const PIN_LABEL = "font:600 18px/1.5 var(--font-label);color:var(--color-ink-70)";
 const PRIMARY = "height:52px;border:2px solid var(--color-teal);border-radius:12px;background:var(--color-card);color:var(--color-teal);font:600 18px/1.5 var(--font-body)";
 
-/** Daily limit (15 · 20 · 30), sound and captions — the parent's settings, saved as they change. */
+/** Daily limit (15 · 20 · 30), the ✋ chat's daily time (15 · 30 · 60), sound and captions — saved as they change. */
 export function SettingsClient({ settings: initial, source }: { settings: ChildSettings; source: string }) {
   useLang();
   const { refresh } = useAppState();
@@ -43,6 +43,17 @@ export function SettingsClient({ settings: initial, source }: { settings: ChildS
           <div style={sx("display:flex;gap:10px")} data-testid="limit-choices">
             {([15, 20, 30] as const).map((m) => (
               <div key={m} role="button" data-limit={m} data-selected={settings.dailyLimitMinutes === m || undefined} onClick={() => void save({ dailyLimitMinutes: m })} style={sx(choice(settings.dailyLimitMinutes === m))}>
+                {m}
+              </div>
+            ))}
+          </div>
+        </div>
+        {/* The ✋ chat's own day, beside the lesson's (28 Sep 2026): charged by the connected second, 30 minutes by default. */}
+        <div style={sx("display:grid;gap:6px")}>
+          <span style={sx(LABEL)}>{t("parent.row.chatLimit")}</span>
+          <div style={sx("display:flex;gap:10px")} data-testid="chat-limit-choices">
+            {([15, 30, 60] as const).map((m) => (
+              <div key={m} role="button" data-chat-limit={m} data-selected={(settings.chatMinutes ?? 30) === m || undefined} onClick={() => void save({ chatMinutes: m })} style={sx(choice((settings.chatMinutes ?? 30) === m))}>
                 {m}
               </div>
             ))}

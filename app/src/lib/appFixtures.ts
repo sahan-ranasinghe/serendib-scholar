@@ -130,7 +130,7 @@ export const FIXTURE_PARENT: ParentZoneData = {
   confident: 4,
   conceptsTotal: 6,
   // The export's settings rows read 'ශබ්දය ✓' and an empty PIN value.
-  settings: { captions: false, sound: true, dailyLimitMinutes: 15 },
+  settings: { captions: false, sound: true, dailyLimitMinutes: 15, chatMinutes: 30 },
   pinSet: false,
   childrenCount: 1,
   reportRange: "සැප්. 2–8",

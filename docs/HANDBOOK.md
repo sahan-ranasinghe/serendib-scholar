@@ -168,8 +168,10 @@ build than the server shows an update banner.
 
 Gemini is the only cost that grows with usage:
 - Playing a lesson costs nothing.
-- The ✋ chat costs roughly cents per minute and is capped at 15 minutes per
-  child per day.
+- The ✋ chat costs roughly cents per minute and is capped per child per day
+  at 30 minutes by default (the parent zone offers 15, 30 or 60). It is
+  charged by the connected second: at least 15 seconds and at most 10
+  minutes per opening (`src/lib/chatBudgetRules.ts`).
 - One-off jobs are small. Reading a 40-page PDF costs about US$0.14, and
   drafting or rendering a session costs a few dollars.
 

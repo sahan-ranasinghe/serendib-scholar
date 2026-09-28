@@ -10,8 +10,9 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
  *   - /api/hear:        40 calls / 10 min / session
  *   - /api/speak-line:  20 on-demand renders / session (4h window = the
  *                       session cookie's own lifetime)
- *   - live chat:        15 min / day / child, charged conservatively at
- *                       5 min per chat opening (see gemini-session)
+ *   - live chat:        the parent's daily chat time (30 min by default),
+ *                       charged by the connected second — its own
+ *                       accounting, src/lib/chatBudget.ts
  *
  * FAIL-OPEN, LOUDLY: if the table is missing or Postgres is unreachable,
  * the request is allowed and an error is logged. A missing rate limiter

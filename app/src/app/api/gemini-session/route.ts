@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { paidCallAllowed } from "@/lib/paidCalls";
 import { ZARA_VOICE as SHARED_ZARA_VOICE } from "@/lib/zaraVoice";
 import { requireSession } from "@/lib/sessionAuth";
-import { limitedResponseBody, takeBudget } from "@/lib/rateLimit";
+import { chatBudgetExempt, devMode, openChatBudget, settleChatBudget, view } from "@/lib/chatBudget";
+import { readChildExtras } from "@/lib/childStore";
+import { COPY } from "@/lib/appCopy";
 import { GoogleGenAI, Modality } from "@google/genai";
 import { buildSystemPrompt } from "@/lib/prompt";
 import { CHAT_BOARD_TOOLS, GEMINI_LIVE_TOOLS } from "@/lib/geminiLiveTools";
@@ -33,36 +35,51 @@ const ZARA_VOICE = SHARED_ZARA_VOICE;
  * tool set.
  */
 /**
- * Live-chat daily budget: 15 minutes per child per day, charged
- * conservatively at 5 minutes per chat OPENING (the client closes a chat
- * after 20s of quiet, so real chats are shorter; the charge caps how many
- * can be opened, since the server cannot measure a WebSocket it is not a
- * party to). The ephemeral token below also expires ≤30 min out, bounding
- * any single session's life.
+ * THE ✋ CHAT'S DAILY BUDGET (28 Sep 2026, src/lib/chatBudgetRules.ts). It used to charge a flat 5 minutes per opening
+ * against a 15-minute day — three openings, then a silent 429 and a panel that flashed shut. Now the day is the parent's
+ * choice (15 / 30 / 60 minutes, 30 by default), an opening HOLDS what it may use (at most 10 minutes) and the client
+ * settles the connected time at /api/chat-usage (at least 15 s). DEV_MODE is exempt (src/lib/chatBudget.ts).
+ *
+ * A refusal is never silent: the 429 carries the line Zara says on the panel.
  */
-const CHAT_DAILY_BUDGET_SECONDS = 15 * 60;
-const CHAT_CHARGE_PER_OPEN_SECONDS = 5 * 60;
 
 export async function POST(request: NextRequest) {
   // Defense in depth behind the proxy: minting a Live token spends money.
   const session = await requireSession(request);
   if (!session) return NextResponse.json({ ok: false, error: "unauthenticated" }, { status: 401 });
 
-  const day = new Date().toISOString().slice(0, 10);
-  const chatBudget = await takeBudget(
-    `chat:${session.child_id}:${day}`,
-    CHAT_DAILY_BUDGET_SECONDS,
-    24 * 60 * 60,
-    CHAT_CHARGE_PER_OPEN_SECONDS,
-  );
-  if (!chatBudget.allowed) return NextResponse.json(limitedResponseBody(), { status: 429 });
+  const limitSeconds = (await readChildExtras(session.child_id)).settings.chatMinutes * 60;
+  const exempt = chatBudgetExempt(request);
+  let openId: string | null = null;
+  let allowedSeconds = Math.min(limitSeconds, 10 * 60);
+  let budget = view(limitSeconds, 0, exempt);
+  if (!exempt) {
+    const opening = await openChatBudget(session.child_id, limitSeconds);
+    if (!opening.allowed) {
+      return NextResponse.json({ ok: false, error: "chat_budget_spent", message: COPY["chat.outOfTime"].si, budget: opening.budget }, { status: 429 });
+    }
+    openId = opening.openId;
+    allowedSeconds = opening.allowedSeconds;
+    budget = opening.budget;
+  }
+  const chat = { openId, allowedSeconds, budget };
+  // DEV_MODE only: the harness's chat drill — the budget is real, the token is not (no call to Google is made; the page's
+  // WebSocket is the harness's own fake).
+  if (devMode() && request.cookies.get("ss_chat_mock")?.value === "on") {
+    return NextResponse.json({ ok: true, token: "mock", model: GEMINI_LIVE_MODEL, mock: true, chat });
+  }
   // The one permitted paid call in the app (src/lib/paidCalls.ts) — counted, so a harness can tell it from any other.
   paidCallAllowed("chat");
+  /** The chat never started: the whole hold goes back. */
+  const release = async () => {
+    if (openId) await settleChatBudget(session.child_id, openId, null, limitSeconds);
+  };
 
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
+    await release();
     return NextResponse.json(
-      { error: "GEMINI_API_KEY is not configured on the server" },
+      { ok: false, error: "GEMINI_API_KEY is not configured on the server" },
       { status: 500 },
     );
   }
@@ -137,15 +154,18 @@ export async function POST(request: NextRequest) {
     const token = await ai.authTokens.create({ config: tokenConfig });
 
     return NextResponse.json({
+      ok: true,
       token: token.name,
       model: GEMINI_LIVE_MODEL,
       expireTime: token.expireTime,
       voice: ZARA_VOICE,
+      chat,
     });
   } catch (error) {
     console.error("[gemini-session] Failed to mint ephemeral token:", error);
+    await release();
     return NextResponse.json(
-      { error: "Failed to start a study session. Please try again." },
+      { ok: false, error: "Failed to start a study session. Please try again." },
       { status: 500 },
     );
   }

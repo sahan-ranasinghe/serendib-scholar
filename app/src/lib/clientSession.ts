@@ -7,7 +7,7 @@
  * code entry.
  */
 export interface SessionStartInfo {
-  settings: { captions: boolean; sound: boolean; dailyLimitMinutes: number };
+  settings: { captions: boolean; sound: boolean; dailyLimitMinutes: number; chatMinutes?: number };
   minutesToday: number;
 }
 

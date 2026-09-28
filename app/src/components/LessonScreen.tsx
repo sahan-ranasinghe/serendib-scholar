@@ -69,6 +69,7 @@ export default function LessonScreen() {
     lesson,
     chatting,
     chatError,
+    chatFailure,
     requestChat,
     getDebugSnapshot,
     getOutputAmplitude,
@@ -228,11 +229,23 @@ export default function LessonScreen() {
     }
   };
   const [debug, setDebug] = useState<ReturnType<typeof getDebugSnapshot> | null>(null);
+  // The latest snapshot getter, read by the overlay's clock. The getter changes on every render (it closes over the chat's
+  // state), and restarting a 1 s interval on every render meant it seldom fired during a lesson: the overlay showed a
+  // stale snapshot (28 Sep 2026 — the ✋ budget read "not counted" and "idle" while the panel said otherwise).
+  const snapshotRef = useRef(getDebugSnapshot);
+  useEffect(() => {
+    snapshotRef.current = getDebugSnapshot;
+  }, [getDebugSnapshot]);
   useEffect(() => {
     if (!debugOpen) return;
-    const timer = setInterval(() => setDebug(getDebugSnapshot()), 1000);
-    return () => clearInterval(timer);
-  }, [debugOpen, getDebugSnapshot]);
+    const tick = () => setDebug(snapshotRef.current());
+    const first = setTimeout(tick, 0);
+    const timer = setInterval(tick, 1000);
+    return () => {
+      clearTimeout(first);
+      clearInterval(timer);
+    };
+  }, [debugOpen]);
   const [reportState, setReportState] = useState<"idle" | "sending" | "sent" | "failed">("idle");
   // DEV_MODE only: wipe this child's rows (session_log, child_progress, child_profile) and start the lesson again — the laptop's reset:child, from the phone.
   const [resetState, setResetState] = useState<"idle" | "busy" | "done" | "failed">("idle");
@@ -317,7 +330,8 @@ export default function LessonScreen() {
   const sheet: SessionSheet | null = micAsk
     ? { kind: "mic", onAllow: () => answerMicAsk(true), onType: () => answerMicAsk(false) }
     : status === "chatting"
-      ? { kind: "chat", childSpoke: chatTranscript.child.length > 0, zara: chatTranscript.zara, listening: chatting && !muted && !paused, onReturn: requestChat }
+      ? // A chat that could not go on keeps its panel: Zara's line says what happened, until the child closes it.
+        { kind: "chat", childSpoke: !chatFailure && chatTranscript.child.length > 0, zara: chatFailure ? chatFailure.line : chatTranscript.zara, listening: chatting && !muted && !paused, onReturn: requestChat, failure: chatFailure?.kind ?? null }
       : null;
 
   return (
@@ -371,7 +385,7 @@ export default function LessonScreen() {
         "data-your-turn": yourTurn ? `${yourTurn.kind}:${yourTurn.surface ?? "pad"}:${yourTurn.touchable ? "touch" : "voice"}:${yourTurn.answerMode ?? "-"}${yourTurn.chips ? ":chips" : ""}${yourTurn.rodPick ? `:rod-${yourTurn.rodPick}` : ""}` : undefined,
         "data-captions": captionsOn ? "on" : "off",
         "data-error": error ?? undefined,
-        "data-chat": chatting ? "connected" : chatError ? "error" : "idle",
+        "data-chat": chatting ? "connected" : chatFailure ? "failed" : chatError ? "error" : "idle",
         "data-chat-error": chatError ?? undefined,
         // the navigation's view, for the harness: where the cursor is, how far the sitting reached, and whether this is a revisit
         "data-beat-index": navInfo ? String(navInfo.current) : undefined,
@@ -466,6 +480,10 @@ export default function LessonScreen() {
           </div>
           <div data-testid="debug-chat" style={debug.chatError ? { color: "#F87171" } : undefined}>
             ✋ {debug.chatStatus}{debug.chatError ? ` — ${debug.chatError}` : ""}
+          </div>
+          <div data-testid="debug-chat-budget">
+            ✋ time today:{" "}
+            {!debug.chatBudget ? "…" : debug.chatBudget.exempt ? `not counted (DEV_MODE) · ${Math.round(debug.chatBudget.limitSeconds / 60)} min a day` : `${(debug.chatBudget.remainingSeconds / 60).toFixed(1)} of ${Math.round(debug.chatBudget.limitSeconds / 60)} min left`}
           </div>
           {/* the Live API's input transcription — misdetects the language, so it is shown HERE only, never in the chat panel */}
           <div data-testid="debug-chat-child" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
