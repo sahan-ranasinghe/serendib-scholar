@@ -41,7 +41,7 @@ export function OutfitsGrid({ outfits, masteredCount }: { outfits: RewardsData["
         ))}
       </div>
       {selected && open !== null && (
-        <div role="dialog" aria-modal="true" aria-label={selected.name} data-testid="outfit-sheet" data-sheet="outfit" data-outfit={open} onClick={() => setOpen(null)} style={sx("position:fixed;inset:0;z-index:50;background:rgba(27,27,27,.45);display:flex;align-items:flex-end;justify-content:center")}>
+        <div role="dialog" aria-modal="true" aria-label={selected.name} data-testid="outfit-sheet" data-sheet="outfit" data-tap data-outfit={open} onClick={() => setOpen(null)} style={sx("position:fixed;inset:0;z-index:50;background:rgba(27,27,27,.45);display:flex;align-items:flex-end;justify-content:center")}>
           <div onClick={(e) => e.stopPropagation()} style={sx("width:100%;max-width:430px;background:var(--color-paper);border-radius:24px 24px 0 0;padding:18px 20px 28px;display:grid;gap:12px;box-shadow:var(--shadow-card)")}>
             <div style={sx("display:flex;align-items:center;gap:14px")}>
               <div style={sx("position:relative")}>

@@ -48,14 +48,28 @@ export interface NavInfo {
   /** This session's first and last beat. */
   first: number;
   last: number;
-  /** The beat now running. */
+  /** The beat now running (or paused mid-flight). */
   current: number;
+  /** The beat the panel shows: the selection while scrubbing, else the current beat. */
+  selected: number;
   /** The furthest beat this sitting has started: ⏭ never passes it. */
   furthest: number;
   /** The current beat was already finished this sitting: nothing it does goes on the record. */
   revisit: boolean;
   /** The questions the child has answered this sitting. */
   answered: number[];
+  /** This session's concepts in order: a chip each; one not reached yet cannot be selected. */
+  concepts: Array<{ tag: string; title: string; first: number; reached: boolean }>;
+  /** Where the selected beat is, in words: its concept and its step within it. */
+  position: { title: string; step: number };
+}
+
+/** The selected beat, as the playback panel shows it: its board (as its line ended) and its line. */
+export interface NavPreview {
+  index: number;
+  beatId: string;
+  stage: StageState;
+  line: string | null;
 }
 
 export interface SessionSummary {
@@ -350,11 +364,14 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
   const skipToCloseRef = useRef(false);
   /**
    * BACK AND FORWARD (23 Sep 2026, the director's request): a lesson is
-   * steps, not a video, so the paused card's playback panel navigates by
-   * beat. A request cuts the beat in flight exactly the way ✋ does (every
-   * wait ends, the clip stops, the window closes), and the driver takes it
-   * at the top of its loop: the target beat's snapshot goes back on the
-   * board and the beat plays through the same speech lock as any other.
+   * steps, not a video, so the playback panel navigates by beat — and it
+   * SCRUBS: while the panel is open the lesson stays paused, and a step
+   * (⏮ ⏭, a concept chip) only SELECTS a beat — its board and its line are
+   * shown, silently (`preview`). The first selection cuts the beat in flight
+   * the way ✋ does (every wait ends, the clip stops, the window closes);
+   * nothing plays until ▶ දිගටම, and then the driver takes the selection at
+   * the top of its loop: the beat's opening snapshot goes back on the board
+   * and it plays through the same speech lock as any other beat.
    *
    * Forward never passes the furthest beat this sitting has started (a child
    * cannot skip a question they have not answered). A beat already finished
@@ -369,8 +386,16 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
   const answeredRef = useRef(new Map<string, { value: string; correct: boolean }>());
   /** The board as each script beat began — what ⏮ restores. */
   const beatSnapshotsRef = useRef(new Map<number, { stage: StageState; board: BoardContent | null }>());
-  /** When the current line began, on the lesson clock: ⏮ inside its first two seconds goes back a beat, later replays the line. */
-  const lineStartedAtRef = useRef(0);
+  /** The beat the panel has selected (null: paused in place, nothing selected yet). */
+  const selectedRef = useRef<number | null>(null);
+  /** How the selection was reached (for the NAV row): steps taken, and whether a concept chip was used. */
+  const navTrailRef = useRef({ steps: 0, concept: false });
+  /** The board each script beat showed when its line ended — what a selected beat previews. */
+  const lineEndStagesRef = useRef(new Map<number, StageState>());
+  /** The script beat now running (its index), for the line-end record. */
+  const runningIndexRef = useRef(-1);
+  /** What the panel shows for the selected beat: its board and its line, silently. */
+  const [preview, setPreview] = useState<NavPreview | null>(null);
   /** The script beat now running was already finished this sitting (see navRequestRef). */
   const revisitRef = useRef(false);
   const [navInfo, setNavInfo] = useState<NavInfo | null>(null);
@@ -566,20 +591,56 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
     tick();
   };
 
-  /** The playback panel's view: this session's beats, the current one, the furthest reached, and which are answered. */
+  /**
+   * The board of a step: everything DRAWN on it (the base, the chalk, the ring, the pointer, the chips as they stand), none
+   * of the waiting (the your-turn state, a soft pause's timer, the retry note, the parked hand). What the panel shows for a
+   * selected beat, and what the line-end record keeps — one projection, so the two are comparable.
+   */
+  const stepBoard = (stage: StageState): StageState => ({ ...stage, turn: null, pause: null, retry: false, parked: false });
+
+  /** The board as a script beat's line ended — kept for the panel's preview, and published for the harness (window.__lineEndStages). */
+  const recordLineEnd = (index: number, beatId: string) => {
+    const board = stepBoard(stageRef.current);
+    lineEndStagesRef.current.set(index, board);
+    if (typeof window === "undefined") return;
+    const w = window as unknown as { __lineEndStages?: Record<string, string> };
+    w.__lineEndStages = { ...(w.__lineEndStages ?? {}), [beatId]: describeStage(board) };
+  };
+
+  /** This session's span and its concepts in order (a framing beat — the close — belongs to the concept before it). */
+  const sessionSpan = (index: number) => {
+    const script = scriptRef.current!;
+    const session = sessionForBeat(script, index);
+    const first = session && script.sessions.indexOf(session) > 0 ? session.firstBeat : 0;
+    const last = session?.lastBeat ?? script.beats.length - 1;
+    const concepts: Array<{ tag: string; first: number }> = [];
+    for (let i = first; i <= last; i += 1) {
+      const tag = script.beats[i]!.conceptTag;
+      if (tag === FRAMING_CONCEPT || concepts[concepts.length - 1]?.tag === tag) continue;
+      concepts.push({ tag, first: i });
+    }
+    const conceptOf = (at: number) => [...concepts].reverse().find((c) => c.first <= at) ?? concepts[0] ?? { tag: FRAMING_CONCEPT, first };
+    return { first, last, concepts, conceptOf };
+  };
+
+  /** The playback panel's view: this session's beats, the current one, the selected one, the furthest reached, the concepts. */
   const publishNav = (current: number) => {
     const script = scriptRef.current;
     if (!script) return;
-    const session = sessionForBeat(script, current);
-    const first = session && script.sessions.indexOf(session) > 0 ? session.firstBeat : 0;
-    const last = session?.lastBeat ?? script.beats.length - 1;
+    const { first, last, concepts, conceptOf } = sessionSpan(current);
+    const furthest = Math.min(last, Math.max(furthestIndexRef.current, current));
+    const selected = selectedRef.current ?? current;
+    const at = conceptOf(selected);
     const info: NavInfo = {
       first,
       last,
       current,
-      furthest: Math.min(last, Math.max(furthestIndexRef.current, current)),
+      selected,
+      furthest,
       revisit: finishedBeatsRef.current.has(script.beats[current]?.id ?? ""),
       answered: script.beats.slice(first, last + 1).map((b, i) => (answeredRef.current.has(b.id) ? first + i : -1)).filter((i) => i >= 0),
+      concepts: concepts.map((c) => ({ tag: c.tag, title: conceptTitle(c.tag, script.concepts.find((k) => k.conceptTag === c.tag)?.description), first: c.first, reached: c.first <= furthest })),
+      position: { title: conceptTitle(at.tag, script.concepts.find((k) => k.conceptTag === at.tag)?.description), step: selected - at.first + 1 },
     };
     setNavInfo(info);
     if (typeof window !== "undefined") (window as unknown as { __nav?: NavInfo }).__nav = info;
@@ -776,6 +837,27 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
    */
   const speechLockRef = useRef<Promise<void>>(Promise.resolve());
   const testToneRef = useRef(false);
+  /**
+   * THE SPEECH EPOCH (23 Sep 2026, the playback panel's overlaps). Every new holder of the floor and every navigation
+   * bumps it; a line that was still FETCHING its clip when the floor moved used to finish its fetch and play anyway —
+   * a moment later, over the next line. Each line now captures the epoch as it starts, waits for its clip only until the
+   * epoch moves (clipUnlessMoved), and checks it again before it plays. The player drops a clip still decoding (its
+   * generation, src/lib/pcmAudio.ts). Nothing started under an old epoch reaches the speaker.
+   */
+  const speechEpochRef = useRef(0);
+  const epochWaitersRef = useRef(new Set<() => void>());
+  const bumpSpeechEpoch = () => {
+    speechEpochRef.current += 1;
+    const waiters = [...epochWaitersRef.current];
+    epochWaitersRef.current.clear();
+    for (const wake of waiters) wake();
+  };
+  /** The clip for `text`, or null the moment the epoch moves on (the shared fetch itself goes on warming the cache). */
+  const clipUnlessMoved = (text: string, epoch: number): Promise<{ text: string; audio: ArrayBuffer; meta: ClipMeta } | null> => {
+    if (speechEpochRef.current !== epoch) return Promise.resolve(null);
+    const moved = new Promise<null>((resolve) => epochWaitersRef.current.add(() => resolve(null)));
+    return Promise.race([fetchClip(text), moved]).then((clip) => (speechEpochRef.current === epoch ? clip : null));
+  };
   const withSpeech = async <T,>(fn: () => Promise<T>): Promise<T> => {
     const previous = speechLockRef.current;
     let release: () => void = () => undefined;
@@ -783,7 +865,10 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
       release = resolve;
     });
     // (DEV_MODE's test tone holds the floor like a line, but must not be cut by the line queued behind it.)
-    if (!testToneRef.current) playerRef.current?.clear();
+    if (!testToneRef.current) {
+      bumpSpeechEpoch();
+      playerRef.current?.clear();
+    }
     await previous.catch(() => undefined);
     try {
       return await fn();
@@ -793,20 +878,28 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
   };
 
   /** For the harness: when each line began (its clip, or its caption when there is no clip) — tap → spoken feedback is measured from this. */
-  const noteLineStart = (beatId: string, via: "clip" | "caption") => {
+  const noteLineStart = (beatId: string, via: "clip" | "caption" | "listen") => {
     if (typeof window === "undefined") return;
-    (window as unknown as { __lastLineStart?: { beatId: string; via: string; at: number } }).__lastLineStart = { beatId, via, at: performance.now() };
+    const w = window as unknown as { __lastLineStart?: { beatId: string; via: string; at: number }; __lineStarts?: Array<{ n: number; beatId: string; via: string; at: number }>; __lineStartCount?: number };
+    // Every line, in order and numbered (the list keeps the last 60; the number keeps counting) — a navigation drill reads
+    // which line played first after ▶, and that nothing else did.
+    const n = (w.__lineStartCount ?? 0) + 1;
+    w.__lineStartCount = n;
+    const entry = { n, beatId, via, at: performance.now() };
+    w.__lastLineStart = entry;
+    w.__lineStarts = [...(w.__lineStarts ?? []).slice(-59), entry];
   };
 
   const speak = (beat: Beat): Promise<void> => withSpeech(() => speakNow(beat));
   const speakNow = async (beat: Beat): Promise<void> => {
     const player = playerRef.current;
     if (!player || cut()) return;
-    lineStartedAtRef.current = lessonNow();
+    const epoch = speechEpochRef.current;
     const text = lineFor(beat);
     // A beat with no fixed words (a RETEACH, which used to be written by a model at runtime) has nothing to fetch.
-    const clip = await fetchClip(text ?? "");
-    if (stoppedRef.current) return;
+    const clip = text ? await clipUnlessMoved(text, epoch) : null;
+    // The floor moved while the clip was on its way (a navigation, a newer line): this line is over before it began.
+    if (cut() || speechEpochRef.current !== epoch) return;
     if (!clip) {
       noteLineStart(beat.id, "caption");
       // No clip at all (nobody has recorded or rendered the line): the
@@ -1016,11 +1109,14 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
    * on the board for a moment. Never rendered on demand: these are the
    * lines docs/RECORDING.md lists for the next session.
    */
-  const sayAuthored = async (text: string): Promise<boolean> => {
+  const sayAuthored = (text: string): Promise<boolean> => withSpeech(() => sayAuthoredNow(text));
+  const sayAuthoredNow = async (text: string): Promise<boolean> => {
     const config = audioConfigRef.current;
     const player = playerRef.current;
-    if (!config || !player || stoppedRef.current) return false;
+    if (!config || !player || cut()) return false;
+    const epoch = speechEpochRef.current;
     const clip = await loadClipByKey(clipKey(text, config.voice), text).catch(() => null);
+    if (cut() || speechEpochRef.current !== epoch) return false;
     setCaption(text);
     recentLinesRef.current.push(text);
     if (clip) {
@@ -1205,8 +1301,9 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
   const speakComposedNumberNow = async (value: number, frame?: NumberFrame): Promise<boolean> => {
     const player = playerRef.current;
     const config = audioConfigRef.current;
-    if (!player || !config || stoppedRef.current) return false;
+    if (!player || !config || cut()) return false;
     if (!Number.isInteger(value) || value < 0 || value > 100_000) return false;
+    const epoch = speechEpochRef.current;
     const plan = numberClipPlan(value, config.voice);
     const words: string[] = [];
     if (frame?.before) words.push(resolveAddress(frame.before, childGenderRef.current));
@@ -1215,6 +1312,7 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
     const clips: Uint8Array[] = [];
     for (const word of words) {
       const clip = await loadClipByKey(clipKey(word, config.voice), word).catch(() => null);
+      if (cut() || speechEpochRef.current !== epoch) return false;
       if (!clip) {
         logEvent(`number clips missing for "${word}" — board only`);
         console.warn(`[useLessonRuntime] no recorded clip for number word "${word}"; not composing ${value}`);
@@ -1328,6 +1426,9 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
       if (!spoken) logEvent(`composed line unavailable for ${options.composed.value} — rendering it instead`);
     }
     if (!spoken) await speak(beat);
+    // The board as this script beat's line ends: what the panel shows when the child steps back to it.
+    const index = runningIndexRef.current;
+    if (!cut() && index >= 0 && scriptRef.current?.beats[index]?.id === beat.id) recordLineEnd(index, beat.id);
     // The read-back: "look at the board" — then the number itself, in her
     // voice, if the number-word clips exist. Never the AI voice for this:
     // the board already carries the name, so silence loses nothing.
@@ -1407,6 +1508,9 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
     setStage({ ...reduceStage(stageRef.current, { primitive: "turn", event: "over", args: {} }) });
   };
 
+  /** DEV_MODE only (the soft double-tap drill): soft checks still to open straight after the current one, with no line between. */
+  const softBurstRef = useRef(0);
+
   /** A pause with nothing to answer: the portrait perks up; a tap is engagement. Returns whether the child tapped. */
   const softPause = async (ms: number): Promise<boolean> => {
     if (stoppedRef.current) return false;
@@ -1414,12 +1518,22 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
     setRuntimeStatus("pausing");
     dispatchStage({ primitive: "turn", event: "pause", args: { ms } });
     setYourTurn({ kind: "soft", surface: null, touchable: false, numeric: false });
+    const counts = window as unknown as { __softPauses?: { opened: number; tapped: number } };
+    counts.__softPauses = { opened: (counts.__softPauses?.opened ?? 0) + 1, tapped: counts.__softPauses?.tapped ?? 0 };
     const tapped = await awaitTap(ms);
+    // How many soft checks a tap has advanced, for the harness (a double tap advances one).
+    if (tapped) counts.__softPauses = { opened: counts.__softPauses?.opened ?? 0, tapped: (counts.__softPauses?.tapped ?? 0) + 1 };
     setYourTurn(null);
     dispatchStage({ primitive: "turn", event: "over", args: {} });
     padAnswerRef.current = null;
     setRuntimeStatus("teaching");
     if (tapped) logEvent("soft check: the child tapped");
+    // The drill's back-to-back soft check opens in the same tick as this one closes: the board never stops being a soft
+    // check in between, so a fast second touch meets it open — the case the single-fire guard is for.
+    if (softBurstRef.current > 0 && !stoppedRef.current) {
+      softBurstRef.current -= 1;
+      await softPause(ms);
+    }
     return Boolean(tapped);
   };
 
@@ -1854,8 +1968,9 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
 
       const nav = navRequestRef.current;
       if (nav) {
-        // ⏮ ⏭ / a step mark: the beat in flight has unwound (every path checks cut()). Its leftovers go, the target's
-        // snapshot returns to the board, and the driver plays the target as it would any beat — through the speech lock.
+        // ▶ දිගටම after a selection: the beat in flight has unwound (every path checks cut()). Its leftovers go, the
+        // selected beat's OPENING snapshot returns to the board (its events replay with its line), and the driver plays it
+        // as it would any beat — through the speech lock.
         navRequestRef.current = null;
         pendingBeatsRef.current = [];
         frozenRef.current = [];
@@ -1888,8 +2003,10 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
           missesRef.current.delete(target.id);
           stateRef.current = { ...stateRef.current, beatIndex: nav.index };
           sequenceRef.current += 1;
-          void logNav({ sessionId: sessionIdRef.current, sequence: sequenceRef.current, kind: nav.kind, fromBeatId: script.beats[nav.from]?.id ?? null, toBeatId: target.id, furthestBeatId: script.beats[furthestIndexRef.current]?.id ?? null });
-          logEvent(`nav ${nav.kind}: ${script.beats[nav.from]?.id.slice(0, 32) ?? "—"} → ${target.id.slice(0, 32)}${finishedBeatsRef.current.has(target.id) ? " (revisit)" : ""}`);
+          const kind: NavKind = navTrailRef.current.concept ? "goto" : nav.index < nav.from ? "back" : nav.index > nav.from ? "forward" : "replay";
+          void logNav({ sessionId: sessionIdRef.current, sequence: sequenceRef.current, kind, fromBeatId: script.beats[nav.from]?.id ?? null, toBeatId: target.id, furthestBeatId: script.beats[furthestIndexRef.current]?.id ?? null, steps: navTrailRef.current.steps });
+          logEvent(`nav ${kind} (${navTrailRef.current.steps} step(s)): ${script.beats[nav.from]?.id.slice(0, 32) ?? "—"} → ${target.id.slice(0, 32)}${finishedBeatsRef.current.has(target.id) ? " (revisit)" : ""}`);
+          navTrailRef.current = { steps: 0, concept: false };
         }
       }
 
@@ -1935,6 +2052,7 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
       beatSnapshotsRef.current.set(index, { stage: stageRef.current, board: boardContentRef.current });
       furthestIndexRef.current = Math.max(furthestIndexRef.current, index);
       revisitRef.current = finishedBeatsRef.current.has(next.id);
+      runningIndexRef.current = index;
       publishNav(index);
       await runBeat(next, true);
       if (navRequestRef.current === null && !stoppedRef.current) finishedBeatsRef.current.add(next.id);
@@ -2150,6 +2268,11 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
     closeReasonRef.current = "complete";
     setLimitEnded(false);
     navRequestRef.current = null;
+    selectedRef.current = null;
+    navTrailRef.current = { steps: 0, concept: false };
+    lineEndStagesRef.current = new Map();
+    runningIndexRef.current = -1;
+    setPreview(null);
     furthestIndexRef.current = 0;
     finishedBeatsRef.current = new Set();
     answeredRef.current = new Map();
@@ -2256,6 +2379,10 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
     } else {
       if (pausedAtRef.current !== null) pausedTotalRef.current += Date.now() - pausedAtRef.current;
       pausedAtRef.current = null;
+      // ▶ දිගටම: the panel closes. A selection is already a nav request — the driver plays the selected beat next.
+      selectedRef.current = null;
+      setPreview(null);
+      if (typeof window !== "undefined") (window as unknown as { __navPreview?: unknown }).__navPreview = null;
       void playerRef.current?.resume();
       const frozen = frozenRef.current.splice(0);
       for (const entry of frozen) setTimeout(entry.run, Math.max(0, entry.startMs - positionMs()));
@@ -2360,10 +2487,12 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
   }, [chat]);
 
   /**
-   * The beat in flight is cut here and now (a navigation): its clip stops, its window closes, every wait ends, and its
-   * choreography can land nothing more on the board (frozen events dropped, the active choreography let go).
+   * The beat in flight is cut here and now (a navigation): the speech epoch moves (a clip still on its way never plays),
+   * its clip stops, its window closes, every wait ends, and its choreography can land nothing more on the board (frozen
+   * events dropped, the active choreography let go).
    */
   const cutBeatInFlight = () => {
+    bumpSpeechEpoch();
     frozenRef.current = [];
     activeChoreoRef.current = null;
     playerRef.current?.clear();
@@ -2371,50 +2500,88 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
     recorderRef.current?.finish();
   };
 
-  /**
-   * ⏮ ⏭ / a step mark (the paused card's playback panel). ⏮ more than two
-   * seconds into the current line replays the line from its start, earlier
-   * it goes back a beat; ⏭ goes forward one beat and never past the furthest
-   * beat reached; a step mark goes to any reached beat. The request cuts the
-   * beat in flight the way ✋ does and resumes the lesson; the driver takes
-   * it at its next loop (see navRequestRef). Returns whether it was taken.
-   */
-  const navigate = (kind: "back" | "forward" | "goto", target?: number): boolean => {
-    const script = scriptRef.current;
-    if (!script || stoppedRef.current || statusRef.current === "chatting" || statusRef.current === "done") return false;
-    const current = stateRef.current.beatIndex;
-    const session = sessionForBeat(script, current);
-    const first = session && script.sessions.indexOf(session) > 0 ? session.firstBeat : 0;
-    const last = session?.lastBeat ?? script.beats.length - 1;
-    let index: number;
-    let navKind: NavKind;
-    if (kind === "back") {
-      const intoLine = lessonNow() - lineStartedAtRef.current;
-      if (intoLine > 2000 || current <= first) {
-        index = current;
-        navKind = "replay";
-      } else {
-        index = current - 1;
-        navKind = "back";
+  /** The board a beat previews: as its line ended this sitting, else its opening snapshot with its events applied. */
+  const previewFor = (index: number): NavPreview => {
+    const script = scriptRef.current!;
+    const beat = script.beats[index]!;
+    let stage = lineEndStagesRef.current.get(index);
+    if (!stage) {
+      let start = beatSnapshotsRef.current.get(index)?.stage;
+      if (!start) {
+        start = initialStage();
+        for (let i = 0; i < index; i += 1) {
+          const storyboarded = storyboardRef.current.get(script.beats[i]!.id);
+          if (!storyboarded) continue;
+          for (const event of storyboarded.events) if (isKnownEvent(event)) start = reduceStage(start, event, { legacy: null, lastBuilt: lastBuiltNumberRef.current ?? 1364 });
+        }
       }
-    } else if (kind === "forward") {
-      if (current >= furthestIndexRef.current || current >= last) return false;
-      index = current + 1;
-      navKind = "forward";
-    } else {
-      if (target === undefined || !Number.isInteger(target) || target < first || target > Math.min(last, furthestIndexRef.current)) return false;
-      index = target;
-      navKind = "goto";
+      stage = start;
+      for (const event of storyboardRef.current.get(beat.id)?.events ?? []) if (isKnownEvent(event)) stage = reduceStage(stage, event, { legacy: null, lastBuilt: lastBuiltNumberRef.current ?? 1364 });
     }
-    setNavRequest({ kind: navKind, index, from: current });
-    cutBeatInFlight();
-    // Navigation plays: the panel lives on the paused card, and the target beat starts as the lesson resumes.
-    manualPauseRef.current = false;
-    holdsRef.current.delete("asking");
-    applyPause();
-    publishNav(index);
-    logEvent(`nav requested: ${navKind} → ${script.beats[index]?.id.slice(0, 40) ?? index}`);
+    // A preview is looked at, never answered: the board of the step (chips drawn, nothing waiting — the board takes no tap
+    // while it is up, the screen passes no turn).
+    stage = { ...stepBoard(stage), seq: stageRef.current.seq + 1 };
+    const line = lineFor(beat);
+    return { index, beatId: beat.id, stage, line: line ? resolveAddress(line, childGenderRef.current) : null };
+  };
+
+  /** Selects a beat on the panel (scrubbing): shows its board and line, silently. Returns whether the selection moved. */
+  const select = (index: number, via: "step" | "concept"): boolean => {
+    const script = scriptRef.current;
+    if (!script || stoppedRef.current || !manualPauseRef.current) return false;
+    const current = stateRef.current.beatIndex;
+    const { first, last } = sessionSpan(current);
+    const furthest = Math.min(last, Math.max(furthestIndexRef.current, current));
+    if (!Number.isInteger(index) || index < first || index > furthest) return false;
+    // The first selection cuts the beat that was paused mid-flight: from here on nothing plays until ▶ දිගටම.
+    if (selectedRef.current === null) cutBeatInFlight();
+    selectedRef.current = index;
+    setNavRequest({ kind: "goto", index, from: navRequestRef.current?.from ?? current });
+    navTrailRef.current = { steps: navTrailRef.current.steps + 1, concept: navTrailRef.current.concept || via === "concept" };
+    const next = previewFor(index);
+    setPreview(next);
+    if (typeof window !== "undefined") (window as unknown as { __navPreview?: unknown }).__navPreview = { index, beatId: next.beatId, stage: describeStage(next.stage), line: next.line };
+    publishNav(current);
+    logEvent(`panel: ${via} → ${next.beatId.slice(0, 40)} (paused, silent)`);
     return true;
+  };
+
+  /**
+   * The playback panel (only while ⏸ holds the lesson): ⏮ ⏭ one beat, never past the furthest beat reached; a concept
+   * chip, that concept's first beat in this session (a concept not reached yet is refused). Stepping never plays and never
+   * resumes — ▶ දිගටම does, from the selected beat.
+   */
+  const navigate = (kind: "back" | "forward" | "concept", tag?: string): boolean => {
+    const script = scriptRef.current;
+    if (!script || statusRef.current === "chatting" || statusRef.current === "done") return false;
+    const from = selectedRef.current ?? stateRef.current.beatIndex;
+    if (kind === "back") return select(from - 1, "step");
+    if (kind === "forward") return select(from + 1, "step");
+    const concept = sessionSpan(stateRef.current.beatIndex).concepts.find((c) => c.tag === tag);
+    return concept ? select(concept.first, "concept") : false;
+  };
+
+  /**
+   * 🔊 ආයෙත් අහන්න: the selected beat's line, once, through the speech lock, while the lesson stays paused. With nothing
+   * selected yet the beat that was paused is selected first (it is cut, so ▶ will play it from its start).
+   */
+  const listenSelected = async (): Promise<boolean> => {
+    const player = playerRef.current;
+    if (!player || !manualPauseRef.current || !scriptRef.current) return false;
+    if (selectedRef.current === null && !select(stateRef.current.beatIndex, "step")) return false;
+    const target = previewFor(selectedRef.current!);
+    if (!target.line) return false;
+    return withSpeech(async () => {
+      const epoch = speechEpochRef.current;
+      const clip = await clipUnlessMoved(target.line!, epoch);
+      if (!clip || speechEpochRef.current !== epoch || !manualPauseRef.current) return false;
+      noteLineStart(target.beatId, "listen");
+      logEvent(`panel: 🔊 ${target.beatId.slice(0, 40)}`);
+      await player.playClip(clip.audio, { sentences: clip.meta.sentences });
+      // Still paused (the child did not tap ▶ while she spoke): the context goes back to sleep with the lesson.
+      if (pausedRef.current) await player.suspend();
+      return true;
+    });
   };
 
   /** A tapped answer (number pad / choice) — the same path as a spoken one. */
@@ -2423,6 +2590,11 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
     hasInputRef.current = false;
     padAnswerRef.current = text;
     (window as unknown as { __lastTapAt?: number }).__lastTapAt = performance.now();
+    // Every touch the soft-check surface delivered, for the harness: a fast double tap must arrive here once.
+    if (text === "(tapped)") {
+      const w = window as unknown as { __softTouches?: number };
+      w.__softTouches = (w.__softTouches ?? 0) + 1;
+    }
     // What the child entered is on the surface NOW, before anything judges it (the retry button's tap is not an answer).
     if (text !== "(retry)" && stageRef.current.turn) {
       setStage(enterAnswer(stageRef.current, text));
@@ -2477,6 +2649,18 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
         return true;
       },
       chatError: () => chat.error,
+      /** The navigation drills: the most clips audible at once, counted again from now (window.__audio.peak). */
+      resetAudioPeak: () => {
+        if (!settingsRef.current.devMode) return false;
+        playerRef.current?.resetPeak();
+        return true;
+      },
+      /** The soft double-tap drill: `n` more soft checks open straight after the current one (no line between). */
+      softChecksBackToBack: (n = 1) => {
+        if (!settingsRef.current.devMode) return false;
+        softBurstRef.current = n;
+        return true;
+      },
       /** The ✋ verification: the very context the chat is opened with — the board and the one thing the child is pointing at. */
       chatContext: () => (settingsRef.current.devMode ? buildChatContext() : null),
       /** Lip-sync drill: four seconds of tone — loud, medium, soft, then silence — through the same player and analyser as her voice. */
@@ -2628,7 +2812,12 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
     jumpTo,
     /** ⏮ ⏭ / a step mark: this session's beats, the current one, the furthest reached — and the request itself. */
     navInfo,
-    requestNav: navigate,
+    /** ⏮ ⏭ and the concept chips: select a beat while paused (silent). ▶ දිගටම (togglePause) plays from it. */
+    navigate,
+    /** 🔊 ආයෙත් අහන්න: the selected beat's line, once. */
+    listenSelected,
+    /** The selected beat's board and line while the panel is open — shown in place of the live board. */
+    navPreview: preview,
   };
 }
 

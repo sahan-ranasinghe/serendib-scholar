@@ -42,7 +42,7 @@ export function ChildSwitcher({ name, kids }: { name: string; kids: Array<{ id: 
         <ChildChip name={name} />
       </button>
       {open && (
-        <div role="dialog" aria-modal="true" aria-label={t("home.switchChild")} data-testid="child-switcher-sheet" data-sheet="child-switcher" onClick={() => setOpen(false)} style={sx("position:fixed;inset:0;z-index:50;background:rgba(27,27,27,.45);display:flex;align-items:flex-end;justify-content:center")}>
+        <div role="dialog" aria-modal="true" aria-label={t("home.switchChild")} data-testid="child-switcher-sheet" data-sheet="child-switcher" data-tap onClick={() => setOpen(false)} style={sx("position:fixed;inset:0;z-index:50;background:rgba(27,27,27,.45);display:flex;align-items:flex-end;justify-content:center")}>
           <div onClick={(e) => e.stopPropagation()} style={sx("width:100%;max-width:480px;background:var(--color-paper);border-radius:24px 24px 0 0;padding:16px 20px 28px;display:grid;gap:10px;box-sizing:border-box;max-height:80dvh;overflow:auto")}>
             <div style={sx("display:flex;align-items:center;justify-content:space-between;gap:12px")}>
               <span style={sx("font:700 24px/1.5 var(--font-display);color:var(--color-ink)")}>{t("home.switchChild")}</span>

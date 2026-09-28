@@ -670,6 +670,8 @@ async function main(): Promise<void> {
 
   // ---- the failure-mode drills ---------------------------------------
   const drillResults: string[] = [];
+  /** The navigation drills' one-line traces, printed together at the end. */
+  const navTrace: string[] = [];
   const drillDone = new Set<string>();
   const drillNote = (name: string, ok: boolean, detail: string) => {
     drillResults.push(`${ok ? "PASS" : "FAIL"}  ${name}: ${detail}`);
@@ -841,97 +843,172 @@ async function main(): Promise<void> {
       const status = (await snapshot()).status;
       drillNote("first ✋ asks for the microphone; the chat is a panel beside the board", before === 0 && micAsk.up && micAsk.portrait >= 150 && micAsk.dimmed && micAsk.buttons === 2 && gumBeforeAllow === 0 && after === 1 && sheet.up && sheet.portrait > 0 && sheet.portrait <= 64 && sheet.lines === 2 && !sheet.dimmed && sheet.coverage === 0 && sheet.share <= 33.4 && sheet.bot && sheet.close && sheet.veil === 1 && returned && status !== "chatting", `getUserMedia calls before ✋: ${before} · P1 sheet ${micAsk.up ? "up" : "MISSING"} (Zara ${micAsk.portrait} px, dimmed ${micAsk.dimmed ? "yes" : "NO"}, ${micAsk.buttons} buttons, "${micAsk.title.trim().slice(0, 30)}") · calls before හරි: ${gumBeforeAllow} · after: ${after}${explained ? ` · her explanation: "${explained.slice(0, 40)}"` : ""} · chat panel ${sheet.up ? "up" : "MISSING"}: covers ${sheet.coverage} % of the board, takes ${sheet.share} % of the screen's long side, board dimmed ${sheet.dimmed ? "YES" : "no"} (opacity ${sheet.veil}), Zara ${sheet.portrait} px, ${sheet.lines} transcript lines, close button ${sheet.close ? "yes" : "NO"}, bot button ${sheet.bot ? "still there" : "GONE"}, board layout beside it ${sheet.boardOk ? "clean" : "HAS OVERLAPS"} · bot tapped to close ${returned ? "yes" : "NO"} → ${status}`);
     }
-    // 3a. BACK AND FORWARD (23 Sep 2026, the director's request): the paused card's playback panel. ⏮ more than two seconds
-    // into a line replays the line; ⏮ inside its first two seconds goes back a beat and the board is that beat's snapshot;
-    // ⏭ never passes the furthest beat reached; a revisited answered question shows its answer, may be tried again, and
-    // leaves mastery and the beat's log rows unchanged (the record is a NAV row). Run on :9, the beat after the pad question.
+    // 3a. THE PLAYBACK PANEL SCRUBS (23 Sep 2026, from a real device): ⏸ opens it beside the board and the lesson stays
+    // paused; ⏮ ⏭ and the concept chips SELECT a beat silently (its board and its line, no audio, no resume); 🔊 plays the
+    // selected line once; ▶ දිගටම plays from the selected beat. Audio is measured throughout: the peak number of clips
+    // audible at once (window.__audio, reset per drill through window.__dev.resetAudioPeak) and every line start in order
+    // (window.__lineStarts). Two drill points: readWrite4Digit:9 (steps) and the third beat of placeValue4Digit (chips).
+    type NavHere = { beat: string; index: number; selected: number | null; preview: string | null; paused: boolean; status: string; caption: string; position: string; panel: boolean; forwardDisabled: boolean | null; backDisabled: boolean | null; chips: Array<{ tag: string; reached: boolean; disabled: boolean; at: boolean }>; audio: { active: number; peak: number; started: number }; lineStarts: number; navPreview: { beatId: string; stage: string; line: string | null } | null; lineEnd: Record<string, string> };
+    const navHere = () => evaluate<NavHere>(page, `(() => { const el = document.querySelector('.lesson-screen'); const d = el ? el.dataset : {}; const p = document.querySelector('[data-testid="playback-panel"]'); const f = p && p.querySelector('[data-testid="nav-forward"]'); const b = p && p.querySelector('[data-testid="nav-back"]'); return { beat: d.beatId ?? '—', index: Number(d.beatIndex ?? -1), selected: d.selectedIndex === undefined ? null : Number(d.selectedIndex), preview: d.previewBeat ?? null, paused: !!el && el.hasAttribute('data-paused'), status: d.status ?? '—', caption: (document.querySelector('[data-testid="caption"]')?.textContent ?? '').trim(), position: (p && p.querySelector('[data-testid="nav-position"]')?.textContent || '').trim(), panel: !!p, forwardDisabled: f ? f.disabled : null, backDisabled: b ? b.disabled : null, chips: p ? [...p.querySelectorAll('[data-testid="nav-concept"]')].map((c) => ({ tag: c.getAttribute('data-concept'), reached: c.hasAttribute('data-reached'), disabled: c.disabled, at: c.hasAttribute('data-at') })) : [], audio: window.__audio ?? { active: 0, peak: 0, started: 0 }, lineStarts: window.__lineStartCount ?? 0, navPreview: window.__navPreview ?? null, lineEnd: window.__lineEndStages ?? {} }; })()`);
+    /** The lines started after line number `from` (window.__lineStarts is numbered; the list itself is capped). */
+    const lineStartsSince = (from: number) => evaluate<Array<{ beatId: string; via: string }>>(page, `(window.__lineStarts ?? []).filter((l) => l.n > ${from})`);
+    /** Where two board descriptions part ways, for a failure line that can be read. */
+    const divergence = (a: string, b: string) => {
+      let i = 0;
+      while (i < a.length && a[i] === b[i]) i += 1;
+      return `…${JSON.stringify(a.slice(Math.max(0, i - 12), i + 48))} vs …${JSON.stringify(b.slice(Math.max(0, i - 12), i + 48))}`;
+    };
+    const resetPeak = () => evaluate<boolean>(page, `!!(window.__dev && window.__dev.resetAudioPeak && window.__dev.resetAudioPeak())`);
+    const idOf = (index: number) => ((script?.beats ?? []) as Array<{ id: string }>)[index]?.id ?? `#${index}`;
+    const shortId = (id: string) => id.replace(/^authored:/u, "");
+    const openPanel = async () => {
+      await tapSelector('[aria-label="විරාමය"]');
+      await waitFor(`!!document.querySelector('[data-testid="playback-panel"]')`, 3000);
+      await wait(300);
+    };
+    /** After ▶: play on (answering any question the replay asks, off the record) until the lesson is back at `index`. */
+    const playBackTo = async (index: number, ms = 150_000) => {
+      const answeredHere = new Set<string>();
+      const until = Date.now() + ms;
+      let h = await navHere();
+      while (Date.now() < until && !(h.index >= index && h.status === "teaching" && !h.paused)) {
+        const snapNow = await snapshot();
+        if (snapNow.status === "turn" && snapNow.yourTurn && !snapNow.yourTurn.startsWith("soft") && !answeredHere.has(snapNow.beatId)) {
+          answeredHere.add(snapNow.beatId);
+          await wait(500);
+          await answer(snapNow);
+        } else if (snapNow.status === "pausing" && snapNow.yourTurn?.startsWith("soft")) {
+          await tapSelector('[data-soft-tap]');
+        }
+        await wait(250);
+        h = await navHere();
+      }
+      return h;
+    };
+    const masteryRows = async () => (await supabaseAdmin.from("child_progress").select("*", { count: "exact", head: true }).eq("child_id", childA!)).count ?? 0;
+
     if (short === "readWrite4Digit:9" && !drillDone.has("nav") && snap.status === "teaching" && childA) {
       drillDone.add("nav");
-      const QUESTION = "authored:readWrite4Digit:8";
-      const here = () => evaluate<{ beat: string; paused: boolean; status: string; index: string; furthest: string; revisit: boolean; lineAt: number; stage: string | null; entry: string | null; verdict: string | null }>(page, `(() => { const el = document.querySelector('.lesson-screen'); const d = el ? el.dataset : {}; const e = document.querySelector('[data-entry]'); return { beat: d.beatId ?? '—', paused: !!el && el.hasAttribute('data-paused'), status: d.status ?? '—', index: d.beatIndex ?? '?', furthest: d.furthestIndex ?? '?', revisit: d.revisit === 'true', lineAt: window.__lastLineStart ? window.__lastLineStart.at : 0, stage: window.__stage ?? null, entry: e ? e.getAttribute('data-entry') : null, verdict: e ? e.getAttribute('data-entry-verdict') : null }; })()`);
-      const panel = () => evaluate<{ up: boolean; steps: number; current: string | null; forwardDisabled: boolean | null; backH: number; forwardH: number; stripH: number }>(page, `(() => { const p = document.querySelector('[data-testid="playback-panel"]'); if (!p) return { up: false, steps: 0, current: null, forwardDisabled: null, backH: 0, forwardH: 0, stripH: 0 }; const b = p.querySelector('[data-testid="nav-back"]'), f = p.querySelector('[data-testid="nav-forward"]'), s = p.querySelector('[data-testid="nav-steps"]'); return { up: true, steps: p.querySelectorAll('[data-step]').length, current: p.querySelector('[data-step][data-current]')?.getAttribute('data-step') ?? null, forwardDisabled: f ? f.disabled : null, backH: b ? Math.round(b.getBoundingClientRect().height) : 0, forwardH: f ? Math.round(f.getBoundingClientRect().height) : 0, stripH: s ? Math.round(s.getBoundingClientRect().height) : 0 }; })()`);
-      const pauseAndPanel = async () => {
-        await tapSelector('[aria-label="විරාමය"]');
-        await waitFor(`!!document.querySelector('[data-testid="playback-panel"]')`, 3000);
-        await wait(250);
-        return panel();
-      };
-      const untilBeat = async (id: string, ms = 8000) => {
-        let h = await here();
-        for (let i = 0; i < ms / 250 && h.beat !== id; i += 1) {
-          await wait(250);
-          h = await here();
-        }
-        return h;
-      };
-      const masteryBefore = (await supabaseAdmin.from("child_progress").select("*", { count: "exact", head: true }).eq("child_id", childA)).count ?? 0;
-      const rows8Before = (await supabaseAdmin.from("session_log").select("*", { count: "exact", head: true }).eq("child_id", childA).eq("beat_id", QUESTION)).count ?? 0;
-      const frameOf8 = shots.find((s) => s.beatId === QUESTION)?.stage ?? null;
-      // (a) ⏮ more than two seconds into the line: the same beat, its line started again.
-      await wait(1400);
-      const before = await here();
-      const p1 = await pauseAndPanel();
-      await shoot(snap.beatId, "-drill-playback-panel");
-      await tapSelector('[data-testid="nav-back"]');
-      await wait(1200);
-      const replayed = await here();
-      const replayOk = p1.up && p1.backH >= 56 && p1.forwardH >= 56 && p1.stripH >= 56 && replayed.beat === snap.beatId && !replayed.paused && replayed.lineAt > before.lineAt;
-      drillNote("⏮ mid-line replays the line", replayOk, `panel ${p1.up ? `up: ${p1.steps} step marks, current ${p1.current}, ⏮ ${p1.backH} px, ⏭ ${p1.forwardH} px, strip ${p1.stripH} px` : "MISSING"} · ⏮ at ${Math.round(performance.now() - before.lineAt) > 0 ? ">2 s" : "?"} into ${short} → ${replayed.beat.replace(/^authored:/u, "")} ${replayed.paused ? "STILL PAUSED" : "playing"}, line ${replayed.lineAt > before.lineAt ? "restarted" : "NOT restarted"}`);
-      // (b) ⏮ inside the first two seconds: back a beat; the board is that beat's snapshot (its own events replay over it, so
-      // within a few seconds it matches the frame the walk photographed there). The replayed line is under a second old here.
-      const p2 = await pauseAndPanel();
-      await tapSelector('[data-testid="nav-back"]');
-      const back = await untilBeat(QUESTION, 3000);
-      let boardMatch = frameOf8 === null;
-      for (let i = 0; i < 16 && !boardMatch; i += 1) {
-        await wait(250);
-        boardMatch = (await here()).stage === frameOf8;
+      const start = await navHere();
+      const origin = start.index;
+      const masteryBefore = await masteryRows();
+      // (a) ⏸ opens the panel; at the furthest beat ⏭ is disabled; a concept not reached yet is shown and cannot be chosen.
+      await openPanel();
+      const opened = await navHere();
+      const unreached = opened.chips.find((c) => !c.reached);
+      if (unreached) await tapSelector(`[data-testid="nav-concept"][data-concept="${unreached.tag}"]`);
+      await wait(500);
+      const afterUnreached = await navHere();
+      await shoot(snap.beatId, "-drill-panel-open");
+      const unreachedOk = opened.panel && opened.paused && !!unreached && unreached.disabled && afterUnreached.selected === null && afterUnreached.paused;
+      drillNote("an unreached concept chip is not selectable", unreachedOk, `panel ${opened.panel ? "up" : "MISSING"} (paused ${opened.paused ? "yes" : "NO"}) · chips ${opened.chips.map((c) => `${c.tag}${c.reached ? "" : " (unreached)"}${c.disabled ? " disabled" : ""}`).join(", ")} · tapped ${unreached ? unreached.tag : "— (none unreached)"} → selection ${afterUnreached.selected === null ? "unchanged" : `MOVED to ${afterUnreached.selected}`}, ${afterUnreached.paused ? "still paused" : "RESUMED"}`);
+      drillNote("⏭ stops at the furthest reached", opened.forwardDisabled === true, `at ${shortId(opened.beat)} (index ${opened.index}, the furthest) ⏭ ${opened.forwardDisabled ? "disabled" : "ENABLED"}`);
+      // (b) a rapid double-tap on ⏮ (two touches 80 ms apart): exactly one step, no clip started.
+      const startedBefore = opened.audio.started;
+      const back = await centre('[data-testid="nav-back"]');
+      if (back) {
+        await tap(back.x, back.y);
+        await wait(30);
+        await tap(back.x, back.y);
       }
-      const boardNow = (await here()).stage;
-      await shoot(QUESTION, "-drill-nav-back");
-      const backOk = p2.up && back.beat === QUESTION && back.revisit && !back.paused && boardMatch;
-      drillNote("⏮ at line start goes back and the board matches", backOk, `${short} → ${back.beat.replace(/^authored:/u, "")} (revisit ${back.revisit ? "yes" : "NO"}, ${back.paused ? "STILL PAUSED" : "playing"}) · board ${boardMatch ? "matches the frame photographed at :8" : `DIFFERS — "${(boardNow ?? "").slice(0, 60)}" vs "${(frameOf8 ?? "").slice(0, 60)}"`}`);
-      // (c) ⏭ stops at the furthest reached: forward from :8 lands on :9 (the furthest), where ⏭ is disabled and does nothing.
-      const p3 = await pauseAndPanel();
-      await tapSelector('[data-testid="nav-forward"]');
-      const forward = await untilBeat(snap.beatId, 3000);
-      const p4 = await pauseAndPanel();
-      await tapSelector('[data-testid="nav-forward"]');
-      await wait(800);
-      const stuck = await here();
-      await tapSelector('[aria-label="දිගටම"]');
-      await wait(300);
-      const forwardOk = p3.forwardDisabled === false && forward.beat === snap.beatId && p4.forwardDisabled === true && stuck.beat === snap.beatId && stuck.paused;
-      drillNote("⏭ stops at the furthest reached", forwardOk, `from :8 ⏭ (${p3.forwardDisabled === false ? "enabled" : "DISABLED"}) → ${forward.beat.replace(/^authored:/u, "")} (furthest index ${forward.furthest}, at ${forward.index}) · ⏭ there ${p4.forwardDisabled ? "disabled" : "ENABLED"}, tapped → ${stuck.beat === snap.beatId ? "unchanged" : `MOVED to ${stuck.beat}`}`);
-      // (d) a revisited answered question: back to :8 (⏮ twice at most — the first may replay :9 when the line is over two
-      // seconds old), the answer given earlier shown in its slot, answered again, mastery and its log rows unchanged.
-      let again = await here();
-      for (let attempt = 0; attempt < 2 && again.beat !== QUESTION; attempt += 1) {
-        await pauseAndPanel();
+      await wait(600);
+      const doubled = await navHere();
+      const refused = await evaluate<Array<{ control: string; why: string }>>(page, `(window.__singleFire?.refused ?? []).slice(-3)`);
+      const doubleOk = doubled.selected === origin - 1 && doubled.paused && doubled.audio.started === startedBefore && doubled.preview === idOf(origin - 1);
+      drillNote("rapid double-tap on ⏮ produces exactly one step and no audio", doubleOk, `two touches 80 ms apart on ⏮ → selected ${doubled.selected} (expected ${origin - 1}: ${shortId(idOf(origin - 1))}) · ${doubled.paused ? "still paused" : "RESUMED"} · clips started ${startedBefore} → ${doubled.audio.started} · the guard refused: ${refused.map((r) => `${r.control} (${r.why})`).join(", ") || "nothing"}`);
+      // (c) five taps on ⏮, 400 ms apart: exactly five beats back, silent — its board and its line shown, no clip, peak 0.
+      await resetPeak();
+      const beforeFive = await navHere();
+      const trail: string[] = [];
+      for (let i = 0; i < 5; i += 1) {
         await tapSelector('[data-testid="nav-back"]');
-        again = await untilBeat(QUESTION, 2500);
+        await wait(400);
+        const h = await navHere();
+        trail.push(`${h.selected}`);
       }
-      let turn = await here();
-      for (let i = 0; i < 80 && !(turn.beat === QUESTION && turn.status === "turn"); i += 1) {
+      const five = await navHere();
+      const target = origin - 6;
+      const fiveBoard = five.navPreview?.stage ?? "";
+      const fiveRef = five.lineEnd[idOf(target)] ?? null;
+      await shoot(idOf(target), "-drill-five-back");
+      const fiveOk = five.selected === target && five.paused && five.audio.peak === 0 && five.audio.started === beforeFive.audio.started && five.preview === idOf(target) && !!five.caption && five.caption === (five.navPreview?.line ?? "").trim() && (fiveRef === null || fiveBoard === fiveRef);
+      drillNote("five taps on ⏮ move exactly five beats with peak audible clips 0", fiveOk, `selected ${beforeFive.selected} → ${trail.join(" → ")} (expected ${target}: ${shortId(idOf(target))}) · ${five.paused ? "still paused" : "RESUMED"} · peak audible ${five.audio.peak} · clips started ${beforeFive.audio.started} → ${five.audio.started} · position "${five.position}" · caption "${five.caption.slice(0, 40)}" · board ${fiveRef === null ? `(no line-end record) "${fiveBoard.slice(0, 50)}"` : fiveBoard === fiveRef ? `matches its line end ("${fiveBoard.slice(0, 50)}")` : `DIFFERS: ${divergence(fiveBoard, fiveRef)}`}`);
+      // (d) ▶ දිගටම: the selected beat's line is the first thing heard; then the lesson plays back up to where it was
+      // (answering again, off the record) — peak audible 1 over the whole of it, mastery unchanged, one NAV row.
+      await resetPeak();
+      const startsBefore = (await navHere()).lineStarts;
+      await tapSelector('[data-testid="nav-resume"]');
+      let firstLine: { beatId: string; via: string } | null = null;
+      for (let i = 0; i < 60 && !firstLine; i += 1) {
+        await wait(150);
+        firstLine = (await lineStartsSince(startsBefore))[0] ?? null;
+      }
+      const afterResume = await navHere();
+      const back6 = await playBackTo(origin);
+      const played = await lineStartsSince(startsBefore);
+      const masteryAfter = await masteryRows();
+      const { data: navRows } = await supabaseAdmin.from("session_log").select("beat_id, planner_decision").eq("child_id", childA).eq("beat_type", "NAV").order("sequence", { ascending: false }).limit(1);
+      const navRow = (navRows ?? [])[0] as { beat_id: string; planner_decision: { from?: string; to?: string; steps?: number } } | undefined;
+      const resumeOk = firstLine?.beatId === idOf(target) && !afterResume.paused && !afterResume.panel;
+      drillNote("resume plays only the selected beat's clip", resumeOk, `▶ දිගටම → panel ${afterResume.panel ? "STILL UP" : "closed"}, ${afterResume.paused ? "STILL PAUSED" : "playing"} · the first line after ▶: ${firstLine ? `${shortId(firstLine.beatId)} (${firstLine.via})` : "NONE in 9 s"} (selected ${shortId(idOf(target))})`);
+      const back6Ok = resumeOk && back6.index >= origin && back6.audio.peak === 1 && masteryAfter === masteryBefore && navRow?.beat_id === "nav:back" && navRow.planner_decision.steps === 6;
+      drillNote("step back 6 beats then resume — peak audible 1 throughout", back6Ok, `back to ${shortId(back6.beat)} (index ${back6.index} ≥ ${origin} ${back6.index >= origin ? "yes" : "NO"}) · lines played in order: ${played.map((l) => shortId(l.beatId)).join(" → ")} · peak audible ${back6.audio.peak} · child_progress ${masteryBefore} → ${masteryAfter} · NAV row ${navRow ? `${navRow.beat_id} ${shortId(navRow.planner_decision.from ?? "?")} → ${shortId(navRow.planner_decision.to ?? "?")}, ${navRow.planner_decision.steps} steps` : "NONE"}`);
+      navTrace.push(`steps at ${short}: ${[doubleOk, fiveOk, resumeOk, back6Ok].every(Boolean) ? "ok" : "FAILED"} — double-tap → ${doubled.selected}; five taps → ${trail.join(",")}; ▶ → ${played.map((l) => shortId(l.beatId)).join(" → ")}; peak ${back6.audio.peak}`);
+    }
+    const indexNow = Number((await evaluate<string>(page, `document.querySelector('.lesson-screen')?.dataset.beatIndex ?? '-1'`)) ?? -1);
+    const pvFirst = ((script?.beats ?? []) as unknown as Array<{ id: string; conceptTag: string }>).findIndex((b) => b.conceptTag === "placeValue4Digit");
+    if (!drillDone.has("chips") && pvFirst >= 0 && indexNow >= pvFirst + 2 && snap.status === "teaching" && childA) {
+      drillDone.add("chips");
+      const origin = indexNow;
+      const rwFirst = ((script?.beats ?? []) as unknown as Array<{ conceptTag: string }>).findIndex((b) => b.conceptTag === "readWrite4Digit");
+      await openPanel();
+      const opened = await navHere();
+      const startedBefore = opened.audio.started;
+      // (a) the readWrite4Digit chip: its first beat, its board as its line ended, silent. The first selection is what cuts
+      // the clip the ⏸ left suspended mid-line (inaudible, but still a registered source), so the peak is counted from here.
+      await tapSelector('[data-testid="nav-concept"][data-concept="readWrite4Digit"]');
+      await wait(500);
+      await resetPeak();
+      const toRw = await navHere();
+      await shoot(idOf(rwFirst), "-drill-chip-readWrite");
+      const rwRef = toRw.lineEnd[idOf(rwFirst)] ?? null;
+      const rwOk = toRw.selected === rwFirst && toRw.preview === idOf(rwFirst) && toRw.paused && (rwRef === null ? false : toRw.navPreview?.stage === rwRef);
+      // (b) the placeValue4Digit chip: back to this concept's first beat.
+      await tapSelector('[data-testid="nav-concept"][data-concept="placeValue4Digit"]');
+      await wait(500);
+      const toPv = await navHere();
+      const pvRef = toPv.lineEnd[idOf(pvFirst)] ?? null;
+      const pvOk = toPv.selected === pvFirst && toPv.preview === idOf(pvFirst) && toPv.paused && (pvRef === null ? false : toPv.navPreview?.stage === pvRef);
+      const silent = toPv.audio.peak === 0 && toPv.audio.started === startedBefore;
+      drillNote("tapping a concept chip lands on that concept's first beat with the board matching", rwOk && pvOk && silent, `chips ${opened.chips.map((c) => `${c.tag}${c.reached ? "" : " (unreached)"}`).join(", ")} · readWrite4Digit → selected ${toRw.selected} (${shortId(toRw.preview ?? "—")}, expected ${shortId(idOf(rwFirst))}), "${toRw.position}", board ${rwRef === null ? "NO line-end record" : toRw.navPreview?.stage === rwRef ? "matches its line end" : `DIFFERS: ${divergence(toRw.navPreview?.stage ?? "", rwRef)}`} · placeValue4Digit → selected ${toPv.selected} (${shortId(toPv.preview ?? "—")}, expected ${shortId(idOf(pvFirst))}), "${toPv.position}", board ${pvRef === null ? "NO line-end record" : toPv.navPreview?.stage === pvRef ? "matches its line end" : `DIFFERS: ${divergence(toPv.navPreview?.stage ?? "", pvRef)}`} · silent: peak ${toPv.audio.peak}, clips started ${startedBefore} → ${toPv.audio.started}`);
+      // (c) 🔊 ආයෙත් අහන්න: the selected line once, the lesson still paused after it.
+      const startsBeforeListen = toPv.lineStarts;
+      await tapSelector('[data-testid="nav-listen"]');
+      let heard: Array<{ beatId: string; via: string }> = [];
+      for (let i = 0; i < 80; i += 1) {
         await wait(250);
-        turn = await here();
+        heard = await lineStartsSince(startsBeforeListen);
+        const a = (await navHere()).audio;
+        if (heard.length && a.active === 0) break;
       }
-      await shoot(QUESTION, "-drill-revisit-turn");
-      const entryShown = turn.entry === "1000";
-      const asked = await snapshot();
-      if (turn.status === "turn") await answer(asked);
-      let judged = await here();
-      for (let i = 0; i < 60 && judged.beat === QUESTION && judged.status === "turn"; i += 1) {
-        await wait(250);
-        judged = await here();
+      await wait(800);
+      const afterListen = await navHere();
+      drillNote("🔊 plays the selected beat's line once; the lesson stays paused", heard.length === 1 && heard[0]!.beatId === idOf(pvFirst) && heard[0]!.via === "listen" && afterListen.paused && afterListen.panel && afterListen.audio.peak === 1, `lines started: ${heard.map((l) => `${shortId(l.beatId)} (${l.via})`).join(", ") || "none"} · after it: ${afterListen.paused ? "paused" : "RESUMED"}, panel ${afterListen.panel ? "up" : "GONE"} · peak audible ${afterListen.audio.peak}`);
+      // (d) ▶ දිගටම from the chip's beat, back up to where the drill began.
+      await resetPeak();
+      const startsBefore = afterListen.lineStarts;
+      await tapSelector('[data-testid="nav-resume"]');
+      // The screen names the beat the driver is on; until the selected beat's line starts it still names the old one.
+      let firstLine: { beatId: string; via: string } | null = null;
+      for (let i = 0; i < 60 && !firstLine; i += 1) {
+        await wait(150);
+        firstLine = (await lineStartsSince(startsBefore))[0] ?? null;
       }
-      await wait(1500);
-      const masteryAfter = (await supabaseAdmin.from("child_progress").select("*", { count: "exact", head: true }).eq("child_id", childA)).count ?? 0;
-      const rows8After = (await supabaseAdmin.from("session_log").select("*", { count: "exact", head: true }).eq("child_id", childA).eq("beat_id", QUESTION)).count ?? 0;
-      const { data: navRows } = await supabaseAdmin.from("session_log").select("beat_id, planner_decision").eq("child_id", childA).eq("beat_type", "NAV").order("sequence", { ascending: true }).limit(20);
-      const navKinds = ((navRows ?? []) as Array<{ beat_id: string }>).map((r) => r.beat_id.replace(/^nav:/u, ""));
-      const revisitOk = again.beat === QUESTION && turn.status === "turn" && turn.revisit && entryShown && masteryAfter === masteryBefore && rows8After === rows8Before && navKinds.includes("back") && navKinds.includes("forward") && navKinds.includes("replay");
-      drillNote("a revisited answered question shows its answer and leaves mastery unchanged", revisitOk, `back on ${again.beat.replace(/^authored:/u, "")} (revisit ${turn.revisit ? "yes" : "NO"}) · its turn ${turn.status === "turn" ? "opened" : `NOT opened (${turn.status})`} with the earlier answer ${entryShown ? `"${turn.entry}" shown (${turn.verdict})` : `NOT shown (entry ${turn.entry ?? "none"})`} · answered again → ${judged.beat.replace(/^authored:/u, "")} · child_progress ${masteryBefore} → ${masteryAfter} · rows for :8 ${rows8Before} → ${rows8After} · NAV rows: ${navKinds.join(", ") || "NONE"}`);
+      const home = await playBackTo(origin);
+      const played = await lineStartsSince(startsBefore);
+      const chipResumeOk = firstLine?.beatId === idOf(pvFirst) && played[0]?.beatId === idOf(pvFirst) && home.index >= origin && home.audio.peak === 1;
+      drillNote("resume from a concept chip plays from its first beat — peak audible 1", chipResumeOk, `▶ → lines: ${played.map((l) => shortId(l.beatId)).join(" → ")} · back at ${shortId(home.beat)} (index ${home.index} ≥ ${origin} ${home.index >= origin ? "yes" : "NO"}) · peak audible ${home.audio.peak}`);
+      navTrace.push(`chips at ${short}: ${rwOk && pvOk && silent && chipResumeOk ? "ok" : "FAILED"} — readWrite4Digit → ${toRw.selected}, placeValue4Digit → ${toPv.selected}; 🔊 ${heard.length} line(s); ▶ → ${played.map((l) => shortId(l.beatId)).join(" → ")}; peak ${home.audio.peak}`);
     }
     // 3b. Zara is not a control: ten taps on her portrait change nothing and
     // start no audio. And three rapid ↺ taps ask ONCE; cancelling changes nothing.
@@ -1227,7 +1304,38 @@ async function main(): Promise<void> {
     // A soft check's pause: one tap counts as engagement. Reading practice: watch, never tap.
     if (snap.status === "pausing" && snap.yourTurn?.startsWith("soft") && snap.beatId !== lastTurnBeat) {
       lastTurnBeat = snap.beatId;
-      await tapSelector('[data-soft-tap]');
+      if (DRILLS && !drillDone.has("soft-double")) {
+        // TAP ANYWHERE TO CONTINUE, TAPPED TWICE (28 Sep 2026): the soft check's board acts on the touch itself. A fast
+        // second touch that meets ANOTHER soft check used to skip it. So the drill makes the case happen: a second soft
+        // check opens straight after this one (window.__dev.softChecksBackToBack — the board never stops being a soft
+        // check), and two touches 80 ms apart must advance exactly one: the runtime receives one touch, one soft check
+        // counts a tap, the guard refuses the second touch, and the second soft check is still open after it.
+        drillDone.add("soft-double");
+        type SoftCounts = { opened: number; tapped: number; touches: number; refused: number };
+        const counts = () => evaluate<SoftCounts>(page, `({ opened: window.__softPauses?.opened ?? 0, tapped: window.__softPauses?.tapped ?? 0, touches: window.__softTouches ?? 0, refused: (window.__singleFire?.refused ?? []).length })`);
+        const armed = await evaluate<boolean>(page, `!!(window.__dev && window.__dev.softChecksBackToBack && window.__dev.softChecksBackToBack(1))`);
+        const before = await counts();
+        const point = await centre('[data-soft-tap]');
+        let gapMs = 0;
+        let openAtSecond = false;
+        if (point) {
+          const firstAt = Date.now();
+          await tap(point.x, point.y);
+          await wait(Math.max(0, 80 - (Date.now() - firstAt) - 8));
+          openAtSecond = await evaluate<boolean>(page, `!!document.querySelector('[data-tap-press]')`);
+          gapMs = Date.now() - firstAt;
+          await tap(point.x, point.y);
+        }
+        await wait(400);
+        const after = await counts();
+        const secondStillOpen = await evaluate<boolean>(page, `!!document.querySelector('[data-tap-press]')`);
+        const refused = await evaluate<Array<{ control: string; why: string }>>(page, `(window.__singleFire?.refused ?? []).slice(${before.refused})`);
+        const guarded = refused.some((r) => r.control === "soft-surface" && r.why === "too-soon");
+        const ok = armed && !!point && openAtSecond && after.touches - before.touches === 1 && after.tapped - before.tapped === 1 && after.opened - before.opened === 1 && guarded && secondStillOpen;
+        drillNote("two touches 80 ms apart on the soft check advance exactly one soft pause", ok, `at ${snap.beatId.replace(/^authored:/u, "")}, a second soft check armed straight after (${armed ? "yes" : "NO — no dev hook"}): two touches ${gapMs} ms apart, the second ${openAtSecond ? "met the second soft check open" : "found NO soft check open"} → touches the runtime received ${after.touches - before.touches} · soft checks advanced by a tap ${after.tapped - before.tapped} · soft checks opened ${after.opened - before.opened} · the second ${secondStillOpen ? "still open after both touches" : "CLOSED"} · the guard refused: ${refused.map((r) => `${r.control} (${r.why})`).join(", ") || "nothing"}`);
+      } else {
+        await tapSelector('[data-soft-tap]');
+      }
       note({ beatId: snap.beatId, via: "tap on the board (soft pause)", answer: "(tapped)" });
     }
     if (snap.status === "turn" && snap.yourTurn && (snap.beatId !== lastTurnBeat || turnClosed)) {
@@ -1561,9 +1669,10 @@ async function main(): Promise<void> {
   const ms = (v: number | null) => (v === null ? "not seen" : `${v} ms`);
   console.log(`first paint${NETWORK === "3g" ? " on 3G" : ""} (page clock, fresh load after the gate): first contentful paint ${ms(firstPaintMs.fcp)} · board surface ${ms(firstPaintMs.surface)} · first primitive on it ${ms(firstPaintMs.primitive)}`);
   if (DRILLS) {
+    if (navTrace.length) console.log(`\nplayback panel (navigation) traces:\n${navTrace.map((l) => `  ${l}`).join("\n")}`);
     console.log(`\nfailure-mode drills (${drillResults.filter((r) => r.startsWith("PASS")).length}/${drillResults.length} handled visibly):`);
     for (const line of drillResults) console.log(`  ${line}`);
-    for (const name of ["touch during playback", "rotation mid-beat", "backgrounded tab", "missing clip", "first ✋ asks for the microphone", "the chat shows the child's turn as a neutral bubble", "Zara's portrait is not a control", "three ↺ taps are one question", "pause at beat 5", "pause at beat 40", "pause at beat 80", "type at 11 s and 23 s", "pad at a fast pace", "pad at a human pace", "the pad submits only on ✓", "⏮ mid-line replays the line", "⏮ at line start goes back", "⏭ stops at the furthest reached", "a revisited answered question", "10000 on a 4-digit answer", "read-aloud readWrite4Digit:2"]) if (!drillResults.some((r) => r.includes(name))) console.log(`  SKIP  ${name}: its beat was not reached`);
+    for (const name of ["touch during playback", "rotation mid-beat", "backgrounded tab", "missing clip", "first ✋ asks for the microphone", "the chat shows the child's turn as a neutral bubble", "Zara's portrait is not a control", "three ↺ taps are one question", "pause at beat 5", "pause at beat 40", "pause at beat 80", "type at 11 s and 23 s", "pad at a fast pace", "pad at a human pace", "the pad submits only on ✓", "two touches 80 ms apart on the soft check", "an unreached concept chip is not selectable", "⏭ stops at the furthest reached", "rapid double-tap on ⏮", "five taps on ⏮", "resume plays only the selected beat", "step back 6 beats then resume", "tapping a concept chip", "🔊 plays the selected beat", "resume from a concept chip", "10000 on a 4-digit answer", "read-aloud readWrite4Digit:2"]) if (!drillResults.some((r) => r.includes(name))) console.log(`  SKIP  ${name}: its beat was not reached`);
   }
   if (fpsSamples.length) console.log(`fps while animating${CPU_THROTTLE > 1 ? ` at cpu×${CPU_THROTTLE}` : ""}: ${fpsSamples.map((s) => `${s.beatId.replace(/^authored:/u, "")} ${s.fps}`).join(", ")}`);
   const flagged = audits.filter((a) => a.audit && (a.audit.overlap || a.audit.portraitOverlap || a.audit.cutOff || a.audit.small.length || a.audit.tinyText.length));

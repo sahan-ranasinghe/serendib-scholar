@@ -115,7 +115,7 @@ export const MEASURE_JS = `(function (sectionId, ask) {
   if (ask.part !== undefined) { const part = board.querySelector('[data-testid="expansion-part-' + ask.part + '"]'); out.part = part ? { value: part.getAttribute('data-value'), box: rect(part) } : null; }
   if (ask.cell) { const cell = board.querySelector('[data-testid="' + ask.cell + '"]'); out.cell = cell ? { active: cell.hasAttribute('data-active'), shadow: getComputedStyle(cell).boxShadow } : null; }
   const pointer = board.querySelector('[data-testid="pointer"]');
-  out.pointer = pointer ? { box: rect(pointer), opacity: parseFloat(getComputedStyle(pointer).opacity), missing: pointer.hasAttribute('data-missing'), placed: pointer.getAttribute('data-placed') || 'below' } : null;
+  out.pointer = pointer ? { box: rect(pointer), opacity: parseFloat(getComputedStyle(pointer).opacity), missing: pointer.hasAttribute('data-missing'), placed: pointer.getAttribute('data-placed') || 'below', waiting: pointer.hasAttribute('data-waiting'), covers: parseFloat(pointer.getAttribute('data-covers') || '0') } : null;
   return out;
 })`;
 
@@ -141,7 +141,7 @@ export interface Measured {
   writeOns: Array<{ text: string; clip: string }>;
   part?: { value: string | null; box: Box } | null;
   cell?: { active: boolean; shadow: string } | null;
-  pointer: { box: Box; opacity: number; missing: boolean; placed?: string } | null;
+  pointer: { box: Box; opacity: number; missing: boolean; placed?: string; waiting?: boolean; covers?: number } | null;
 }
 
 const PAD = 10;
@@ -208,6 +208,10 @@ export function judgeAtRest(probe: StrokeProbe, m: Measured): string[] {
   }
   if (expect.pointerAt) {
     if (!m.target) problems.push(`pointer target ${expect.pointerAt} is not registered`);
+    // A hand with no clean spot WAITS out of sight while the board settles (Pointer.tsx, 20 Sep 2026) — deliberate, and
+    // judged by judgePointerWait instead: it must have had nowhere clean to go, and must appear within POINTER_WAIT_MS.
+    else if (m.pointer?.waiting && (m.pointer.covers ?? 0) > 0) return problems;
+    else if (m.pointer?.waiting) problems.push(`pointer hid at rest although its spot covers nothing (${expect.pointerAt})`);
     else if (!m.pointer || m.pointer.missing || m.pointer.opacity < 0.98) problems.push(`pointer is hidden or aimed at nothing for ${expect.pointerAt}`);
     else {
       // NOTHING OVERLAPS (18 Sep 2026): the hand rests on whichever side of its target covers nothing readable (data-placed)
@@ -228,6 +232,20 @@ export function judgeAtRest(probe: StrokeProbe, m: Measured): string[] {
     }
   }
   return problems;
+}
+
+/** How long a hand with no clean spot may wait out of sight: the last of Pointer.tsx's SETTLE_MS re-checks. */
+export const POINTER_WAIT_MS = 1300;
+
+/**
+ * A hand that was waiting at rest (judgeAtRest let it pass): `appearedMs` is when it came out of hiding, counted from the
+ * tap (null: it never did); `shown` is the measurement once it had. It must appear within POINTER_WAIT_MS, and where it
+ * lands is then judged like any hand at rest.
+ */
+export function judgePointerWait(probe: StrokeProbe, appearedMs: number | null, shown: Measured): string[] {
+  if (appearedMs === null) return [`pointer never appeared for ${probe.expect.pointerAt} (waited past ${POINTER_WAIT_MS * 2} ms)`];
+  const problems = appearedMs > POINTER_WAIT_MS ? [`pointer appeared ${Math.round(appearedMs)} ms after the tap — later than ${POINTER_WAIT_MS} ms`] : [];
+  return [...problems, ...judgeAtRest(probe, shown)];
 }
 
 /** A stroke that moved between mid-flight and rest was drawn in the wrong place first. */

@@ -423,6 +423,9 @@ export const BoardStage = memo(function BoardStage({ stage, yourTurn, onAnswer, 
       <div
         className={`wb-fit${active && soft ? " wb-your-turn-soft" : ""}`}
         data-soft-tap={soft ? "true" : undefined}
+        // "Tap anywhere to continue" acts on the touch itself: the single-fire guard meets it at pointerdown (src/lib/singleFire.ts).
+        data-tap-press={soft ? true : undefined}
+        data-testid={soft ? "soft-surface" : undefined}
         data-surface={yourTurn?.surface ?? undefined}
         data-answer-mode={yourTurn?.answerMode ?? stage.turn?.answerMode ?? undefined}
         data-turn-surface={stage.turn?.surface ?? undefined}

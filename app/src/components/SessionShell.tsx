@@ -99,6 +99,8 @@ export interface SessionShellProps {
   children?: ReactNode;
   /** ⏹ / ↺ asking once, over the dimmed board. */
   confirm?: SessionConfirm | null;
+  /** A panel docked beside the board (the playback panel while ⏸ holds the lesson); the ✋ chat takes the slot when open. */
+  sidePanel?: ReactNode;
 }
 
 /** A small friendly bot: the chat's persistent icon. */
@@ -117,7 +119,7 @@ function BotIcon({ size = 30 }: { size?: number }) {
   );
 }
 
-export function SessionShell({ stage, yourTurn, zaraState, lenaState, pointerSide, talking, getAmplitude, zaraDimmed = false, paused = false, conceptStops, captionsOn, onToggleCaptions, caption, hint, sheet, charactersShown, handShown, chatting = false, onHand, onPause, onRepeat, onEnd, onAnswer, onTouch, onIdleTouch, onPointerSide, onInput, renderLegacy, onTitleTap, onRootPointerDown, data, children, confirm = null }: SessionShellProps) {
+export function SessionShell({ stage, yourTurn, zaraState, lenaState, pointerSide, talking, getAmplitude, zaraDimmed = false, paused = false, conceptStops, captionsOn, onToggleCaptions, caption, hint, sheet, charactersShown, handShown, chatting = false, onHand, onPause, onRepeat, onEnd, onAnswer, onTouch, onIdleTouch, onPointerSide, onInput, renderLegacy, onTitleTap, onRootPointerDown, data, children, confirm = null, sidePanel = null }: SessionShellProps) {
   const [pressed, setPressed] = useState<string | null>(null);
   const chatOpen = chatting || sheet?.kind === "chat";
   // Zara in the frame's corner. The mouth's amplitude is the portrait's
@@ -149,6 +151,7 @@ export function SessionShell({ stage, yourTurn, zaraState, lenaState, pointerSid
     <div className="lesson-screen" onPointerDown={onRootPointerDown} {...data} data-character={zaraState} data-lena={lenaState} data-paused={paused || undefined} data-pause={stage.pause ? "soft" : undefined} style={{ position: "fixed", inset: 0, display: "flex", flexDirection: "column", background: "var(--color-wood)", color: "var(--color-ink)" }}>
       {/* ---- the strip: title · concept stops · ⏸ ↺ ⏹ · සි ---------------- */}
       <header data-testid="session-strip" style={{ position: "relative", zIndex: 30, height: STRIP_H, flex: "none", background: "var(--color-teal)", display: "flex", alignItems: "center", padding: "0 0 0 14px", color: "#fff" }}>
+        {/* not a control: five quick taps open the debug overlay — the one press the single-fire guard must never see */}
         <span data-testid="session-title" onClick={onTitleTap} style={{ font: `600 20px/${STRIP_H}px var(--font-label)`, whiteSpace: "nowrap" }}>
           ගණිතය · සංඛ්‍යා - 1
         </span>
@@ -190,7 +193,7 @@ export function SessionShell({ stage, yourTurn, zaraState, lenaState, pointerSid
           writing={talking}
         />
         </div>
-        {chat && <ChatPanel childSpoke={chat.childSpoke} zara={chat.zara} listening={chat.listening} onClose={chat.onReturn} portrait={<ZaraPortrait state={zaraState} side={null} talking={talking} getAmplitude={getAmplitude} dimmed={false} size={40} />} />}
+        {chat ? <ChatPanel childSpoke={chat.childSpoke} zara={chat.zara} listening={chat.listening} onClose={chat.onReturn} portrait={<ZaraPortrait state={zaraState} side={null} talking={talking} getAmplitude={getAmplitude} dimmed={false} size={40} />} /> : sidePanel}
         {children}
       </main>
 

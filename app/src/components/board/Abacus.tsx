@@ -200,6 +200,7 @@ export function Abacus({
                 veiled={anyGlow && !isGlow}
                 hover={overRod === rod}
                 tappable={tappable}
+                repeatTaps={!pickRods}
                 onTap={() => (pickRods ? onPickRod?.(rod) : removeTop(rod))}
                 reduced={!!reduced}
               />
@@ -309,6 +310,7 @@ function Rod({
   veiled,
   hover,
   tappable,
+  repeatTaps,
   onTap,
   reduced,
 }: {
@@ -322,6 +324,8 @@ function Rod({
   veiled: boolean;
   hover: boolean;
   tappable: boolean;
+  /** A build (a tap takes a bead off), not a rod-pick answer. */
+  repeatTaps: boolean;
   onTap: () => void;
   reduced: boolean;
 }) {
@@ -337,6 +341,8 @@ function Rod({
       role={tappable ? "button" : undefined}
       aria-label={tappable ? `${label}: ${count} beads — tap` : `${label}: ${count} of ${digit}`}
       onClick={tappable ? onTap : undefined}
+      // A rod in a build takes one bead off per tap: two quick taps are two beads (the single-fire guard's repeat rule).
+      data-tap-repeat={tappable && repeatTaps ? true : undefined}
       style={{ cursor: tappable ? "pointer" : undefined }}
     >
       {/* the glow: saffron-soft, on the named rod */}

@@ -178,6 +178,8 @@ export function Pointer({ at, pulseKey = 0, parked = false, onSide, inverted = f
       data-placed={pos.side}
       initial={false}
       data-waiting={hidden || undefined}
+      // How much readable area its best spot covers (px²): > 0 means there is no clean spot — the one reason it may wait.
+      data-covers={pos.covers > 0 ? Math.round(pos.covers) : undefined}
       animate={{ left: pos.x, top: pos.y, opacity: hidden || !(visible || parked) ? 0 : parked ? 0.85 : 1, rotate: ROTATION[pos.side], scale: pos.scale }}
       // Going out of sight is instant — a spring would leave the hand legible
       // on top of a number for the length of its own fade, which is the very

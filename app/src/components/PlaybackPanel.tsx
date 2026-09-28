@@ -1,100 +1,88 @@
 "use client";
 
 /**
- * The playback panel (23 Sep 2026, the director's request): ⏸ opens it at
- * the foot of the paused card — ⏮ ⏭ and a row of step marks for this
- * session, the current one highlighted. A lesson is steps, not a video, so
- * it navigates by beat (useLessonRuntime.requestNav):
+ * The playback panel (23 Sep 2026): ⏸ opens it BESIDE the board — the board
+ * reflows into the room that is left, the way it does for the ✋ chat — and
+ * the lesson stays paused for as long as it is open. It SCRUBS: every step
+ * selects a beat and shows it, silently (useLessonRuntime.navigate); nothing
+ * plays until ▶ දිගටම, which closes the panel and plays from the selected
+ * beat.
  *
- *   ⏮  more than two seconds into the current line replays the line from
- *       its start; earlier, the previous beat — the board restores that
- *       beat's snapshot.
- *   ⏭  forward one beat, never past the furthest beat reached (a child
- *       cannot skip a question they have not answered).
- *   a step mark  any reached beat.
+ *   where you are   "ගණක රාමුව · 3 වෙනි පියවර", above everything
+ *   concept chips   one per concept in this session, in order: a tap
+ *                   selects the concept's first beat. How a child thinks
+ *                   about going back — to a part of the lesson. A concept
+ *                   not reached yet is shown, and cannot be chosen.
+ *   ⏮ ⏭            one tap, one beat (a double-tap is one step: the app's
+ *                   single-fire guard); ⏭ stops at the furthest reached.
+ *   step marks      a POSITION DISPLAY only — the selected beat, the
+ *                   answered questions, how far the sitting has reached.
+ *                   Dense marks on a phone are not a touch target for a
+ *                   nine-year-old, so they take no taps.
+ *   🔊 ආයෙත් අහන්න  the selected beat's line, once, on demand.
+ *   ▶ දිගටම         close the panel and play from the selected beat.
  *
- * A session has over a hundred beats, so the marks are one strip (a 56 px
- * touch target, rule 7): a tap lands on the mark under the finger. Marks
- * past the furthest are faint and take no tap; answered questions carry a
- * dot. The glyphs' accessible names are English, like the pad's "done"
- * (docs/review/app-copy.md lists the Sinhala still needed).
+ * ⏹ and ↺ stay on the strip. The glyph buttons' accessible names are
+ * English, like the pad's "done" (docs/review/app-copy.md, MISSING).
  */
-import type { PointerEvent } from "react";
+import { t } from "@/lib/appCopy";
 import type { NavInfo } from "@/hooks/useLessonRuntime";
 
-export function PlaybackPanel({ info, onBack, onForward, onGoto }: { info: NavInfo; onBack: () => void; onForward: () => void; onGoto: (index: number) => void }) {
-  const steps: number[] = [];
-  for (let i = info.first; i <= info.last; i += 1) steps.push(i);
-  const canForward = info.current < info.furthest;
-  const pick = (event: PointerEvent<HTMLDivElement>) => {
-    const rect = event.currentTarget.getBoundingClientRect();
-    if (rect.width <= 0 || steps.length === 0) return;
-    const at = Math.min(steps.length - 1, Math.max(0, Math.floor(((event.clientX - rect.left) / rect.width) * steps.length)));
-    const index = steps[at]!;
-    if (index > info.furthest) return;
-    onGoto(index);
-  };
-  const button = (label: string, glyph: string, testId: string, disabled: boolean, onPress: () => void) => (
-    <button
-      type="button"
-      className="wb-tap"
-      data-testid={testId}
-      aria-label={label}
-      disabled={disabled}
-      onClick={onPress}
-      style={{
-        width: 56,
-        height: 56,
-        flex: "none",
-        border: 0,
-        borderRadius: "50%",
-        background: disabled ? "rgba(255,255,255,.18)" : "var(--color-paper)",
-        color: disabled ? "rgba(255,255,255,.45)" : "var(--color-teal)",
-        boxShadow: disabled ? "none" : "0 2px 0 #D8D1C2",
-        font: "700 24px/1 var(--font-latin)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        cursor: disabled ? "default" : "pointer",
-      }}
-    >
+export function PlaybackPanel({ info, onBack, onForward, onConcept, onListen, onResume }: { info: NavInfo; onBack: () => void; onForward: () => void; onConcept: (tag: string) => void; onListen: () => void; onResume: () => void }) {
+  const marks: number[] = [];
+  for (let i = info.first; i <= info.last; i += 1) marks.push(i);
+  const selectedConcept = [...info.concepts].reverse().find((c) => c.first <= info.selected)?.tag ?? null;
+  const round = (label: string, glyph: string, testId: string, disabled: boolean, onPress: () => void) => (
+    <button type="button" className="playback-round wb-tap" data-testid={testId} aria-label={label} disabled={disabled} onClick={onPress}>
       {glyph}
     </button>
   );
   return (
-    <div data-testid="playback-panel" data-current={info.current} data-furthest={info.furthest} style={{ position: "absolute", left: 0, right: 0, bottom: 0, display: "flex", alignItems: "center", gap: 12, padding: "10px 16px 12px", background: "rgba(27,27,27,.62)", boxSizing: "border-box" }}>
-      {button("previous step", "⏮", "nav-back", false, onBack)}
-      <div
-        data-testid="nav-steps"
-        role="group"
-        aria-label="steps of this session"
-        onPointerDown={pick}
-        style={{ flex: 1, minWidth: 0, height: 56, display: "flex", alignItems: "center", gap: 2, touchAction: "none", cursor: "pointer" }}
-      >
-        {steps.map((index) => {
-          const current = index === info.current;
-          const reached = index <= info.furthest;
-          const answered = info.answered.includes(index);
-          return (
+    <aside className="playback-panel" data-testid="playback-panel" data-current={info.current} data-selected={info.selected} data-furthest={info.furthest} aria-label="පාඩමේ පියවර">
+      <div className="playback-position" data-testid="nav-position">
+        {info.position.title} · {t("nav.stepN", { n: info.position.step })}
+      </div>
+      <div className="playback-concepts" role="group" aria-label="concepts">
+        {info.concepts.map((concept) => (
+          <button
+            key={concept.tag}
+            type="button"
+            className="playback-concept wb-tap"
+            data-testid="nav-concept"
+            data-concept={concept.tag}
+            data-reached={concept.reached || undefined}
+            data-at={concept.tag === selectedConcept || undefined}
+            disabled={!concept.reached}
+            onClick={() => onConcept(concept.tag)}
+          >
+            {concept.title}
+          </button>
+        ))}
+      </div>
+      <div className="playback-steps">
+        {round("previous step", "⏮", "nav-back", info.selected <= info.first, onBack)}
+        <div className="playback-marks" data-testid="nav-steps" aria-hidden>
+          {marks.map((index) => (
             <span
               key={index}
               data-step={index}
-              data-reached={reached || undefined}
-              data-current={current || undefined}
-              data-answered={answered || undefined}
-              style={{
-                flex: 1,
-                minWidth: 2,
-                height: current ? 16 : answered ? 10 : 6,
-                borderRadius: 3,
-                background: current ? "var(--color-saffron)" : reached ? (answered ? "var(--color-success)" : "rgba(255,255,255,.85)") : "rgba(255,255,255,.22)",
-                transition: "height 150ms",
-              }}
+              data-selected={index === info.selected || undefined}
+              data-reached={index <= info.furthest || undefined}
+              data-answered={info.answered.includes(index) || undefined}
+              className="playback-mark"
             />
-          );
-        })}
+          ))}
+        </div>
+        {round("next step", "⏭", "nav-forward", info.selected >= info.furthest, onForward)}
       </div>
-      {button("next step", "⏭", "nav-forward", !canForward, onForward)}
-    </div>
+      <div className="playback-actions">
+        <button type="button" className="playback-listen wb-tap" data-testid="nav-listen" onClick={onListen}>
+          {t("nav.listen")}
+        </button>
+        <button type="button" className="playback-resume wb-tap" data-testid="nav-resume" onClick={onResume}>
+          {t("edge.paused.resume")}
+        </button>
+      </div>
+    </aside>
   );
 }

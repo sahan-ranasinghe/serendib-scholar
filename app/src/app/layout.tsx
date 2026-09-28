@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Pwa } from "@/components/app/Pwa";
+import { SingleFire } from "@/components/app/SingleFire";
 import { UpdateBanner } from "@/components/app/UpdateBanner";
 import { AppStateProvider } from "@/lib/appStore";
 import { AppStateBadge } from "@/components/app/AppStateBadge";
@@ -47,6 +48,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       </head>
       <body className="min-h-full flex flex-col">
         <Pwa sha={build.sha} />
+        {/* one tap, one action — on every control in the app (src/lib/singleFire.ts) */}
+        <SingleFire />
         <UpdateBanner />
         <AppStateProvider>
           <AppStateBadge />

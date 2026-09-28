@@ -303,6 +303,9 @@ export const COPY = {
   "edge.paused.stop": { screen: "Edge", si: "නවත්වන්න", en: "Stop" },
   // The ✋ chat shows the child's turn as this neutral bubble, never as the Live API's input transcription (23 Sep 2026: the
   // transcription channel misdetects the language independently of the model's understanding — the words shown were wrong).
+  // The playback panel (23 Sep 2026): the position in words, and the one button that plays while paused.
+  "nav.stepN": { screen: "Session", si: "{n} වෙනි පියවර", en: "Step {n} (the playback panel's position, after the concept's name)" },
+  "nav.listen": { screen: "Session", si: "🔊 ආයෙත් අහන්න", en: "🔊 Hear it again (plays the selected step's line once)" },
   "chat.childSpoke": { screen: "Session", si: "ඔයා කතා කළා", en: "You spoke (the child's turn in the chat, in place of a transcript)" },
   "edge.rotate.title": { screen: "Edge", si: "ෆෝන් එක හරහට කරන්න", en: "Turn your phone sideways" },
   "edge.rotate.body": { screen: "Edge", si: "පුවරුව හොඳට පේන්න පාඩම හරහට තියෙන්නේ.", en: "The lesson is landscape so the board shows well." },
@@ -358,9 +361,9 @@ export const MISSING: Array<{ key: string; screen: string; en: string; where: st
   { key: "practice.empty", screen: "Practice hub", en: "Nothing to practise yet — finish a session first", where: "the hub with no concept worked on — the list is empty and තාම නෑ stands in" },
   { key: "onboarding.devStub", screen: "Onboarding", en: "DEV ONLY — OTP and payment are stubs (English, parent surface)", where: "the dev-only label under the stubbed steps (English on a parent surface)" },
   { key: "quiz.expansionAsk", screen: "Quiz", en: "Which number is missing? (for an expansion item)", where: "the quiz shows the expansion line with ▢ and the recap ask line" },
-  { key: "nav.back", screen: "Session", en: "Back a step (⏮ on the paused card's playback panel)", where: "the control is the ⏮ glyph alone; its accessible name is English" },
-  { key: "nav.forward", screen: "Session", en: "Forward a step (⏭ on the paused card's playback panel)", where: "the control is the ⏭ glyph alone; its accessible name is English" },
-  { key: "nav.steps", screen: "Session", en: "The steps of this session (the row of step marks on the playback panel)", where: "the strip has no visible label; its accessible name is English" },
+  { key: "nav.back", screen: "Session", en: "Back a step (⏮ on the playback panel)", where: "the control is the ⏮ glyph alone; its accessible name is English" },
+  { key: "nav.forward", screen: "Session", en: "Forward a step (⏭ on the playback panel)", where: "the control is the ⏭ glyph alone; its accessible name is English" },
+  { key: "nav.panel", screen: "Session", en: "The steps of this lesson (the playback panel's name, and its concept-chip group)", where: "the panel is labelled පාඩමේ පියවර (drafted); the chip group's accessible name is English" },
 ];
 
 export const LESSON_NAMES: Record<number, string> = { 1: t("lesson.1"), 2: t("lesson.2"), 3: t("lesson.3"), 4: t("lesson.4"), 5: t("lesson.5"), 6: t("lesson.6") };

@@ -12,10 +12,12 @@
  * The pad used to cancel on a double-click, and two taps on the same key
  * inside the browser's double-tap window (the two 0s of 1000) ARE a
  * double-click — the pad vanished with the digits in it. There is no cancel
- * gesture now: the pad leaves with the turn, or with its ✓.
+ * gesture now: the pad leaves with the turn, or with its ✓. A tap delivered twice is dropped by the app-wide
+ * single-fire guard (src/lib/singleFire.ts); the digit keys and ⌫ are marked data-tap-repeat there, so two real taps
+ * on one key — the two 0s — are two digits however quick.
  */
 import { motion } from "framer-motion";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useBoard } from "./targets";
 import { BOARD, FONT_SINHALA, FONT_LATIN, EASE_SPRING } from "./tokens";
@@ -37,8 +39,6 @@ export interface NumberPadProps {
  * always works.
  */
 export const MAX_DIGITS = 6;
-/** Two presses of one key closer than this are one press fired twice (a touch and its compatibility click), never two digits. */
-const DOUBLE_FIRE_MS = 30;
 
 const TOP = ["1", "2", "3", "4", "5", "⌫"] as const;
 const BOTTOM = ["6", "7", "8", "9", "0", "✓"] as const;
@@ -46,7 +46,6 @@ const BOTTOM = ["6", "7", "8", "9", "0", "✓"] as const;
 export function NumberPad({ onCommit, label, docked = false, onChange }: NumberPadProps) {
   const [value, setValueState] = useState("");
   const board = useBoard();
-  const lastPressRef = useRef<{ key: string; at: number }>({ key: "", at: 0 });
   const setValue = (next: string | ((v: string) => string)) => {
     setValueState((v) => {
       const out = typeof next === "function" ? next(v) : next;
@@ -62,9 +61,7 @@ export function NumberPad({ onCommit, label, docked = false, onChange }: NumberP
   }, [docked, board]);
   // The pad leaving (committed, the turn over) clears its input claim.
   useEffect(() => () => board.noteInput("pad", false), [board]);
-  const press = (key: string, at: number) => {
-    if (lastPressRef.current.key === key && at - lastPressRef.current.at < DOUBLE_FIRE_MS) return;
-    lastPressRef.current = { key, at };
+  const press = (key: string) => {
     if (key === "⌫") {
       setValue((v) => v.slice(0, -1));
       return;
@@ -114,7 +111,8 @@ export function NumberPad({ onCommit, label, docked = false, onChange }: NumberP
             type="button"
             className="wb-tap"
             aria-label={tick ? "done" : back ? "backspace" : key}
-            onClick={(event) => press(key, event.timeStamp)}
+            data-tap-repeat={tick ? undefined : true}
+            onClick={() => press(key)}
             style={{
               width: 56,
               height: 56,

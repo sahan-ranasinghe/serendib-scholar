@@ -204,6 +204,8 @@ export function DigitPicker({ pool, built, length, builtName = null, builtBy = "
                   role={active && interactive && built.length ? "button" : undefined}
                   aria-label={active ? `row ${row + 1}: ${number || "empty"} — tap to take the last digit back` : undefined}
                   onClick={active && interactive && built.length ? () => tapSlot(built.length - 1) : undefined}
+                  // Each tap gives one digit back: quick taps are separate presses (src/lib/singleFire.ts).
+                  data-tap-repeat={active && interactive && built.length ? true : undefined}
                   style={{ display: "flex", alignItems: "center", gap: 12, height: 34, minHeight: active && built.length ? TOUCH_MIN : undefined }}
                 >
                   <span style={{ width: 28, height: 28, borderRadius: "50%", background: done ? BOARD.markerGreen : active ? BOARD.chalkYellow : "rgba(27,27,27,.25)", color: "#fff", font: `700 16px/28px ${FONT_LATIN}`, textAlign: "center" }}>{row + 1}</span>

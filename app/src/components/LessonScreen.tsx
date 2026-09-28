@@ -80,7 +80,9 @@ export default function LessonScreen() {
     cycleDailyLimit,
     jumpTo,
     navInfo,
-    requestNav,
+    navigate,
+    listenSelected,
+    navPreview,
   } = useLessonRuntime();
   const router = useRouter();
 
@@ -320,8 +322,9 @@ export default function LessonScreen() {
 
   return (
     <SessionShell
-      stage={stage}
-      yourTurn={listening || pausing ? yourTurn : null}
+      // While the panel scrubs, the board shows the SELECTED beat as its line ended — silently, never answerable.
+      stage={navPreview?.stage ?? stage}
+      yourTurn={!navPreview && (listening || pausing) ? yourTurn : null}
       zaraState={zaraState}
       lenaState={lenaState}
       pointerSide={pointerSide}
@@ -332,7 +335,7 @@ export default function LessonScreen() {
       conceptStops={conceptStops}
       captionsOn={captionsOn}
       onToggleCaptions={toggleCaptions}
-      caption={captionText}
+      caption={navPreview ? navPreview.line : captionText}
       hint={hint}
       sheet={sheet}
       charactersShown={inLesson}
@@ -341,6 +344,12 @@ export default function LessonScreen() {
       onHand={requestChat}
       onPause={togglePause}
       onRepeat={() => setAsking("restart")}
+      // ⏸ opens the playback panel beside the board; the lesson stays paused while it is open (src/components/PlaybackPanel.tsx).
+      sidePanel={
+        paused && !asking && inLesson && !micAsk && status !== "chatting" && !portrait && navInfo ? (
+          <PlaybackPanel info={navInfo} onBack={() => navigate("back")} onForward={() => navigate("forward")} onConcept={(tag) => navigate("concept", tag)} onListen={() => void listenSelected()} onResume={togglePause} />
+        ) : null
+      }
       onEnd={() => setAsking("leave")}
       confirm={confirm}
       onAnswer={submitTypedAnswer}
@@ -366,6 +375,8 @@ export default function LessonScreen() {
         "data-chat-error": chatError ?? undefined,
         // the navigation's view, for the harness: where the cursor is, how far the sitting reached, and whether this is a revisit
         "data-beat-index": navInfo ? String(navInfo.current) : undefined,
+        "data-selected-index": navInfo && navPreview ? String(navInfo.selected) : undefined,
+        "data-preview-beat": navPreview?.beatId,
         "data-furthest-index": navInfo ? String(navInfo.furthest) : undefined,
         "data-revisit": navInfo?.revisit ? "true" : undefined,
       }}
@@ -382,12 +393,9 @@ export default function LessonScreen() {
           sheet, and without this the "පාඩම නවත්තලා" card mounted underneath it — read by the layout
           probe, and flashed across the board for a frame when the child chose දිගටම. One thing at a
           time on the board: the sheet IS the paused state while it is asking. */}
-      {paused && !asking && inLesson && !micAsk && status !== "chatting" && !portrait && (
+      {paused && !asking && inLesson && !micAsk && status !== "chatting" && !portrait && !navInfo && (
         <div style={{ position: "absolute", inset: 0, zIndex: 24 }}>
-          {/* the playback panel at the card's foot: ⏮ ⏭ and this session's step marks (src/components/PlaybackPanel.tsx) */}
-          <EdgeState kind="paused" onCta={togglePause} onAlt={() => setAsking("leave")} style={navInfo ? { paddingBottom: 92 } : undefined}>
-            {navInfo && <PlaybackPanel info={navInfo} onBack={() => requestNav("back")} onForward={() => requestNav("forward")} onGoto={(index) => requestNav("goto", index)} />}
-          </EdgeState>
+          <EdgeState kind="paused" onCta={togglePause} onAlt={() => setAsking("leave")} />
         </div>
       )}
 

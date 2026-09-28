@@ -21,3 +21,20 @@ body {
 .font-sinhala {
   font-family: var(--font-display);
 }
+
+/*
+ * Every control: no double-tap-to-zoom, so a quick second tap is a second tap and never a gesture (23 Sep 2026 — the
+ * pad's "1000" and the playback panel's ⏮). The single-fire guard (src/lib/singleFire.ts) uses the same selector.
+ * A control that asks for touch-action: none (.wb-tap, a drag surface) keeps it — that is stricter still.
+ */
+a[href],
+button,
+[role="button"],
+input[type="submit"],
+[role="tab"],
+summary,
+[data-tap],
+[data-tap-press] {
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+}

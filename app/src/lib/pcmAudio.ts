@@ -81,6 +81,12 @@ export class PcmPlayer {
   private peakSources = 0;
   /** How many clips have ever started. A control that must not make a sound leaves this untouched. */
   private clipsStarted = 0;
+  /**
+   * Bumped by clear(). A clip still DECODING when clear() runs (a ⏮ tap, a new line taking the floor) was not yet a
+   * source, so clear() could not stop it — it started a moment later over whatever came next. playClip checks the
+   * generation after its awaits and gives up if it moved (23 Sep 2026, the playback panel's overlaps).
+   */
+  private generation = 0;
   private onPlaybackStateChange?: (isPlaying: boolean) => void;
   /** Taps the output for per-frame amplitude (drives the character's mouth) — see getAmplitude. */
   private analyser: AnalyserNode;
@@ -157,8 +163,11 @@ export class PcmPlayer {
     data: ArrayBuffer,
     options: { sentences?: Array<{ startMs: number; endMs: number }>; onSentence?: (index: number) => void } = {},
   ): Promise<void> {
+    const generation = this.generation;
     const audioBuffer = await this.audioContext.decodeAudioData(data.slice(0));
+    if (generation !== this.generation) return;
     await this.resume();
+    if (generation !== this.generation) return;
     const source = this.audioContext.createBufferSource();
     source.buffer = audioBuffer;
     source.connect(this.analyser);
@@ -303,6 +312,12 @@ export class PcmPlayer {
    * Published on `window.__audio` so an unattended run can assert the
    * contract that two clips never overlap, from any control.
    */
+  /** The harness's window on a stretch of time (a navigation drill): the peak starts again from what is audible now. */
+  resetPeak(): void {
+    this.peakSources = this.activeSources.size;
+    this.probe();
+  }
+
   private probe(): void {
     this.peakSources = Math.max(this.peakSources, this.activeSources.size);
     if (typeof window !== "undefined") {
@@ -334,6 +349,7 @@ export class PcmPlayer {
    * harmlessly no-ops against the now-empty set.
    */
   clear(): void {
+    this.generation += 1;
     for (const stopper of [...this.clipStoppers]) stopper();
     this.clipStoppers.clear();
     for (const source of this.activeSources) {

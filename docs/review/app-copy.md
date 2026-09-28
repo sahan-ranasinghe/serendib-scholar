@@ -6,7 +6,7 @@ Every child-facing and parent-facing string outside the session, extracted from 
 - **drafted**: from the design export (Screens A/B/C) or the runtime — needs sign-off (README "Copy").
 - **missing**: the app needs the line and the export has no Sinhala for it; the screen leaves the spot empty or reuses an export string, and the English gloss says what is needed.
 
-Counts: fromScript 21 · drafted 244 · missing 18
+Counts: fromScript 21 · drafted 246 · missing 18
 
 Terms: ගණක රාමුව (never අබකසය) · සාරා · සාරා ටීචර් (Latin "Zara Teacher" only on the splash wordmark, the manifest and the parent zone's English; "Serendib Scholar" is the company, parent-zone footer only). `{name}`-style holes are filled at runtime.
 
@@ -260,6 +260,8 @@ Terms: ගණක රාමුව (never අබකසය) · සාරා · ස�
 | Edge | `edge.paused.body` | ලෑස්ති වුණාම දිගටම යමු. | When you're ready, let's continue. | drafted |
 | Edge | `edge.paused.resume` | ▶ දිගටම | ▶ Continue | drafted |
 | Edge | `edge.paused.stop` | නවත්වන්න | Stop | drafted |
+| Session | `nav.stepN` | {n} වෙනි පියවර | Step {n} (the playback panel's position, after the concept's name) | drafted |
+| Session | `nav.listen` | 🔊 ආයෙත් අහන්න | 🔊 Hear it again (plays the selected step's line once) | drafted |
 | Session | `chat.childSpoke` | ඔයා කතා කළා | You spoke (the child's turn in the chat, in place of a transcript) | drafted |
 | Edge | `edge.rotate.title` | ෆෝන් එක හරහට කරන්න | Turn your phone sideways | drafted |
 | Edge | `edge.rotate.body` | පුවරුව හොඳට පේන්න පාඩම හරහට තියෙන්නේ. | The lesson is landscape so the board shows well. | drafted |
@@ -297,6 +299,6 @@ Terms: ගණක රාමුව (never අබකසය) · සාරා · ස�
 | Practice hub | `practice.empty` | Nothing to practise yet — finish a session first | the hub with no concept worked on — the list is empty and තාම නෑ stands in |
 | Onboarding | `onboarding.devStub` | DEV ONLY — OTP and payment are stubs (English, parent surface) | the dev-only label under the stubbed steps (English on a parent surface) |
 | Quiz | `quiz.expansionAsk` | Which number is missing? (for an expansion item) | the quiz shows the expansion line with ▢ and the recap ask line |
-| Session | `nav.back` | Back a step (⏮ on the paused card's playback panel) | the control is the ⏮ glyph alone; its accessible name is English |
-| Session | `nav.forward` | Forward a step (⏭ on the paused card's playback panel) | the control is the ⏭ glyph alone; its accessible name is English |
-| Session | `nav.steps` | The steps of this session (the row of step marks on the playback panel) | the strip has no visible label; its accessible name is English |
+| Session | `nav.back` | Back a step (⏮ on the playback panel) | the control is the ⏮ glyph alone; its accessible name is English |
+| Session | `nav.forward` | Forward a step (⏭ on the playback panel) | the control is the ⏭ glyph alone; its accessible name is English |
+| Session | `nav.panel` | The steps of this lesson (the playback panel's name, and its concept-chip group) | the panel is labelled පාඩමේ පියවර (drafted); the chip group's accessible name is English |

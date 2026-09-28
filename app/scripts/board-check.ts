@@ -25,7 +25,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { connect, evaluate, launch, openPage, wait } from "./lib/cdp";
-import { describeMid, judgeAtRest, judgeJump, MEASURE_JS, STROKE_PROBES, type Measured } from "./lib/strokeAudit";
+import { describeMid, judgeAtRest, judgeJump, judgePointerWait, MEASURE_JS, POINTER_WAIT_MS, STROKE_PROBES, type Measured } from "./lib/strokeAudit";
 
 const BASE = process.argv.find((a) => a.startsWith("http")) ?? "http://localhost:3000";
 const ONLY = process.argv.find((a) => a.startsWith("--only="))?.slice(7) ?? null;
@@ -198,6 +198,16 @@ async function main(): Promise<void> {
             const s = document.querySelector('[data-primitive="${probe.section}"]');
             const b = [...s.querySelectorAll('.bg-toolbar button')].find((el) => el.textContent === ${JSON.stringify(probe.button)});
             if (!b) return false;
+            // The hand's waits, timed from the tap: every change of its data-waiting, on the page clock.
+            const hand = s.querySelector('[data-testid="pointer"]');
+            window.__handWaits?.observer?.disconnect();
+            const at = performance.now();
+            const log = { at, changes: [], observer: null };
+            if (hand) {
+              log.observer = new MutationObserver(() => log.changes.push({ t: performance.now() - at, waiting: hand.hasAttribute('data-waiting') }));
+              log.observer.observe(hand, { attributes: true, attributeFilter: ['data-waiting'] });
+            }
+            window.__handWaits = log;
             b.click();
             return true;
           })()`,
@@ -235,7 +245,27 @@ async function main(): Promise<void> {
         // Ring completion (cluster F): every ringed target's ring, at rest, must be 100 % of its length.
         for (const stroke of rest.strokes) if (/ring|circle/iu.test(stroke.label)) ringRows.push(`${viewport.name}/${probe.name} ${stroke.label}: ${Math.round(stroke.drawn * 100)} %`);
         const problems = [...judgeAtRest(probe, rest), ...judgeJump(probe, mid, rest)];
-        console.log(`  ${problems.length ? "✗" : "✓"} ${probe.name.padEnd(30)} mid: ${describeMid(mid)}`);
+        // A hand with no clean spot is out of sight at rest ON PURPOSE (Pointer.tsx): wait for it, then judge when and where it
+        // appeared — within POINTER_WAIT_MS of the tap, touching its target like any other hand.
+        let waitNote = "";
+        if (probe.expect.pointerAt && rest.pointer?.waiting) {
+          // The FIRST time it comes out of hiding: this audit's own screenshots (captureBeyondViewport resizes the page) move
+          // the board under it, and a hand whose target moved looks again — hiding anew, as it should on a real resize.
+          const firstShow = `(() => { const log = window.__handWaits; const shown = log ? log.changes.find((c) => !c.waiting) : null; return shown ? shown.t : null; })()`;
+          let appearedMs: number | null = null;
+          for (let i = 0; i < (POINTER_WAIT_MS * 2) / 50 && appearedMs === null; i += 1) {
+            appearedMs = await evaluate<number | null>(page, firstShow);
+            if (appearedMs === null) await wait(50);
+          }
+          // Where it lands, measured once it is out of hiding and its fade is done.
+          for (let i = 0; i < (POINTER_WAIT_MS * 2) / 50 && (await evaluate<boolean>(page, `!!document.querySelector('[data-primitive="${probe.section}"] [data-testid="pointer"][data-waiting]')`)); i += 1) await wait(50);
+          await wait(300);
+          const shown = await shoot("rest");
+          const timeline = await evaluate<Array<{ t: number; waiting: boolean }>>(page, `window.__handWaits?.changes ?? []`);
+          problems.push(...judgePointerWait(probe, appearedMs, shown));
+          waitNote = ` · no clean spot (best covers ${rest.pointer.covers} px²): hidden at rest, appeared ${appearedMs === null ? "NEVER" : `${Math.round(appearedMs)} ms`} after the tap (≤ ${POINTER_WAIT_MS}) as the ${shown.pointer?.placed ?? "?"} hand, opacity ${shown.pointer?.opacity ?? "?"} (waits: ${timeline.map((c) => `${c.waiting ? "hide" : "show"} ${Math.round(c.t)}`).join(", ")} ms)`;
+        }
+        console.log(`  ${problems.length ? "✗" : "✓"} ${probe.name.padEnd(30)} mid: ${describeMid(mid)}${waitNote}`);
         for (const problem of problems) {
           console.log(`      ${problem}`);
           failures.push(`strokes/${viewport.name}/${probe.name}: ${problem}`);

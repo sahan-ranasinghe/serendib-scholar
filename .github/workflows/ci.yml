@@ -41,6 +41,7 @@ jobs:
             src/lib/addressToken.test.ts \
             src/lib/boardContentParser.test.ts \
             src/lib/pageReferenceDetection.test.ts \
+            src/lib/singleFire.test.ts \
             scripts/ingest-syllabus.test.ts \
             scripts/lib/geminiRetry.test.ts
 
