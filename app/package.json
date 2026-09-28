@@ -51,6 +51,7 @@
     "build:check": "node --env-file=.env.local ./node_modules/.bin/tsx scripts/build-check.ts",
     "crawl:check": "node --env-file=.env.local ./node_modules/.bin/tsx scripts/crawl-check.ts",
     "latency:check": "node --env-file=.env.local ./node_modules/.bin/tsx scripts/latency-check.ts",
+    "audio:check": "node --env-file=.env.local ./node_modules/.bin/tsx scripts/audio-check.ts",
     "chat:live-check": "node --env-file=.env.local ./node_modules/.bin/tsx scripts/chat-live-check.ts"
   },
   "dependencies": {

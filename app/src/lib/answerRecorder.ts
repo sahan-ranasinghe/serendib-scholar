@@ -15,6 +15,7 @@
  *   - the caller cancels (pad ✓, pause, stop)
  */
 import { arrayBufferToBase64 } from "@/lib/pcmAudio";
+import { audio } from "@/lib/audioManager";
 
 /** Quiet needed after speech before the answer is treated as finished. */
 export const ANSWER_SILENCE_MS = 1500;
@@ -34,7 +35,8 @@ const SPEECH_RMS = 0.02;
 let sharedContext: AudioContext | null = null;
 function recordingContext(): AudioContext {
   if (!sharedContext || sharedContext.state === "closed") {
-    sharedContext = new AudioContext({ sampleRate: RECORD_SAMPLE_RATE });
+    // Capture only — made by the audio manager, which owns every AudioContext in the app.
+    sharedContext = audio.captureContext(RECORD_SAMPLE_RATE);
   }
   return sharedContext;
 }

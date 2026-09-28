@@ -3,7 +3,8 @@
 /**
  * The board's five sounds, synthesised with Web Audio so there is nothing
  * to license and nothing to download. Each is ≤ 300 ms and quiet — a
- * classroom, not an arcade.
+ * classroom, not an arcade. They play on the audio manager's effects bus
+ * (src/lib/audioManager.ts), in the app's one playback context.
  *
  *   beadClick  a bead landing on a rod
  *   chalk      a marker writing (every write-on, ≤ 150 ms)
@@ -15,6 +16,7 @@
  * the tray's toggle and every primitive agree.
  */
 import { useSyncExternalStore } from "react";
+import { audio, type EffectPart } from "@/lib/audioManager";
 
 export type SoundName = "beadClick" | "chalk" | "chime" | "wobble" | "pageTurn";
 
@@ -58,17 +60,6 @@ export function useMuted(): boolean {
   return useSyncExternalStore(subscribe, isMuted, () => false);
 }
 
-let context: AudioContext | null = null;
-
-function audio(): AudioContext | null {
-  if (typeof window === "undefined") return null;
-  const Ctor = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-  if (!Ctor) return null;
-  context ??= new Ctor();
-  if (context.state === "suspended") void context.resume();
-  return context;
-}
-
 function noiseBuffer(ctx: AudioContext, seconds: number): AudioBuffer {
   const buffer = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * seconds), ctx.sampleRate);
   const data = buffer.getChannelData(0);
@@ -76,17 +67,18 @@ function noiseBuffer(ctx: AudioContext, seconds: number): AudioBuffer {
   return buffer;
 }
 
-function envelope(ctx: AudioContext, peak: number, attack: number, release: number, at: number): GainNode {
+function envelope(ctx: AudioContext, out: AudioNode, peak: number, attack: number, release: number, at: number): GainNode {
   const gain = ctx.createGain();
   gain.gain.setValueAtTime(0.0001, at);
   gain.gain.exponentialRampToValueAtTime(peak, at + attack);
   gain.gain.exponentialRampToValueAtTime(0.0001, at + attack + release);
-  gain.connect(ctx.destination);
+  gain.connect(out);
   return gain;
 }
 
-const SYNTH: Record<SoundName, (ctx: AudioContext) => void> = {
-  beadClick(ctx) {
+/** Each sound's graph, into the audio manager's effects bus; the manager starts (and stops) the parts. */
+const SYNTH: Record<SoundName, (ctx: AudioContext, out: AudioNode) => EffectPart[]> = {
+  beadClick(ctx, out) {
     const at = ctx.currentTime;
     const click = ctx.createBufferSource();
     click.buffer = noiseBuffer(ctx, 0.03);
@@ -94,17 +86,18 @@ const SYNTH: Record<SoundName, (ctx: AudioContext) => void> = {
     band.type = "bandpass";
     band.frequency.value = 2600;
     band.Q.value = 1.2;
-    click.connect(band).connect(envelope(ctx, 0.18, 0.003, 0.03, at));
-    click.start(at);
+    click.connect(band).connect(envelope(ctx, out, 0.18, 0.003, 0.03, at));
     const tock = ctx.createOscillator();
     tock.type = "sine";
     tock.frequency.setValueAtTime(220, at);
     tock.frequency.exponentialRampToValueAtTime(140, at + 0.06);
-    tock.connect(envelope(ctx, 0.12, 0.002, 0.07, at));
-    tock.start(at);
-    tock.stop(at + 0.09);
+    tock.connect(envelope(ctx, out, 0.12, 0.002, 0.07, at));
+    return [
+      { node: click, at },
+      { node: tock, at, stopAt: at + 0.09 },
+    ];
   },
-  chalk(ctx) {
+  chalk(ctx, out) {
     const at = ctx.currentTime;
     const scratch = ctx.createBufferSource();
     scratch.buffer = noiseBuffer(ctx, 0.15);
@@ -113,24 +106,25 @@ const SYNTH: Record<SoundName, (ctx: AudioContext) => void> = {
     band.frequency.setValueAtTime(2400, at);
     band.frequency.linearRampToValueAtTime(3600, at + 0.14);
     band.Q.value = 0.9;
-    scratch.connect(band).connect(envelope(ctx, 0.07, 0.02, 0.12, at));
-    scratch.start(at);
+    scratch.connect(band).connect(envelope(ctx, out, 0.07, 0.02, 0.12, at));
+    return [{ node: scratch, at }];
   },
-  chime(ctx) {
+  chime(ctx, out) {
     const at = ctx.currentTime;
-    for (const [frequency, gain, delay] of [
-      [880, 0.16, 0],
-      [1318.5, 0.1, 0.06],
-    ] as const) {
+    return (
+      [
+        [880, 0.16, 0],
+        [1318.5, 0.1, 0.06],
+      ] as const
+    ).map(([frequency, gain, delay]) => {
       const osc = ctx.createOscillator();
       osc.type = "sine";
       osc.frequency.value = frequency;
-      osc.connect(envelope(ctx, gain, 0.01, 0.26, at + delay));
-      osc.start(at + delay);
-      osc.stop(at + delay + 0.3);
-    }
+      osc.connect(envelope(ctx, out, gain, 0.01, 0.26, at + delay));
+      return { node: osc, at: at + delay, stopAt: at + delay + 0.3 };
+    });
   },
-  wobble(ctx) {
+  wobble(ctx, out) {
     const at = ctx.currentTime;
     const osc = ctx.createOscillator();
     osc.type = "triangle";
@@ -143,13 +137,13 @@ const SYNTH: Record<SoundName, (ctx: AudioContext) => void> = {
     const low = ctx.createBiquadFilter();
     low.type = "lowpass";
     low.frequency.value = 600;
-    osc.connect(low).connect(envelope(ctx, 0.14, 0.02, 0.25, at));
-    lfo.start(at);
-    osc.start(at);
-    osc.stop(at + 0.29);
-    lfo.stop(at + 0.29);
+    osc.connect(low).connect(envelope(ctx, out, 0.14, 0.02, 0.25, at));
+    return [
+      { node: lfo, at, stopAt: at + 0.29 },
+      { node: osc, at, stopAt: at + 0.29 },
+    ];
   },
-  pageTurn(ctx) {
+  pageTurn(ctx, out) {
     const at = ctx.currentTime;
     const sweep = ctx.createBufferSource();
     sweep.buffer = noiseBuffer(ctx, 0.26);
@@ -157,18 +151,19 @@ const SYNTH: Record<SoundName, (ctx: AudioContext) => void> = {
     low.type = "lowpass";
     low.frequency.setValueAtTime(700, at);
     low.frequency.exponentialRampToValueAtTime(3200, at + 0.22);
-    sweep.connect(low).connect(envelope(ctx, 0.12, 0.05, 0.2, at));
-    sweep.start(at);
+    sweep.connect(low).connect(envelope(ctx, out, 0.12, 0.05, 0.2, at));
+    return [{ node: sweep, at }];
   },
 };
 
-/** Plays a sound unless muted. Safe to call before any user gesture — it simply stays silent. */
+/**
+ * Plays a sound unless muted — through the one audio manager, which starts it on its effects bus and never while ⏸
+ * holds the lesson. Safe to call before any user gesture — it simply stays silent.
+ */
 export function playSound(name: SoundName): void {
   if (isMuted()) return;
-  const ctx = audio();
-  if (!ctx || ctx.state !== "running") return;
   try {
-    SYNTH[name](ctx);
+    audio.effect((ctx, out) => SYNTH[name](ctx, out));
   } catch {
     /* an odd browser; silence is fine */
   }

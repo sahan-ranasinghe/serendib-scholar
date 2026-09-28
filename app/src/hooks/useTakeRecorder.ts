@@ -27,6 +27,7 @@
  * switched off for a session.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
+import { audio } from "@/lib/audioManager";
 
 /** Quiet for this long, after speech, ends the take. */
 export const SILENCE_STOP_MS = 2500;
@@ -157,7 +158,8 @@ export function useTakeRecorder() {
         },
       });
       streamRef.current = stream;
-      const context = new AudioContext({ sampleRate: 48000 });
+      // Capture only — made by the audio manager, which owns every AudioContext in the app.
+      const context = audio.captureContext(48000);
       const analyser = context.createAnalyser();
       analyser.fftSize = 2048;
       context.createMediaStreamSource(stream).connect(analyser);

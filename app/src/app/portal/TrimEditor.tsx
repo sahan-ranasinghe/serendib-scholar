@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { audio } from "@/lib/audioManager";
 
 /**
  * A waveform with a handle at each end.
@@ -29,9 +30,9 @@ export function TrimEditor({
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const context = new AudioContext();
       try {
-        const decoded = await context.decodeAudioData(await blob.arrayBuffer());
+        // Decoded offline by the audio manager (it owns every AudioContext; nothing is played here).
+        const decoded = await audio.decodeFile(await blob.arrayBuffer());
         if (cancelled) return;
         setDurationMs(Math.round(decoded.duration * 1000));
         const canvas = canvasRef.current;
@@ -52,8 +53,6 @@ export function TrimEditor({
         }
       } catch {
         /* an undecodable container still uploads fine; the waveform is a convenience */
-      } finally {
-        void context.close();
       }
     })();
     return () => {

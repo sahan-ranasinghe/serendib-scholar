@@ -21,7 +21,7 @@
  * every saved take intact. That is why a dropped connection mid-session
  * costs at most the take in progress.
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTakeRecorder } from "@/hooks/useTakeRecorder";
 import { useRenderGuard } from "@/hooks/useRenderGuard";
 import { PortalGate } from "./PortalGate";
@@ -29,6 +29,7 @@ import { LineList } from "./LineList";
 import { TrimEditor } from "./TrimEditor";
 import { LevelMeter, StopRing } from "./LevelMeter";
 import type { PortalLine, UploadState } from "./types";
+import { audio } from "@/lib/audioManager";
 
 export default function PortalPage() {
   useRenderGuard("PortalPage");
@@ -43,7 +44,6 @@ export default function PortalPage() {
   const [trim, setTrim] = useState<{ startMs: number; endMs: number | null }>({ startMs: 0, endMs: null });
   const [busy, setBusy] = useState<string | null>(null);
   const recorder = useTakeRecorder();
-  const playerRef = useRef<HTMLAudioElement | null>(null);
 
   const current = lines[index] ?? null;
 
@@ -85,12 +85,10 @@ export default function PortalPage() {
     [lines.length],
   );
 
+  // Every take plays through the one audio manager: a new one stops the last (two takes never talk over each other).
   const playBlob = useCallback((blob: Blob) => {
     const url = URL.createObjectURL(blob);
-    const audio = new Audio(url);
-    playerRef.current = audio;
-    audio.onended = () => URL.revokeObjectURL(url);
-    void audio.play().catch(() => URL.revokeObjectURL(url));
+    void audio.playUrl(url, "take (unsaved)").then(() => URL.revokeObjectURL(url));
   }, []);
 
   /** Record → auto-play the take once → she decides. */
@@ -168,13 +166,7 @@ export default function PortalPage() {
 
   const playPreviousIntoCurrent = useCallback(async () => {
     const previous = lines[index - 1];
-    const play = (key: string) =>
-      new Promise<void>((resolve) => {
-        const audio = new Audio(`/api/portal/clip/${key}`);
-        audio.onended = () => resolve();
-        audio.onerror = () => resolve();
-        void audio.play().catch(() => resolve());
-      });
+    const play = (key: string) => audio.playUrl(`/api/portal/clip/${key}`, `take ${key}`).then(() => undefined);
     if (previous?.take?.status === "saved" && previous.take.clipKey) await play(previous.take.clipKey);
     if (pendingTake) playBlob(pendingTake.blob);
     else if (current?.take?.status === "saved" && current.take.clipKey) await play(current.take.clipKey);
@@ -182,7 +174,7 @@ export default function PortalPage() {
 
   const playReference = useCallback(() => {
     if (!current) return;
-    void new Audio(`/api/portal/clip/${current.clipKey}?source=ai`).play().catch(() => undefined);
+    void audio.playUrl(`/api/portal/clip/${current.clipKey}?source=ai`, "reference");
   }, [current]);
 
   const deleteTake = useCallback(async () => {

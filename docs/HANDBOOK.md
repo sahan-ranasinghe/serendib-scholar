@@ -139,6 +139,7 @@ CLIP_RENDER=off DEV_ONBOARDING=stub DEV_MODE=on npx next start -p 3001
 | `npm run design:check` | Drift from the design export (pixel comparison), DESIGN.md rules, and install/offline behaviour |
 | `npm run crawl:check` (in CI) | A button anywhere that does nothing |
 | `npm run latency:check` | A tap that takes over 100 ms to respond, or a screen over 500 ms to appear, on a throttled phone (run alone) |
+| `npm run audio:check -- <url>` | Two clips playing at once: ⏸ → ⏮ (once or five times) → ▶, forty times on Slow 3G and 4× CPU, measured from the browser's own audio API, not the app's (run alone, about 25 min) |
 | `npm run build:check` | A phone stuck on an old version after a deploy |
 
 Without the Supabase secrets, CI skips the dry run and the crawl with a

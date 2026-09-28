@@ -1051,7 +1051,8 @@ async function reportVoiceCoverage(authoredScript: AuthoredScriptFile | null): P
 async function assertSpeechChannel(): Promise<void> {
   const runtime = await readFile(path.join(process.cwd(), "src/hooks/useLessonRuntime.ts"), "utf8");
   // Speech is playback of the beat's own words, not a model turn.
-  assert.ok(/playClip\(/.test(runtime), "the runtime speaks by playing cached clips");
+  // …through the one audio manager (28 Sep 2026): a token per request, and nothing else in the app starts a sound.
+  assert.ok(/audio\.play\(/.test(runtime) && /audio\.claim\(/.test(runtime), "the runtime speaks by playing cached clips through the audio manager, a token per request");
   assert.ok(/\/api\/hear/.test(runtime), "answers are captured by recording + /api/hear");
   assert.ok(
     !/sendTextInput\([^)]*buildDirectorLine/.test(runtime),

@@ -42,6 +42,8 @@ jobs:
             src/lib/boardContentParser.test.ts \
             src/lib/pageReferenceDetection.test.ts \
             src/lib/singleFire.test.ts \
+            src/lib/audioManager.test.ts \
+            scripts/lib/audioTruth.test.ts \
             scripts/ingest-syllabus.test.ts \
             scripts/lib/geminiRetry.test.ts
 

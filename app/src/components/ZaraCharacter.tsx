@@ -19,7 +19,7 @@ export type ZaraState = "idle" | "talking" | "listening" | "thinking" | "encoura
 
 export interface ZaraCharacterProps {
   state: ZaraState;
-  /** RMS of the audio currently audible, 0..~1 (see PcmPlayer.getAmplitude). */
+  /** RMS of the audio currently audible, 0..~1 (see audio.getAmplitude, src/lib/audioManager.ts). */
   amplitude: number;
   /** Which side of the board the pointer is on — the pointing arm mirrors it. */
   side?: "left" | "right" | null;

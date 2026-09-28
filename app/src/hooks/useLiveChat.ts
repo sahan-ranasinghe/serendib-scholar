@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from "react";
 import { GeminiLiveClient, type FunctionCall } from "@/lib/geminiLiveClient";
-import { startPcmRecorder, type PcmPlayer, type PcmRecorderHandle } from "@/lib/pcmAudio";
+import { startPcmRecorder, type PcmRecorderHandle } from "@/lib/pcmAudio";
+import { audio } from "@/lib/audioManager";
 import type { ChatContext } from "@/lib/chatContext";
 
 /**
@@ -47,7 +48,6 @@ export interface LiveChatHandle {
    */
   runChat: (options: {
     stream: MediaStream;
-    player: PcmPlayer;
     opener?: string;
     /** Where the child is — minted into the session's system prompt. */
     context?: ChatContext;
@@ -79,19 +79,20 @@ export function useLiveChat(): LiveChatHandle {
   const runChat = useCallback(
     ({
       stream,
-      player,
       opener,
       context,
       onBoardTool,
     }: {
       stream: MediaStream;
-      player: PcmPlayer;
       opener?: string;
       context?: ChatContext;
       onBoardTool?: (name: string, args: Record<string, unknown>) => void;
     }) =>
       new Promise<void>((resolve) => {
         const connectedAt = Date.now();
+        // Her replies are ONE chunk stream in the audio manager: back to back, one clip to the no-overlap rule, and
+        // opening it claims the speaker (whatever the lesson was saying has already stopped).
+        const speaker = audio.openStream("✋ chat");
         let finished = false;
         const finish = () => {
           if (finished) return;
@@ -104,7 +105,7 @@ export function useLiveChat(): LiveChatHandle {
           clientRef.current?.close();
           clientRef.current = null;
           endRef.current = null;
-          player.clear();
+          speaker.end();
           setChatting(false);
           speakingRef.current = null;
           resolve();
@@ -150,7 +151,7 @@ export function useLiveChat(): LiveChatHandle {
               },
               onAudioChunk: (chunk) => {
                 touchIdle();
-                player.enqueue(chunk);
+                speaker.push(chunk);
               },
               onInputTranscript: (text) => {
                 touchIdle();
@@ -163,7 +164,7 @@ export function useLiveChat(): LiveChatHandle {
                 speakingRef.current = "zara";
                 setTranscript((t) => ({ ...t, zara: `${fresh ? "" : t.zara}${text}`.slice(-140) }));
               },
-              onInterrupted: () => player.clear(),
+              onInterrupted: () => speaker.interrupt(),
               onToolCall: async (calls: FunctionCall[]) => {
                 const responses = await Promise.all(
                   calls.map(async (call) => {

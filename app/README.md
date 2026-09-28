@@ -20,8 +20,12 @@ child can interrupt the model mid-sentence).
 - **`src/lib/geminiLiveClient.ts`** — thin WebSocket wrapper around the
   Gemini Live (`BidiGenerateContent`) protocol.
 - **`src/lib/pcmAudio.ts`** + **`public/worklets/pcm-recorder-worklet.js`**
-  — mic capture via an `AudioWorklet` (converts to 16kHz PCM16) and a
-  scheduled playback queue for the model's 24kHz PCM16 audio.
+  — mic capture via an `AudioWorklet` (converts to 16kHz PCM16).
+- **`src/lib/audioManager.ts`** — the one owner of everything the app
+  plays: the only playback AudioContext, a token per request to speak,
+  `stopAll()` that stops, disconnects and aborts, and the invariant that
+  two voice clips never start together. The model's 24kHz PCM16 replies
+  are a chunk stream there.
 - **`src/app/api/gemini-session/route.ts`** — mints short-lived ephemeral
   tokens server-side using `GEMINI_API_KEY`. The real API key never
   reaches the browser; the model, system prompt, and tool set are locked

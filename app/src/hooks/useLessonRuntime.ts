@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { arrayBufferToBase64, PcmPlayer } from "@/lib/pcmAudio";
+import { arrayBufferToBase64 } from "@/lib/pcmAudio";
+import { audio, STALE } from "@/lib/audioManager";
 import { closeRecordingContext, recordAnswer as recordAnswerClip, type AnswerRecorderHandle } from "@/lib/answerRecorder";
 import { clipKey, AUDIO_FORMAT_VERSION, type ClipMeta } from "@/lib/audioCache";
 import { parseAnswerPredicate } from "@/lib/answerCheck";
@@ -280,7 +281,8 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
 
   const chat = useLiveChat();
 
-  const playerRef = useRef<PcmPlayer | null>(null);
+  /** The lesson may use the speaker (the one audio manager, src/lib/audioManager.ts, plays everything the app plays). */
+  const speakerOnRef = useRef(false);
   const streamRef = useRef<MediaStream | null>(null);
   const scriptRef = useRef<LessonScript | null>(null);
   const stateRef = useRef<OrchestratorState>(createInitialState());
@@ -478,10 +480,7 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
   };
 
   /** The audio clock's position inside the current clip. */
-  const positionMs = () => {
-    const debug = playerRef.current?.getPlaybackDebug();
-    return debug ? Math.round((debug.currentTime - clipStartRef.current) * 1000) : 0;
-  };
+  const positionMs = () => Math.round((audio.clock() - clipStartRef.current) * 1000);
 
   /** One painted frame (≤ 50 ms where the tab is not painting): what was just put on the stage is on the screen. */
   const nextPaint = (): Promise<void> =>
@@ -750,13 +749,13 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
   // the line on the board and runs its events on estimated spans.
   const CLIP_META_TIMEOUT_MS = 10_000;
 const CLIP_AUDIO_TIMEOUT_MS = 25_000;
+  // Through the audio manager: every clip fetch in flight is aborted by its stopAll (a navigation, ⏹, ↺, ✋).
   const loadClipByKey = async (key: string, text: string): Promise<{ text: string; audio: ArrayBuffer; meta: ClipMeta } | null> => {
-    const metaResponse = await fetch(`/api/clip/${key}?meta=1`, { signal: AbortSignal.timeout(CLIP_META_TIMEOUT_MS) });
-    if (!metaResponse.ok) return null;
-    const meta = (await metaResponse.json()) as ClipMeta;
-    const audioResponse = await fetch(`/api/clip/${key}`, { signal: AbortSignal.timeout(CLIP_AUDIO_TIMEOUT_MS) });
-    if (!audioResponse.ok) return null;
-    return { text, audio: await audioResponse.arrayBuffer(), meta };
+    const meta = await audio.fetchBody(`/api/clip/${key}?meta=1`, CLIP_META_TIMEOUT_MS, (response) => response.json() as Promise<ClipMeta>);
+    if (!meta) return null;
+    const bytes = await audio.fetchBody(`/api/clip/${key}`, CLIP_AUDIO_TIMEOUT_MS, (response) => response.arrayBuffer());
+    if (!bytes) return null;
+    return { text, audio: bytes, meta };
   };
 
   /**
@@ -782,7 +781,8 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
           return clip;
         }
       } catch (err) {
-        console.warn("[useLessonRuntime] clip fetch failed for:", text.slice(0, 60), err);
+        // A fetch a navigation aborted is not a failure worth a warning.
+        if ((err as { name?: string } | null)?.name !== "AbortError") console.warn("[useLessonRuntime] clip fetch failed for:", text.slice(0, 60), err);
       }
       clipCacheRef.current.delete(cacheKey); // never cache a miss: the clip may be recorded by the next sitting
       return null;
@@ -838,25 +838,19 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
   const speechLockRef = useRef<Promise<void>>(Promise.resolve());
   const testToneRef = useRef(false);
   /**
-   * THE SPEECH EPOCH (23 Sep 2026, the playback panel's overlaps). Every new holder of the floor and every navigation
-   * bumps it; a line that was still FETCHING its clip when the floor moved used to finish its fetch and play anyway —
-   * a moment later, over the next line. Each line now captures the epoch as it starts, waits for its clip only until the
-   * epoch moves (clipUnlessMoved), and checks it again before it plays. The player drops a clip still decoding (its
-   * generation, src/lib/pcmAudio.ts). Nothing started under an old epoch reaches the speaker.
+   * THE GENERATION TOKEN (28 Sep 2026, src/lib/audioManager.ts). Every request to speak takes a new token from the
+   * audio manager (audio.claim). Every continuation — the clip's fetch resolving, its decode, its start, the caption and
+   * board sync that follow — carries it and returns silently once it is not current. A newer line, a navigation, ⏸, ▶,
+   * ⏹, ↺ and ✋ all move it on. The epoch this replaces stopped a clip still on its way; the clip the child had PAUSED
+   * was never stopped at all (the old player forgot it), and ▶ played it under the selected beat.
+   *
+   * A request whose token only a pause moved — not a newer line, a stop or a navigation — is asked for again once ▶:
+   * a line is never lost to ⏸, and never starts while paused.
    */
-  const speechEpochRef = useRef(0);
-  const epochWaitersRef = useRef(new Set<() => void>());
-  const bumpSpeechEpoch = () => {
-    speechEpochRef.current += 1;
-    const waiters = [...epochWaitersRef.current];
-    epochWaitersRef.current.clear();
-    for (const wake of waiters) wake();
-  };
-  /** The clip for `text`, or null the moment the epoch moves on (the shared fetch itself goes on warming the cache). */
-  const clipUnlessMoved = (text: string, epoch: number): Promise<{ text: string; audio: ArrayBuffer; meta: ClipMeta } | null> => {
-    if (speechEpochRef.current !== epoch) return Promise.resolve(null);
-    const moved = new Promise<null>((resolve) => epochWaitersRef.current.add(() => resolve(null)));
-    return Promise.race([fetchClip(text), moved]).then((clip) => (speechEpochRef.current === epoch ? clip : null));
+  const askAgainAfterPause = async (token: number): Promise<boolean> => {
+    if (cut() || audio.superseded(token)) return false;
+    while (pausedRef.current && !stoppedRef.current) await wait(100);
+    return !cut() && !audio.superseded(token);
   };
   const withSpeech = async <T,>(fn: () => Promise<T>): Promise<T> => {
     const previous = speechLockRef.current;
@@ -864,11 +858,9 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
     speechLockRef.current = new Promise<void>((resolve) => {
       release = resolve;
     });
+    // The newest request wins: the holder's continuations go stale and what it was saying stops, before it unwinds.
     // (DEV_MODE's test tone holds the floor like a line, but must not be cut by the line queued behind it.)
-    if (!testToneRef.current) {
-      bumpSpeechEpoch();
-      playerRef.current?.clear();
-    }
+    if (!testToneRef.current) audio.claim("the next line");
     await previous.catch(() => undefined);
     try {
       return await fn();
@@ -892,15 +884,32 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
 
   const speak = (beat: Beat): Promise<void> => withSpeech(() => speakNow(beat));
   const speakNow = async (beat: Beat): Promise<void> => {
-    const player = playerRef.current;
-    if (!player || cut()) return;
-    const epoch = speechEpochRef.current;
+    if (!speakerOnRef.current || cut()) return;
     const text = lineFor(beat);
-    // A beat with no fixed words (a RETEACH, which used to be written by a model at runtime) has nothing to fetch.
-    const clip = text ? await clipUnlessMoved(text, epoch) : null;
-    // The floor moved while the clip was on its way (a navigation, a newer line): this line is over before it began.
-    if (cut() || speechEpochRef.current !== epoch) return;
-    if (!clip) {
+    // The request, under its own token: the clip fetched and decoded — asked for again if only ⏸ took the token.
+    let clip: { text: string; audio: ArrayBuffer; meta: ClipMeta } | null = null;
+    let buffer: AudioBuffer | null = null;
+    let token = 0;
+    for (;;) {
+      token = audio.claim(beat.id);
+      // A beat with no fixed words (a RETEACH, which used to be written by a model at runtime) has nothing to fetch.
+      const fetched = text ? await audio.unlessStale(token, fetchClip(text)) : null;
+      if (fetched === STALE) {
+        if (await askAgainAfterPause(token)) continue;
+        return;
+      }
+      if (cut()) return;
+      clip = fetched;
+      if (!clip) break;
+      const decoded = await audio.unlessStale(token, audio.decode(clip.audio));
+      if (decoded === STALE) {
+        if (await askAgainAfterPause(token)) continue;
+        return;
+      }
+      buffer = decoded;
+      break;
+    }
+    if (!clip || !buffer) {
       noteLineStart(beat.id, "caption");
       // No clip at all (nobody has recorded or rendered the line): the
       // board still follows the storyboard, on spans estimated from the
@@ -915,7 +924,7 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
         // Visible, not silent: the line she cannot say is read on the board.
         setNoClipCaption(text ?? null);
         if (text) recentLinesRef.current.push(text);
-        clipStartRef.current = player.getPlaybackDebug().currentTime;
+        clipStartRef.current = audio.clock();
         fireSentence(silent, 0, spans, durationMs);
         // Later sentences on the audio clock (which a pause suspends), not wall time.
         for (let index = 1; index < spans.list.length; index += 1) {
@@ -957,17 +966,21 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
     // player's sentence boundaries.
     const choreo = activeChoreoRef.current?.beat.id === beat.id ? activeChoreoRef.current : null;
     const spans = choreo ? alignSpans(clip.meta, choreo.beat.sentences) : null;
-    const debug = player.getPlaybackDebug();
-    clipStartRef.current = Math.max(debug.currentTime, debug.lastScheduledEnd);
+    clipStartRef.current = audio.clock();
     if (choreo && spans) fireSentence(choreo, 0, spans, clip.meta.durationMs);
     const sentences = spans ? spans.list : clip.meta.sentences;
-    await player.playClip(clip.audio, {
+    const heard = clip;
+    // The sentence callbacks are the manager's, on the audio clock, and only while this line's voice is live.
+    const result = await audio.play(buffer, {
+      token,
+      label: beat.id,
       sentences,
       onSentence: (index) => {
         if (index > 0) logEvent(`sentence ${index + 1}/${sentences.length}`);
-        if (choreo && spans && index > 0) fireSentence(choreo, index, spans, clip.meta.durationMs);
+        if (choreo && spans && index > 0) fireSentence(choreo, index, spans, heard.meta.durationMs);
       },
     });
+    if (result !== "ended" || cut()) return;
     // The echo guard the mic path relied on before: never start listening
     // over the tail of her own voice.
     await lessonWait(MIC_TAIL_MS);
@@ -1112,24 +1125,36 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
   const sayAuthored = (text: string): Promise<boolean> => withSpeech(() => sayAuthoredNow(text));
   const sayAuthoredNow = async (text: string): Promise<boolean> => {
     const config = audioConfigRef.current;
-    const player = playerRef.current;
-    if (!config || !player || cut()) return false;
-    const epoch = speechEpochRef.current;
-    const clip = await loadClipByKey(clipKey(text, config.voice), text).catch(() => null);
-    if (cut() || speechEpochRef.current !== epoch) return false;
-    setCaption(text);
-    recentLinesRef.current.push(text);
-    if (clip) {
-      beatAudioMsRef.current += clip.meta.durationMs;
-      await player.playClip(clip.audio, { sentences: clip.meta.sentences });
-      await lessonWait(MIC_TAIL_MS);
-      return true;
+    if (!config || !speakerOnRef.current || cut()) return false;
+    const label = `${activeBeatRef.current?.id ?? "—"} (authored)`;
+    for (;;) {
+      const token = audio.claim(label);
+      const clip = await audio.unlessStale(token, loadClipByKey(clipKey(text, config.voice), text).catch(() => null));
+      if (clip === STALE) {
+        if (await askAgainAfterPause(token)) continue;
+        return false;
+      }
+      if (cut()) return false;
+      const buffer = clip ? await audio.unlessStale(token, audio.decode(clip.audio)) : null;
+      if (buffer === STALE) {
+        if (await askAgainAfterPause(token)) continue;
+        return false;
+      }
+      setCaption(text);
+      recentLinesRef.current.push(text);
+      if (clip && buffer) {
+        beatAudioMsRef.current += clip.meta.durationMs;
+        const result = await audio.play(buffer, { token, label, sentences: clip.meta.sentences });
+        if (result !== "ended") return false;
+        await lessonWait(MIC_TAIL_MS);
+        return true;
+      }
+      logEvent(`no clip yet for "${text.slice(0, 24)}…" — shown on the board`);
+      setNoClipCaption(text);
+      await lessonWait(1800);
+      setNoClipCaption(null);
+      return false;
     }
-    logEvent(`no clip yet for "${text.slice(0, 24)}…" — shown on the board`);
-    setNoClipCaption(text);
-    await lessonWait(1800);
-    setNoClipCaption(null);
-    return false;
   };
 
   /**
@@ -1299,43 +1324,59 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
    */
   const speakComposedNumber = (value: number, frame?: NumberFrame): Promise<boolean> => withSpeech(() => speakComposedNumberNow(value, frame));
   const speakComposedNumberNow = async (value: number, frame?: NumberFrame): Promise<boolean> => {
-    const player = playerRef.current;
     const config = audioConfigRef.current;
-    if (!player || !config || cut()) return false;
+    if (!speakerOnRef.current || !config || cut()) return false;
     if (!Number.isInteger(value) || value < 0 || value > 100_000) return false;
-    const epoch = speechEpochRef.current;
     const plan = numberClipPlan(value, config.voice);
     const words: string[] = [];
     if (frame?.before) words.push(resolveAddress(frame.before, childGenderRef.current));
     words.push(...plan.words.map((w) => w.word));
     if (frame?.after) words.push(frame.after);
-    const clips: Uint8Array[] = [];
-    for (const word of words) {
-      const clip = await loadClipByKey(clipKey(word, config.voice), word).catch(() => null);
-      if (cut() || speechEpochRef.current !== epoch) return false;
-      if (!clip) {
-        logEvent(`number clips missing for "${word}" — board only`);
-        console.warn(`[useLessonRuntime] no recorded clip for number word "${word}"; not composing ${value}`);
+    const label = `${activeBeatRef.current?.id ?? "—"} (number ${value})`;
+    for (;;) {
+      const token = audio.claim(label);
+      const clips: Uint8Array[] = [];
+      let stale = false;
+      for (const word of words) {
+        const clip = await audio.unlessStale(token, loadClipByKey(clipKey(word, config.voice), word).catch(() => null));
+        if (clip === STALE) {
+          stale = true;
+          break;
+        }
+        if (cut()) return false;
+        if (!clip) {
+          logEvent(`number clips missing for "${word}" — board only`);
+          console.warn(`[useLessonRuntime] no recorded clip for number word "${word}"; not composing ${value}`);
+          return false;
+        }
+        clips.push(new Uint8Array(clip.audio));
+      }
+      if (stale) {
+        if (await askAgainAfterPause(token)) continue;
         return false;
       }
-      clips.push(new Uint8Array(clip.audio));
+      let spliced: Uint8Array;
+      try {
+        spliced = concatWavClips(clips);
+      } catch (error) {
+        console.warn("[useLessonRuntime] could not splice number clips:", error);
+        return false;
+      }
+      const buffer = await audio.unlessStale(token, audio.decode(spliced.buffer.slice(spliced.byteOffset, spliced.byteOffset + spliced.byteLength) as ArrayBuffer));
+      if (buffer === STALE) {
+        if (await askAgainAfterPause(token)) continue;
+        return false;
+      }
+      if (!buffer) return false;
+      const durationMs = Math.round((pcmOfWav(spliced).length / CLIP_SAMPLE_RATE) * 1000);
+      setCaption(words.join(" "));
+      beatAudioMsRef.current += durationMs;
+      logEvent(`composed number ${value} (${plan.spoken}) from ${clips.length} clip(s)`);
+      const result = await audio.play(buffer, { token, label, sentences: [{ startMs: 0 }] });
+      if (result !== "ended") return result === "stopped";
+      await lessonWait(MIC_TAIL_MS);
+      return true;
     }
-    let audio: Uint8Array;
-    try {
-      audio = concatWavClips(clips);
-    } catch (error) {
-      console.warn("[useLessonRuntime] could not splice number clips:", error);
-      return false;
-    }
-    const durationMs = Math.round((pcmOfWav(audio).length / CLIP_SAMPLE_RATE) * 1000);
-    setCaption(words.join(" "));
-    beatAudioMsRef.current += durationMs;
-    logEvent(`composed number ${value} (${plan.spoken}) from ${clips.length} clip(s)`);
-    await player.playClip(audio.buffer.slice(audio.byteOffset, audio.byteOffset + audio.byteLength) as ArrayBuffer, {
-      sentences: [{ startMs: 0, endMs: durationMs }],
-    });
-    await lessonWait(MIC_TAIL_MS);
-    return true;
   };
 
   /** Board first (it is what she is about to talk about), then bookkeeping. */
@@ -1345,6 +1386,11 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
     beatAudioMsRef.current = 0;
     beatStartedAtRef.current = new Date().toISOString();
     logEvent(`serve ${beat.type} ${beat.id.slice(0, 40)}`);
+    // For the harness: every beat served, in order — after ▶ exactly one is (the selected beat's).
+    if (typeof window !== "undefined") {
+      const w = window as unknown as { __served?: Array<{ id: string; p: number }> };
+      w.__served = [...(w.__served ?? []).slice(-99), { id: beat.id, p: performance.now() }];
+    }
     if (beat.conceptTag !== FRAMING_CONCEPT) setCurrentConceptTag(beat.conceptTag);
     if (beat.sessionIndex >= 0) setCurrentSessionIndex(beat.sessionIndex);
       sessionIndexRef.current = beat.sessionIndex;
@@ -1869,8 +1915,7 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
   /** Pauses the lesson for a live conversation, and resumes when it ends. */
   const openChat = async () => {
     interruptRef.current = false;
-    const player = playerRef.current;
-    if (!player || stoppedRef.current) return;
+    if (!speakerOnRef.current || stoppedRef.current) return;
     // The ✋ is the only place the microphone opens. The first time, she
     // says why before the browser asks; a refusal is a hint, not an error,
     // and the lesson simply carries on.
@@ -1909,7 +1954,6 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
     logEvent("live chat opened");
     await chat.runChat({
       stream,
-      player,
       context: buildChatContext(),
       onBoardTool: (name, args) => {
         const target = typeof args.target === "string" ? parseTargetKey(args.target) : null;
@@ -2171,9 +2215,10 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
     recorderRef.current = null;
     closeRecordingContext();
     chat.endChat();
-    playerRef.current?.clear();
-    playerRef.current?.close();
-    playerRef.current = null;
+    // Everything stops, every clip fetch is aborted, and the speaker sleeps until the next lesson (the one context stays).
+    audio.release("⏹");
+    audio.onPlayingChange(null);
+    speakerOnRef.current = false;
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
     activeBeatRef.current = null;
@@ -2336,9 +2381,13 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
 
       // No microphone here: the lesson path is touch-only. The ✋ chat asks
       // for it, in her words, the first time the child taps it.
-      const player = new PcmPlayer({ onPlaybackStateChange: setIsAiTalking });
-      await player.resume();
-      playerRef.current = player;
+      // The audio manager outlives any one lesson: this one starts from a clean speaker (nothing another page's lesson
+      // left behind, no pause it carried) — and a hold already on (the phone still upright) is applied to it.
+      audio.release("a new lesson");
+      if (pausedRef.current) audio.pause();
+      audio.onPlayingChange(setIsAiTalking);
+      audio.unlock();
+      speakerOnRef.current = true;
 
       setRuntimeStatus("teaching");
       await runLesson();
@@ -2375,7 +2424,8 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
     if (next) {
       pausedAtRef.current = Date.now();
       recorderRef.current?.cancel();
-      void playerRef.current?.suspend();
+      // The line that is sounding freezes in place; anything still on its way is stale (asked for again after ▶).
+      audio.pause();
     } else {
       if (pausedAtRef.current !== null) pausedTotalRef.current += Date.now() - pausedAtRef.current;
       pausedAtRef.current = null;
@@ -2383,7 +2433,8 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
       selectedRef.current = null;
       setPreview(null);
       if (typeof window !== "undefined") (window as unknown as { __navPreview?: unknown }).__navPreview = null;
-      void playerRef.current?.resume();
+      // The token moves on again: only the frozen line (if a navigation did not stop it) plays on.
+      audio.resume();
       const frozen = frozenRef.current.splice(0);
       for (const entry of frozen) setTimeout(entry.run, Math.max(0, entry.startMs - positionMs()));
     }
@@ -2451,7 +2502,7 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
   const restartThisSession = useCallback(async (): Promise<boolean> => {
     const index = activeBeatRef.current?.sessionIndex ?? sessionIndexRef.current;
     pendingBeatsRef.current = [];
-    playerRef.current?.clear();
+    audio.stopAll("↺");
     recorderRef.current?.cancel();
     stoppedRef.current = true;
     try {
@@ -2481,21 +2532,22 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
     }
     chatRequestedRef.current = true;
     interruptRef.current = true;
-    playerRef.current?.clear();
+    audio.stopAll("✋");
     tapResolveRef.current?.();
     recorderRef.current?.finish();
   }, [chat]);
 
   /**
-   * The beat in flight is cut here and now (a navigation): the speech epoch moves (a clip still on its way never plays),
-   * its clip stops, its window closes, every wait ends, and its choreography can land nothing more on the board (frozen
+   * The beat in flight is cut here and now (a navigation): the token moves on (a clip still on its way never plays), its
+   * clip stops, its window closes, every wait ends, and its choreography can land nothing more on the board (frozen
    * events dropped, the active choreography let go).
    */
   const cutBeatInFlight = () => {
-    bumpSpeechEpoch();
     frozenRef.current = [];
     activeChoreoRef.current = null;
-    playerRef.current?.clear();
+    // The paused line is stopped AND disconnected (it used to be forgotten, frozen, and brought back by ▶), and every
+    // clip fetch in flight is aborted.
+    audio.stopAll("navigation");
     tapResolveRef.current?.();
     recorderRef.current?.finish();
   };
@@ -2566,21 +2618,21 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
    * selected yet the beat that was paused is selected first (it is cut, so ▶ will play it from its start).
    */
   const listenSelected = async (): Promise<boolean> => {
-    const player = playerRef.current;
-    if (!player || !manualPauseRef.current || !scriptRef.current) return false;
+    if (!speakerOnRef.current || !manualPauseRef.current || !scriptRef.current) return false;
     if (selectedRef.current === null && !select(stateRef.current.beatIndex, "step")) return false;
     const target = previewFor(selectedRef.current!);
     if (!target.line) return false;
     return withSpeech(async () => {
-      const epoch = speechEpochRef.current;
-      const clip = await clipUnlessMoved(target.line!, epoch);
-      if (!clip || speechEpochRef.current !== epoch || !manualPauseRef.current) return false;
+      // A preview: its own request, allowed while paused, and over the moment ▶ comes (audio.resume ends it).
+      const label = `${target.beatId} (🔊)`;
+      const token = audio.claim(label);
+      const clip = await audio.unlessStale(token, fetchClip(target.line!));
+      if (clip === STALE || !clip || !manualPauseRef.current) return false;
+      const buffer = await audio.unlessStale(token, audio.decode(clip.audio));
+      if (buffer === STALE || !buffer || !manualPauseRef.current) return false;
       noteLineStart(target.beatId, "listen");
       logEvent(`panel: 🔊 ${target.beatId.slice(0, 40)}`);
-      await player.playClip(clip.audio, { sentences: clip.meta.sentences });
-      // Still paused (the child did not tap ▶ while she spoke): the context goes back to sleep with the lesson.
-      if (pausedRef.current) await player.suspend();
-      return true;
+      return (await audio.play(buffer, { token, label, sentences: clip.meta.sentences, whilePaused: true })) === "ended";
     });
   };
 
@@ -2607,10 +2659,10 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
   }, []);
 
   const resumeAudioOutput = useCallback(() => {
-    if (!pausedRef.current) void playerRef.current?.resume();
+    if (!pausedRef.current) audio.unlock();
   }, []);
 
-  const getOutputAmplitude = useCallback(() => playerRef.current?.getAmplitude() ?? 0, []);
+  const getOutputAmplitude = useCallback(() => audio.getAmplitude(), []);
 
   /**
    * DEV_MODE only: the daily limit is OFF by default there (a harness run or
@@ -2649,12 +2701,6 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
         return true;
       },
       chatError: () => chat.error,
-      /** The navigation drills: the most clips audible at once, counted again from now (window.__audio.peak). */
-      resetAudioPeak: () => {
-        if (!settingsRef.current.devMode) return false;
-        playerRef.current?.resetPeak();
-        return true;
-      },
       /** The soft double-tap drill: `n` more soft checks open straight after the current one (no line between). */
       softChecksBackToBack: (n = 1) => {
         if (!settingsRef.current.devMode) return false;
@@ -2665,9 +2711,7 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
       chatContext: () => (settingsRef.current.devMode ? buildChatContext() : null),
       /** Lip-sync drill: four seconds of tone — loud, medium, soft, then silence — through the same player and analyser as her voice. */
       playTestClip: () => {
-        if (!settingsRef.current.devMode) return false;
-        const player = playerRef.current;
-        if (!player) return false;
+        if (!settingsRef.current.devMode || !speakerOnRef.current) return false;
         const rate = 24000;
         // Peak amplitudes whose RMS (peak / √2) lands mid-band for each mouth shape (ZaraCharacter.mouthShapeFor: < 0.05 → 1,
         // < 0.14 → 2, else 3). The soft band was 0.04 (RMS 0.028): through the player it read as silence once the tone had the
@@ -2694,8 +2738,11 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
           .then(async () => {
             const startedAt = performance.now();
             w.__testClip = { state: "playing", startedAt };
-            player.enqueue(arrayBufferToBase64(pcm.buffer));
+            // A chunk stream of its own in the audio manager, like the chat's: it claims the speaker, and ends with the tone.
+            const tone = audio.openStream("test tone");
+            tone.push(arrayBufferToBase64(pcm.buffer));
             await wait(seconds.length * 1000 + 200);
+            tone.end();
             w.__testClip = { state: "done", startedAt, endedAt: performance.now() };
             testToneRef.current = false;
             release();
@@ -2721,10 +2768,10 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
       beatType: activeBeatRef.current?.type ?? "—",
       status: statusRef.current,
       recording: recorderRef.current !== null,
-      playing: playerRef.current?.getPlaybackDebug()?.playing ?? false,
+      playing: audio.debug().playing,
       voice: audioConfigRef.current?.voice ?? "?",
       audioVersion: AUDIO_FORMAT_VERSION,
-      playback: playerRef.current?.getPlaybackDebug() ?? null,
+      playback: audio.debug(),
       metrics: {
         cachedSeconds: Math.round(metricsRef.current.cachedSeconds),
         flashAudioSeconds: Math.round(metricsRef.current.flashAudioSeconds),

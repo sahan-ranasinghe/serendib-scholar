@@ -447,7 +447,8 @@ export default function LessonScreen() {
           </div>
           {debug.playback && (
             <div>
-              ctx: {debug.playback.contextState} | t {debug.playback.currentTime.toFixed(1)} / end {debug.playback.lastScheduledEnd.toFixed(1)} | drain: {debug.playback.lastDrainVia ?? "—"}
+              ctx: {debug.playback.contextState} | t {debug.playback.currentTime.toFixed(1)} | token {debug.playback.token}
+              {debug.playback.paused ? " ⏸" : ""} | voice: {debug.playback.voices.join(", ") || "—"}
             </div>
           )}
           <div style={{ marginTop: 4, borderTop: "1px solid rgba(167,243,208,.3)", paddingTop: 4 }}>
