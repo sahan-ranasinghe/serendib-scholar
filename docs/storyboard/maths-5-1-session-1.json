@@ -4898,6 +4898,20 @@
       "sees": "The place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate; the place-value table, row 1 blank for her to fill."
     },
     {
+      "id": "authored:placeValue4Digit:102t",
+      "concept": "placeValue4Digit",
+      "type": "EXPLAIN",
+      "pause": null,
+      "line": "ඉලක්කමකින් පෙන්වන අගයට පොතේ කියන්නේ ඉලක්කමෙන් නිරූපිත අගය කියලා.",
+      "sentences": [
+        "ඉලක්කමකින් පෙන්වන අගයට පොතේ කියන්නේ ඉලක්කමෙන් නිරූපිත අගය කියලා."
+      ],
+      "boardAtStart": "the place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate",
+      "events": [],
+      "child": null,
+      "sees": "The place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate."
+    },
+    {
       "id": "authored:placeValue4Digit:102a",
       "concept": "placeValue4Digit",
       "type": "EXPLAIN",

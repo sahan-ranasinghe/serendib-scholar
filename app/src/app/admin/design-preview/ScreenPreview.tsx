@@ -8,6 +8,7 @@
  * export's render of the same frame. `?screen=list` prints the labels.
  */
 import { EdgeState } from "@/components/app/EdgeState";
+import { InstallPrompt } from "@/components/app/InstallPrompt";
 import { PrimaryButton, SecondaryButton } from "@/components/app/Screen";
 import { SplashScreen } from "@/components/app/screens/Splash";
 import { HomeScreen } from "@/components/app/screens/Home";
@@ -48,6 +49,10 @@ function screenFor(label: string) {
       );
     case "Session summary":
       return <SessionSummaryScreen frame data={FIXTURE_SUMMARY} />;
+    // Not in SCREEN_LABELS (the export has no such frame): the summary after the daily limit, with the install prompt —
+    // states a crawl's fresh child never reaches, rendered here so crawl:check's width check can measure their strings.
+    case "Session summary · limit":
+      return <SessionSummaryScreen frame data={{ ...FIXTURE_SUMMARY, moreAllowed: false }} extra={<InstallPrompt force />} />;
     case "Practice hub":
       return <PracticeHubScreen frame data={FIXTURE_PRACTICE} rings={FIXTURE_PRACTICE_RINGS} />;
     case "Quiz":

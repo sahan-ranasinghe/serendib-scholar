@@ -1124,6 +1124,19 @@
         }
       },
       {
+        "before": "authored:placeValue4Digit:102a",
+        "beat": {
+          "id": "authored:placeValue4Digit:102t",
+          "type": "EXPLAIN",
+          "pause": "—",
+          "spokenText": "ඉලක්කමකින් පෙන්වන අගයට පොතේ කියන්නේ ඉලක්කමෙන් නිරූපිත අගය කියලා.",
+          "board": {
+            "kind": "none"
+          },
+          "why": "App-copy native review, 29 Sep 2026 (docs/review/app-copy-corrections.json, quiz.colValue REJECTED): the textbook's own column heading \"ඉලක්කමෙන් නිරූපිත අගය\" stays in the Quiz and the exam, so the lesson names it the first time the place-value table is up (:102), in the words the child already has for it (\"…පෙන්වන අගය\", :66 :88 :102d). DRAFT — needs a native speaker's sign-off, then recording (no clip yet: read on the board until then)."
+        }
+      },
+      {
         "after": "authored:placeValue4Digit:102a",
         "beat": {
           "id": "authored:placeValue4Digit:102b",

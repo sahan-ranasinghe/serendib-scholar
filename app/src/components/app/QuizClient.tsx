@@ -108,7 +108,7 @@ function toQuestion(beat: RecapBeat): QuizQuestion {
   const q = beat.quiz;
   const expansion = q?.expansion ? q.expansion.replace(/(\d)(?=(\d{3})+(?!\d))/gu, "$1 ") : null;
   return {
-    prompt: beat.spokenText ?? t("quiz.recapAsk"),
+    prompt: expansion ? t("quiz.expansionAsk") : (beat.spokenText ?? t("quiz.recapAsk")),
     figure: expansion ?? (q?.number ? group(q.number) : ""),
     asking: q?.field ? `${q.digit !== null && q.digit !== undefined ? `${t("quiz.colDigit")} ${q.digit} · ` : ""}${COLUMN_LABEL[q.field] ?? ""}` : "",
     options: beat.choices?.options ?? [],

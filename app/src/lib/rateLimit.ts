@@ -76,6 +76,6 @@ export function limitedResponseBody() {
   return {
     ok: false,
     error: "rate_limited",
-    message: "අද වැඩ ගොඩක් කළා! පොඩ්ඩක් ඉන්න, පස්සේ ආයෙ උත්සාහ කරන්න.",
+    message: "අද වැඩ ගොඩක් කළා! පොඩ්ඩක් ඉන්න, පස්සේ ආයෙත් උත්සාහ කරන්න.",
   };
 }

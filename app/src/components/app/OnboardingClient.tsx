@@ -117,7 +117,7 @@ export function OnboardingClient({ step, stub, smsMode = "dev", siblingOf }: { s
     }
   };
 
-  const devLabel = stub && step === 4 ? <span data-testid="dev-stub" style={sx("text-align:center;font:600 12px/1.5 var(--font-latin);color:var(--color-ink-40)")}>DEV ONLY — PayHere stub: no payment is taken</span> : null;
+  const devLabel = stub && step === 4 ? <span data-testid="dev-stub" style={sx("text-align:center;font:600 14px/1.5 var(--font-body);color:var(--color-ink-40)")}>{t("onboarding.devStub")}</span> : null;
   const otpActive = otp.findIndex((v) => !v);
   const phoneOk = phone.replace(/\D/gu, "").length >= 9;
   const canNext = step === 1 ? phoneOk && otp.every(Boolean) && (smsMode === "dev" || sent) : step === 2 ? name.trim().length > 0 : step === 3 ? true : stub;

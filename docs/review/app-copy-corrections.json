@@ -1,0 +1,385 @@
+{
+  "$comment": "The native review round of the app copy (docs/review/app-copy.md), 29 Sep 2026. Reviewer: docs/review/app-copy-gemini.md (its exact Sinhala), with the owner's accept / adjust / reject rulings. No API calls. scripts/extract-copy.ts reads this file for each string's status in docs/review/app-copy.md.",
+  "round": "app-copy native review, 29 Sep 2026",
+  "source": "docs/review/app-copy-gemini.md",
+  "statuses": {
+    "accepted": "the reviewer's correction, applied as given",
+    "adjusted": "the reviewer's correction, adjusted by the owner (loanwords with a natural Sinhala equivalent replaced)",
+    "kept": "the reviewer's correction rejected by the owner; the string stays",
+    "consistency": "changed only by the consistency pass (ආයෙ → ආයෙත්)",
+    "added": "a string the sheet was missing, added from the review",
+    "reviewed": "in the reviewed table with no correction",
+    "fromScript": "verbatim in the authored lesson script"
+  },
+  "strings": {
+    "common.sessionNth": {
+      "screen": "all",
+      "ruling": "accept",
+      "before": "{n} වන සැසිය",
+      "after": "{n} වෙනි සැසිය",
+      "reviewer": "{n} වෙනි සැසිය",
+      "reviewerWhy": "Spoken Sinhala uses \"වෙනි\" for ordinal numbers, \"වන\" is strictly for writing.",
+      "why": "The reviewer's correction, as given."
+    },
+    "app.offlineCached": {
+      "screen": "shell",
+      "ruling": "accept",
+      "before": "සම්බන්ධතාවය නැහැ — පෙර දත්ත පෙන්වනවා",
+      "after": "අන්තර්ජාලය නෑ — පරණ තොරතුරු පෙන්වනවා",
+      "reviewer": "අන්තර්ජාලය නෑ — පරණ තොරතුරු පෙන්වනවා",
+      "reviewerWhy": "\"සම්බන්ධතාවය\" and \"පෙර දත්ත\" are too technical for an everyday system message.",
+      "why": "The reviewer's correction, as given."
+    },
+    "app.noData": {
+      "screen": "shell",
+      "ruling": "accept",
+      "before": "දත්ත ලබා ගන්න බැහැ — සම්බන්ධතාවය බලලා ආයෙ උත්සාහ කරන්න",
+      "after": "තොරතුරු ගන්න බැහැ — අන්තර්ජාලය බලලා ආයෙත් උත්සාහ කරන්න",
+      "reviewer": "තොරතුරු ගන්න බැහැ — අන්තර්ජාලය බලලා ආයෙත් උත්සාහ කරන්න",
+      "reviewerWhy": "Simplified vocabulary for better UX. \"ආයෙත්\" is more natural than \"ආයෙ\".",
+      "why": "The reviewer's correction, as given."
+    },
+    "chat.failStart": {
+      "screen": "Session",
+      "ruling": "accept",
+      "before": "සම්බන්ධ වෙන්න බැරි වුණා. ආයෙ උත්සාහ කරන්න.",
+      "after": "සම්බන්ධ වෙන්න බැරි වුණා. ආයෙත් උත්සාහ කරන්න.",
+      "reviewer": "සම්බන්ධ වෙන්න බැරි වුණා. ආයෙත් උත්සාහ කරන්න.",
+      "reviewerWhy": "Consistency: Using \"ආයෙත්\" instead of \"ආයෙ\" across all error screens.",
+      "why": "The reviewer's correction, as given."
+    },
+    "parent.minWeek": {
+      "screen": "Parent zone",
+      "ruling": "accept",
+      "before": "මිනිත්තු / සතියේ",
+      "after": "සතියකට මිනිත්තු",
+      "reviewer": "සතියකට මිනිත්තු",
+      "reviewerWhy": "Reads naturally in Sinhala phrasing (Minutes per week).",
+      "why": "The reviewer's correction, as given."
+    },
+    "onb.3.c1.d": {
+      "screen": "Onboarding 3",
+      "ruling": "accept",
+      "before": "පිළිතුරු ලියවෙනවා. හඬ පටිගත කර තබා නොගනියි — කවදාවත්.",
+      "after": "පිළිතුරු ලියවෙනවා. හඬ රෙකෝඩ් කරන්නේ නෑ — කවදාවත්ම නෑ.",
+      "reviewer": "පිළිතුරු ලියවෙනවා. හඬ රෙකෝඩ් කරන්නේ නෑ — කවදාවත්ම නෑ.",
+      "reviewerWhy": "\"පටිගත කර තබා නොගනියි\" sounds cold and legal. \"රෙකෝඩ් කරන්නේ නෑ\" is highly reassuring and natural to parents.",
+      "why": "The reviewer's correction, as given."
+    },
+    "edge.mic.body": {
+      "screen": "Edge",
+      "ruling": "accept",
+      "before": "ඔයා කියන පිළිතුරු මට අහන්න ඕනේ. හඬ තබා ගන්නේ නෑ — වචන විතරයි.",
+      "after": "ඔයා දෙන උත්තර මට අහන්න ඕනේ. කටහඬ රෙකෝඩ් කරන්නේ නෑ — වචන විතරයි.",
+      "reviewer": "ඔයා දෙන උත්තර මට අහන්න ඕනේ. කටහඬ සේව් කරන්නේ නෑ — වචන විතරයි.",
+      "reviewerWhy": "Kid-friendly phrasing. 9-year-olds understand \"සේව්\" and \"උත්තර\" perfectly.",
+      "why": "Accepted as given by the owner — with රෙකෝඩ් where the reviewer's table had සේව්: the clearest word for the promise, and it is kept in both consent/mic lines."
+    },
+    "app.saveFailed": {
+      "screen": "shell",
+      "ruling": "adjust",
+      "before": "සුරැකීම හරි ගියේ නැහැ — ආයෙ උත්සාහ කරන්න",
+      "after": "සුරකින්න බැරි වුණා — ආයෙත් උත්සාහ කරන්න",
+      "reviewer": "සේව් වුණේ නෑ — ආයෙත් උත්සාහ කරන්න",
+      "reviewerWhy": "\"සුරැකීම\" is formal textbook Sinhala; users naturally say \"සේව් වුණේ නෑ\".",
+      "why": "The reviewer's සේව් is a spoken English loanword with a natural Sinhala equivalent: සුරකින්න."
+    },
+    "edge.offline.body": {
+      "screen": "Edge",
+      "ruling": "adjust",
+      "before": "Wi-Fi එක හරි දත්ත හරි බලලා ආයෙත් උත්සාහ කරමු. ඔයාගේ ප්‍රගතිය සුරක්ෂිතයි.",
+      "after": "Wi-Fi හරි ඩේටා හරි බලලා ආයෙත් උත්සාහ කරමු. ඔයා කරපු දේවල් සුරැකිලා තියෙනවා.",
+      "reviewer": "Wi-Fi හරි ඩේටා හරි බලලා ආයෙත් ට්‍රයි කරමු. ඔයා කරපු දේවල් සේව් වෙලා තියෙන්නේ.",
+      "reviewerWhy": "\"ප්‍රගතිය සුරක්ෂිතයි\" (Progress is secure) is too formal for a child's loading screen.",
+      "why": "Keeps Wi-Fi and ඩේටා (no natural Sinhala equivalent in use); drops ට්‍රයි (→ උත්සාහ) and සේව් (→ සුරැකිලා)."
+    },
+    "quiz.colValue": {
+      "screen": "Quiz",
+      "ruling": "reject",
+      "before": "ඉලක්කමෙන් නිරූපිත අගය",
+      "after": "ඉලක්කමෙන් නිරූපිත අගය",
+      "reviewer": "ඉලක්කමේ අගය",
+      "reviewerWhy": "\"නිරූපිත\" (represented) is far too advanced literary Sinhala for Grade 5.",
+      "why": "Kept: it is the TEXTBOOK'S OWN column heading (Grade 5 Maths, place-value table) and the child meets it in the exam. The reviewer is right that නිරූපිත is advanced, so the lesson now names the term in plain words the first time the table is up — see lesson below."
+    },
+    "parent.pinWrong": {
+      "screen": "Parent zone",
+      "ruling": "consistency",
+      "before": "කේතය වැරදියි. ආයෙ බලලා ලියන්න.",
+      "after": "කේතය වැරදියි. ආයෙත් බලලා ලියන්න.",
+      "why": "ආයෙ → ආයෙත් (again)."
+    },
+    "session.connectFail": {
+      "screen": "Session",
+      "ruling": "consistency",
+      "before": "සම්බන්ධ වෙන්න බැරි වුණා. ආයෙ උත්සාහ කරන්න.",
+      "after": "සම්බන්ධ වෙන්න බැරි වුණා. ආයෙත් උත්සාහ කරන්න.",
+      "why": "ආයෙ → ආයෙත් (again)."
+    },
+    "install.explain": {
+      "screen": "Session summary",
+      "ruling": "add",
+      "after": "බෝඩ් එක මුළු තිරයේම පේන්න, මාව ඔයාගේ ෆෝන් එකේ මුල් පිටුවට දාගන්න.",
+      "shownAt": "the install prompt (after a completed session): Zara's bubble, in place of the splash tagline",
+      "reviewer": "බෝඩ් එක මුළු තිරයේම පේන්න, මාව ඔයාගේ ෆෝන් එකේ මුල් පිටුවට දාගන්න.",
+      "reviewerWhy": "Friendly, natural translation of the missing string for the child.",
+      "why": "The reviewer's line, as written."
+    },
+    "install.accept": {
+      "screen": "Session summary",
+      "ruling": "add",
+      "after": "මුල් පිටුවට දාගන්න",
+      "shownAt": "the install prompt's button, in place of එකඟයි",
+      "reviewer": "මුල් පිටුවට දාගන්න",
+      "reviewerWhy": "Short, clear, and fits a button.",
+      "why": "The reviewer's line, as written."
+    },
+    "pin.create": {
+      "screen": "Parent zone",
+      "ruling": "add",
+      "after": "දෙමාපිය කලාපයට PIN එකක් හදන්න",
+      "shownAt": "the create-PIN screen's instruction line (first use), and the PIN gate's label when no PIN exists",
+      "reviewer": "දෙමාපිය කලාපයට PIN එකක් හදන්න",
+      "reviewerWhy": "Direct and simple instruction for the parent.",
+      "why": "The reviewer's line, as written."
+    },
+    "pin.enter": {
+      "screen": "Parent zone",
+      "ruling": "add",
+      "after": "PIN එක ඇතුළත් කරන්න",
+      "shownAt": "the PIN gate's label, in place of PIN එක",
+      "reviewer": "PIN එක ඇතුළත් කරන්න",
+      "reviewerWhy": "Standard UI phrasing.",
+      "why": "The reviewer's line, as written."
+    },
+    "pin.saved": {
+      "screen": "Parent zone",
+      "ruling": "add",
+      "after": "PIN එක සුරැකුණා",
+      "shownAt": "the create/change-PIN screen once saved, in place of PIN සකසා ඇත",
+      "reviewer": "PIN එක සුරැකුණා",
+      "reviewerWhy": "Short confirmation.",
+      "why": "The reviewer's line, as written."
+    },
+    "limit.reached": {
+      "screen": "Session summary",
+      "ruling": "add",
+      "after": "අදට වෙලාව ඉවරයි — හෙට ආයෙත් හම්බවෙමු",
+      "shownAt": "the session summary when the daily limit is used up (a line above the buttons)",
+      "reviewer": "අදට වෙලාව ඉවරයි — හෙට ආයෙත් හම්බවෙමු",
+      "reviewerWhy": "Warm, non-punishing end-of-day message for the child.",
+      "why": "The reviewer's line, as written."
+    },
+    "delete.confirm": {
+      "screen": "Parent zone",
+      "ruling": "add",
+      "after": "මෙයින් දරුවාගේ ගිණුම සහ දත්ත සම්පූර්ණයෙන්ම මැකෙනවා. මෙය ආපසු හැරවිය නොහැක.",
+      "shownAt": "the delete screen's warning card, in place of the consent card's මකන්න ඕනෑම වෙලාවක",
+      "reviewer": "මෙයින් දරුවාගේ ගිණුම සහ දත්ත සම්පූර්ණයෙන්ම මැකෙනවා. මෙය ආපසු හැරවිය නොහැක.",
+      "reviewerWhy": "Clear, serious consequence for the parent account deletion.",
+      "why": "The reviewer's line, as written."
+    },
+    "delete.done": {
+      "screen": "Parent zone",
+      "ruling": "add",
+      "after": "මකා දැමුවා",
+      "shownAt": "the delete button once the delete has gone through (before the app returns to the splash)",
+      "reviewer": "මකා දැමුවා",
+      "reviewerWhy": "Brief success state.",
+      "why": "The reviewer's line, as written."
+    },
+    "profiles.title": {
+      "screen": "Parent zone",
+      "ruling": "add",
+      "after": "දරුවන්ගේ පැතිකඩ",
+      "shownAt": "the profiles screen's title (the row label had stood in)",
+      "reviewer": "දරුවන්ගේ පැතිකඩ",
+      "reviewerWhy": "Simple translation for the header.",
+      "why": "The reviewer's line, as written."
+    },
+    "settings.title": {
+      "screen": "Parent zone",
+      "ruling": "add",
+      "after": "කාල සීමාව / ශබ්දය සහ උපසිරැසි",
+      "shownAt": "the time-limit / sound / captions screen's title (the row label had stood in)",
+      "reviewer": "කාල සීමාව / ශබ්දය සහ උපසිරැසි",
+      "reviewerWhy": "Accurate mapping to the English gloss without overflowing.",
+      "why": "The reviewer's line, as written."
+    },
+    "summary.none": {
+      "screen": "Session summary",
+      "ruling": "add",
+      "after": "තාම පාඩම් කරලා නෑ",
+      "shownAt": "the session summary with no sitting behind it, in place of තාම නෑ",
+      "reviewer": "තාම පාඩම් කරලා නෑ",
+      "reviewerWhy": "Empty state without sounding like a failure.",
+      "why": "The reviewer's line, as written."
+    },
+    "month.names": {
+      "screen": "Weekly report / Certificate",
+      "ruling": "add",
+      "after": "ජන., පෙබ., මාර්තු, අප්‍රේල්, මැයි, ජූනි, ජූලි, අගෝ., සැප්., ඔක්., නොවැ., දෙසැ.",
+      "shownAt": "the weekly report's range (across a month's end too) and the certificate's date where it has no long name; supersedes report.month.9 / report.month.10",
+      "reviewer": "ජන., පෙබ., මාර්තු, අප්‍රේල්, මැයි, ජූනි, ජූලි, අගෝ., නොවැ., දෙසැ.",
+      "reviewerWhy": "Standard short forms for UI spaces (excluding Sep/Oct).",
+      "why": "The reviewer's list omitted සැප්. and ඔක්.; all twelve, January first (the owner's fix)."
+    },
+    "practice.empty": {
+      "screen": "Practice hub",
+      "ruling": "add",
+      "after": "තාම පුරුදු වෙන්න දේවල් නෑ — මුලින්ම පාඩමක් කරලා එමු",
+      "shownAt": "the practice hub with nothing worked on yet, in place of තාම නෑ",
+      "reviewer": "තාම පුරුදු වෙන්න දේවල් නෑ — මුලින්ම පාඩමක් කරලා එමු",
+      "reviewerWhy": "Encourages action smoothly without blaming.",
+      "why": "The reviewer's line, as written."
+    },
+    "onboarding.devStub": {
+      "screen": "Onboarding",
+      "ruling": "add",
+      "after": "DEV ONLY — OTP සහ ගෙවීම් පරීක්ෂණ සඳහා පමණයි",
+      "shownAt": "onboarding step 4's dev-only note (dev builds), in place of an English line",
+      "reviewer": "DEV ONLY — OTP සහ ගෙවීම් පරීක්ෂණ සඳහා පමණයි",
+      "reviewerWhy": "Clear for developers.",
+      "why": "The reviewer's line, as written."
+    },
+    "quiz.expansionAsk": {
+      "screen": "Quiz",
+      "ruling": "add",
+      "after": "මෙතන අඩු ඉලක්කම මොකක්ද?",
+      "shownAt": "the quiz's prompt for an expansion item",
+      "reviewer": "මෙතන අඩු ඉලක්කම මොකක්ද?",
+      "reviewerWhy": "Simple child-friendly prompt for missing digits.",
+      "why": "The reviewer's line, as written."
+    },
+    "nav.back": {
+      "screen": "Session",
+      "ruling": "add",
+      "after": "පෙර පියවර",
+      "shownAt": "⏮'s accessible name on the playback panel (was English)",
+      "reviewer": "පෙර පියවර",
+      "reviewerWhy": "Short, accessible label.",
+      "why": "Checked in context: ⏮ / ⏭ move the selection one beat, and the panel counts beats as පියවර (\"{n} වෙනි පියවර\") — පෙර / ඊළඟ පියවර read correctly. As written."
+    },
+    "nav.forward": {
+      "screen": "Session",
+      "ruling": "add",
+      "after": "ඊළඟ පියවර",
+      "shownAt": "⏭'s accessible name on the playback panel (was English)",
+      "reviewer": "ඊළඟ පියවර",
+      "reviewerWhy": "Short, accessible label.",
+      "why": "Checked in context: ⏮ / ⏭ move the selection one beat, and the panel counts beats as පියවර (\"{n} වෙනි පියවර\") — පෙර / ඊළඟ පියවර read correctly. As written."
+    },
+    "nav.panel": {
+      "screen": "Session",
+      "ruling": "add",
+      "after": "මේ පාඩමේ පියවර",
+      "shownAt": "the playback panel's accessible name (its position, step strip, ⏮ ⏭) — was a drafted පාඩමේ පියවර",
+      "reviewer": "මේ පාඩමේ පියවර",
+      "reviewerWhy": "Short, accessible label.",
+      "why": "Checked in context: it names the panel (the position, the step strip, ⏮ ⏭) — reads correctly, as written. NOT used for the concept-chip group: the chips are the lesson's parts, not its steps, so that group now has no English name and no invented Sinhala one (the chips name themselves)."
+    }
+  },
+  "consistency": {
+    "rule": "Every ආයෙ meaning 'again' on a screen becomes ආයෙත්.",
+    "changedInTheSheet": [
+      "parent.pinWrong",
+      "session.connectFail",
+      "app.noData (also its ruling)",
+      "app.saveFailed (also its ruling)",
+      "chat.failStart (also its ruling)"
+    ],
+    "changedOutsideTheSheet": [
+      {
+        "where": "src/proxy.ts — the rate-limit refusal's message",
+        "after": "පොඩ්ඩක් ඉන්න — ටිකකින් ආයෙත් උත්සාහ කරන්න."
+      },
+      {
+        "where": "src/lib/rateLimit.ts — the daily-work limit's message",
+        "after": "අද වැඩ ගොඩක් කළා! පොඩ්ඩක් ඉන්න, පස්සේ ආයෙත් උත්සාහ කරන්න."
+      },
+      {
+        "where": "src/hooks/useLessonRuntime.ts — the access-code gate's wrong-code error",
+        "after": "කේතය වැරදියි. ආයෙත් බලලා ලියන්න."
+      },
+      {
+        "where": "src/hooks/useLessonRuntime.ts — the session's two connection errors (now t(\"session.connectFail\"), the sheet's string)",
+        "after": "සම්බන්ධ වෙන්න බැරි වුණා. ආයෙත් උත්සාහ කරන්න."
+      },
+      {
+        "where": "src/hooks/useLessonRuntime.ts — the backgrounded-tab hint",
+        "after": "ආයෙත් ආවම අපි දිගටම යමු"
+      }
+    ],
+    "notChanged": [
+      {
+        "where": "src/lib/authoredLines.ts — giveUpReveal, feedbackWrongBeforeReteach[1], feedbackWrong[0], reteach readWrite4Digit / expandedForm4Digit / beyond9999",
+        "why": "spoken lines, not screens: each is a recorded clip keyed on its exact words — rewording orphans the recording (a separate script round if wanted)"
+      },
+      {
+        "where": "src/lib/designFrames.ts CAPTION_WRONG",
+        "why": "a design fixture mirroring feedbackWrong[0] (spoken)"
+      }
+    ]
+  },
+  "removed": {
+    "report.month.9": "superseded by month.names",
+    "report.month.10": "superseded by month.names"
+  },
+  "lesson": {
+    "for": "quiz.colValue (rejected)",
+    "found": "No beat named or explained the term. The lesson's own table labels the column අගය (src/lib/choreography.ts); the child first sees the textbook heading in the Quiz. The first table with the value column is authored:placeValue4Digit:102 (\"දැන් මේ වගුවේ තියෙන කොටස් අපි එකට පුරවමු.\"); the idea itself is already in her words (\"…පෙන්වන අගය\", :66 :88 :102d).",
+    "added": {
+      "id": "authored:placeValue4Digit:102t",
+      "after": "authored:placeValue4Digit:102",
+      "line": "ඉලක්කමකින් පෙන්වන අගයට පොතේ කියන්නේ ඉලක්කමෙන් නිරූපිත අගය කියලා.",
+      "via": "docs/review/session-1-corrections.json coverage.insert → npm run apply:review-edits → npm run storyboard",
+      "status": "DRAFTED — needs a native speaker's sign-off, then recording (no clip yet: read on the board until then)"
+    }
+  },
+  "spokenDrafts": [
+    {
+      "key": "authored:placeValue4Digit:102t",
+      "si": "ඉලක්කමකින් පෙන්වන අගයට පොතේ කියන්නේ ඉලක්කමෙන් නිරූපිත අගය කියලා.",
+      "en": "The value a digit shows is what the book calls 'the value represented by the digit'. (The first time the place-value table is up — names the textbook's column heading.)"
+    }
+  ],
+  "widthCheck": {
+    "how": "crawl:check at 390×844 (scripts/crawl-check.ts TEXT_FIT_JS): every crawled route and sheet, every design-preview portrait screen plus 'Session summary · limit' (the limit line and the install prompt), the delete button's done state and the PIN-saved line. A string fails when its own text is wider than its element, wraps taller than a fixed-height element (one line is judged by its ink), or runs past the screen edge outside a sideways scroller.",
+    "shortened": [
+      {
+        "key": "onb.toggleSi",
+        "field": "en",
+        "before": "SI (language toggle)",
+        "after": "සිං",
+        "why": "In English mode (parent settings, onboarding) the language toggle displayed its review note, wrapping to two lines in its 32 px pill. The Sinhala option now names itself in its own script in both modes."
+      }
+    ],
+    "notMeasured": [
+      {
+        "key": "onboarding.devStub",
+        "why": "shown only by the dev-stub onboarding flow (step 4), which neither the crawl (it onboards through the API) nor the design preview renders; a centred 14 px line in a full-width column, free to wrap"
+      },
+      {
+        "key": "nav.back / nav.forward / nav.panel",
+        "why": "accessible names, not visible text"
+      },
+      {
+        "key": "quiz.expansionAsk",
+        "why": "needs a recap expansion item; the crawl's fresh child has no recap"
+      }
+    ],
+    "layoutFixes": [
+      {
+        "where": "weekly report — the weekday letters under the bars (ParentZone.tsx)",
+        "was": "font 16px/1: the conjunct බ්‍ර (Thursday) hung 5 px below its 16 px box",
+        "fix": "line-height 1.4 — a Sinhala line; the letters are not shortened (a day's own abbreviation)"
+      },
+      {
+        "where": "subscription — the history row's chevron slot showing ළඟදීම (ParentZone.tsx)",
+        "was": "the › glyph's box (20px/1, Latin font): the word's ink 24 px in a 20 px box",
+        "fix": "the label style (16px/1.4) when the slot holds the word; › keeps its own"
+      }
+    ],
+    "measuredHere": "design preview 'Session summary · limit' at 390 px: install.explain 174×120, install.accept 168×56 (one line), limit.reached 331×30 — all within their boxes"
+  }
+}

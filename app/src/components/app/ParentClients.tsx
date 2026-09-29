@@ -36,7 +36,7 @@ export function SettingsClient({ settings: initial, source }: { settings: ChildS
   const choice = (on: boolean) => (on ? "flex:1;height:52px;border:2px solid var(--color-saffron);background:var(--color-saffron-soft);border-radius:12px;display:flex;align-items:center;justify-content:center;font:700 24px/1 var(--font-display)" : "flex:1;height:52px;border:2px solid var(--color-ink-18);border-radius:12px;display:flex;align-items:center;justify-content:center;font:700 24px/1 var(--font-display)");
   return (
     <Screen label="Parent settings" root={ROOT}>
-      <ParentHeader title={t("parent.row.limit")} back="/parent" />
+      <ParentHeader title={t("settings.title")} back="/parent" />
       <div style={sx("display:grid;gap:14px;margin-top:16px")}>
         <div style={sx("display:grid;gap:6px")}>
           <span style={sx(LABEL)}>{t("parent.row.limitSub")}</span>
@@ -115,6 +115,7 @@ export function PinChangeClient({ pinSet, create = false }: { pinSet: boolean; c
     <Screen label={create ? "Create PIN" : "Change PIN"} root={ROOT}>
       <ParentHeader title={create ? t("parent.title") : t("parent.row.pin")} back={create ? "/home" : "/parent"} sub={pinSet ? t("parent.pinSet") : undefined} />
       <form onSubmit={(e) => { e.preventDefault(); void submit(); }} style={sx("display:grid;gap:14px;margin-top:16px")} data-testid={create ? "pin-create" : "pin-change"}>
+        {!pinSet && <span data-testid="pin-create-ask" style={sx("font:600 20px/1.5 var(--font-body);color:var(--color-ink)")}>{t("pin.create")}</span>}
         {pinSet && (
           <div style={sx("display:grid;gap:6px")}>
             <div style={sx("display:flex;align-items:center;justify-content:space-between")}>
@@ -149,7 +150,7 @@ export function PinChangeClient({ pinSet, create = false }: { pinSet: boolean; c
         {mismatch && <span role="alert" style={sx("font:600 18px/1.5 var(--font-body);color:var(--color-coral-text)")} data-testid="pin-mismatch">{t("pin.mismatch")}</span>}
         {state === "wrong" && <span role="alert" data-testid="pin-error" style={sx("font:600 18px/1.5 var(--font-body);color:var(--color-coral-text)")}>{t("parent.pinWrong")}</span>}
         {state === "error" && <span style={sx("font:400 16px/1.5 var(--font-body);color:var(--color-coral-text)")}>{t("session.connectFail")}</span>}
-        {state === "saved" && <span style={sx("font:400 16px/1.5 var(--font-body);color:var(--color-success-text)")} data-testid="pin-saved">{t("parent.pinSet")}</span>}
+        {state === "saved" && <span style={sx("font:400 16px/1.5 var(--font-body);color:var(--color-success-text)")} data-testid="pin-saved">{t("pin.saved")}</span>}
         <button type="submit" disabled={!ready || state === "busy"} data-testid="pin-change-submit" style={sx("height:56px;border:0;border-radius:12px;background:var(--color-teal);color:#fff;font:700 24px/1.5 var(--font-display);box-shadow:var(--shadow-button)", { opacity: ready ? 1 : 0.45 })}>
           {t("onb.next")}
         </button>
@@ -192,11 +193,8 @@ export function DeleteClient({ childName }: { childName: string }) {
     <Screen label="Delete account" root={ROOT}>
       <ParentHeader title={t("parent.row.delete")} back="/parent" sub={childName} />
       <div style={sx("display:flex;gap:12px;align-items:flex-start;background:var(--color-card);border-radius:14px;padding:12px 14px;margin-top:16px")}>
-        <span style={sx("width:32px;height:32px;border-radius:50%;background:#D9643A;color:#fff;display:flex;align-items:center;justify-content:center;font:700 16px/1 var(--font-latin);flex:none")}>3</span>
-        <div style={sx("display:grid;gap:2px")}>
-          <span style={sx("font:700 20px/1.4 var(--font-display);color:var(--color-ink)")}>{t("onb.3.c3.t")}</span>
-          <span style={sx("font:400 17px/1.5 var(--font-body);color:var(--color-ink-70)")}>{t("onb.3.c3.d")}</span>
-        </div>
+        <span style={sx("width:32px;height:32px;border-radius:50%;background:#D9643A;color:#fff;display:flex;align-items:center;justify-content:center;font:700 16px/1 var(--font-latin);flex:none")} aria-hidden>!</span>
+        <span data-testid="delete-warning" style={sx("font:400 18px/1.5 var(--font-body);color:var(--color-ink)")}>{t("delete.confirm")}</span>
       </div>
       {result && (
         <div data-testid="delete-result" style={sx("margin-top:12px;font:400 14px/1.5 var(--font-latin);color:var(--color-ink-70)")}>
@@ -208,8 +206,8 @@ export function DeleteClient({ childName }: { childName: string }) {
         </div>
       )}
       <div style={sx("margin-top:auto;padding-bottom:28px;display:grid;gap:8px")}>
-        <button type="button" onClick={() => void run()} disabled={state === "busy" || state === "done"} data-testid="delete-confirm" style={sx("height:52px;border:0;border-radius:12px;background:var(--color-coral);color:#fff;font:600 18px/1.5 var(--font-body)")}>
-          {t("parent.row.delete")}
+        <button type="button" onClick={() => void run()} disabled={state === "busy" || state === "done"} data-testid="delete-confirm" data-state={state} style={sx("height:52px;border:0;border-radius:12px;background:var(--color-coral);color:#fff;font:600 18px/1.5 var(--font-body)")}>
+          {state === "done" ? t("delete.done") : t("parent.row.delete")}
         </button>
         <a href="/parent" style={sx(PRIMARY, { display: "flex", alignItems: "center", justifyContent: "center", boxSizing: "border-box" })}>
           {t("onb.4.skip")}
@@ -256,7 +254,7 @@ export function ProfilesClient({ profiles }: { profiles: ProfilesData }) {
   };
   return (
     <Screen label="Profiles" root={ROOT}>
-      <ParentHeader title={t("parent.row.profiles")} back="/parent" />
+      <ParentHeader title={t("profiles.title")} back="/parent" />
       <div style={sx("margin-top:16px;display:grid;gap:8px")} data-testid="profiles">
         {profiles.children.map((c) => (
           <div key={c.id} role="button" onClick={() => void pick(c.id)} data-testid="profile-row" data-active={c.active || undefined} style={sx(`display:flex;align-items:center;gap:12px;border:${c.active ? "2px solid var(--color-saffron)" : "1px solid var(--color-ink-18)"};border-radius:14px;padding:10px 12px;background:${c.active ? "var(--color-saffron-soft)" : "transparent"};opacity:${busy === c.id ? 0.6 : 1}`)}>

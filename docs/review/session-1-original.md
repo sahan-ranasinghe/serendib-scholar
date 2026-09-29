@@ -1,8 +1,8 @@
 # Session 1 — Zara's original script (for review)
 
-Generated 2026-09-07 00:40 with gemini-flash-latest. 166 beats across readWrite4Digit, placeValue4Digit.
+Generated 2026-09-07 00:40 with gemini-flash-latest. 167 beats across readWrite4Digit, placeValue4Digit.
 
-140 of the 166 beats carry `humanEdited: true` — a native-speaker review rewrote them (docs/review/session-1-edits.json, then docs/review/gemini-review-decisions.json). Each is marked **· human-edited** below.
+141 of the 167 beats carry `humanEdited: true` — a native-speaker review rewrote them (docs/review/session-1-edits.json, then docs/review/gemini-review-decisions.json). Each is marked **· human-edited** below.
 
 **Status: APPROVED.** These are the words a child hears. Editing the JSON invalidates the cached script automatically; set `"approved": false` to take it back off the air.
 
@@ -1201,6 +1201,14 @@ Board shows: 5 421 = ▢ + ▢ + ▢ + ▢, plus "5000" written into row 0's par
 > දැන් මේ වගුවේ තියෙන කොටස් අපි එකට පුරවමු.
 
 Board shows: the exercise 7b58e436 as its content_bank row defines it
+
+### `authored:placeValue4Digit:102t`
+
+**EXPLAIN** · pause: — · guide: guide step 7 of 7: the closing exercise — the textbook's place-value table, worked as one exercise (demonstration row, then MODE 2 alternation) · max-sim J 0.29 · **human-edited**
+
+> ඉලක්කමකින් පෙන්වන අගයට පොතේ කියන්නේ ඉලක්කමෙන් නිරූපිත අගය කියලා.
+
+Board shows: the exercise 7b58e436 as its content_bank row defines it — inherited
 
 ### `authored:placeValue4Digit:102a`
 

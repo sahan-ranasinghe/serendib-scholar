@@ -119,7 +119,8 @@ export function WeeklyReportScreen({ data, frame, lang, onLang, share }: { data:
           {data.bars.map((b) => (
             <div key={b.d} style={sx("display:grid;gap:4px;justify-items:center;align-content:end;height:100%")}>
               <div style={sx(`width:100%;height:${Math.max(4, (b.minutes / data.goalMinutes) * 60)}px;background:${b.minutes ? "#0F4C5C" : "rgba(27,27,27,.12)"};border-radius:6px 6px 2px 2px`)} />
-              <span style={sx("font:600 16px/1 var(--font-label);color:var(--color-ink-70)")}>{b.d}</span>
+              {/* A Sinhala line (1.4): at 1 the conjunct බ්‍ර's ්‍ර hung 5 px below its box (crawl:check's width check). */}
+              <span style={sx("font:600 16px/1.4 var(--font-label);color:var(--color-ink-70)")}>{b.d}</span>
             </div>
           ))}
         </div>
@@ -192,7 +193,8 @@ export function SubscriptionScreen({ profiles, frame, sample, deleteButton }: { 
         </div>
         <div style={sx("min-height:56px;display:flex;align-items:center;border-bottom:1px solid var(--color-ink-10);font:500 18px/1.5 var(--font-body)")}>
           <span style={sx("flex:1")}>{t("sub.history")}</span>
-          <span style={sx("font:20px/1 var(--font-latin);color:var(--color-ink-40)")}>{sample ? "›" : t("common.soon")}</span>
+          {/* The chevron's box is one Latin line; the word that stands in for it needs a Sinhala line (crawl:check's width check). */}
+          <span style={sx(sample ? "font:20px/1 var(--font-latin);color:var(--color-ink-40)" : "font:600 16px/1.4 var(--font-label);color:var(--color-ink-40)")}>{sample ? "›" : t("common.soon")}</span>
         </div>
       </div>
       <div style={sx("margin-top:18px;font:600 16px/1.5 var(--font-label);color:var(--color-ink-70)")}>{t("parent.row.profiles")}</div>

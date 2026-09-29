@@ -120,7 +120,7 @@ export default async function proxy(request: NextRequest) {
   if (verdict === "limited") {
     console.warn(`[proxy] 429 ${harness ? "harness-limit" : "ip-limit"} ${ip} ${path}`);
     return NextResponse.json(
-      { ok: false, error: "rate_limited", message: "පොඩ්ඩක් ඉන්න — ටිකකින් ආයෙ උත්සාහ කරන්න." },
+      { ok: false, error: "rate_limited", message: "පොඩ්ඩක් ඉන්න — ටිකකින් ආයෙත් උත්සාහ කරන්න." },
       { status: 429 },
     );
   }

@@ -71,13 +71,13 @@ export function InstallPrompt({ force }: { force?: boolean }) {
           </div>
           <div style={sx("display:grid")}>
             <span style={sx("font:700 22px/1.4 var(--font-display);color:var(--color-ink)")}>{t("brand.wordmarkSi")}</span>
-            <span style={sx("font:400 20px/1.5 var(--font-body);color:var(--color-ink-70)")}>{t("splash.tagline")}</span>
+            <span data-testid="install-explain" style={sx("font:400 20px/1.5 var(--font-body);color:var(--color-ink-70)")}>{t("install.explain")}</span>
           </div>
         </div>
       </div>
       <div style={sx("display:flex;gap:10px")}>
         <button type="button" onClick={() => void accept()} data-testid="install-accept" style={sx("flex:1;height:56px;border:0;border-radius:12px;background:var(--color-teal);color:#fff;font:700 24px/1.5 var(--font-display);box-shadow:var(--shadow-button)")}>
-          {t("onb.3.cta")}
+          {t("install.accept")}
         </button>
         <button type="button" onClick={dismiss} data-testid="install-dismiss" style={sx("flex:1;height:56px;border:2px solid var(--color-ink-18);border-radius:12px;background:var(--color-paper);color:var(--color-teal);font:700 20px/1.5 var(--font-display)")}>
           {t("onb.4.skip")}

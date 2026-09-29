@@ -134,22 +134,25 @@ function weekStart(key: string): string {
   return shiftDay(key, -Math.max(0, index));
 }
 
-const MONTH_SHORT: Record<number, string> = { 9: t("report.month.9"), 10: t("report.month.10") };
+/** The twelve short month names (the native review, 29 Sep 2026): "ජන., පෙබ., …, දෙසැ." — month 1 first. */
+const MONTH_SHORT: Record<number, string> = Object.fromEntries(t("month.names").split(/,\s*/u).map((name, i) => [i + 1, name]));
 const MONTH_LONG: Record<number, string> = { 9: t("cert.month.9") };
 
-/** "සැප්. 2 – 8" when the month has an export abbreviation; else numerals. */
+/** "සැප්. 2 – 8", or "සැප්. 29 – ඔක්. 5" across a month's end; numerals only if a name is missing. */
 function rangeLabel(start: string, end: string): string {
   const [, sm, sd] = start.split("-").map(Number);
   const [, em, ed] = end.split("-").map(Number);
-  const short = MONTH_SHORT[sm!];
-  if (short && sm === em) return `${short} ${sd} – ${ed}`;
+  const from = MONTH_SHORT[sm!];
+  const to = MONTH_SHORT[em!];
+  if (from && sm === em) return `${from} ${sd} – ${ed}`;
+  if (from && to) return `${from} ${sd} – ${to} ${ed}`;
   return `${sm}/${sd} – ${em}/${ed}`;
 }
 
-/** "2026 සැප්තැම්බර් 9" when the month has an export name; else the ISO date. */
+/** "2026 සැප්තැම්බර් 9" with the export's long name, else the short one ("2026 ඔක්. 3"); the ISO date only if neither. */
 function certificateDate(key: string): string {
   const [y, m, d] = key.split("-").map(Number);
-  const month = MONTH_LONG[m!];
+  const month = MONTH_LONG[m!] ?? MONTH_SHORT[m!];
   return month ? t("cert.dateFormat", { year: y!, month, day: d! }) : key;
 }
 

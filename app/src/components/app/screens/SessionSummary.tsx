@@ -30,7 +30,7 @@ export function SessionSummaryScreen({ data, frame, extra }: { data: SummaryData
             <span style={sx("font:400 22px/1.5 var(--font-body);color:var(--color-ink)")}>{l}</span>
           </div>
         ))}
-        {!data.hasSession && <div style={sx("font:400 22px/1.5 var(--font-body);color:var(--color-ink-70)")}>{t("common.notYet")}</div>}
+        {!data.hasSession && <div data-testid="summary-none" style={sx("font:400 22px/1.5 var(--font-body);color:var(--color-ink-70)")}>{t("summary.none")}</div>}
       </div>
       <div style={sx("display:flex;gap:24px;align-items:center;margin-top:14px")}>
         <div style={sx("display:grid;justify-items:center;gap:2px")}>
@@ -46,6 +46,11 @@ export function SessionSummaryScreen({ data, frame, extra }: { data: SummaryData
           {data.plusOne && <span style={sx("font:700 18px/1 var(--font-latin);color:var(--color-coral-text)")}>{t("summary.plusOne")}</span>}
         </div>
       </div>
+      {data.hasSession && !data.moreAllowed && (
+        <div data-testid="summary-limit" style={sx("margin-top:14px;font:600 20px/1.5 var(--font-body);color:var(--color-ink);text-align:center")}>
+          {t("limit.reached")}
+        </div>
+      )}
       {extra}
       <div style={sx("margin-top:auto;width:100%;display:grid;gap:10px;padding-bottom:32px")}>
         <PrimaryButton href="/home" height={60} testId="summary-home">

@@ -35,7 +35,7 @@ export function PracticeHubScreen({ data, frame, rings }: { data: PracticeData; 
         })}
         {data.rows.length === 0 && (
           <div style={sx("background:var(--color-paper);border:2px solid var(--color-ink-10);border-radius:16px;padding:12px 14px;display:flex;align-items:center;gap:12px")} data-testid="practice-empty">
-            <span style={sx("font:600 20px/1.5 var(--font-label);color:var(--color-ink-70)")}>{t("common.notYet")}</span>
+            <span style={sx("font:600 20px/1.5 var(--font-label);color:var(--color-ink-70)")}>{t("practice.empty")}</span>
           </div>
         )}
         <div style={sx("display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px")}>

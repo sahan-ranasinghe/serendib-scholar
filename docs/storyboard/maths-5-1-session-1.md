@@ -1,6 +1,6 @@
 # Storyboard — Maths 5, Lesson 1, Session 1
 
-166 beats. Vocabulary: `docs/design/board-vocabulary.md`. Events are written `primitive.event {args}`; an event with no sentence index prefix lands on the sentence shown above it; `@0.35` is where in the sentence it fires (cluster E: events on one sentence fire in sequence, never together).
+167 beats. Vocabulary: `docs/design/board-vocabulary.md`. Events are written `primitive.event {args}`; an event with no sentence index prefix lands on the sentence shown above it; `@0.35` is where in the sentence it fires (cluster E: events on one sentence fire in sequence, never together).
 
 Rods: 0 = දා (දහසස්ථානය), 1 = සි, 2 = ද, 3 = එ.
 
@@ -1461,6 +1461,15 @@ Board at line start: 5 421 = 5000 + ▢ + ▢ + ▢
    - `blankTable.show` `{"item":"7b58e436","demonstrateRow":0}`
 
 _Sees:_ The place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate; the place-value table, row 1 blank for her to fill.
+
+### `placeValue4Digit:102t` · EXPLAIN
+
+Board at line start: the place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate
+
+1. > ඉලක්කමකින් පෙන්වන අගයට පොතේ කියන්නේ ඉලක්කමෙන් නිරූපිත අගය කියලා.
+   - _(no event)_
+
+_Sees:_ The place-value table: 2 348 (worked) · 6 572 · 5 024 · 8 700 · 9 605 · 7 003, row 1 blank for her to demonstrate.
 
 ### `placeValue4Digit:102a` · EXPLAIN
 

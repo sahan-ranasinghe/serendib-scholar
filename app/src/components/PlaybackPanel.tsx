@@ -38,11 +38,12 @@ export function PlaybackPanel({ info, onBack, onForward, onConcept, onListen, on
     </button>
   );
   return (
-    <aside className="playback-panel" data-testid="playback-panel" data-current={info.current} data-selected={info.selected} data-furthest={info.furthest} aria-label="පාඩමේ පියවර">
+    <aside className="playback-panel" data-testid="playback-panel" data-current={info.current} data-selected={info.selected} data-furthest={info.furthest} aria-label={t("nav.panel")}>
       <div className="playback-position" data-testid="nav-position">
         {info.position.title} · {t("nav.stepN", { n: info.position.step })}
       </div>
-      <div className="playback-concepts" role="group" aria-label="concepts">
+      {/* The lesson's parts (the chips name themselves) — not "steps", which is what ⏮ ⏭ and the position count. */}
+      <div className="playback-concepts" role="group">
         {info.concepts.map((concept) => (
           <button
             key={concept.tag}
@@ -60,7 +61,7 @@ export function PlaybackPanel({ info, onBack, onForward, onConcept, onListen, on
         ))}
       </div>
       <div className="playback-steps">
-        {round("previous step", "⏮", "nav-back", info.selected <= info.first, onBack)}
+        {round(t("nav.back"), "⏮", "nav-back", info.selected <= info.first, onBack)}
         <div className="playback-marks" data-testid="nav-steps" aria-hidden>
           {marks.map((index) => (
             <span
@@ -73,7 +74,7 @@ export function PlaybackPanel({ info, onBack, onForward, onConcept, onListen, on
             />
           ))}
         </div>
-        {round("next step", "⏭", "nav-forward", info.selected >= info.furthest, onForward)}
+        {round(t("nav.forward"), "⏭", "nav-forward", info.selected >= info.furthest, onForward)}
       </div>
       <div className="playback-actions">
         <button type="button" className="playback-listen wb-tap" data-testid="nav-listen" onClick={onListen}>

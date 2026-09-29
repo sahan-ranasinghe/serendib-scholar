@@ -32,6 +32,7 @@ import {
   type StoryboardEvent,
 } from "@/lib/choreography";
 import { AUTHORED_LINES } from "@/lib/authoredLines";
+import { t } from "@/lib/appCopy";
 import { warningDue, type TimeWarning } from "@/lib/timeWarnings";
 import { confirmValueFor, CONFIRM_LIMIT } from "@/lib/confirmPolicy";
 import { judgePhrase, judgePhraseLocally } from "@/lib/phraseJudge";
@@ -2340,7 +2341,7 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
       }
       if (response.status === 401) {
         const payload = await response.json().catch(() => ({}));
-        if (payload?.error === "wrong_code") setError("කේතය වැරදියි. ආයෙ බලලා ලියන්න.");
+        if (payload?.error === "wrong_code") setError("කේතය වැරදියි. ආයෙත් බලලා ලියන්න.");
         return "locked";
       }
       return "error";
@@ -2366,7 +2367,7 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
       return;
     }
     if (auth === "error") {
-      setError("සම්බන්ධ වෙන්න බැරි වුණා. ආයෙ උත්සාහ කරන්න.");
+      setError(t("session.connectFail"));
       setRuntimeStatus("error");
       return;
     }
@@ -2511,7 +2512,7 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
       setRuntimeStatus("idle"); // the screen's auto-start retry takes it from here
       void start();
     } else if (outcome === "error") {
-      setError("සම්බන්ධ වෙන්න බැරි වුණා. ආයෙ උත්සාහ කරන්න.");
+      setError(t("session.connectFail"));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -2571,7 +2572,7 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
     if (on) holdsRef.current.add(reason);
     else holdsRef.current.delete(reason);
     if (on && reason !== "asking") {
-      showHint(reason === "portrait" ? "දුරකථනය හරවන්න — පාඩම නවත්තලා" : "ආයෙ ආවම අපි දිගටම යමු", 2500);
+      showHint(reason === "portrait" ? "දුරකථනය හරවන්න — පාඩම නවත්තලා" : "ආයෙත් ආවම අපි දිගටම යමු", 2500);
     }
     applyPause();
   }, [applyPause]);

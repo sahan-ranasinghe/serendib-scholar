@@ -118,7 +118,7 @@ export function PinGate({ pinSet }: { pinSet: boolean }) {
         data-mode={pinSet ? "verify" : "create"}
       >
         <div style={sx("display:flex;align-items:center;justify-content:space-between")}>
-          <span style={sx(PIN_LABEL)}>{t("pin.label")}</span>
+          <span style={sx(PIN_LABEL)} data-testid="pin-gate-label">{pinSet ? t("pin.enter") : t("pin.create")}</span>
           <PinEye reveal={reveal} onToggle={() => setReveal((v) => !v)} />
         </div>
         <PinBoxes

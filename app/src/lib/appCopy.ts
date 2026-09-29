@@ -43,7 +43,7 @@ export const COPY = {
   "common.daysN": { screen: "all", si: "දින {n}", en: "{n} days (streak)" },
   "common.gradeN": { screen: "all", si: "{n} ශ්‍රේණිය", en: "Grade {n}" },
   "common.lessonN": { screen: "all", si: "පාඩම {n}", en: "Lesson {n}" },
-  "common.sessionNth": { screen: "all", si: "{n} වන සැසිය", en: "Session {n}" },
+  "common.sessionNth": { screen: "all", si: "{n} වෙනි සැසිය", en: "Session {n}" },
   "common.start": { screen: "all", si: "පටන් ගමු", en: "Let's start" },
   "common.back": { screen: "all", si: "‹", en: "back (glyph)" },
   "common.retry": { screen: "Edge", si: "ආයෙත් උත්සාහ කරන්න", en: "Try again" },
@@ -72,9 +72,9 @@ export const COPY = {
   "home.parent": { screen: "Home", si: "දෙමාපිය", en: "Parent (lock button title)" },
   // --- the app shell (cluster H): quiet indicators, skeleton lines, optimistic writes -------
   "app.updating": { screen: "shell", si: "යාවත්කාලීන වෙමින්…", en: "Updating…" },
-  "app.offlineCached": { screen: "shell", si: "සම්බන්ධතාවය නැහැ — පෙර දත්ත පෙන්වනවා", en: "No connection — showing the last copy" },
-  "app.noData": { screen: "shell", si: "දත්ත ලබා ගන්න බැහැ — සම්බන්ධතාවය බලලා ආයෙ උත්සාහ කරන්න", en: "Could not load — check the connection and try again" },
-  "app.saveFailed": { screen: "shell", si: "සුරැකීම හරි ගියේ නැහැ — ආයෙ උත්සාහ කරන්න", en: "Could not save — try again" },
+  "app.offlineCached": { screen: "shell", si: "අන්තර්ජාලය නෑ — පරණ තොරතුරු පෙන්වනවා", en: "No connection — showing the last copy" },
+  "app.noData": { screen: "shell", si: "තොරතුරු ගන්න බැහැ — අන්තර්ජාලය බලලා ආයෙත් උත්සාහ කරන්න", en: "Could not load — check the connection and try again" },
+  "app.saveFailed": { screen: "shell", si: "සුරකින්න බැරි වුණා — ආයෙත් උත්සාහ කරන්න", en: "Could not save — try again" },
   "app.resetting": { screen: "shell", si: "යළි පටන් ගන්නවා…", en: "Resetting…" },
   "app.checking": { screen: "shell", si: "බලනවා…", en: "Checking…" },
   "rewards.outfitSheet.owned": { screen: "Rewards", si: "ලේනා දැන් මේක අඳිනවා!", en: "Lena wears this now!" },
@@ -179,7 +179,7 @@ export const COPY = {
 
   // --- onboarding -------------------------------------------------------------------------------------
   "onb.stepOf": { screen: "Onboarding", si: "පියවර {n} / 4", en: "Step {n} / 4" },
-  "onb.toggleSi": { screen: "Onboarding", si: "සිං", en: "SI (language toggle)" },
+  "onb.toggleSi": { screen: "Onboarding", si: "සිං", en: "සිං" },
   "onb.1.bubble": { screen: "Onboarding 1", si: "ආයුබෝවන්! මම සාරා. දරුවාගේ ගිණුම හදන්න මිනිත්තු දෙකක් විතර යනවා.", en: "Hello! I'm Zara. Setting up your child's account takes about two minutes." },
   "onb.1.title": { screen: "Onboarding 1", si: "දුරකථන අංකය තහවුරු කරමු", en: "Let's confirm your phone number" },
   "onb.1.phone": { screen: "Onboarding 1", si: "දුරකථන අංකය", en: "Phone number" },
@@ -208,7 +208,7 @@ export const COPY = {
   "onb.3.bubble": { screen: "Onboarding 3", si: "ඔබ දැනගත යුතු දේවල් තුනක් — සරලව.", en: "Three things you should know — simply." },
   "onb.3.title": { screen: "Onboarding 3", si: "අපි කරන දේ, නොකරන දේ", en: "What we do, what we don't" },
   "onb.3.c1.t": { screen: "Onboarding 3", si: "දරුවා කියන දේ අකුරු වලට හැරෙනවා", en: "What your child says becomes text" },
-  "onb.3.c1.d": { screen: "Onboarding 3", si: "පිළිතුරු ලියවෙනවා. හඬ පටිගත කර තබා නොගනියි — කවදාවත්.", en: "Answers are written down. The voice is never kept — ever." },
+  "onb.3.c1.d": { screen: "Onboarding 3", si: "පිළිතුරු ලියවෙනවා. හඬ රෙකෝඩ් කරන්නේ නෑ — කවදාවත්ම නෑ.", en: "Answers are written down. The voice is never kept — ever." },
   "onb.3.c2.t": { screen: "Onboarding 3", si: "ඔබට පෙනෙන්නේ", en: "What you see" },
   "onb.3.c2.d": { screen: "Onboarding 3", si: "මිනිත්තු, සැසි, ඉගෙන ගත් සංකල්ප සහ වැරදුණු ප්‍රශ්න — සතිපතා වාර්තාවේ.", en: "Minutes, sessions, concepts learned and missed questions — in the weekly report." },
   "onb.3.c3.t": { screen: "Onboarding 3", si: "මකන්න ඕනෑම වෙලාවක", en: "Delete any time" },
@@ -234,7 +234,7 @@ export const COPY = {
   // --- parent zone ------------------------------------------------------------------------------------
   "parent.title": { screen: "Parent zone", si: "දෙමාපිය කලාපය", en: "Parent zone" },
   "parent.childLine": { screen: "Parent zone", si: "{name} · {grade} ශ්‍රේණිය", en: "{name} · Grade {grade}" },
-  "parent.minWeek": { screen: "Parent zone", si: "මිනිත්තු / සතියේ", en: "Minutes / week" },
+  "parent.minWeek": { screen: "Parent zone", si: "සතියකට මිනිත්තු", en: "Minutes / week" },
   "parent.sessions": { screen: "Parent zone", si: "සැසි", en: "Sessions" },
   "parent.confident": { screen: "Parent zone", si: "සංකල්ප විශ්වාසයි", en: "Concepts confident" },
   "parent.row.report": { screen: "Parent zone", si: "සතිපතා වාර්තාව", en: "Weekly report" },
@@ -263,7 +263,7 @@ export const COPY = {
   "home.switchChild": { screen: "Home", si: "දරුවා මාරු කරන්න", en: "Switch child (header avatar, sheet title)" },
   "home.addChild": { screen: "Home", si: "+ දරුවෙක් එක් කරන්න", en: "+ Add a child" },
   "common.close": { screen: "all", si: "වහන්න", en: "Close" },
-  "parent.pinWrong": { screen: "Parent zone", si: "කේතය වැරදියි. ආයෙ බලලා ලියන්න.", en: "Wrong code. Check and type it again." },
+  "parent.pinWrong": { screen: "Parent zone", si: "කේතය වැරදියි. ආයෙත් බලලා ලියන්න.", en: "Wrong code. Check and type it again." },
   "parent.active": { screen: "Subscription", si: "සක්‍රීයයි", en: "Active" },
   "report.title": { screen: "Weekly report", si: "සතිපතා වාර්තාව", en: "Weekly report" },
   "report.rangeChild": { screen: "Weekly report", si: "{range} · {name}", en: "{range} · {name}" },
@@ -282,8 +282,6 @@ export const COPY = {
   "report.gave": { screen: "Weekly report", si: "දුන්නේ: {a}", en: "Gave: {a}" },
   "report.correct": { screen: "Weekly report", si: "නිවැරදි: {c}", en: "Correct: {c}" },
   "report.sharePdf": { screen: "Weekly report", si: "PDF ලෙස බෙදාගන්න", en: "Share as PDF" },
-  "report.month.9": { screen: "Weekly report", si: "සැප්.", en: "Sep." },
-  "report.month.10": { screen: "Weekly report", si: "ඔක්.", en: "Oct." },
   "sub.title": { screen: "Subscription", si: "දායකත්වය සහ බිල්පත්", en: "Subscription and billing" },
   "sub.plan": { screen: "Subscription", si: "දරුවෙක් · මාසිකව", en: "One child · monthly" },
   "sub.nextPayment": { screen: "Subscription", si: "ඊළඟ ගෙවීම {date} · {method}", en: "Next payment {date} · {method}" },
@@ -298,7 +296,7 @@ export const COPY = {
   "edge.loading.title": { screen: "Edge", si: "පාඩම ලෑස්ති වෙනවා…", en: "The lesson is getting ready…" },
   "edge.loading.body": { screen: "Edge", si: "සාරා ගුරුතුමිය පුවරුව හදාගන්නවා.", en: "Teacher Zara is setting up the board." },
   "edge.offline.title": { screen: "Edge", si: "අන්තර්ජාලය නෑ වගේ", en: "Looks like there's no internet" },
-  "edge.offline.body": { screen: "Edge", si: "Wi-Fi එක හරි දත්ත හරි බලලා ආයෙත් උත්සාහ කරමු. ඔයාගේ ප්‍රගතිය සුරක්ෂිතයි.", en: "Check Wi-Fi or data and let's try again. Your progress is safe." },
+  "edge.offline.body": { screen: "Edge", si: "Wi-Fi හරි ඩේටා හරි බලලා ආයෙත් උත්සාහ කරමු. ඔයා කරපු දේවල් සුරැකිලා තියෙනවා.", en: "Check Wi-Fi or data and let's try again. Your progress is safe." },
   "edge.paused.title": { screen: "Edge", si: "පාඩම නවත්වලා", en: "Lesson paused" },
   "edge.paused.body": { screen: "Edge", si: "ලෑස්ති වුණාම දිගටම යමු.", en: "When you're ready, let's continue." },
   "edge.paused.resume": { screen: "Edge", si: "▶ දිගටම", en: "▶ Continue" },
@@ -312,12 +310,12 @@ export const COPY = {
   // The ✋ chat never fails silently (28 Sep 2026): Zara says what happened on the panel, which stays until the child closes it.
   "chat.outOfTime": { screen: "Session", si: "අද කතා කරන්න පුළුවන් වෙලාව ඉවරයි, හෙට ආයෙත් කතා කරමු", en: "Today's chat time is used up — let's talk again tomorrow (the daily chat budget is spent)" },
   "chat.failNetwork": { screen: "Session", si: "අන්තර්ජාලය නෑ වගේ. ටිකකින් ආයෙත් කතා කරමු.", en: "Looks like there's no internet. Let's talk again in a little while (the chat could not reach the server)" },
-  "chat.failStart": { screen: "Session", si: "සම්බන්ධ වෙන්න බැරි වුණා. ආයෙ උත්සාහ කරන්න.", en: "Couldn't connect. Try again (the chat session could not be started)" },
+  "chat.failStart": { screen: "Session", si: "සම්බන්ධ වෙන්න බැරි වුණා. ආයෙත් උත්සාහ කරන්න.", en: "Couldn't connect. Try again (the chat session could not be started)" },
   "chat.failDropped": { screen: "Session", si: "කතාව මැදින් නැවතුණා. ආයෙත් ✋ ඔබන්න.", en: "The chat stopped part-way. Tap ✋ again (the live connection closed)" },
   "edge.rotate.title": { screen: "Edge", si: "ෆෝන් එක හරහට කරන්න", en: "Turn your phone sideways" },
   "edge.rotate.body": { screen: "Edge", si: "පුවරුව හොඳට පේන්න පාඩම හරහට තියෙන්නේ.", en: "The lesson is landscape so the board shows well." },
   "edge.mic.title": { screen: "Edge", si: "මයික් එකට අවසර දෙන්න", en: "Allow the microphone" },
-  "edge.mic.body": { screen: "Edge", si: "ඔයා කියන පිළිතුරු මට අහන්න ඕනේ. හඬ තබා ගන්නේ නෑ — වචන විතරයි.", en: "I need to hear your answers. The voice isn't kept — only the words." },
+  "edge.mic.body": { screen: "Edge", si: "ඔයා දෙන උත්තර මට අහන්න ඕනේ. කටහඬ රෙකෝඩ් කරන්නේ නෑ — වචන විතරයි.", en: "I need to hear your answers. The voice isn't kept — only the words." },
   "edge.mic.allow": { screen: "Edge", si: "අවසර දෙන්න", en: "Allow" },
   "edge.mic.type": { screen: "Edge", si: "ටයිප් කරන්නම්", en: "I'll type" },
   "edge.error.title": { screen: "Edge", si: "අපොයි, මගේ අතින් වැරැද්දක්", en: "Oops, my mistake" },
@@ -328,17 +326,36 @@ export const COPY = {
   "gate.title": { screen: "Session", si: "ප්‍රවේශ කේතය ඇතුළත් කරන්න", en: "Enter the access code" },
   "gate.sub": { screen: "Session", si: "(දෙමාපියන් සඳහා — මේ උපකරණයේ එක වතාවක් පමණයි)", en: "(for parents — once on this device)" },
   "gate.enter": { screen: "Session", si: "ඇතුල් වෙන්න", en: "Enter" },
-  "session.connectFail": { screen: "Session", si: "සම්බන්ධ වෙන්න බැරි වුණා. ආයෙ උත්සාහ කරන්න.", en: "Couldn't connect. Try again." },
+  "session.connectFail": { screen: "Session", si: "සම්බන්ධ වෙන්න බැරි වුණා. ආයෙත් උත්සාහ කරන්න.", en: "Couldn't connect. Try again." },
   "session.leaveAsk": { screen: "Session", si: "නවත්වමුද?", en: "Shall we stop? (⏹ asks once — from the device triage)" },
   "session.leaveBody": { screen: "Session", si: "ඉතුරු ටික පස්සේ කරන්න පුළුවන්.", en: "You can do the rest later." },
   "session.restartAsk": { screen: "Session", si: "මුල ඉඳන්ම ආයෙත් පටන් ගමුද?", en: "Shall we start again from the very beginning? (↺ asks once)" },
+  // --- added in the native review round (29 Sep 2026, docs/review/app-copy-corrections.json) ---
+  "install.explain": { screen: "Session summary", si: "බෝඩ් එක මුළු තිරයේම පේන්න, මාව ඔයාගේ ෆෝන් එකේ මුල් පිටුවට දාගන්න.", en: "Put me on your phone's home screen so the board fills the whole screen (the install prompt, Zara's bubble)" },
+  "install.accept": { screen: "Session summary", si: "මුල් පිටුවට දාගන්න", en: "Add to home screen (the install prompt's button)" },
+  "pin.create": { screen: "Parent zone", si: "දෙමාපිය කලාපයට PIN එකක් හදන්න", en: "Create a PIN for the parent zone" },
+  "pin.enter": { screen: "Parent zone", si: "PIN එක ඇතුළත් කරන්න", en: "Enter your PIN" },
+  "pin.saved": { screen: "Parent zone", si: "PIN එක සුරැකුණා", en: "PIN saved" },
+  "limit.reached": { screen: "Session summary", si: "අදට වෙලාව ඉවරයි — හෙට ආයෙත් හම්බවෙමු", en: "Today's time is up — see you tomorrow (the summary after the daily limit ended a sitting)" },
+  "delete.confirm": { screen: "Parent zone", si: "මෙයින් දරුවාගේ ගිණුම සහ දත්ත සම්පූර්ණයෙන්ම මැකෙනවා. මෙය ආපසු හැරවිය නොහැක.", en: "This deletes the child's account and all their data. It cannot be undone." },
+  "delete.done": { screen: "Parent zone", si: "මකා දැමුවා", en: "Deleted" },
+  "profiles.title": { screen: "Parent zone", si: "දරුවන්ගේ පැතිකඩ", en: "Children's profiles" },
+  "settings.title": { screen: "Parent zone", si: "කාල සීමාව / ශබ්දය සහ උපසිරැසි", en: "Time limit / sound & captions" },
+  "summary.none": { screen: "Session summary", si: "තාම පාඩම් කරලා නෑ", en: "No session recorded yet" },
+  "month.names": { screen: "Weekly report / Certificate", si: "ජන., පෙබ., මාර්තු, අප්‍රේල්, මැයි, ජූනි, ජූලි, අගෝ., සැප්., ඔක්., නොවැ., දෙසැ.", en: "Jan., Feb., Mar., Apr., May, Jun., Jul., Aug., Sep., Oct., Nov., Dec." },
+  "practice.empty": { screen: "Practice hub", si: "තාම පුරුදු වෙන්න දේවල් නෑ — මුලින්ම පාඩමක් කරලා එමු", en: "Nothing to practise yet — finish a session first" },
+  "onboarding.devStub": { screen: "Onboarding", si: "DEV ONLY — OTP සහ ගෙවීම් පරීක්ෂණ සඳහා පමණයි", en: "DEV ONLY — OTP and payment are for testing only" },
+  "quiz.expansionAsk": { screen: "Quiz", si: "මෙතන අඩු ඉලක්කම මොකක්ද?", en: "Which number is missing? (an expansion item)" },
+  "nav.back": { screen: "Session", si: "පෙර පියවර", en: "Back a step (⏮ on the playback panel — its accessible name)" },
+  "nav.forward": { screen: "Session", si: "ඊළඟ පියවර", en: "Forward a step (⏭ on the playback panel — its accessible name)" },
+  "nav.panel": { screen: "Session", si: "මේ පාඩමේ පියවර", en: "The steps of this lesson (the playback panel's name: its position, step strip, ⏮ ⏭)" },
 } as const satisfies Record<string, CopyEntry>;
 
 export type CopyKey = keyof typeof COPY;
 
 /** The Sinhala for a key, with {holes} filled. */
 /** The screens whose English column the සිං|EN toggle may show (cluster I): the parent zone and onboarding. The child's screens never switch. */
-const LATIN_ALLOWED_SCREENS = new Set(["Parent zone", "Weekly report", "Subscription", "Onboarding", "Onboarding 1", "Onboarding 2", "Onboarding 3", "Onboarding 4", "Weekly report / Certificate"]);
+export const LATIN_ALLOWED_SCREENS = new Set(["Parent zone", "Weekly report", "Subscription", "Onboarding", "Onboarding 1", "Onboarding 2", "Onboarding 3", "Onboarding 4", "Weekly report / Certificate"]);
 
 export function t(key: CopyKey, holes?: Record<string, string | number>): string {
   const entry = COPY[key];
@@ -351,27 +368,9 @@ export function t(key: CopyKey, holes?: Record<string, string | number>): string
  * Strings the app needs and the export has no Sinhala for. Nothing here is
  * rendered — the screen leaves that spot empty or uses an export string
  * that honestly covers it — until the review pass supplies the line.
+ * Empty since the native review round of 29 Sep 2026 (all eighteen added above).
  */
-export const MISSING: Array<{ key: string; screen: string; en: string; where: string }> = [
-  { key: "install.explain", screen: "Session summary", en: "Zara explains adding the app to the home screen (\"Put me on your phone's home screen so the board fills the whole screen.\")", where: "the install prompt after a completed session; the tagline ඔයාගේම ගුරුතුමිය, ඔයාගේ ෆෝන් එකේ stands in" },
-  { key: "install.accept", screen: "Session summary", en: "Add to home screen (button)", where: "the install prompt — එකඟයි (from consent) stands in" },
-  { key: "pin.create", screen: "Parent zone", en: "Create a 4-digit PIN for the parent zone", where: "the PIN gate on first use — shows only the label PIN" },
-  { key: "pin.enter", screen: "Parent zone", en: "Enter your PIN", where: "the PIN gate — shows only the label PIN" },
-  { key: "pin.saved", screen: "Parent zone", en: "PIN saved", where: "the change-PIN screen — PIN සකසා ඇත stands in" },
-  { key: "limit.reached", screen: "Session summary", en: "Today's time is up — see you tomorrow", where: "the summary when the daily limit ends a sitting — හෙට ආයෙත් එන්න stands in" },
-  { key: "delete.confirm", screen: "Parent zone", en: "This deletes the child's account and every record. It cannot be undone.", where: "the delete screen — the consent card's මකන්න ඕනෑම වෙලාවක text stands in" },
-  { key: "delete.done", screen: "Parent zone", en: "Deleted", where: "after a delete the app returns to the splash" },
-  { key: "profiles.title", screen: "Parent zone", en: "Children's profiles (screen title)", where: "reuses the settings row label දරුවන්ගේ පැතිකඩ" },
-  { key: "settings.title", screen: "Parent zone", en: "Daily limit / sound & captions (screen title)", where: "reuses the settings row labels" },
-  { key: "summary.none", screen: "Session summary", en: "No session recorded yet", where: "the summary with no sitting behind it — the card lists nothing and තාම නෑ stands in" },
-  { key: "month.names", screen: "Weekly report / Certificate", en: "Month names other than September (සැප්., සැප්තැම්බර්) and October (ඔක්.)", where: "the report's range and the certificate's date fall back to numerals" },
-  { key: "practice.empty", screen: "Practice hub", en: "Nothing to practise yet — finish a session first", where: "the hub with no concept worked on — the list is empty and තාම නෑ stands in" },
-  { key: "onboarding.devStub", screen: "Onboarding", en: "DEV ONLY — OTP and payment are stubs (English, parent surface)", where: "the dev-only label under the stubbed steps (English on a parent surface)" },
-  { key: "quiz.expansionAsk", screen: "Quiz", en: "Which number is missing? (for an expansion item)", where: "the quiz shows the expansion line with ▢ and the recap ask line" },
-  { key: "nav.back", screen: "Session", en: "Back a step (⏮ on the playback panel)", where: "the control is the ⏮ glyph alone; its accessible name is English" },
-  { key: "nav.forward", screen: "Session", en: "Forward a step (⏭ on the playback panel)", where: "the control is the ⏭ glyph alone; its accessible name is English" },
-  { key: "nav.panel", screen: "Session", en: "The steps of this lesson (the playback panel's name, and its concept-chip group)", where: "the panel is labelled පාඩමේ පියවර (drafted); the chip group's accessible name is English" },
-];
+export const MISSING: Array<{ key: string; screen: string; en: string; where: string }> = [];
 
 export const LESSON_NAMES: Record<number, string> = { 1: t("lesson.1"), 2: t("lesson.2"), 3: t("lesson.3"), 4: t("lesson.4"), 5: t("lesson.5"), 6: t("lesson.6") };
 export const AVATARS: string[] = [t("avatar.1"), t("avatar.2"), t("avatar.3"), t("avatar.4"), t("avatar.5"), t("avatar.6"), t("avatar.7"), t("avatar.8")];

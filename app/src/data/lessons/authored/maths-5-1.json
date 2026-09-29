@@ -2917,6 +2917,25 @@
       "humanEdited": true
     },
     {
+      "id": "authored:placeValue4Digit:102t",
+      "conceptTag": "placeValue4Digit",
+      "type": "EXPLAIN",
+      "sourceText": "ඉලක්කමකින් පෙන්වන අගයට පොතේ කියන්නේ ඉලක්කමෙන් නිරූපිත අගය කියලා.",
+      "spokenText": "ඉලක්කමකින් පෙන්වන අගයට පොතේ කියන්නේ ඉලක්කමෙන් නිරූපිත අගය කියලා.",
+      "numbers": [],
+      "humanEdited": true,
+      "pauseType": null,
+      "boardIntent": {
+        "kind": "none"
+      },
+      "guideStep": "guide step 7 of 7: the closing exercise — the textbook's place-value table, worked as one exercise (demonstration row, then MODE 2 alternation)",
+      "maxSimilarity": {
+        "jaccard": 0.29310344827586204,
+        "cosine": null,
+        "closest": "ඉලක්කමෙන් නිරූපිත අගය බිංදුවයි."
+      }
+    },
+    {
       "id": "authored:placeValue4Digit:102a",
       "conceptTag": "placeValue4Digit",
       "type": "EXPLAIN",

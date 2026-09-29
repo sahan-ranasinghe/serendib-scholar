@@ -74,6 +74,74 @@ async function ready(page: Cdp): Promise<void> {
 
 interface Check { name: string; ok: boolean; detail: string }
 
+/**
+ * THE WIDTH CHECK (29 Sep 2026, the app-copy native review): at 390 px no string may be cut off or run past its box or
+ * the screen. Measured on the TEXT itself — the union of each element's own text boxes (never an icon inside it) —
+ * for every visible control, label and title, and every element that holds text of its own: text wider than its
+ * element (a nowrap label, an ellipsis), taller than it (a fixed-height button whose words wrap to a second line), or
+ * reaching past the screen's edge outside a sideways scroller. One line of text is judged by its INK (canvas
+ * measureText): a Sinhala font's line box is taller than its letters, and a tight line-height is not an overflow.
+ */
+const TEXT_FIT_JS = `(() => {
+  const vw = window.innerWidth;
+  const LETTERS = /[A-Za-z\u0D80-\u0DFF]/u;
+  const own = (el) => [...el.childNodes].some((n) => n.nodeType === 3 && LETTERS.test(n.textContent || ''));
+  const set = new Set(document.querySelectorAll('button, a[href], [role="button"], [role="tab"], label, h1, h2, h3, [data-testid$="-title"], [data-testid$="-label"]'));
+  for (const el of document.querySelectorAll('body *')) if (own(el)) set.add(el);
+  const inScroller = (el) => { for (let p = el.parentElement; p; p = p.parentElement) { const o = getComputedStyle(p).overflowX; if (o === 'auto' || o === 'scroll') return true; } return false; };
+  const ctx = document.createElement('canvas').getContext('2d');
+  const textBox = (el) => {
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    let box = null;
+    const tops = [];
+    for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+      if (!LETTERS.test(n.textContent || '')) continue;
+      const parent = n.parentElement;
+      if (parent && (getComputedStyle(parent).display === 'none' || getComputedStyle(parent).visibility === 'hidden')) continue;
+      const range = document.createRange();
+      range.selectNodeContents(n);
+      for (const r of range.getClientRects()) {
+        if (r.width === 0 || r.height === 0) continue;
+        if (!tops.some((t) => Math.abs(t - r.top) < 4)) tops.push(r.top);
+        box = box ? { l: Math.min(box.l, r.left), t: Math.min(box.t, r.top), r: Math.max(box.r, r.right), b: Math.max(box.b, r.bottom) } : { l: r.left, t: r.top, r: r.right, b: r.bottom };
+      }
+    }
+    return box ? { ...box, lines: tops.length } : null;
+  };
+  /** The letters' own height on one line (ascent + descent of the ink), in the element's font. */
+  const inkHeight = (el, text) => {
+    ctx.font = getComputedStyle(el).font;
+    const m = ctx.measureText(text);
+    return m.actualBoundingBoxAscent + m.actualBoundingBoxDescent;
+  };
+  const out = [];
+  for (const el of set) {
+    const cs = getComputedStyle(el);
+    if (cs.display === 'none' || cs.visibility === 'hidden' || Number(cs.opacity) === 0 || el.closest('[aria-hidden="true"]')) continue;
+    const r = el.getBoundingClientRect();
+    if (r.width === 0 || r.height === 0 || cs.display === 'inline') continue;
+    const tb = textBox(el);
+    if (!tb) continue;
+    const wide = tb.r > r.right + 2 || tb.l < r.left - 2;
+    const oneLine = (el.innerText || el.textContent || '').trim();
+    const tall = tb.lines > 1 ? tb.b > r.bottom + 2 || tb.t < r.top - 2 : inkHeight(el, oneLine) > r.height + 2;
+    const off = !inScroller(el) && (tb.r > vw + 1 || tb.l < -1);
+    if (!wide && !tall && !off) continue;
+    const text = (el.innerText || el.textContent || '').trim().replace(/\\s+/g, ' ');
+    out.push({ text: text.slice(0, 70), id: el.getAttribute('data-testid') || el.tagName.toLowerCase(), why: [wide ? 'text ' + Math.round(tb.r - tb.l) + ' px wide in a ' + Math.round(r.width) + ' px box' : '', tall ? 'text ' + Math.round(tb.b - tb.t) + ' px tall in a ' + Math.round(r.height) + ' px box' : '', off ? 'text runs to ' + Math.round(tb.l) + '…' + Math.round(tb.r) + ' on a ' + vw + ' px screen' : ''].filter(Boolean).join(', ') });
+  }
+  return out;
+})()`;
+interface Overflow { screen: string; text: string; id: string; why: string }
+const overflows: Overflow[] = [];
+/** Every screen state the width check measured, and how many strings on it overflowed. */
+const measured: Array<{ screen: string; count: number }> = [];
+const fitProbe = async (page: Cdp, screen: string): Promise<void> => {
+  const found = (await evaluate<Array<{ text: string; id: string; why: string }>>(page, TEXT_FIT_JS).catch(() => null)) ?? [];
+  measured.push({ screen, count: found.length });
+  for (const f of found) if (!overflows.some((o) => o.text === f.text && o.id === f.id)) overflows.push({ screen, ...f });
+};
+
 const SHOT_DIR = path.join(process.cwd(), ".board-check", "cluster-m");
 const shot = async (page: Cdp, name: string): Promise<void> => {
   mkdirSync(SHOT_DIR, { recursive: true });
@@ -176,8 +244,13 @@ async function pinCreateChecks(page: Cdp, checks: Check[]): Promise<void> {
   checks.push({ name: "set PIN: backspace + retype clears the error", ok: fixed.gone && !fixed.disabled, detail: `error gone ${fixed.gone}, save enabled ${!fixed.disabled}` });
   await evaluate(page, `document.querySelector('[data-testid="pin-change-submit"]').click()`);
   let zone = false;
+  let savedMeasured = false;
   for (let i = 0; i < 100 && !zone; i += 1) {
     await wait(150);
+    if (!savedMeasured && (await evaluate<boolean>(page, `!!document.querySelector('[data-testid="pin-saved"]')`).catch(() => false))) {
+      savedMeasured = true;
+      await fitProbe(page, "/parent (set PIN) › saved");
+    }
     zone = await evaluate<boolean>(page, `!!document.querySelector('[data-screen-ready="parent"]')`);
   }
   const saveState = zone ? "" : await evaluate<string>(page, `'saved: ' + !!document.querySelector('[data-testid="pin-saved"]') + ' · form text: ' + (document.querySelector('[data-testid="pin-create"]') || { textContent: '' }).textContent.slice(-80)`);
@@ -250,6 +323,7 @@ async function main(): Promise<void> {
       await evaluate(page, `(() => { const el = [...document.querySelectorAll('a[href], button, [role="button"]')].find((e) => (e.getAttribute('aria-label') || e.getAttribute('data-testid') || (e.textContent || '').trim().replace(/\\s+/g, ' ').slice(0, 28)) === ${JSON.stringify(opener)}); el && el.click(); })()`);
       await wait(500);
     }
+    await fitProbe(page, label);
     const controls = await evaluate<Array<{ index: number; label: string; href: string | null; disabled: boolean; selected: boolean; tag: string; inDialog: boolean }>>(page, CONTROLS_JS).catch(() => []);
     // The one control that ends the crawl's own child (the delete screen's confirm really deletes) goes last on its screen.
     const scope = (opener ? controls.filter((c) => c.inDialog) : controls).sort((a, b) => Number(a.label === "delete-confirm") - Number(b.label === "delete-confirm"));
@@ -310,6 +384,7 @@ async function main(): Promise<void> {
         if (after.pressed !== before.pressed || Math.abs(after.html - before.html) > 40 || (after.focus !== before.focus && after.focus !== "BODY")) { verdict = "changes"; detail = after.pressed !== before.pressed ? "state" : Math.abs(after.html - before.html) > 40 ? `DOM Δ ${after.html - before.html}` : `focus → ${after.focus}`; break; }
       }
       results.push({ route: label, control: control.label, verdict, detail });
+      if (control.label === "delete-confirm") await fitProbe(page, `${label} › deleted`);
       const cookiesAfter = ((await page.send("Network.getCookies")) as { cookies: Array<Record<string, unknown>> }).cookies;
       const sameCookies = cookiesAfter.length === cookiesBefore.length && cookiesAfter.every((c) => cookiesBefore.some((b) => b.name === c.name && b.value === c.value));
       if (!sameCookies) {
@@ -337,6 +412,16 @@ async function main(): Promise<void> {
   if (!ONLY_M) for (const route of PARENT_ROUTES) await crawl(route, null, "unlocked");
   await page.send("Network.deleteCookies", { name: "ss_parent", url: BASE });
   if (!ONLY_M) await crawl("/parent", null, "gated");
+  if (!ONLY_M) {
+    await page.send("Page.navigate", { url: `${BASE}/admin/design-preview?screen=list` });
+    await wait(1200);
+    const labels = (await evaluate<string[]>(page, `[...document.querySelectorAll('li a')].map((a) => a.textContent.trim())`).catch(() => [])) ?? [];
+    for (const screen of [...labels, "Session summary · limit"]) {
+      await page.send("Page.navigate", { url: `${BASE}/admin/design-preview?screen=${encodeURIComponent(screen)}` });
+      await wait(900);
+      await fitProbe(page, `design preview · ${screen}`);
+    }
+  }
 
   console.log(`\nroute × control (${results.length} controls):`);
   let currentRoute = "";
@@ -346,6 +431,10 @@ async function main(): Promise<void> {
   }
   const dead = results.filter((r) => r.verdict === "DEAD");
   console.log(`\ncrawl: ${ROUTES.length} routes, ${[...crawled].filter((c) => c.includes("›")).length} sheet(s), ${results.length} controls · dead ${dead.length}`);
+
+  console.log(`\nwidth check at 390 px: ${measured.length} screen state(s) measured · ${overflows.length} string(s) overflow`);
+  for (const o of overflows) console.log(`    ✗ ${o.screen.padEnd(34)} [${o.id}] "${o.text}" — ${o.why}`);
+  checks.push({ name: "width check: no button or label string overflows at 390 px", ok: overflows.length === 0 && measured.length > 0, detail: `${measured.length} screen states, ${overflows.length} overflow(s)` });
 
   console.log(`\ncluster M — parent zone and navigation (${checks.length} assertions):`);
   for (const c of checks) console.log(`    ${c.ok ? "✓" : "✗"} ${c.name.padEnd(64)} ${c.detail}`);
