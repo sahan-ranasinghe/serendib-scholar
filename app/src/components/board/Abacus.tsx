@@ -26,6 +26,7 @@ import { useTargetRef } from "./targets";
 import { FONT_SINHALA, BOARD, ROD_LABELS, ROD_VALUE_LABELS, SPRING_BOUNCY, FONT_LABEL } from "./tokens";
 import { playSound } from "./sound";
 import { hitTest, useDrag, type DragPoint } from "./useDrag";
+import { t } from "@/lib/appCopy";
 
 export interface AbacusProps {
   /** Target beads per rod, left→right. */
@@ -264,7 +265,7 @@ export function Abacus({
         <div
           className="wb-touch"
           role="button"
-          aria-label="drag a bead onto a rod"
+          aria-label={t("a11y.beadDrag")}
           data-testid="abacus-tray-bead"
           {...drag("tray")}
           style={{

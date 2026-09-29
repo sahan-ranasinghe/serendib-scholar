@@ -68,5 +68,5 @@ test("the child sees සාරා, never the Latin name", () => {
 });
 
 test("the child's controls have Sinhala accessible names", () => {
-  for (const key of ["a11y.backspace", "a11y.done", "a11y.close", "a11y.back"] as const) assert.match(COPY[key].si, /^[඀-෿‍]+$/u, key);
+  for (const key of ["a11y.backspace", "a11y.done", "a11y.close", "a11y.back", "a11y.beadDrag", "a11y.blank", "a11y.pageLoading"] as const) assert.match(COPY[key].si, /^[\u0D80-\u0DFF\u200D ]+$/u, key);
 });

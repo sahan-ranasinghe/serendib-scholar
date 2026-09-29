@@ -19,6 +19,7 @@ import type {
   SequenceTableProps,
   FilledAnswer,
 } from "@/data/lessons/lesson1-numbers";
+import { t } from "@/lib/appCopy";
 
 interface BlankState {
   filledAnswers: FilledAnswer[];
@@ -164,7 +165,7 @@ function AnswerCell({
     );
   }
 
-  return <span className="inline-block h-5 w-12 rounded border-2 border-dashed border-orange-300" aria-label="blank" />;
+  return <span className="inline-block h-5 w-12 rounded border-2 border-dashed border-orange-300" aria-label={t("a11y.blank")} />;
 }
 
 function DigitPickerPuzzleView({ availableDigits, exampleAnswer, instructions }: DigitPickerPuzzleProps) {

@@ -2,7 +2,7 @@
 
 Every child-facing and parent-facing string outside the session, extracted from `src/lib/appCopy.ts` by `scripts/extract-copy.ts`.
 
-Last review round: **app-copy native review, 29 Sep 2026 (+ follow-up)** — every ruling and its reason in `docs/review/app-copy-corrections.json`.
+Last review round: **app-copy native review, 29 Sep 2026 (+ two follow-ups)** — every ruling and its reason in `docs/review/app-copy-corrections.json`.
 
 - **accepted**: the reviewer's correction, applied as given.
 - **adjusted**: the reviewer's correction, adjusted by the owner (loanwords with a natural Sinhala equivalent replaced).
@@ -11,9 +11,10 @@ Last review round: **app-copy native review, 29 Sep 2026 (+ follow-up)** — eve
 - **added**: a string the sheet was missing, added from the review.
 - **reviewed**: in the reviewed table with no correction.
 - **fromScript**: verbatim in the authored lesson script.
+- **drafted**: drafted by the developer at the owner's request, in the lesson's own words — needs sign-off.
 - **missing**: the app needs the line and has no Sinhala for it; the screen leaves the spot empty or reuses another string, and the English gloss says what is needed.
 
-Counts: accepted 7 · adjusted 3 · kept 1 · consistency 4 · added 21 · reviewed 236 · fromScript 21 · missing 0
+Counts: accepted 7 · adjusted 3 · kept 1 · consistency 4 · added 21 · reviewed 236 · fromScript 21 · drafted 3 · missing 0
 
 Terms: ගණක රාමුව (never අබකසය) · සාරා · සාරා ටීචර් (Latin "Zara Teacher" only on the splash wordmark, the manifest and the parent zone's English; "Serendib Scholar" is the company, parent-zone footer only). `{name}`-style holes are filled at runtime.
 
@@ -312,6 +313,9 @@ Terms: ගණක රාමුව (never අබකසය) · සාරා · ස�
 | all | `a11y.done` | හරි | Done (✓ on the number pad and the word bank) | added |
 | all | `a11y.close` | වහන්න | Close (the quiz's ✕, the page view's ✕) | added |
 | all | `a11y.back` | ආපහු | Back (the ‹ in a screen's header) | added |
+| all | `a11y.beadDrag` | පබළුවක් කූරකට දාන්න | Put a bead on a rod (the abacus tray's bead, dragged onto a rod) | drafted |
+| all | `a11y.blank` | හිස්තැන | Blank (an empty box in the older lesson view) | drafted |
+| all | `a11y.pageLoading` | පොතේ පිටුව එනවා | The book's page is loading (the page view's spinner) | drafted |
 
 ## Missing — no Sinhala in the export (not rendered)
 

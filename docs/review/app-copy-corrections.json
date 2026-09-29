@@ -1,6 +1,6 @@
 {
   "$comment": "The native review round of the app copy (docs/review/app-copy.md), 29 Sep 2026. Reviewer: docs/review/app-copy-gemini.md (its exact Sinhala), with the owner's accept / adjust / reject rulings. No API calls. scripts/extract-copy.ts reads this file for each string's status in docs/review/app-copy.md.",
-  "round": "app-copy native review, 29 Sep 2026 (+ follow-up)",
+  "round": "app-copy native review, 29 Sep 2026 (+ two follow-ups)",
   "source": "docs/review/app-copy-gemini.md",
   "statuses": {
     "accepted": "the reviewer's correction, applied as given",
@@ -9,7 +9,8 @@
     "consistency": "changed only by the consistency pass (ආයෙ → ආයෙත්)",
     "added": "a string the sheet was missing, added from the review",
     "reviewed": "in the reviewed table with no correction",
-    "fromScript": "verbatim in the authored lesson script"
+    "fromScript": "verbatim in the authored lesson script",
+    "drafted": "drafted by the developer at the owner's request, in the lesson's own words — needs sign-off"
   },
   "strings": {
     "common.sessionNth": {
@@ -327,6 +328,30 @@
       "after": "ආපහු",
       "shownAt": "the ‹ in every screen header (accessible name — was English)",
       "why": "The owner's words: a screen reader speaks Sinhala to a Sinhala child."
+    },
+    "a11y.beadDrag": {
+      "screen": "all",
+      "ruling": "draft",
+      "round": "second follow-up, 29 Sep 2026",
+      "after": "පබළුවක් කූරකට දාන්න",
+      "shownAt": "the abacus tray's bead (dragged onto a rod) — was \"drag a bead onto a rod\" (accessible name)",
+      "why": "The owner asked for Sinhala names for the last English ones on child controls, without wording: drafted from the lesson's own words (කූරට … පබළු … දානවා; හිස්තැන) — for sign-off."
+    },
+    "a11y.blank": {
+      "screen": "all",
+      "ruling": "draft",
+      "round": "second follow-up, 29 Sep 2026",
+      "after": "හිස්තැන",
+      "shownAt": "an empty box in the older lesson view — was \"blank\" (accessible name)",
+      "why": "The owner asked for Sinhala names for the last English ones on child controls, without wording: drafted from the lesson's own words (කූරට … පබළු … දානවා; හිස්තැන) — for sign-off."
+    },
+    "a11y.pageLoading": {
+      "screen": "all",
+      "ruling": "draft",
+      "round": "second follow-up, 29 Sep 2026",
+      "after": "පොතේ පිටුව එනවා",
+      "shownAt": "the page view's loading spinner — was \"Loading page image\" (accessible name)",
+      "why": "The owner asked for Sinhala names for the last English ones on child controls, without wording: drafted from the lesson's own words (කූරට … පබළු … දානවා; හිස්තැන) — for sign-off."
     }
   },
   "consistency": {
@@ -461,7 +486,16 @@
       "Quiz ✕": "a11y.close",
       "TeachingBoard page view ✕": "a11y.close"
     },
-    "stillEnglish": "the abacus's 'drag a bead onto a rod', a blank's 'blank' (the old lesson renderer), the page view's 'Loading page image', the language toggle group's 'language', and the dev overlay's session/beat inputs — not in the owner's list; left for a line of Sinhala each"
+    "secondFollowUp": {
+      "round": "second follow-up, 29 Sep 2026",
+      "changed": {
+        "Abacus tray bead": "a11y.beadDrag (drafted)",
+        "LessonComponents blank": "a11y.blank (drafted)",
+        "TeachingBoard page spinner": "a11y.pageLoading (drafted)",
+        "LangToggle group": "splash.language — the reviewed භාෂාව"
+      },
+      "stillEnglish": "none on child controls (the DEV-only debug overlay's session/beat inputs aside)"
+    }
   },
   "designCheck": {
     "how": "npm run design:check on ebae066 (before the copy round; a worktree build) and on the tree after the round and its follow-up — same design-check.ts; every scored line compared. 70 scored lines each; 6 moved, all on the app screens; the session frames and components did not move.",

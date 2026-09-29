@@ -354,6 +354,10 @@ export const COPY = {
   "a11y.done": { screen: "all", si: "හරි", en: "Done (✓ on the number pad and the word bank)" },
   "a11y.close": { screen: "all", si: "වහන්න", en: "Close (the quiz's ✕, the page view's ✕)" },
   "a11y.back": { screen: "all", si: "ආපහු", en: "Back (the ‹ in a screen's header)" },
+  // Drafted (29 Sep 2026, second follow-up) in the lesson's own words — කූරට … පබළු … දානවා, හිස්තැන — for sign-off.
+  "a11y.beadDrag": { screen: "all", si: "පබළුවක් කූරකට දාන්න", en: "Put a bead on a rod (the abacus tray's bead, dragged onto a rod)" },
+  "a11y.blank": { screen: "all", si: "හිස්තැන", en: "Blank (an empty box in the older lesson view)" },
+  "a11y.pageLoading": { screen: "all", si: "පොතේ පිටුව එනවා", en: "The book's page is loading (the page view's spinner)" },
 } as const satisfies Record<string, CopyEntry>;
 
 export type CopyKey = keyof typeof COPY;

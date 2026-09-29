@@ -93,7 +93,7 @@ export function LangToggle({ lang: langProp, onChange: onChangeProp }: { lang?: 
   const offEn = "padding:0 10px;font:500 13px/28px var(--font-latin);color:var(--color-ink-70)";
   const onEn = "padding:0 10px;background:var(--color-teal);color:#fff;font:500 13px/28px var(--font-latin)";
   return (
-    <div role="group" aria-label="language" style={sx("display:flex;border:2px solid var(--color-ink-18);border-radius:999px;overflow:hidden;height:32px")}>
+    <div role="group" aria-label={t("splash.language")} style={sx("display:flex;border:2px solid var(--color-ink-18);border-radius:999px;overflow:hidden;height:32px")}>
       <span role="button" aria-pressed={lang === "si"} data-testid="lang-si" onClick={() => onChange("si")} style={sx(lang === "si" ? on : offSi)}>{t("onb.toggleSi")}</span>
       <span role="button" aria-pressed={lang === "en"} data-testid="lang-en" onClick={() => onChange("en")} style={sx(lang === "en" ? onEn : offEn)}>EN</span>
     </div>

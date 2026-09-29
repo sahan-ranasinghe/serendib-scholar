@@ -487,7 +487,7 @@ function PageImageView({
         {status === "loading" && (
           <span
             className="absolute h-8 w-8 animate-spin rounded-full border-4 border-orange-200 border-t-orange-500"
-            aria-label="Loading page image"
+            aria-label={t("a11y.pageLoading")}
           />
         )}
         {/* eslint-disable-next-line @next/next/no-img-element -- dynamic external Supabase Storage URL; not worth a next.config remotePatterns entry for one bucket */}

@@ -26,7 +26,7 @@ async function main() {
     strings: Record<string, { ruling: string }>;
     spokenDrafts?: Array<{ key: string; si: string; en: string }>;
   } | null;
-  const RULING_STATUS: Record<string, string> = { accept: "accepted", adjust: "adjusted", reject: "kept", consistency: "consistency", add: "added" };
+  const RULING_STATUS: Record<string, string> = { accept: "accepted", adjust: "adjusted", reject: "kept", consistency: "consistency", add: "added", draft: "drafted" };
   const rows = Object.entries(COPY).map(([key, entry]) => {
     const probe = strip(entry.si).split(/\s*[{}]\s*/u).filter((p) => p.length >= 4)[0] ?? strip(entry.si);
     const fromScript = probe.length >= 4 && script.includes(probe);
