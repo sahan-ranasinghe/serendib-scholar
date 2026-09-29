@@ -59,7 +59,7 @@ export const COPY = {
   // --- home -----------------------------------------------------------------------
   "home.greeting": { screen: "Home", si: "ආයුබෝවන් {name}!", en: "Hello {name}!" },
   "home.startToday": { screen: "Home", si: "අද පාඩම පටන් ගමුද?", en: "Shall we start today's lesson?" },
-  "home.continueKicker": { screen: "Home", si: "ගණිතය · පාඩම {lesson} · {session} වන සැසිය", en: "Maths · Lesson {lesson} · Session {session}" },
+  "home.continueKicker": { screen: "Home", si: "ගණිතය · පාඩම {lesson} · {session} වෙනි සැසිය", en: "Maths · Lesson {lesson} · Session {session}" },
   "home.today": { screen: "Home", si: "අද කරන්න", en: "To do today" },
   "home.continueLesson": { screen: "Home", si: "පාඩම දිගටම", en: "Continue the lesson" },
   "home.practice": { screen: "Home", si: "පුහුණුව", en: "Practice" },
@@ -98,7 +98,7 @@ export const COPY = {
   "lesson.6": { screen: "Lesson map", si: "භාග", en: "Fractions" },
   "detail.kicker": { screen: "Lesson detail", si: "ගණිතය · පාඩම {lesson}", en: "Maths · Lesson {lesson}" },
   "detail.subtitle": { screen: "Lesson detail", si: "සැසි {sessions} · මිනිත්තු {minutes} · තරු {stars} / {total}", en: "Sessions {sessions} · Minutes {minutes} · Stars {stars} / {total}" },
-  "detail.cta": { screen: "Lesson detail", si: "{n} වන සැසිය පටන් ගමු", en: "Start session {n}" },
+  "detail.cta": { screen: "Lesson detail", si: "{n} වෙනි සැසිය පටන් ගමු", en: "Start session {n}" },
   "detail.resume": { screen: "Lesson detail", si: "ඉතුරු ටික කරමු", en: "Let's do the rest (resume) — from docs/qa/session1-triage.md" },
   "detail.restart": { screen: "Lesson detail", si: "මුල ඉඳන් ආයෙත්", en: "Again from the start (restart, confirm once) — from docs/qa/session1-triage.md" },
 
@@ -345,10 +345,15 @@ export const COPY = {
   "month.names": { screen: "Weekly report / Certificate", si: "ජන., පෙබ., මාර්තු, අප්‍රේල්, මැයි, ජූනි, ජූලි, අගෝ., සැප්., ඔක්., නොවැ., දෙසැ.", en: "Jan., Feb., Mar., Apr., May, Jun., Jul., Aug., Sep., Oct., Nov., Dec." },
   "practice.empty": { screen: "Practice hub", si: "තාම පුරුදු වෙන්න දේවල් නෑ — මුලින්ම පාඩමක් කරලා එමු", en: "Nothing to practise yet — finish a session first" },
   "onboarding.devStub": { screen: "Onboarding", si: "DEV ONLY — OTP සහ ගෙවීම් පරීක්ෂණ සඳහා පමණයි", en: "DEV ONLY — OTP and payment are for testing only" },
-  "quiz.expansionAsk": { screen: "Quiz", si: "මෙතන අඩු ඉලක්කම මොකක්ද?", en: "Which number is missing? (an expansion item)" },
+  "quiz.expansionAsk": { screen: "Quiz", si: "මෙතන තියෙන්න ඕනේ අගය මොකක්ද?", en: "What value should go here? (an expansion item)" },
   "nav.back": { screen: "Session", si: "පෙර පියවර", en: "Back a step (⏮ on the playback panel — its accessible name)" },
   "nav.forward": { screen: "Session", si: "ඊළඟ පියවර", en: "Forward a step (⏭ on the playback panel — its accessible name)" },
   "nav.panel": { screen: "Session", si: "මේ පාඩමේ පියවර", en: "The steps of this lesson (the playback panel's name: its position, step strip, ⏮ ⏭)" },
+  // --- accessible names of the child's controls (29 Sep 2026, follow-up): a screen reader speaks Sinhala to a Sinhala child ---
+  "a11y.backspace": { screen: "all", si: "මකන්න", en: "Backspace (⌫ on the number pad and the word bank)" },
+  "a11y.done": { screen: "all", si: "හරි", en: "Done (✓ on the number pad and the word bank)" },
+  "a11y.close": { screen: "all", si: "වහන්න", en: "Close (the quiz's ✕, the page view's ✕)" },
+  "a11y.back": { screen: "all", si: "ආපහු", en: "Back (the ‹ in a screen's header)" },
 } as const satisfies Record<string, CopyEntry>;
 
 export type CopyKey = keyof typeof COPY;

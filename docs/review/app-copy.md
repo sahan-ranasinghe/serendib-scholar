@@ -2,7 +2,7 @@
 
 Every child-facing and parent-facing string outside the session, extracted from `src/lib/appCopy.ts` by `scripts/extract-copy.ts`.
 
-Last review round: **app-copy native review, 29 Sep 2026** — every ruling and its reason in `docs/review/app-copy-corrections.json`.
+Last review round: **app-copy native review, 29 Sep 2026 (+ follow-up)** — every ruling and its reason in `docs/review/app-copy-corrections.json`.
 
 - **accepted**: the reviewer's correction, applied as given.
 - **adjusted**: the reviewer's correction, adjusted by the owner (loanwords with a natural Sinhala equivalent replaced).
@@ -13,7 +13,7 @@ Last review round: **app-copy native review, 29 Sep 2026** — every ruling and 
 - **fromScript**: verbatim in the authored lesson script.
 - **missing**: the app needs the line and has no Sinhala for it; the screen leaves the spot empty or reuses another string, and the English gloss says what is needed.
 
-Counts: accepted 7 · adjusted 2 · kept 1 · consistency 2 · added 18 · reviewed 238 · fromScript 21 · missing 0
+Counts: accepted 7 · adjusted 3 · kept 1 · consistency 4 · added 21 · reviewed 236 · fromScript 21 · missing 0
 
 Terms: ගණක රාමුව (never අබකසය) · සාරා · සාරා ටීචර් (Latin "Zara Teacher" only on the splash wordmark, the manifest and the parent zone's English; "Serendib Scholar" is the company, parent-zone footer only). `{name}`-style holes are filled at runtime.
 
@@ -42,7 +42,7 @@ Terms: ගණක රාමුව (never අබකසය) · සාරා · ස�
 | Splash | `splash.tamilSoon` | தமிழ் · ළඟදීම | Tamil · coming soon | reviewed |
 | Home | `home.greeting` | ආයුබෝවන් {name}! | Hello {name}! | reviewed |
 | Home | `home.startToday` | අද පාඩම පටන් ගමුද? | Shall we start today's lesson? | reviewed |
-| Home | `home.continueKicker` | ගණිතය · පාඩම {lesson} · {session} වන සැසිය | Maths · Lesson {lesson} · Session {session} | reviewed |
+| Home | `home.continueKicker` | ගණිතය · පාඩම {lesson} · {session} වෙනි සැසිය | Maths · Lesson {lesson} · Session {session} | consistency |
 | Home | `home.today` | අද කරන්න | To do today | reviewed |
 | Home | `home.continueLesson` | පාඩම දිගටම | Continue the lesson | reviewed |
 | Home | `home.practice` | පුහුණුව | Practice | reviewed |
@@ -78,7 +78,7 @@ Terms: ගණක රාමුව (never අබකසය) · සාරා · ස�
 | Lesson map | `lesson.6` | භාග | Fractions | reviewed |
 | Lesson detail | `detail.kicker` | ගණිතය · පාඩම {lesson} | Maths · Lesson {lesson} | reviewed |
 | Lesson detail | `detail.subtitle` | සැසි {sessions} · මිනිත්තු {minutes} · තරු {stars} / {total} | Sessions {sessions} · Minutes {minutes} · Stars {stars} / {total} | reviewed |
-| Lesson detail | `detail.cta` | {n} වන සැසිය පටන් ගමු | Start session {n} | reviewed |
+| Lesson detail | `detail.cta` | {n} වෙනි සැසිය පටන් ගමු | Start session {n} | consistency |
 | Lesson detail | `detail.resume` | ඉතුරු ටික කරමු | Let's do the rest (resume) — from docs/qa/session1-triage.md | reviewed |
 | Lesson detail | `detail.restart` | මුල ඉඳන් ආයෙත් | Again from the start (restart, confirm once) — from docs/qa/session1-triage.md | reviewed |
 | Session summary | `summary.title` | නියමයි {name}! | Great, {name}! | reviewed |
@@ -304,10 +304,14 @@ Terms: ගණක රාමුව (never අබකසය) · සාරා · ස�
 | Weekly report / Certificate | `month.names` | ජන., පෙබ., මාර්තු, අප්‍රේල්, මැයි, ජූනි, ජූලි, අගෝ., සැප්., ඔක්., නොවැ., දෙසැ. | Jan., Feb., Mar., Apr., May, Jun., Jul., Aug., Sep., Oct., Nov., Dec. | added |
 | Practice hub | `practice.empty` | තාම පුරුදු වෙන්න දේවල් නෑ — මුලින්ම පාඩමක් කරලා එමු | Nothing to practise yet — finish a session first | added |
 | Onboarding | `onboarding.devStub` | DEV ONLY — OTP සහ ගෙවීම් පරීක්ෂණ සඳහා පමණයි | DEV ONLY — OTP and payment are for testing only | added |
-| Quiz | `quiz.expansionAsk` | මෙතන අඩු ඉලක්කම මොකක්ද? | Which number is missing? (an expansion item) | added |
+| Quiz | `quiz.expansionAsk` | මෙතන තියෙන්න ඕනේ අගය මොකක්ද? | What value should go here? (an expansion item) | adjusted |
 | Session | `nav.back` | පෙර පියවර | Back a step (⏮ on the playback panel — its accessible name) | added |
 | Session | `nav.forward` | ඊළඟ පියවර | Forward a step (⏭ on the playback panel — its accessible name) | added |
 | Session | `nav.panel` | මේ පාඩමේ පියවර | The steps of this lesson (the playback panel's name: its position, step strip, ⏮ ⏭) | added |
+| all | `a11y.backspace` | මකන්න | Backspace (⌫ on the number pad and the word bank) | added |
+| all | `a11y.done` | හරි | Done (✓ on the number pad and the word bank) | added |
+| all | `a11y.close` | වහන්න | Close (the quiz's ✕, the page view's ✕) | added |
+| all | `a11y.back` | ආපහු | Back (the ‹ in a screen's header) | added |
 
 ## Missing — no Sinhala in the export (not rendered)
 

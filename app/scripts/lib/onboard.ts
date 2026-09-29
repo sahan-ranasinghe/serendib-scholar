@@ -22,5 +22,5 @@ export const ONBOARD_VIA_API_JS = (accessCode: string, name: string, siblingOf: 
   return { ok: true, child_id: profile.json.child_id, extras_source: profile.json.extras_source, consent: consent.json && consent.json.ok, settings: session.json && session.json.settings };
 })()`;
 
-/** Which packed session /home offers next ("N වන සැසිය" in the continue card), read from the page's HTML. */
-export const HOME_SESSION_JS = `fetch("/home").then((r) => r.text()).then((html) => { const m = /ගණිතය · පාඩම (\\d+) · (\\d+) වන සැසිය/u.exec(html); return m ? { lesson: Number(m[1]), session: Number(m[2]) } : null; })`;
+/** Which packed session /home offers next ("N වෙනි සැසිය" in the continue card), read from the page's HTML. */
+export const HOME_SESSION_JS = `fetch("/home").then((r) => r.text()).then((html) => { const m = /ගණිතය · පාඩම (\\d+) · (\\d+) වෙනි සැසිය/u.exec(html); return m ? { lesson: Number(m[1]), session: Number(m[2]) } : null; })`;

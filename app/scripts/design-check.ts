@@ -575,6 +575,11 @@ const SCREEN_GAPS: Record<string, string> = {
   // Both come from f8d4688 ("names"): the export's "නිවස" became "මුල් පිටුව" — a wider label in the bottom nav and on the
   // error state's second button — and Rewards' locked outfits carry a 🔒 the export does not draw.
   Rewards: "since f8d4688 the bottom nav's first tab reads මුල් පිටුව (the export: නිවස), wider and wrapping the nav taller, and locked outfits carry a 🔒 the export does not draw",
+  // The app-copy native review (29 Sep 2026, docs/review/app-copy-corrections.json): the reviewed body is longer than the
+  // export's and wraps to a third line, so the column (Zara, title, body, buttons) sits one line lower — nothing clipped,
+  // nothing overlapping, the buttons inside the 412 px frame. Text only (0.910 → 0.650 and 0.923 → 0.693 that day).
+  "Mic permission": "since the app-copy review (29 Sep 2026) the body reads \"ඔයා දෙන උත්තර මට අහන්න ඕනේ. කටහඬ රෙකෝඩ් කරන්නේ නෑ — වචන විතරයි.\" (the export: \"ඔයා කියන පිළිතුරු …\") — three lines where the export has two, so the whole column sits one line lower; nothing clipped or overlapping",
+  Offline: "since the app-copy review (29 Sep 2026) the body reads \"Wi-Fi හරි ඩේටා හරි බලලා ආයෙත් උත්සාහ කරමු. ඔයා කරපු දේවල් සුරැකිලා තියෙනවා.\" (the export: \"Wi-Fi එක හරි දත්ත හරි …\") — three lines where the export has two, so the whole column sits one line lower; nothing clipped or overlapping",
   Error: "since f8d4688 the second button reads මුල් පිටුවට (the export: නිවසට), wider, which shifts the button pair; Zara's portrait is the talking state where the export drew her mouth closed",
 };
 

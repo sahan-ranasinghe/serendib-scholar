@@ -42,9 +42,9 @@ export const FIXTURE_DETAIL: LessonDetailData = {
   starsTotal: 21,
   concepts: ["සංඛ්‍යා කියවීම", "ස්ථානීය අගය", "විහිදුවා ලිවීම", "ගණක රාමුව"],
   sessions: [
-    { title: "1 වන සැසිය", sub: "සංඛ්‍යා කියවීම · ගණක රාමුව", min: "මිනිත්තු 12", kind: "done", started: true },
-    { title: "2 වන සැසිය", sub: "ස්ථානීය අගය · විහිදුවා ලිවීම", min: "මිනිත්තු 13", kind: "current", started: false },
-    { title: "3 වන සැසිය", sub: "දස දහස දක්වා", min: "මිනිත්තු 12", kind: "locked", started: false },
+    { title: "1 වෙනි සැසිය", sub: "සංඛ්‍යා කියවීම · ගණක රාමුව", min: "මිනිත්තු 12", kind: "done", started: true },
+    { title: "2 වෙනි සැසිය", sub: "ස්ථානීය අගය · විහිදුවා ලිවීම", min: "මිනිත්තු 13", kind: "current", started: false },
+    { title: "3 වෙනි සැසිය", sub: "දස දහස දක්වා", min: "මිනිත්තු 12", kind: "locked", started: false },
   ],
   ctaSession: 2,
   currentStarted: false,

@@ -2579,7 +2579,7 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
 
   /** A tap on the board while she is talking: not an answer, and not ignored either. */
   const noteIdleTouch = useCallback(() => {
-    if (statusRef.current === "teaching") showHint("Zara කතා කරනවා — ටිකක් ඉන්න, ඊළඟට ඔයාගේ වාරයයි");
+    if (statusRef.current === "teaching") showHint("සාරා කතා කරනවා — ටිකක් ඉන්න, ඊළඟට ඔයාගේ වාරයයි");
   }, []);
 
   const toggleMute = useCallback(() => {

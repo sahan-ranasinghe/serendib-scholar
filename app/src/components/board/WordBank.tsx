@@ -12,6 +12,7 @@ import { createPortal } from "react-dom";
 import { useBoard } from "./targets";
 import { BOARD, FONT_SINHALA, FONT_LATIN, EASE_SPRING } from "./tokens";
 import { playSound } from "./sound";
+import { t } from "@/lib/appCopy";
 
 export const WORD_TILE_PX = 56;
 
@@ -108,14 +109,14 @@ export function WordBank({ tiles, label, onCommit, docked = false, onChange }: W
           </button>
         );
       })}
-      <button type="button" className="wb-tap" data-testid="word-bank-backspace" data-tap-repeat aria-label="backspace" onClick={() => update(picked.slice(0, -1))} style={{ width: 56, height: 56, flex: "none", border: 0, background: BOARD.paper, borderRadius: "10px 10px 0 0", boxShadow: "0 2px 0 #D8D1C2", display: "flex", alignItems: "center", justifyContent: "center", font: `700 22px/1 ${FONT_LATIN}`, color: BOARD.inkSoft, cursor: "pointer" }}>
+      <button type="button" className="wb-tap" data-testid="word-bank-backspace" data-tap-repeat aria-label={t("a11y.backspace")} onClick={() => update(picked.slice(0, -1))} style={{ width: 56, height: 56, flex: "none", border: 0, background: BOARD.paper, borderRadius: "10px 10px 0 0", boxShadow: "0 2px 0 #D8D1C2", display: "flex", alignItems: "center", justifyContent: "center", font: `700 22px/1 ${FONT_LATIN}`, color: BOARD.inkSoft, cursor: "pointer" }}>
         ⌫
       </button>
       <button
         type="button"
         className="wb-tap"
         data-testid="word-bank-done"
-        aria-label="done"
+        aria-label={t("a11y.done")}
         disabled={picked.length === 0}
         onClick={() => {
           if (!line) return;

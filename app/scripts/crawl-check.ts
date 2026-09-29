@@ -311,6 +311,13 @@ async function main(): Promise<void> {
   const results: Result[] = [];
   const crawled = new Set<string>();
 
+  /** The gated zone: wait for the gate itself (the cached zone draws first, until the revalidation brings the gate). */
+  const gateUp = async (): Promise<void> => {
+    for (let i = 0; i < 100; i += 1) {
+      if (await evaluate<boolean>(page, `!!document.querySelector('[data-testid="pin-gate"]')`).catch(() => false)) return;
+      await wait(150);
+    }
+  };
   const crawl = async (route: string, opener: string | null, state: string | null = null): Promise<void> => {
     const label = `${route}${state ? ` (${state})` : ""}${opener ? ` › ${opener}` : ""}`;
     if (crawled.has(label)) return;
@@ -318,6 +325,11 @@ async function main(): Promise<void> {
     await page.send("Page.navigate", { url: `${BASE}${route}` });
     await wait(600);
     await ready(page);
+    // Gated: the device's cached snapshot still draws the zone for a moment, until the revalidation (no cookie now)
+    // brings the gate — collected before that, the zone's rows are "dead" because the gate replaced them (29 Sep 2026,
+    // a slow revalidation under the proxy's rate limit). The gate is what this state crawls; wait for it, as
+    // pinEntryChecks does.
+    if (state === "gated") await gateUp();
     if (opener) {
       // Re-open the sheet this row belongs to.
       await evaluate(page, `(() => { const el = [...document.querySelectorAll('a[href], button, [role="button"]')].find((e) => (e.getAttribute('aria-label') || e.getAttribute('data-testid') || (e.textContent || '').trim().replace(/\\s+/g, ' ').slice(0, 28)) === ${JSON.stringify(opener)}); el && el.click(); })()`);
@@ -356,6 +368,7 @@ async function main(): Promise<void> {
       await page.send("Page.navigate", { url: `${BASE}${route}` });
       await wait(500);
       await ready(page);
+      if (state === "gated") await gateUp();
       if (opener) {
         await evaluate(page, `(() => { const el = [...document.querySelectorAll('a[href], button, [role="button"]')].find((e) => (e.getAttribute('aria-label') || e.getAttribute('data-testid') || (e.textContent || '').trim().replace(/\\s+/g, ' ').slice(0, 28)) === ${JSON.stringify(opener)}); el && el.click(); })()`);
         await wait(500);

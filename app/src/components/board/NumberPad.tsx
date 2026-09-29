@@ -22,6 +22,7 @@ import { createPortal } from "react-dom";
 import { useBoard } from "./targets";
 import { BOARD, FONT_SINHALA, FONT_LATIN, EASE_SPRING } from "./tokens";
 import { playSound } from "./sound";
+import { t } from "@/lib/appCopy";
 
 export interface NumberPadProps {
   onCommit: (value: string) => void;
@@ -110,7 +111,9 @@ export function NumberPad({ onCommit, label, docked = false, onChange }: NumberP
             key={key}
             type="button"
             className="wb-tap"
-            aria-label={tick ? "done" : back ? "backspace" : key}
+            // Sinhala names for a Sinhala child's screen reader; data-key is the harness's handle (never the spoken name).
+            aria-label={tick ? t("a11y.done") : back ? t("a11y.backspace") : key}
+            data-key={tick ? "done" : back ? "backspace" : key}
             data-tap-repeat={tick ? undefined : true}
             onClick={() => press(key)}
             style={{

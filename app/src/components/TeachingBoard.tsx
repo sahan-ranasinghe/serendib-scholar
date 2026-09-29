@@ -11,6 +11,7 @@ import {
 // TEMPORARY PROOF-OF-CONCEPT import — see src/data/lessons/lesson1-numbers.ts's module doc.
 import { LessonComponentView } from "@/components/lesson/LessonComponents";
 import AnimatedAbacus from "@/components/AnimatedAbacus";
+import { t } from "@/lib/appCopy";
 
 // How long the fade-out half of a content swap takes before the new content
 // swaps in and fades back in — keeps board updates feeling like a smooth
@@ -388,7 +389,7 @@ function FullScreenImageViewer({
       <button
         type="button"
         onClick={onClose}
-        aria-label="Close full-screen view"
+        aria-label={t("a11y.close")}
         className="absolute top-4 right-4 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-2xl text-orange-900 shadow-lg active:scale-95"
       >
         ✕

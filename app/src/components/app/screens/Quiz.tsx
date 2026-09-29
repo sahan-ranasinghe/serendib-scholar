@@ -18,7 +18,7 @@ export function QuizScreen({ question, index, results, selected, onSelect, onChe
   return (
     <Screen label="Quiz" frame={frame} root="background:var(--color-board);background-image:linear-gradient(var(--color-grid) 1px,transparent 1px),linear-gradient(90deg,var(--color-grid) 1px,transparent 1px);background-size:32px 32px;display:flex;flex-direction:column">
       <div style={sx("padding:52px 20px 0;display:flex;align-items:center;gap:12px")}>
-        <Link href={closeHref} aria-label="close" style={sx("width:56px;height:56px;border-radius:50%;background:var(--color-paper);border:2px solid var(--color-ink-18);display:flex;align-items:center;justify-content:center;font:22px/1 var(--font-latin)")}>
+        <Link href={closeHref} aria-label={t("a11y.close")} style={sx("width:56px;height:56px;border-radius:50%;background:var(--color-paper);border:2px solid var(--color-ink-18);display:flex;align-items:center;justify-content:center;font:22px/1 var(--font-latin)")}>
           ✕
         </Link>
         <div style={sx("flex:1;display:flex;gap:8px;justify-content:center")} data-testid="quiz-dots">

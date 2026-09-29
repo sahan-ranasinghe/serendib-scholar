@@ -1,6 +1,6 @@
 {
   "$comment": "The native review round of the app copy (docs/review/app-copy.md), 29 Sep 2026. Reviewer: docs/review/app-copy-gemini.md (its exact Sinhala), with the owner's accept / adjust / reject rulings. No API calls. scripts/extract-copy.ts reads this file for each string's status in docs/review/app-copy.md.",
-  "round": "app-copy native review, 29 Sep 2026",
+  "round": "app-copy native review, 29 Sep 2026 (+ follow-up)",
   "source": "docs/review/app-copy-gemini.md",
   "statuses": {
     "accepted": "the reviewer's correction, applied as given",
@@ -244,12 +244,14 @@
     },
     "quiz.expansionAsk": {
       "screen": "Quiz",
-      "ruling": "add",
-      "after": "මෙතන අඩු ඉලක්කම මොකක්ද?",
-      "shownAt": "the quiz's prompt for an expansion item",
+      "ruling": "adjust",
+      "round": "follow-up, 29 Sep 2026 (from the round's own report)",
+      "before": "මෙතන අඩු ඉලක්කම මොකක්ද?",
+      "after": "මෙතන තියෙන්න ඕනේ අගය මොකක්ද?",
       "reviewer": "මෙතන අඩු ඉලක්කම මොකක්ද?",
       "reviewerWhy": "Simple child-friendly prompt for missing digits.",
-      "why": "The reviewer's line, as written."
+      "shownAt": "the quiz's prompt for an expansion item",
+      "why": "The owner's words: an expansion blank holds a value (400), not a digit (ඉලක්කම). Checked everywhere else an expansion blank is asked about — the lesson's own asks already say it right (:98 asks the digit, which IS the answer; :100 'ඒ පහ නිසා ලැබෙන අගය කීයද?'), and the review questions use the generic recapAsk."
     },
     "nav.back": {
       "screen": "Session",
@@ -277,6 +279,54 @@
       "reviewer": "මේ පාඩමේ පියවර",
       "reviewerWhy": "Short, accessible label.",
       "why": "Checked in context: it names the panel (the position, the step strip, ⏮ ⏭) — reads correctly, as written. NOT used for the concept-chip group: the chips are the lesson's parts, not its steps, so that group now has no English name and no invented Sinhala one (the chips name themselves)."
+    },
+    "home.continueKicker": {
+      "screen": "Home",
+      "ruling": "consistency",
+      "round": "follow-up, 29 Sep 2026 (from the round's own report)",
+      "before": "ගණිතය · පාඩම {lesson} · {session} වන සැසිය",
+      "after": "ගණිතය · පාඩම {lesson} · {session} වෙනි සැසිය",
+      "why": "The ordinal matches common.sessionNth (වෙනි — the spoken form)."
+    },
+    "detail.cta": {
+      "screen": "Lesson detail",
+      "ruling": "consistency",
+      "round": "follow-up, 29 Sep 2026 (from the round's own report)",
+      "before": "{n} වන සැසිය පටන් ගමු",
+      "after": "{n} වෙනි සැසිය පටන් ගමු",
+      "why": "The ordinal matches common.sessionNth (වෙනි)."
+    },
+    "a11y.backspace": {
+      "screen": "all",
+      "ruling": "add",
+      "round": "follow-up, 29 Sep 2026 (from the round's own report)",
+      "after": "මකන්න",
+      "shownAt": "⌫ on the number pad and the word bank (accessible name — was English)",
+      "why": "The owner's words: a screen reader speaks Sinhala to a Sinhala child."
+    },
+    "a11y.done": {
+      "screen": "all",
+      "ruling": "add",
+      "round": "follow-up, 29 Sep 2026 (from the round's own report)",
+      "after": "හරි",
+      "shownAt": "✓ on the number pad and the word bank (accessible name — was English)",
+      "why": "The owner's words: a screen reader speaks Sinhala to a Sinhala child."
+    },
+    "a11y.close": {
+      "screen": "all",
+      "ruling": "add",
+      "round": "follow-up, 29 Sep 2026 (from the round's own report)",
+      "after": "වහන්න",
+      "shownAt": "the quiz's ✕ and the page view's ✕ (accessible name — was English)",
+      "why": "The owner's words: a screen reader speaks Sinhala to a Sinhala child."
+    },
+    "a11y.back": {
+      "screen": "all",
+      "ruling": "add",
+      "round": "follow-up, 29 Sep 2026 (from the round's own report)",
+      "after": "ආපහු",
+      "shownAt": "the ‹ in every screen header (accessible name — was English)",
+      "why": "The owner's words: a screen reader speaks Sinhala to a Sinhala child."
     }
   },
   "consistency": {
@@ -319,7 +369,18 @@
         "where": "src/lib/designFrames.ts CAPTION_WRONG",
         "why": "a design fixture mirroring feedbackWrong[0] (spoken)"
       }
-    ]
+    ],
+    "ordinal": {
+      "rule": "Session ordinals say වෙනි (the spoken form), as common.sessionNth does.",
+      "changed": [
+        "home.continueKicker",
+        "detail.cta",
+        "src/lib/appFixtures.ts — the design preview's three lesson-detail rows"
+      ],
+      "harness": [
+        "scripts/session-check.ts and scripts/lib/onboard.ts read '… · N වෙනි සැසිය' off the home card"
+      ]
+    }
   },
   "removed": {
     "report.month.9": "superseded by month.names",
@@ -381,5 +442,68 @@
       }
     ],
     "measuredHere": "design preview 'Session summary · limit' at 390 px: install.explain 174×120, install.accept 168×56 (one line), limit.reached 331×30 — all within their boxes"
+  },
+  "offSheet": [
+    {
+      "round": "follow-up, 29 Sep 2026 (from the round's own report)",
+      "where": "src/hooks/useLessonRuntime.ts — the hint for a tap while she talks",
+      "before": "Zara කතා කරනවා — ටිකක් ඉන්න, ඊළඟට ඔයාගේ වාරයයි",
+      "after": "සාරා කතා කරනවා — ටිකක් ඉන්න, ඊළඟට ඔයාගේ වාරයයි",
+      "why": "The child sees සාරා, never the Latin name (checked: no other child-facing string uses Zara)."
+    }
+  ],
+  "accessibleNames": {
+    "round": "follow-up, 29 Sep 2026 (from the round's own report)",
+    "changed": {
+      "NumberPad ⌫ / ✓": "a11y.backspace / a11y.done (the keys also carry data-key for the harness)",
+      "WordBank ⌫ / ✓": "a11y.backspace / a11y.done",
+      "Screen BackButton ‹": "a11y.back",
+      "Quiz ✕": "a11y.close",
+      "TeachingBoard page view ✕": "a11y.close"
+    },
+    "stillEnglish": "the abacus's 'drag a bead onto a rod', a blank's 'blank' (the old lesson renderer), the page view's 'Loading page image', the language toggle group's 'language', and the dev overlay's session/beat inputs — not in the owner's list; left for a line of Sinhala each"
+  },
+  "designCheck": {
+    "how": "npm run design:check on ebae066 (before the copy round; a worktree build) and on the tree after the round and its follow-up — same design-check.ts; every scored line compared. 70 scored lines each; 6 moved, all on the app screens; the session frames and components did not move.",
+    "shifted": [
+      {
+        "screen": "Mic permission",
+        "before": 0.91,
+        "after": 0.65,
+        "verdict": "text only — the reviewed body wraps to a third line, the column sits one line lower; nothing clipped or overlapping. Explained in SCREEN_GAPS."
+      },
+      {
+        "screen": "Offline",
+        "before": 0.923,
+        "after": 0.693,
+        "verdict": "text only — as Mic permission (the adjusted body, three lines). Explained in SCREEN_GAPS."
+      },
+      {
+        "screen": "Lesson detail",
+        "before": 0.955,
+        "after": 0.936,
+        "verdict": "text only — වෙනි සැසිය in the rows and the CTA (the export: වන)."
+      },
+      {
+        "screen": "Weekly report",
+        "before": 0.976,
+        "after": 0.969,
+        "verdict": "the weekday letters' line-height 1 → 1.4 (the width check's fix): the bars 6 px shorter, every letter in view."
+      },
+      {
+        "screen": "Onboarding 3 · consent",
+        "before": 0.979,
+        "after": 0.973,
+        "verdict": "text only — onb.3.c1.d."
+      },
+      {
+        "screen": "Parent zone",
+        "before": 0.921,
+        "after": 0.918,
+        "verdict": "text only — parent.minWeek."
+      }
+    ],
+    "unchanged": "Session summary 0.913, Practice hub 0.962, Subscription 0.969, Quiz 0.982 — and every session frame and component section",
+    "regressions": "none found; design:check exit 0 with the two explanations (exit 1 without them: below 0.9 and unexplained)"
   }
 }

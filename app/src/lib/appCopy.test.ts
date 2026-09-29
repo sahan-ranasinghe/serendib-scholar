@@ -55,3 +55,18 @@ test("the month names are twelve, January first", () => {
   assert.equal(names[9], "ඔක්.");
   assert.equal(COPY["month.names"].en.split(/,\s*/u).length, 12);
 });
+
+test("session ordinals say වෙනි everywhere (the spoken form), never වන", () => {
+  const written = Object.entries(COPY).filter(([, entry]) => /වන සැසිය/u.test(entry.si)).map(([key]) => key);
+  assert.deepEqual(written, []);
+  assert.match(COPY["common.sessionNth"].si, /වෙනි සැසිය/u);
+});
+
+test("the child sees සාරා, never the Latin name", () => {
+  const latinName = childFacing.filter(([, entry]) => /Zara/u.test(entry.si)).map(([key]) => key);
+  assert.deepEqual(latinName, []);
+});
+
+test("the child's controls have Sinhala accessible names", () => {
+  for (const key of ["a11y.backspace", "a11y.done", "a11y.close", "a11y.back"] as const) assert.match(COPY[key].si, /^[඀-෿‍]+$/u, key);
+});

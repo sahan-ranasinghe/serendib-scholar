@@ -310,7 +310,7 @@ async function main(): Promise<void> {
     // Always a full load: the in-memory store of the page under test may still hold the previous child (the API switch bypasses the app's own clear()).
     await page.send("Page.navigate", { url: `${BASE}/home` });
     await waitFor(`!!document.querySelector('[data-screen-ready="home"][data-store-status="fresh"]')`, 10000);
-    return evaluate<{ lesson: number; session: number } | null>(page, `(() => { const m = /ගණිතය · පාඩම (\\d+) · (\\d+) වන සැසිය/u.exec(document.body.innerText); return m ? { lesson: Number(m[1]), session: Number(m[2]) } : null; })()`).catch(() => null);
+    return evaluate<{ lesson: number; session: number } | null>(page, `(() => { const m = /ගණිතය · පාඩම (\\d+) · (\\d+) වෙනි සැසිය/u.exec(document.body.innerText); return m ? { lesson: Number(m[1]), session: Number(m[2]) } : null; })()`).catch(() => null);
   };
   const waitFor = async (js: string, ms = 10000): Promise<boolean> => {
     for (let i = 0; i < ms / 200; i += 1) {
@@ -836,7 +836,7 @@ async function main(): Promise<void> {
       const after = await snapshot();
       // The tap must not become an answer or a judge — she just keeps talking (the beat may end on its own meanwhile).
       const takenAsAnswer = after.status === "thinking" || answers.some((a) => a.beatId === snap.beatId);
-      drillNote("touch during playback", hint.includes("Zara කතා කරනවා") && !takenAsAnswer, `hint "${hint}" · not taken as an answer ${takenAsAnswer ? "NO" : "yes"} · now ${after.beatId.replace(/^authored:/u, "")} (${after.status})`);
+      drillNote("touch during playback", hint.includes("සාරා කතා කරනවා") && !takenAsAnswer, `hint "${hint}" · not taken as an answer ${takenAsAnswer ? "NO" : "yes"} · now ${after.beatId.replace(/^authored:/u, "")} (${after.status})`);
     }
     // 2. The phone turned to portrait mid-beat: the lesson holds, then resumes when turned back.
     if (short === "readWrite4Digit:3" && !drillDone.has("rotate") && snap.status === "teaching") {
@@ -1674,7 +1674,7 @@ async function main(): Promise<void> {
           await evaluate(page, `(() => { const k = [...document.querySelectorAll('[data-testid="number-pad"] button')].find((el) => el.getAttribute('aria-label') === ${JSON.stringify(digit)}); k && k.click(); return true; })()`);
           await wait(80);
         }
-        await evaluate(page, `(() => { const k = document.querySelector('[data-testid="number-pad"] button[aria-label="done"]'); k && k.click(); return true; })()`);
+        await evaluate(page, `(() => { const k = document.querySelector('[data-testid="number-pad"] button[data-key="done"]'); k && k.click(); return true; })()`);
         note({ beatId: snap.beatId, via: "table cell + pad", answer: digits });
         return;
       }
@@ -1687,7 +1687,7 @@ async function main(): Promise<void> {
           await evaluate(page, `(() => { const k = [...document.querySelectorAll('[data-testid="number-pad"] button')].find((el) => el.getAttribute('aria-label') === ${JSON.stringify(digit)}); k && k.click(); return true; })()`);
           await wait(80);
         }
-        await evaluate(page, `(() => { const k = document.querySelector('[data-testid="number-pad"] button[aria-label="done"]'); k && k.click(); return true; })()`);
+        await evaluate(page, `(() => { const k = document.querySelector('[data-testid="number-pad"] button[data-key="done"]'); k && k.click(); return true; })()`);
         note({ beatId: snap.beatId, via: "expansion blank + pad", answer: digits });
         return;
       }
@@ -1703,7 +1703,7 @@ async function main(): Promise<void> {
       await evaluate(page, `(() => { const k = [...document.querySelectorAll('[data-testid="number-pad"] button')].find((el) => el.getAttribute('aria-label') === ${JSON.stringify(digit)}); k && k.click(); return true; })()`);
       await wait(80);
     }
-    await evaluate(page, `(() => { const k = document.querySelector('[data-testid="number-pad"] button[aria-label="done"]'); k && k.click(); return true; })()`);
+    await evaluate(page, `(() => { const k = document.querySelector('[data-testid="number-pad"] button[data-key="done"]'); k && k.click(); return true; })()`);
     note({ beatId: snap.beatId, via: wrong ? "number pad (WRONG on purpose)" : "number pad", answer: digits });
   };
 
@@ -1836,7 +1836,7 @@ async function main(): Promise<void> {
         // same open pad. The pad used to cancel on a double-click, and two taps on one key inside the browser's double-tap
         // window are one — so "1000" closed the pad after "100" and lost the digits. The .click() the drill above uses never
         // produces a dblclick, which is why it never caught it. One tap = one digit, nothing closes, only ✓ submits.
-        const keyTouch = (label: string) => tapSelector(`[data-testid="number-pad"] button[aria-label="${label}"]`);
+        const keyTouch = (key: string) => tapSelector(`[data-testid="number-pad"] button[data-key="${key}"]`);
         const clearPad = async () => {
           for (let i = 0; i < 6; i += 1) {
             if (!(await padUp()).value) break;
@@ -1869,7 +1869,7 @@ async function main(): Promise<void> {
           await wait(250);
           submitted = (await padUp()).status !== "turn";
         }
-        if (!submitted) await evaluate(page, `(() => { const k = document.querySelector('[data-testid="number-pad"] button[aria-label="done"]'); k && k.click(); return true; })()`);
+        if (!submitted) await evaluate(page, `(() => { const k = document.querySelector('[data-testid="number-pad"] button[data-key="done"]'); k && k.click(); return true; })()`);
         drillNote("the pad submits only on ✓", beforeDone.pad && beforeDone.value === "1000" && beforeDone.status === "turn", `before ✓: pad ${beforeDone.pad ? "open" : "CLOSED"} with "${beforeDone.value}" (${beforeDone.status}) · ✓ by touch ${submitted ? "taken" : "swallowed — clicked"}`);
         note({ beatId: snap.beatId, via: "number pad (11 s / 23 s, then 150 ms and 300–600 ms by touch, ✓)", answer: "1000" });
       } else if (DRILLS && shortTurn === "readWrite4Digit:18f" && !drillDone.has("five")) {
@@ -1882,7 +1882,7 @@ async function main(): Promise<void> {
           await wait(80);
         }
         const typed = await evaluate<string>(page, `(document.querySelector('[data-testid="number-pad-value"]')?.textContent ?? '')`);
-        await evaluate(page, `(() => { const k = document.querySelector('[data-testid="number-pad"] button[aria-label="done"]'); k && k.click(); return true; })()`);
+        await evaluate(page, `(() => { const k = document.querySelector('[data-testid="number-pad"] button[data-key="done"]'); k && k.click(); return true; })()`);
         note({ beatId: snap.beatId, via: "table cell + pad (10000 on a 4-digit answer — WRONG on purpose)", answer: "10000" });
         let judged = "";
         for (let i = 0; i < 60 && !judged; i += 1) {
