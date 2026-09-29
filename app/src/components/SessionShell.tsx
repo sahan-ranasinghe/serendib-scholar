@@ -36,7 +36,7 @@ const LONG_PRESS_MS = 500;
  * understanding (23 Sep 2026 demo — other scripts, other Asian languages, fragments), and correcting it would cost a call
  * per turn and risk showing words the child never said. The transcript lives in the debug overlay only.
  */
-export type SessionSheet = { kind: "mic"; onAllow: () => void; onType: () => void } | { kind: "chat"; childSpoke: boolean; zara: string | null; listening: boolean; onReturn: () => void; failure?: string | null };
+export type SessionSheet = { kind: "mic"; onAllow: () => void; onType: () => void } | { kind: "chat"; childSpoke: boolean; zara: string | null; listening: boolean; onReturn: () => void; failure?: string | null; warning?: string | null; closing?: boolean };
 
 /** A one-tap confirmation over the dimmed board: ⏹ (leave) and ↺ (restart) each ask once. */
 export interface SessionConfirm {
@@ -193,7 +193,7 @@ export function SessionShell({ stage, yourTurn, zaraState, lenaState, pointerSid
           writing={talking}
         />
         </div>
-        {chat ? <ChatPanel childSpoke={chat.childSpoke} zara={chat.zara} listening={chat.listening} failure={chat.failure ?? null} onClose={chat.onReturn} portrait={<ZaraPortrait state={zaraState} side={null} talking={talking} getAmplitude={getAmplitude} dimmed={false} size={40} />} /> : sidePanel}
+        {chat ? <ChatPanel childSpoke={chat.childSpoke} zara={chat.zara} listening={chat.listening} failure={chat.failure ?? null} warning={chat.warning ?? null} closing={chat.closing ?? false} onClose={chat.onReturn} portrait={<ZaraPortrait state={zaraState} side={null} talking={talking} getAmplitude={getAmplitude} dimmed={false} size={40} />} /> : sidePanel}
         {children}
       </main>
 
@@ -371,13 +371,15 @@ function MicAskSheet({ onAllow, onType }: { onAllow: () => void; onType: () => v
 /**
  * `failure`: the chat could not go on (the day's chat time spent, no network, the connection gone) — the panel stays,
  * Zara's line says what happened, and nothing pretends to listen, until the child closes it (28 Sep 2026).
+ * `warning` / `closing`: her five- and one-minute warnings are her line here like anything else she says; at the limit
+ * the microphone is off (the pill stops listening) and the panel goes once she has finished (29 Sep 2026).
  */
-function ChatPanel({ childSpoke, zara, listening, failure, onClose, portrait }: { childSpoke: boolean; zara: string | null; listening: boolean; failure: string | null; onClose: () => void; portrait: ReactNode }) {
+function ChatPanel({ childSpoke, zara, listening, failure, warning, closing, onClose, portrait }: { childSpoke: boolean; zara: string | null; listening: boolean; failure: string | null; warning: string | null; closing: boolean; onClose: () => void; portrait: ReactNode }) {
   return (
-    <aside className="chat-panel" data-testid="chat-sheet" data-chat-failure={failure ?? undefined} aria-label="සාරා එක්ක කතාව">
+    <aside className="chat-panel" data-testid="chat-sheet" data-chat-failure={failure ?? undefined} data-chat-warning={warning ?? undefined} data-chat-closing={closing || undefined} aria-label="සාරා එක්ක කතාව">
       <div className="chat-panel-head">
         <span className="chat-panel-zara">{portrait}</span>
-        {!failure && (
+        {!failure && !closing && (
           <span data-testid="chat-listening" className="chat-panel-pill" style={{ opacity: listening ? 1 : 0.55 }}>
             <span className="chat-panel-dot" />
             🎤 {listening ? "අහගෙන ඉන්නවා" : "සම්බන්ධ වෙනවා…"}

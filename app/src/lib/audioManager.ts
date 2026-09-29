@@ -66,6 +66,13 @@ interface Voice {
 export interface ChunkStream {
   /** One base64 PCM16 chunk at 24 kHz, scheduled right after the last (dropped when the stream's request is no longer current). */
   push: (base64Pcm16: string) => void;
+  /**
+   * A decoded clip in the same queue, right after whatever is queued (the chat's time warnings: her recorded line, never
+   * over her live voice). `label` names it for the audio ground truth; false when it was dropped.
+   */
+  pushBuffer: (buffer: AudioBuffer, label?: string) => boolean;
+  /** Milliseconds of audio still queued to play (0 when she has finished). */
+  queuedMs: () => number;
   /** Barge-in: what is queued stops, and the stream carries on under a fresh request. */
   interrupt: () => void;
   /** The stream is over: whatever is still queued stops. */
@@ -380,33 +387,45 @@ class AudioManager {
       },
     };
     this.voices.add(voice);
+    /** Schedules one buffer right after the queue; false when the stream's request is no longer current. */
+    const enqueue = (buffer: AudioBuffer, sourceLabel: string): boolean => {
+      const ctx = this.context();
+      const bus = this.voiceBus;
+      if (!ctx || !bus || !this.voices.has(voice) || !this.isCurrent(voice.token)) return false;
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+      (source as AudioBufferSourceNode & { __label?: string }).__label = sourceLabel;
+      source.connect(bus);
+      const startAt = Math.max(ctx.currentTime, end);
+      source.start(startAt);
+      end = startAt + buffer.duration;
+      sources.add(source);
+      this.setSounding(1);
+      source.onended = () => {
+        if (!sources.delete(source)) return;
+        try {
+          source.disconnect();
+        } catch {
+          // already disconnected
+        }
+        this.setSounding(-1);
+      };
+      return true;
+    };
     return {
       push: (base64) => {
         const ctx = this.context();
-        const bus = this.voiceBus;
-        if (!ctx || !bus || !this.voices.has(voice) || !this.isCurrent(voice.token)) return;
+        if (!ctx) return;
         const pcm = base64ToInt16(base64);
         const buffer = ctx.createBuffer(1, pcm.length, OUTPUT_SAMPLE_RATE);
         const channel = buffer.getChannelData(0);
         for (let i = 0; i < pcm.length; i += 1) channel[i] = pcm[i]! / (pcm[i]! < 0 ? 0x8000 : 0x7fff);
-        const source = ctx.createBufferSource();
-        source.buffer = buffer;
-        (source as AudioBufferSourceNode & { __label?: string }).__label = label;
-        source.connect(bus);
-        const startAt = Math.max(ctx.currentTime, end);
-        source.start(startAt);
-        end = startAt + buffer.duration;
-        sources.add(source);
-        this.setSounding(1);
-        source.onended = () => {
-          if (!sources.delete(source)) return;
-          try {
-            source.disconnect();
-          } catch {
-            // already disconnected
-          }
-          this.setSounding(-1);
-        };
+        enqueue(buffer, label);
+      },
+      pushBuffer: (buffer, sourceLabel) => enqueue(buffer, sourceLabel ?? label),
+      queuedMs: () => {
+        const ctx = this.context();
+        return ctx && sources.size > 0 ? Math.max(0, (end - ctx.currentTime) * 1000) : 0;
       },
       interrupt: () => {
         if (!this.voices.has(voice)) return;

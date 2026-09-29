@@ -70,6 +70,8 @@ export default function LessonScreen() {
     chatting,
     chatError,
     chatFailure,
+    chatWarning,
+    chatClosing,
     requestChat,
     getDebugSnapshot,
     getOutputAmplitude,
@@ -331,7 +333,7 @@ export default function LessonScreen() {
     ? { kind: "mic", onAllow: () => answerMicAsk(true), onType: () => answerMicAsk(false) }
     : status === "chatting"
       ? // A chat that could not go on keeps its panel: Zara's line says what happened, until the child closes it.
-        { kind: "chat", childSpoke: !chatFailure && chatTranscript.child.length > 0, zara: chatFailure ? chatFailure.line : chatTranscript.zara, listening: chatting && !muted && !paused, onReturn: requestChat, failure: chatFailure?.kind ?? null }
+        { kind: "chat", childSpoke: !chatFailure && chatTranscript.child.length > 0, zara: chatFailure ? chatFailure.line : chatTranscript.zara, listening: chatting && !muted && !paused && !chatClosing, onReturn: requestChat, failure: chatFailure?.kind ?? null, warning: chatWarning, closing: chatClosing }
       : null;
 
   return (

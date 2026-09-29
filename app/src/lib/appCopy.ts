@@ -314,7 +314,6 @@ export const COPY = {
   "chat.failNetwork": { screen: "Session", si: "අන්තර්ජාලය නෑ වගේ. ටිකකින් ආයෙත් කතා කරමු.", en: "Looks like there's no internet. Let's talk again in a little while (the chat could not reach the server)" },
   "chat.failStart": { screen: "Session", si: "සම්බන්ධ වෙන්න බැරි වුණා. ආයෙ උත්සාහ කරන්න.", en: "Couldn't connect. Try again (the chat session could not be started)" },
   "chat.failDropped": { screen: "Session", si: "කතාව මැදින් නැවතුණා. ආයෙත් ✋ ඔබන්න.", en: "The chat stopped part-way. Tap ✋ again (the live connection closed)" },
-  "chat.enoughForNow": { screen: "Session", si: "දැන් ටිකක් පාඩම කරමු, පස්සේ ආයෙත් කතා කරමු.", en: "Let's do some of the lesson now, and talk again later (one chat's longest stretch is over)" },
   "edge.rotate.title": { screen: "Edge", si: "ෆෝන් එක හරහට කරන්න", en: "Turn your phone sideways" },
   "edge.rotate.body": { screen: "Edge", si: "පුවරුව හොඳට පේන්න පාඩම හරහට තියෙන්නේ.", en: "The lesson is landscape so the board shows well." },
   "edge.mic.title": { screen: "Edge", si: "මයික් එකට අවසර දෙන්න", en: "Allow the microphone" },

@@ -6,7 +6,7 @@ Every child-facing and parent-facing string outside the session, extracted from 
 - **drafted**: from the design export (Screens A/B/C) or the runtime — needs sign-off (README "Copy").
 - **missing**: the app needs the line and the export has no Sinhala for it; the screen leaves the spot empty or reuses an export string, and the English gloss says what is needed.
 
-Counts: fromScript 21 · drafted 253 · missing 18
+Counts: fromScript 21 · drafted 252 · missing 18
 
 Terms: ගණක රාමුව (never අබකසය) · සාරා · සාරා ටීචර් (Latin "Zara Teacher" only on the splash wordmark, the manifest and the parent zone's English; "Serendib Scholar" is the company, parent-zone footer only). `{name}`-style holes are filled at runtime.
 
@@ -269,7 +269,6 @@ Terms: ගණක රාමුව (never අබකසය) · සාරා · ස�
 | Session | `chat.failNetwork` | අන්තර්ජාලය නෑ වගේ. ටිකකින් ආයෙත් කතා කරමු. | Looks like there's no internet. Let's talk again in a little while (the chat could not reach the server) | drafted |
 | Session | `chat.failStart` | සම්බන්ධ වෙන්න බැරි වුණා. ආයෙ උත්සාහ කරන්න. | Couldn't connect. Try again (the chat session could not be started) | drafted |
 | Session | `chat.failDropped` | කතාව මැදින් නැවතුණා. ආයෙත් ✋ ඔබන්න. | The chat stopped part-way. Tap ✋ again (the live connection closed) | drafted |
-| Session | `chat.enoughForNow` | දැන් ටිකක් පාඩම කරමු, පස්සේ ආයෙත් කතා කරමු. | Let's do some of the lesson now, and talk again later (one chat's longest stretch is over) | drafted |
 | Edge | `edge.rotate.title` | ෆෝන් එක හරහට කරන්න | Turn your phone sideways | drafted |
 | Edge | `edge.rotate.body` | පුවරුව හොඳට පේන්න පාඩම හරහට තියෙන්නේ. | The lesson is landscape so the board shows well. | drafted |
 | Edge | `edge.mic.title` | මයික් එකට අවසර දෙන්න | Allow the microphone | drafted |
@@ -309,3 +308,12 @@ Terms: ගණක රාමුව (never අබකසය) · සාරා · ස�
 | Session | `nav.back` | Back a step (⏮ on the playback panel) | the control is the ⏮ glyph alone; its accessible name is English |
 | Session | `nav.forward` | Forward a step (⏭ on the playback panel) | the control is the ⏭ glyph alone; its accessible name is English |
 | Session | `nav.panel` | The steps of this lesson (the playback panel's name, and its concept-chip group) | the panel is labelled පාඩමේ පියවර (drafted); the chip group's accessible name is English |
+
+## Spoken lines drafted by the developer — need sign-off before recording
+
+Zara says these (src/lib/authoredLines.ts); they are in the render batch and read on the board until recorded.
+
+| key | Sinhala | English gloss | status |
+|---|---|---|---|
+| `lessonTimeSoon` | අපි තව පොඩ්ඩක් වැඩ කරමු, ඊට පස්සේ අද පාඩම ඉවරයි. | Let's work a little more, then today's lesson is over. (5 minutes before the daily lesson limit) | drafted |
+| `lessonTimeLast` | දැන් අන්තිම ටික කරලා, අද පාඩම ඉවර කරමු. | Now let's do the last bit and finish today's lesson. (1 minute before the daily lesson limit) | drafted |

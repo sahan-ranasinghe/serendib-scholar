@@ -32,6 +32,8 @@ import { sinhalaNumberName } from "../src/lib/sinhalaNumber";
 import { supabaseAdmin } from "../src/lib/supabaseAdmin";
 import { ONBOARD_VIA_API_JS } from "./lib/onboard";
 import { analyseTruth, AUDIO_TRUTH_JS, COLLECT_TRUTH_JS, type TruthLog, type TruthSummary } from "./lib/audioTruth";
+import { clipKey } from "../src/lib/audioCache";
+import { AUTHORED_LINES } from "../src/lib/authoredLines";
 
 /** Sinhala number name → digits, for the questions that ask for a name. */
 const NAME_TO_NUMBER = new Map<string, number>();
@@ -66,6 +68,10 @@ const OUT_OF_TIME = "අද කතා කරන්න පුළුවන් ව�
 /**
  * The chat drill's Live socket: a WebSocket to the Live API that only answers `setup` with `setupComplete` — the chat
  * is "connected" and nothing is ever sent to Google. Any other URL gets the real WebSocket.
+ * `window.__fakeLive.say(ms, text)` makes "Zara" say a sentence on the open socket, as the Live API delivers one: her
+ * words, then her audio in 200 ms chunks at speaking pace (a quiet tone), then turnComplete. Each turn is logged in
+ * `__fakeLive.turns` (page clock) — the time-warning drills make her talk across the moments a warning and the close
+ * fall due.
  */
 const FAKE_LIVE_SOCKET_JS = `(() => {
   if (window.__fakeLive) return true;
@@ -92,10 +98,57 @@ const FAKE_LIVE_SOCKET_JS = `(() => {
     removeEventListener() {}
   }
   FakeLive.CONNECTING = 0; FakeLive.OPEN = 1; FakeLive.CLOSING = 2; FakeLive.CLOSED = 3;
-  window.__fakeLive = { Real, sockets: [] };
+  const RATE = 24000, CHUNK_MS = 200;
+  const chunkPcm = (() => {
+    const pcm = new Int16Array((RATE * CHUNK_MS) / 1000);
+    for (let i = 0; i < pcm.length; i += 1) pcm[i] = Math.round(Math.sin((2 * Math.PI * 180 * i) / RATE) * 0.15 * 0x7fff);
+    const bytes = new Uint8Array(pcm.buffer);
+    let bin = '';
+    for (let i = 0; i < bytes.length; i += 1) bin += String.fromCharCode(bytes[i]);
+    return btoa(bin);
+  })();
+  const say = (ms, text) => {
+    const socket = window.__fakeLive.sockets.filter((s) => s.readyState === 1).pop();
+    if (!socket) return false;
+    const turn = { startedAt: performance.now(), ms, chunks: 0, completeAt: null };
+    window.__fakeLive.turns.push(turn);
+    const send = (message) => { if (socket.readyState === 1 && socket.onmessage) socket.onmessage({ data: JSON.stringify(message) }); };
+    send({ serverContent: { outputTranscription: { text: text || 'හරි.' } } });
+    const total = Math.ceil(ms / CHUNK_MS);
+    const tick = () => {
+      if (socket.readyState !== 1) return;
+      if (turn.chunks >= total) { turn.completeAt = performance.now(); send({ serverContent: { turnComplete: true } }); return; }
+      send({ serverContent: { modelTurn: { parts: [{ inlineData: { mimeType: 'audio/pcm;rate=24000', data: chunkPcm } }] } } });
+      turn.chunks += 1;
+      setTimeout(tick, CHUNK_MS);
+    };
+    tick();
+    return true;
+  };
+  window.__fakeLive = { Real, sockets: [], turns: [], say };
   window.WebSocket = FakeLive;
   return true;
 })()`;
+/** A WAV of `ms` of quiet tone at the clips' own rate: the stand-in the drills serve for a line nobody has recorded yet. */
+function toneWav(ms: number): string {
+  const rate = 24000;
+  const n = Math.round((rate * ms) / 1000);
+  const wav = Buffer.alloc(44 + n * 2);
+  wav.write("RIFF", 0);
+  wav.writeUInt32LE(36 + n * 2, 4);
+  wav.write("WAVEfmt ", 8);
+  wav.writeUInt32LE(16, 16);
+  wav.writeUInt16LE(1, 20);
+  wav.writeUInt16LE(1, 22);
+  wav.writeUInt32LE(rate, 24);
+  wav.writeUInt32LE(rate * 2, 28);
+  wav.writeUInt16LE(2, 32);
+  wav.writeUInt16LE(16, 34);
+  wav.write("data", 36);
+  wav.writeUInt32LE(n * 2, 40);
+  for (let i = 0; i < n; i += 1) wav.writeInt16LE(Math.round(Math.sin((2 * Math.PI * 220 * i) / rate) * 0.2 * 0x7fff), 44 + i * 2);
+  return wav.toString("base64");
+}
 /** --from=<beat>: a partial run for one stretch of the lesson (DEV_MODE's jump) — the completion and mastery checks do not apply to it. */
 const FROM_BEAT = arg("from") ? `authored:${arg("from")!.replace(/^authored:/u, "")}` : null;
 const RUN_TAG = arg("tag") ?? `${VIEW_W}x${VIEW_H}-${SCHEME}${REDUCED_MOTION ? "-reduced" : ""}`;
@@ -834,7 +887,10 @@ async function main(): Promise<void> {
       // Every request pauses at the door; all but the token mint go straight through.
       await page.send("Fetch.enable", { patterns: [{ urlPattern: "*", requestStage: "Request" }] });
       const held: string[] = [];
+      // A CDP handler cannot be removed: this one stands down when the drill is over (a later drill pauses requests too).
+      let holding = true;
       page.on("Fetch.requestPaused", (params) => {
+        if (!holding) return;
         const id = String(params.requestId);
         const url = String((params.request as { url?: string })?.url ?? "");
         if (url.includes("/api/gemini-session")) held.push(id);
@@ -913,6 +969,7 @@ async function main(): Promise<void> {
       await wait(1200);
       for (const id of held) await page.send("Fetch.failRequest", { requestId: id, errorReason: "Aborted" }).catch(() => undefined);
       await page.send("Fetch.disable");
+      holding = false;
       const status = (await snapshot()).status;
       drillNote("first ✋ asks for the microphone; the chat is a panel beside the board", before === 0 && micAsk.up && micAsk.portrait >= 150 && micAsk.dimmed && micAsk.buttons === 2 && gumBeforeAllow === 0 && after === 1 && sheet.up && sheet.portrait > 0 && sheet.portrait <= 64 && sheet.lines === 2 && !sheet.dimmed && sheet.coverage === 0 && sheet.share <= 33.4 && sheet.bot && sheet.close && sheet.veil === 1 && returned && status !== "chatting", `getUserMedia calls before ✋: ${before} · P1 sheet ${micAsk.up ? "up" : "MISSING"} (Zara ${micAsk.portrait} px, dimmed ${micAsk.dimmed ? "yes" : "NO"}, ${micAsk.buttons} buttons, "${micAsk.title.trim().slice(0, 30)}") · calls before හරි: ${gumBeforeAllow} · after: ${after}${explained ? ` · her explanation: "${explained.slice(0, 40)}"` : ""} · chat panel ${sheet.up ? "up" : "MISSING"}: covers ${sheet.coverage} % of the board, takes ${sheet.share} % of the screen's long side, board dimmed ${sheet.dimmed ? "YES" : "no"} (opacity ${sheet.veil}), Zara ${sheet.portrait} px, ${sheet.lines} transcript lines, close button ${sheet.close ? "yes" : "NO"}, bot button ${sheet.bot ? "still there" : "GONE"}, board layout beside it ${sheet.boardOk ? "clean" : "HAS OVERLAPS"} · bot tapped to close ${returned ? "yes" : "NO"} → ${status}`);
     }
@@ -1033,6 +1090,194 @@ async function main(): Promise<void> {
       const exemptOk = exempt.chat === "connected" && exempt.failure === null && exemptUsed === limit && exemptOverlay.budget.includes("not counted");
       trace.push(`DEV_MODE (no enforce cookie), day spent: ✋ → ${exempt.chat === "connected" ? "connected" : `NOT connected (${exempt.failure})`} · the day ${exemptUsed === limit ? "unchanged" : `CHANGED to ${exemptUsed}`} (${exemptUsed} s) · overlay "${exemptOverlay.budget}"`);
       drillNote("DEV_MODE exempts the chat budget: a spent day still opens and is not charged", exemptOk, trace[trace.length - 1]!);
+
+      // (d) + (e) TWO WARNINGS BEFORE THE LIMIT (29 Sep 2026, src/lib/timeWarnings.ts): "අපි තව පොඩ්ඩක් කතා කරමු…" five
+      // minutes before this chat must close and "දැන් අන්තිම ප්‍රශ්නේ අහන්න…" one minute before — each once, and only once
+      // she has finished what she is saying; at the limit the microphone stops, she finishes her sentence, the chat closes
+      // by itself and the lesson carries on at the beat it held. "She" is the fake socket (__fakeLive.say), made to talk
+      // across the moment each falls due. The two lines are not recorded yet, so the harness serves a stand-in clip for
+      // them at the clip door (a tone): the warning is then HEARD through the same voice queue as her, and the browser's
+      // own audio log says whether it ever sounded over her.
+      await evaluate(page, `(() => { document.cookie = "ss_chat_budget=enforce; path=/"; return true; })()`);
+      const voice = (await evaluate<{ voice?: string }>(page, `fetch('/api/audio-config').then((r) => r.json())`))?.voice ?? "";
+      const standIns = new Map<string, string>([AUTHORED_LINES.chatTimeSoon, AUTHORED_LINES.chatTimeLast].map((line) => [clipKey(line, voice), line]));
+      const STAND_IN_MS = 1600;
+      const standInWav = toneWav(STAND_IN_MS);
+      let serving = true;
+      let servedClips = 0;
+      await page.send("Network.setBypassServiceWorker", { bypass: true }).catch(() => undefined);
+      await page.send("Fetch.enable", { patterns: [{ urlPattern: "*/api/clip/*", requestStage: "Request" }] });
+      page.on("Fetch.requestPaused", (params) => {
+        if (!serving) return;
+        const id = String(params.requestId);
+        const url = String((params.request as { url?: string })?.url ?? "");
+        const line = standIns.get(url.match(/\/api\/clip\/([0-9a-f]+)/u)?.[1] ?? "");
+        if (!line) {
+          void page.send("Fetch.continueRequest", { requestId: id }).catch(() => undefined);
+          return;
+        }
+        servedClips += 1;
+        const meta = url.includes("meta=1");
+        const body = meta ? Buffer.from(JSON.stringify({ durationMs: STAND_IN_MS, sentences: [{ startMs: 0, endMs: STAND_IN_MS }], text: line, voice })).toString("base64") : standInWav;
+        void page.send("Fetch.fulfillRequest", { requestId: id, responseCode: 200, responseHeaders: [{ name: "Content-Type", value: meta ? "application/json" : "audio/wav" }, { name: "Cache-Control", value: "no-store" }], body }).catch(() => undefined);
+      });
+      type WarnTrace = {
+        warnings: Array<{ kind: string; line: string; at: number; remaining: number; clip: boolean }>;
+        close: { at: number; waitedMs: number; how: string } | null;
+        turns: Array<{ startedAt: number; ms: number; chunks: number; completeAt: number | null }>;
+      };
+      const warnTrace = () => evaluate<WarnTrace>(page, `({ warnings: window.__chatWarnings ?? [], close: window.__chatClose ?? null, turns: (window.__fakeLive && window.__fakeLive.turns) || [] })`);
+      const sayAsZara = (ms: number) => evaluate<boolean>(page, `window.__fakeLive ? window.__fakeLive.say(${ms}, "හරි, මම කියන්නම්.") : false`);
+      const panelWarning = () => evaluate<{ warning: string | null; closing: boolean; pill: boolean; line: string }>(page, `(() => { const s = document.querySelector('[data-testid="chat-sheet"]'); return { warning: s ? s.getAttribute('data-chat-warning') : null, closing: !!(s && s.hasAttribute('data-chat-closing')), pill: !!(s && s.querySelector('[data-testid="chat-listening"]')), line: ((s && s.querySelector('[data-testid="chat-line-zara"]')?.textContent) ?? '').trim() }; })()`);
+      /** Her sentences and the warnings, as the browser played them (ms after `from`): her chunks chain as "✋ chat", a warning is its own clip. */
+      const voiceSpans = (t: TruthSummary) => ({
+        zara: t.sounding.filter((c) => c.label === "✋ chat").map((c) => ({ start: c.at, end: c.at + c.ms })),
+        warnings: t.sounding.filter((c) => (c.label ?? "").includes("warning")).map((c) => ({ label: c.label ?? "", start: c.at, end: c.at + c.ms })),
+      });
+      const inMs = (n: number) => `${Math.round(n)} ms`;
+
+      // (d) Five minutes left (306 s held): she starts a 4 s sentence 3 s in, so the warning falls due in the middle of it.
+      await setUsed(limit - 306);
+      await wait(1500);
+      const soonMark = await pageNow();
+      const soonUp = await openByHand();
+      const soonOpened = Date.now();
+      // What the server held for this opening (the day's figure rises by the hold at the open).
+      const soonHeld = (await readUsed()) - (limit - 306);
+      while (Date.now() - soonOpened < 3000) await wait(100);
+      await sayAsZara(4000);
+      let soonTrace = await warnTrace();
+      for (let i = 0; i < 80 && soonTrace.warnings.length === 0; i += 1) {
+        await wait(150);
+        soonTrace = await warnTrace();
+      }
+      const soonPanel = await panelWarning();
+      await shoot(snap.beatId, "-drill-chat-warning-soon");
+      // Once, and the chat carries on: eight more seconds of samples.
+      const afterSoon: ChatState[] = [];
+      for (let i = 0; i < 16; i += 1) {
+        await wait(500);
+        afterSoon.push(await chatState());
+      }
+      soonTrace = await warnTrace();
+      const soonHeard = await heard(soonMark);
+      await evaluate(page, `(() => { window.__chatUsage = null; return true; })()`);
+      await tapSelector('[data-testid="chat-return"]');
+      await waitChat((c) => !c.up, 4000);
+      // Its close settles on the server and gives back the rest of its hold: the next setting of the day waits for that,
+      // or the refund lands on top of it (a first run's "one minute left" chat was held 358 s this way).
+      let soonSettled = false;
+      for (let i = 0; i < 150 && !soonSettled; i += 1) {
+        await wait(200);
+        soonSettled = !!(await evaluate<{ settled?: boolean } | null>(page, `window.__chatUsage ?? null`))?.settled;
+      }
+      const soonSpans = voiceSpans(soonHeard);
+      const soonWarn = soonTrace.warnings[0];
+      const soonSentence = soonTrace.turns[soonTrace.turns.length - 1];
+      const soonAudio = soonSpans.warnings[0];
+      const soonZaraEnd = Math.max(0, ...soonSpans.zara.filter((z) => !soonAudio || z.start < soonAudio.start).map((z) => z.end));
+      const soonOk =
+        soonUp.chat === "connected" &&
+        soonHeld === 306 &&
+        soonTrace.warnings.length === 1 &&
+        soonWarn?.kind === "soon" &&
+        soonWarn.remaining <= 300 &&
+        !!soonSentence?.completeAt &&
+        soonWarn.at >= soonSentence.completeAt &&
+        soonPanel.warning === "soon" &&
+        soonPanel.line === AUTHORED_LINES.chatTimeSoon &&
+        soonWarn.clip &&
+        !!soonAudio &&
+        soonAudio.start >= soonZaraEnd - 20 &&
+        soonHeard.maxConcurrent <= 1 &&
+        afterSoon.every((c) => c.up && c.chat === "connected" && c.failure === null);
+      trace.push(
+        `5 min left: ✋ → ${soonUp.chat === "connected" ? "connected" : `NOT connected (${soonUp.chat})`}, held ${soonHeld} s · she spoke 3 s → ${soonSentence?.completeAt ? `${inMs(soonSentence.completeAt - soonMark)}` : "?"} (turn complete) · warnings said: ${soonTrace.warnings.map((w) => `${w.kind} at ${inMs(w.at - soonMark)} with ${w.remaining} s left${w.clip ? ", heard" : ", NOT heard"}`).join("; ") || "NONE"} · panel "${soonPanel.line.slice(0, 40)}" [data-chat-warning=${soonPanel.warning ?? "—"}] · heard: her voice ended ${inMs(soonZaraEnd)}, the warning ${soonAudio ? `${inMs(soonAudio.start)} → ${inMs(soonAudio.end)}` : "NEVER SOUNDED"}, most at once ${soonHeard.maxConcurrent} · then 8 s: ${afterSoon.filter((c) => c.up && c.chat === "connected").length}/${afterSoon.length} samples up and connected, warnings ${soonTrace.warnings.length}`,
+      );
+      drillNote("5 min left in the chat: the warning fires once, after her sentence, and the chat carries on", soonOk, trace[trace.length - 1]!);
+
+      // (e) One minute left (68 s held): the heads-up is skipped (too little time for it), the last call falls due while
+      // she talks and waits for her, and she is still talking when the limit comes — the chat closes when she finishes.
+      // Short sentences in between keep the chat from closing on its 20 s of quiet, as a real conversation would.
+      await setUsed(limit - 68);
+      await wait(1500);
+      const lastMark = await pageNow();
+      const lastUp = await openByHand();
+      const lastOpened = Date.now();
+      const lastHeld = (await readUsed()) - (limit - 68);
+      const heldBeat = (await snapshot()).beatId;
+      const sentences: Array<[number, number]> = [[5000, 4000], [20_000, 3000], [35_000, 3000], [50_000, 3000], [64_000, 7000]];
+      // One read of the panel AND the beat, so the beat the lesson comes back to is read the moment the panel goes (the
+      // rest of a beat whose line the ✋ cut can be short: a poll a second later could already see the next one).
+      type Probe = { up: boolean; failure: string | null; warning: string | null; closing: boolean; pill: boolean; line: string; status: string; beat: string };
+      const probe = () => evaluate<Probe>(page, `(() => { const s = document.querySelector('[data-testid="chat-sheet"]'); const el = document.querySelector('.lesson-screen'); return { up: !!s, failure: s ? s.getAttribute('data-chat-failure') : null, warning: s ? s.getAttribute('data-chat-warning') : null, closing: !!(s && s.hasAttribute('data-chat-closing')), pill: !!(s && s.querySelector('[data-testid="chat-listening"]')), line: ((s && s.querySelector('[data-testid="chat-line-zara"]')?.textContent) ?? '').trim(), status: el?.dataset.status ?? '—', beat: el?.dataset.beatId ?? '—' }; })()`);
+      let lastPanel: Probe | null = null;
+      const closingSamples: Array<{ pill: boolean }> = [];
+      let failureSeen: string | null = null;
+      let next = 0;
+      let closedAfterMs = -1;
+      let resumed = { status: "—", beatId: "—" };
+      while (Date.now() - lastOpened < 95_000) {
+        const elapsed = Date.now() - lastOpened;
+        if (next < sentences.length && elapsed >= sentences[next]![0]) {
+          await sayAsZara(sentences[next]![1]);
+          next += 1;
+        }
+        const p = await probe();
+        if (p.failure) failureSeen = p.failure;
+        if (!p.up && elapsed > 10_000) {
+          closedAfterMs = elapsed;
+          resumed = { status: p.status, beatId: p.beat };
+          break;
+        }
+        if (p.warning === "last" && !lastPanel) lastPanel = p;
+        if (p.closing) closingSamples.push({ pill: p.pill });
+        await wait(p.closing ? 40 : 200);
+      }
+      await wait(1200);
+      const lastTrace = await warnTrace();
+      const lastHeard = await heard(lastMark);
+      const afterwards = await snapshot();
+      await shoot(afterwards.beatId, "-drill-chat-closed-at-limit");
+      const lastSpans = voiceSpans(lastHeard);
+      const lastWarn = lastTrace.warnings[0];
+      const firstSentence = lastTrace.turns[lastTrace.turns.length - sentences.length];
+      const finalSentence = lastTrace.turns[lastTrace.turns.length - 1];
+      const lastAudio = lastSpans.warnings[0];
+      const beforeWarnEnd = Math.max(0, ...lastSpans.zara.filter((z) => !lastAudio || z.start < lastAudio.start).map((z) => z.end));
+      const finalVoiceEnd = Math.max(0, ...lastSpans.zara.map((z) => z.end));
+      const closeAt = lastTrace.close ? lastTrace.close.at - lastMark : -1;
+      const lastOk =
+        lastUp.chat === "connected" &&
+        lastHeld === 68 &&
+        lastTrace.warnings.length === 1 &&
+        lastWarn?.kind === "last" &&
+        !!firstSentence?.completeAt &&
+        lastWarn.at >= firstSentence.completeAt &&
+        lastPanel?.line === AUTHORED_LINES.chatTimeLast &&
+        lastWarn.clip &&
+        !!lastAudio &&
+        lastAudio.start >= beforeWarnEnd - 20 &&
+        lastTrace.close?.how === "quiet" &&
+        !!finalSentence?.completeAt &&
+        lastTrace.close.at >= finalSentence.completeAt &&
+        closeAt >= finalVoiceEnd &&
+        lastTrace.close.waitedMs >= 1000 &&
+        closingSamples.length > 0 &&
+        closingSamples.every((x) => !x.pill) &&
+        closedAfterMs > 0 &&
+        failureSeen === null &&
+        resumed.status !== "chatting" &&
+        resumed.beatId === heldBeat &&
+        lastHeard.maxConcurrent <= 1;
+      trace.push(
+        `1 min left: ✋ → ${lastUp.chat === "connected" ? "connected" : `NOT connected (${lastUp.chat})`}, held ${lastHeld} s (the 5 min chat's close ${soonSettled ? "settled first" : "NOT SETTLED"}), on ${heldBeat.replace(/^authored:/u, "")} · warnings said: ${lastTrace.warnings.map((w) => `${w.kind} at ${inMs(w.at - lastMark)} with ${w.remaining} s left${w.clip ? ", heard" : ", NOT heard"}`).join("; ") || "NONE"} (her first sentence complete at ${firstSentence?.completeAt ? inMs(firstSentence.completeAt - lastMark) : "?"}; the heard warning ${lastAudio ? `${inMs(lastAudio.start)} → ${inMs(lastAudio.end)}` : "NEVER SOUNDED"}, her voice before it ended ${inMs(beforeWarnEnd)}) · panel "${(lastPanel?.line ?? "").slice(0, 40)}" · the limit at ~68 s: she was talking (sentence ${finalSentence ? `${inMs(finalSentence.startedAt - lastMark)} → complete ${finalSentence.completeAt ? inMs(finalSentence.completeAt - lastMark) : "never"}` : "?"}, her voice ended ${inMs(finalVoiceEnd)}) → closed ${lastTrace.close ? `at ${inMs(closeAt)} after waiting ${inMs(lastTrace.close.waitedMs)} (${lastTrace.close.how})` : "NOT by the limit"} · while closing: ${closingSamples.length} samples, listening pill ${closingSamples.some((x) => x.pill) ? "SHOWN" : "gone"} · failure ${failureSeen ?? "none"} · the moment it closed: ${resumed.status} on ${resumed.beatId.replace(/^authored:/u, "")} (${resumed.beatId === heldBeat ? "the same beat" : "a DIFFERENT beat"}), 1.2 s later ${afterwards.status} on ${afterwards.beatId.replace(/^authored:/u, "")} · heard: most at once ${lastHeard.maxConcurrent}`,
+      );
+      drillNote("1 min left in the chat: the last warning after her sentence, and at the limit it closes once she finishes — the lesson resumes on the same beat", lastOk, trace[trace.length - 1]!);
+      serving = false;
+      await page.send("Fetch.disable").catch(() => undefined);
+      await page.send("Network.setBypassServiceWorker", { bypass: false }).catch(() => undefined);
+      trace.push(`stand-in clips served for the two warning lines: ${servedClips} request(s)`);
 
       // Put the device and the child back.
       await evaluate(page, `(() => { document.cookie = "ss_chat_mock=; path=/; max-age=0"; if (window.__fakeLive) { window.WebSocket = window.__fakeLive.Real; } return true; })()`);
@@ -1896,7 +2141,7 @@ async function main(): Promise<void> {
     if (chatBudgetTrace.length) console.log(`\n✋ chat budget drill (fake socket, DEV_MODE mock token — no paid call; the server's accounting is real):\n${chatBudgetTrace.map((l) => `  ${l}`).join("\n")}`);
     console.log(`\nfailure-mode drills (${drillResults.filter((r) => r.startsWith("PASS")).length}/${drillResults.length} handled visibly):`);
     for (const line of drillResults) console.log(`  ${line}`);
-    for (const name of ["touch during playback", "rotation mid-beat", "backgrounded tab", "missing clip", "first ✋ asks for the microphone", "the chat shows the child's turn as a neutral bubble", "the chat's time spent", "time left: the chat stays open", "DEV_MODE exempts the chat budget", "Zara's portrait is not a control", "three ↺ taps are one question", "pause at beat 5", "pause at beat 40", "pause at beat 80", "type at 11 s and 23 s", "pad at a fast pace", "pad at a human pace", "the pad submits only on ✓", "two touches 80 ms apart on the soft check", "an unreached concept chip is not selectable", "⏭ stops at the furthest reached", "rapid double-tap on ⏮", "five taps on ⏮", "resume plays only the selected beat", "step back 6 beats then resume", "tapping a concept chip", "🔊 plays the selected beat", "resume from a concept chip", "10000 on a 4-digit answer", "read-aloud readWrite4Digit:2"]) if (!drillResults.some((r) => r.includes(name))) console.log(`  SKIP  ${name}: its beat was not reached`);
+    for (const name of ["touch during playback", "rotation mid-beat", "backgrounded tab", "missing clip", "first ✋ asks for the microphone", "the chat shows the child's turn as a neutral bubble", "the chat's time spent", "time left: the chat stays open", "DEV_MODE exempts the chat budget", "5 min left in the chat", "1 min left in the chat", "Zara's portrait is not a control", "three ↺ taps are one question", "pause at beat 5", "pause at beat 40", "pause at beat 80", "type at 11 s and 23 s", "pad at a fast pace", "pad at a human pace", "the pad submits only on ✓", "two touches 80 ms apart on the soft check", "an unreached concept chip is not selectable", "⏭ stops at the furthest reached", "rapid double-tap on ⏮", "five taps on ⏮", "resume plays only the selected beat", "step back 6 beats then resume", "tapping a concept chip", "🔊 plays the selected beat", "resume from a concept chip", "10000 on a 4-digit answer", "read-aloud readWrite4Digit:2"]) if (!drillResults.some((r) => r.includes(name))) console.log(`  SKIP  ${name}: its beat was not reached`);
   }
   if (fpsSamples.length) console.log(`fps while animating${CPU_THROTTLE > 1 ? ` at cpu×${CPU_THROTTLE}` : ""}: ${fpsSamples.map((s) => `${s.beatId.replace(/^authored:/u, "")} ${s.fps}`).join(", ")}`);
   const flagged = audits.filter((a) => a.audit && (a.audit.overlap || a.audit.portraitOverlap || a.audit.cutOff || a.audit.small.length || a.audit.tinyText.length));
@@ -2032,11 +2277,18 @@ async function main(): Promise<void> {
   console.log(`audio (the browser's own audio API, since the lesson page last loaded): ${walkHeard.sounding.length} voice clips · the most sounding at once ${walkHeard.maxConcurrent} (the contract is 1)${walkHeard.overlaps.length ? ` — OVERLAPS: ${walkHeard.overlaps.map((o) => `${o.a} + ${o.b} ${o.ms} ms`).join("; ")}` : ""}`);
   // ---- THE CLOSE SAYS WHY (the device walk, issue 3) ---------------------
   // A sitting that stops must say why. The drill: walk into the numeral ↔ name
-  // table, then set the daily limit to 3 minutes with the sitting already
-  // older than that — the limit is crossed mid-exercise. It must NOT cut the
-  // table off: it finishes the exercise, then closes with her daily-limit line
-  // on the card and close_reason=daily_limit on the session_log row.
+  // table, then set the daily limit a minute and five seconds away — it is
+  // crossed mid-exercise. It must NOT cut the table off: it finishes the
+  // exercise, then closes with her daily-limit line on the card and
+  // close_reason=daily_limit on the session_log row.
+  // AND IT WARNS FIRST (29 Sep 2026, src/lib/timeWarnings.ts): early in the
+  // sitting the limit is set five minutes and eight seconds away — her five-
+  // minute line comes once, between beats, and the lesson carries on (the
+  // limit is then lifted again); at the table, set 65 s away, the five-minute
+  // line is skipped (too little time for it) and her one-minute line comes
+  // once, before the close.
   let closeDrill = "not run";
+  let limitWarningDrill = "not run";
   const seenAfterArm: string[] = [];
   if (DRILLS && childA) {
     const TABLE_FIRST = "authored:readWrite4Digit:18c";
@@ -2048,6 +2300,18 @@ async function main(): Promise<void> {
     const started = Date.now();
     let armed = false;
     let armedAt = "—";
+    /** The five-minute warning's arming, early in the sitting, and what the lesson did after it. */
+    let soonArmed = false;
+    let soonArmedAt = "—";
+    let soonLifted = false;
+    let beatsAfterSoon = 0;
+    let beatsAfterLast = 0;
+    let lastBeatSeen = "";
+    const captionsSeen = { soon: false, last: false };
+    type LimitWarning = { kind: string; at: number; remaining: number; before: string };
+    let limitWarnings: LimitWarning[] = [];
+    const limitState = () => evaluate<{ usedMinutes: number; limit: number | null; said: string[] } | null>(page, `window.__dev && window.__dev.limitState ? window.__dev.limitState() : null`).catch(() => null);
+    const setLimit = (minutes: number | null) => evaluate(page, `(() => { window.__dev && window.__dev.setDailyLimit(${minutes === null ? "null" : minutes}); return true; })()`).catch(() => false);
     let closedAt = "—";
     let closedInside = "";
     let cardText = "";
@@ -2070,6 +2334,35 @@ async function main(): Promise<void> {
         if (recent[recent.length - 1] !== shortId) recent.push(shortId);
         if (recent.length > 10) recent.shift();
       }
+      // The limit's warnings: what the runtime said, and whether the child saw the line (read on the board until recorded).
+      if (soonArmed) {
+        limitWarnings = (await evaluate<LimitWarning[]>(page, `window.__limitWarnings ?? []`).catch(() => limitWarnings)) ?? limitWarnings;
+        const shown = (await evaluate<string[]>(page, `[...(window.__captionsSeen ?? [])]`).catch(() => [])) ?? [];
+        if (shown.some((c) => c.includes(AUTHORED_LINES.lessonTimeSoon))) captionsSeen.soon = true;
+        if (shown.some((c) => c.includes(AUTHORED_LINES.lessonTimeLast))) captionsSeen.last = true;
+        if (snap.beatId !== "—" && snap.beatId !== lastBeatSeen) {
+          if (limitWarnings.some((w) => w.kind === "soon")) beatsAfterSoon += 1;
+          if (limitWarnings.some((w) => w.kind === "last") && !/:close$/u.test(snap.beatId)) beatsAfterLast += 1;
+        }
+        // Once the five-minute line has been said (and the lesson has moved on from it), lift the limit again: the table's own countdown comes later.
+        if (!soonLifted && limitWarnings.some((w) => w.kind === "soon") && beatsAfterSoon >= 2) {
+          soonLifted = true;
+          await setLimit(null);
+        }
+      }
+      if (snap.beatId !== "—") lastBeatSeen = snap.beatId;
+      // Early in the sitting (15 s in, while she is teaching): the limit five minutes and eight seconds away.
+      if (!soonArmed && snap.status === "teaching" && (Date.now() - started) / 1000 >= 15) {
+        const state = await limitState();
+        if (state) {
+          soonArmed = true;
+          soonArmedAt = snap.beatId;
+          // Every caption the screen shows from here on (a line with no clip is read on the board for under two seconds).
+          await evaluate(page, `(() => { window.__limitWarnings = []; window.__captionsSeen = new Set(); const note = () => { const c = document.querySelector('[data-testid="caption"]'); if (c && c.textContent) window.__captionsSeen.add(c.textContent.trim()); }; new MutationObserver(note).observe(document.body, { subtree: true, childList: true, characterData: true }); return true; })()`);
+          await setLimit(state.usedMinutes + 5 + 8 / 60);
+          console.log(`      ⏱ daily limit set 5 min 8 s away at ${snap.beatId.replace(/^authored:/u, "")} (${state.usedMinutes.toFixed(2)} min used)`);
+        }
+      }
       if (armed) overlay = (await evaluate<string>(page, `(document.querySelector('[data-testid="debug-minutes"]')?.textContent ?? "no overlay").trim()`).catch(() => "no overlay")) ?? "no overlay";
       if (snap.status === "done" || /:close$/u.test(snap.beatId)) {
         if (/:close$/u.test(snap.beatId) && cardText === "") {
@@ -2083,23 +2376,22 @@ async function main(): Promise<void> {
           break;
         }
       }
-      // Inside the table, with the sitting already past three minutes: arm the limit.
-      if (!armed && snap.beatId === "authored:readWrite4Digit:18d" && (Date.now() - started) / 60000 >= 3.2) {
+      // Inside the table: the limit a minute and five seconds away (crossed mid-exercise, after her one-minute line).
+      if (!armed && snap.beatId === "authored:readWrite4Digit:18d") {
         armed = true;
         armedAt = snap.beatId;
+        if (!soonLifted) {
+          soonLifted = true;
+          await setLimit(null);
+        }
+        const state = await limitState();
+        await setLimit((state?.usedMinutes ?? 0) + 65 / 60);
+        // The overlay shows it (and the drill reads the overlay's minutes line from here on).
         for (let i = 0; i < 5; i += 1) {
           await clickSelector('[data-testid="session-title"]');
           await wait(120);
         }
-        // The overlay's body fills from a 1 s interval — the toggle is not in the DOM the instant it opens.
-        for (let i = 0; i < 12; i += 1) {
-          if (await evaluate<boolean>(page, `!!document.querySelector('[data-testid="daily-limit-toggle"]')`).catch(() => false)) break;
-          await wait(300);
-        }
-        const toggled = await evaluate<string>(page, `(() => { const b = document.querySelector('[data-testid="daily-limit-toggle"]'); if (!b) return "no toggle"; b.click(); return b.getAttribute("data-limit") ?? "?"; })()`).catch(() => "no toggle");
-        await wait(200);
-        const now = await evaluate<string>(page, `(document.querySelector('[data-testid="daily-limit-toggle"]')?.getAttribute("data-limit") ?? "?")`).catch(() => "?");
-        console.log(`      ⏱ daily limit armed at ${snap.beatId.replace(/^authored:/u, "")} (${((Date.now() - started) / 60000).toFixed(1)} min into the sitting): toggle ${toggled} → ${now}`);
+        console.log(`      ⏱ daily limit set 65 s away at ${snap.beatId.replace(/^authored:/u, "")} (${((Date.now() - started) / 60000).toFixed(1)} min into the sitting, ${(state?.usedMinutes ?? 0).toFixed(2)} min used)`);
       }
       // Cut inside the exercise? The close beat must never arrive between its first and last beat.
       if (armed && /:close$/u.test(snap.beatId) && closedInside === "" && seenAfterArm.length > 0 && !seenAfterArm.includes(TABLE_LAST)) closedInside = `CLOSED INSIDE the exercise (last table beat seen ${seenAfterArm[seenAfterArm.length - 1]})`;
@@ -2133,14 +2425,23 @@ async function main(): Promise<void> {
     const limitLine = cardText.includes("අද කාලය ඉවරයි");
     const wholeTable = seenAfterArm.includes(TABLE_LAST);
     closeDrill =
-      `limit 3 min armed at ${armedAt.replace(/^authored:/u, "")} (inside ${TABLE_FIRST.replace(/^authored:/u, "")}…${TABLE_LAST.replace(/^authored:/u, "")}) · ` +
+      `limit set 65 s away at ${armedAt.replace(/^authored:/u, "")} (inside ${TABLE_FIRST.replace(/^authored:/u, "")}…${TABLE_LAST.replace(/^authored:/u, "")}) · ` +
       `the exercise finished ${wholeTable ? "before the close" : "NOT — cut short"} (${seenAfterArm.length} table beat(s) after arming, last ${(seenAfterArm[seenAfterArm.length - 1] ?? "none").replace(/^authored:/u, "")}) · ` +
       `${closedInside || "no cut inside the exercise"} · closed at ${closedAt.replace(/^authored:/u, "")} · card "${cardText.slice(0, 60)}" · session_log close_reason=${reason} (minutes_today ${closeRow?.planner_decision?.minutesToday ?? "—"}) · overlay [${overlay}] · last beats ${recent.join(" → ")}`;
     drillNote("the close says why: the daily limit waits for the exercise, then closes with a reason", wholeTable && closedInside === "" && limitLine && reason === "daily_limit", closeDrill);
+    const soonSaid = limitWarnings.filter((w) => w.kind === "soon");
+    const lastSaid = limitWarnings.filter((w) => w.kind === "last");
+    const at = (w: LimitWarning | undefined) => (w ? `${w.remaining} s left, before ${w.before.replace(/^authored:/u, "")}` : "—");
+    limitWarningDrill =
+      `set 5 min 8 s away at ${soonArmedAt.replace(/^authored:/u, "")}: five-minute line ${soonSaid.length}× (${at(soonSaid[0])}), shown ${captionsSeen.soon ? "yes" : "NO"}, the lesson went on ${beatsAfterSoon} beat(s) · ` +
+      `set 65 s away at ${armedAt.replace(/^authored:/u, "")}: five-minute line not repeated ${soonSaid.length === 1 ? "yes" : "NO"} · one-minute line ${lastSaid.length}× (${at(lastSaid[0])}), shown ${captionsSeen.last ? "yes" : "NO"}, ${beatsAfterLast} beat(s) before the close · closed ${reason}`;
+    drillNote("the daily lesson limit warns first: the five-minute line once and the lesson carries on", soonSaid.length === 1 && (soonSaid[0]?.remaining ?? 0) <= 300 && (soonSaid[0]?.remaining ?? 0) > 60 && captionsSeen.soon && beatsAfterSoon >= 2, limitWarningDrill);
+    drillNote("the daily lesson limit warns first: the one-minute line once, then the close after the exercise", lastSaid.length === 1 && limitWarnings.length === 2 && (lastSaid[0]?.remaining ?? 99) <= 60 && captionsSeen.last && beatsAfterLast >= 1 && reason === "daily_limit" && wholeTable, limitWarningDrill);
     if (lastSeen === "—") console.log("      ⏱ close drill: the session never started");
   }
 
   console.log(`close-reason drill: ${closeDrill}`);
+  console.log(`limit-warning drill: ${limitWarningDrill}`);
   console.log(`\nstep 1 screen text, both states:`);
   for (const entry of step1Texts) console.log(`  [${entry.state}]\n${entry.text.split("\n").map((l) => `    ${l}`).join("\n")}`);
   // The children this run created (and every row keyed to them) are removed again.

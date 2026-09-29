@@ -32,6 +32,7 @@ import {
   type StoryboardEvent,
 } from "@/lib/choreography";
 import { AUTHORED_LINES } from "@/lib/authoredLines";
+import { warningDue, type TimeWarning } from "@/lib/timeWarnings";
 import { confirmValueFor, CONFIRM_LIMIT } from "@/lib/confirmPolicy";
 import { judgePhrase, judgePhraseLocally } from "@/lib/phraseJudge";
 import { renderNumberMarkers } from "@/lib/sinhalaNumber";
@@ -434,6 +435,12 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
   const [devLimit, setDevLimit] = useState<number | null>(null);
   const effectiveDailyLimit = () => devLimitOverrideRef.current ?? (settingsRef.current.devMode ? Infinity : settingsRef.current.dailyLimitMinutes);
   const dailyLimitReached = () => minutesUsedToday() >= effectiveDailyLimit();
+  /**
+   * The daily limit's two warnings (src/lib/timeWarnings.ts): "අපි තව පොඩ්ඩක් වැඩ කරමු…" five minutes before it and
+   * "දැන් අන්තිම ටික කරලා…" one minute before, each once — a heads-up, never a sudden close. A countdown begins when the
+   * limit is first known and again whenever it changes (DEV_MODE's override).
+   */
+  const limitCountdownRef = useRef<{ limit: number; startedWith: number; said: TimeWarning[] } | null>(null);
   const statusRef = useRef<RuntimeStatus>("idle");
   const debugEventsRef = useRef<string[]>([]);
 
@@ -1993,6 +2000,14 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
       context: buildChatContext(),
       // A chat that cannot go on stays on its panel with her line; the reason is logged here, for the debug overlay.
       onFailure: (failure) => logEvent(`✋ chat could not go on — ${failure.kind}: ${failure.reason}`),
+      onEvent: logEvent,
+      // Her time warnings are recorded lines like any other: the same clip door, decoded for the chat's own voice queue.
+      loadLine: async (text) => {
+        const config = audioConfigRef.current;
+        if (!config) return null;
+        const clip = await loadClipByKey(clipKey(text, config.voice), text).catch(() => null);
+        return clip ? audio.decode(clip.audio) : null;
+      },
       onBoardTool: (name, args) => {
         const target = typeof args.target === "string" ? parseTargetKey(args.target) : null;
         if (!target) return;
@@ -2002,6 +2017,28 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
     });
     logEvent("live chat closed");
     setRuntimeStatus("teaching");
+  };
+
+  /**
+   * Says the daily limit's warning that is due, if any — called between beats with nothing inserted pending, so it never
+   * comes between an answer and its feedback (those are one beat) or inside a reteach. Her line is a recorded clip, or
+   * read on the board until it is recorded.
+   */
+  const sayLimitWarningIfDue = async () => {
+    const limit = effectiveDailyLimit();
+    if (!Number.isFinite(limit) || limitEndedRef.current) return;
+    const remaining = (limit - minutesUsedToday()) * 60;
+    if (!limitCountdownRef.current || limitCountdownRef.current.limit !== limit) limitCountdownRef.current = { limit, startedWith: remaining, said: [] };
+    const countdown = limitCountdownRef.current;
+    const due = warningDue(remaining, countdown);
+    if (!due) return;
+    countdown.said.push(due);
+    const line = due === "soon" ? AUTHORED_LINES.lessonTimeSoon : AUTHORED_LINES.lessonTimeLast;
+    logEvent(`daily limit: ${due === "soon" ? "five" : "one"}-minute warning (${Math.round(remaining)} s left of ${Math.round(limit)} min)`);
+    // For the harness: when each was said, and on which beat boundary.
+    const w = window as unknown as { __limitWarnings?: Array<{ kind: TimeWarning; at: number; remaining: number; before: string }> };
+    (w.__limitWarnings ??= []).push({ kind: due, at: performance.now(), remaining: Math.round(remaining), before: scriptRef.current ? (beatAt(scriptRef.current, stateRef.current)?.id ?? "—") : "—" });
+    await sayAuthored(line);
   };
 
   /** The driver: beats in order, inserted beats first, until the sitting ends. */
@@ -2103,6 +2140,9 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
         await runBeat(queued, false);
         continue;
       }
+      // Nothing inserted is pending: a boundary where the daily limit's warning may be said (the close below comes after it).
+      await sayLimitWarningIfDue();
+      if (stoppedRef.current) break;
       if (skipToCloseRef.current) {
         skipToCloseRef.current = false;
         jumpToClose(script);
@@ -2331,7 +2371,6 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
       return;
     }
     stoppedRef.current = false;
-    pausedRef.current = false;
     // Today's ✋ chat time, for the debug overlay.
     void chat.refreshBudget();
     pendingBeatsRef.current = [];
@@ -2353,14 +2392,21 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
     confirmsRef.current = new Map();
     recentLinesRef.current = [];
     recentAnswersRef.current = [];
+    // A new sitting starts without the parent's ⏸ — but a hold that is on right now (the phone still upright, the tab
+    // hidden, a question over the board) stays on, and the screen is told exactly what the runtime is. Both used to be
+    // cleared in the refs alone: a hold still on as the lesson started left the screen saying ⏸ — the playback panel up,
+    // ▶ in the strip — over a lesson that was playing, and the next tap on ⏸ found no ⏸ to press (session:check, 29 Sep
+    // 2026: the intermittent "pause at beat 5" failure).
     manualPauseRef.current = false;
-    holdsRef.current = new Set();
-    pausedAtRef.current = null;
+    pausedRef.current = holdsRef.current.size > 0;
+    setPaused(pausedRef.current);
+    pausedAtRef.current = pausedRef.current ? Date.now() : null;
     pausedTotalRef.current = 0;
     lastActivityRef.current = 0;
     hasInputRef.current = false;
     limitEndedRef.current = false;
     limitPendingRef.current = false;
+    limitCountdownRef.current = null; // a sitting's countdown begins with it
     closeReasonRef.current = "complete";
     setLimitEnded(false);
     navRequestRef.current = null;
@@ -2474,6 +2520,9 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
   /** Paused when the parent pressed ⏸ OR any automatic hold is on. */
   const applyPause = useCallback(() => {
     const next = manualPauseRef.current || holdsRef.current.size > 0;
+    // The screen follows the runtime on every call, even one that changes nothing here: it can never say ⏸ over a lesson
+    // that is playing (or ▶ over one that is held).
+    setPaused(next);
     if (next === pausedRef.current) return;
     logEvent(`${next ? "⏸ paused" : "▶ resumed"} (manual ${manualPauseRef.current}, holds ${[...holdsRef.current].join(",") || "none"})`);
     pausedRef.current = next;
@@ -2745,6 +2794,11 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
         devLimitOverrideRef.current = minutes;
         setDevLimit(minutes);
       },
+      /** The daily limit's warning drill: minutes used today, the limit in force, and the countdown's warnings so far. */
+      limitState: () =>
+        settingsRef.current.devMode
+          ? { usedMinutes: minutesUsedToday(), limit: effectiveDailyLimit(), said: [...(limitCountdownRef.current?.said ?? [])] }
+          : null,
       /** The ✋ verification (chat-live-check): type into the open chat as the child would speak. */
       chatSend: (text: string) => {
         if (!settingsRef.current.devMode) return false;
@@ -2898,6 +2952,9 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
     chatTranscript: chat.transcript,
     /** A chat that could not go on: its panel stays, with Zara's line, until the child closes it. */
     chatFailure: chat.failure,
+    /** The last time warning said in this chat, and whether it is closing at its limit (the panel shows both). */
+    chatWarning: chat.warning,
+    chatClosing: chat.closing,
     start,
     stop,
     togglePause,

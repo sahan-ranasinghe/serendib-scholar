@@ -171,7 +171,10 @@ Gemini is the only cost that grows with usage:
 - The ✋ chat costs roughly cents per minute and is capped per child per day
   at 30 minutes by default (the parent zone offers 15, 30 or 60). It is
   charged by the connected second: at least 15 seconds and at most 10
-  minutes per opening (`src/lib/chatBudgetRules.ts`).
+  minutes per opening (`src/lib/chatBudgetRules.ts`). Zara warns five
+  minutes and one minute before a chat has to close, then finishes her
+  sentence and closes it; the lesson's daily limit warns the same way
+  (`src/lib/timeWarnings.ts`).
 - One-off jobs are small. Reading a 40-page PDF costs about US$0.14, and
   drafting or rendering a session costs a few dollars.
 

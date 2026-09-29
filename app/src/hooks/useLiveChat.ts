@@ -5,6 +5,8 @@ import { audio } from "@/lib/audioManager";
 import type { ChatContext } from "@/lib/chatContext";
 import { t, type CopyKey } from "@/lib/appCopy";
 import { CHAT_MAX_OPEN_SECONDS, type ChatBudgetView } from "@/lib/chatBudgetRules";
+import { AUTHORED_LINES } from "@/lib/authoredLines";
+import { warningDue, type TimeWarning } from "@/lib/timeWarnings";
 
 /**
  * LIVE, ONLY WHEN THE CHILD ASKS FOR IT.
@@ -30,17 +32,36 @@ import { CHAT_MAX_OPEN_SECONDS, type ChatBudgetView } from "@/lib/chatBudgetRule
  * holds what one opening may use and says how long that is; the chat closes
  * itself at that point, and reports its connected seconds when it closes (and
  * by beacon if the page goes away).
+ *
+ * IT WARNS BEFORE IT CLOSES (29 Sep 2026, src/lib/timeWarnings.ts): five
+ * minutes before this chat must close Zara says "අපි තව පොඩ්ඩක් කතා කරමු, ඊට
+ * පස්සේ පාඩමට යමු නේද?", and one minute before, "දැන් අන්තිම ප්‍රශ්නේ අහන්න,
+ * ඊට පස්සේ පාඩම දිගටම කරමු." — each once, on the panel as her line and in her
+ * recorded voice, and only once she has finished what she is saying (her turn
+ * complete, her audio played out). At the limit the microphone stops, she
+ * finishes her sentence, and the chat closes by itself; the lesson carries on
+ * from the beat it was holding. It used to stop at the limit with a failure
+ * line and wait for the child to close it.
  */
 
 /** Why a chat could not go on, and the line Zara says about it on the panel. */
-export type ChatFailureKind = "budget" | "network" | "start" | "dropped" | "enough";
+export type ChatFailureKind = "budget" | "network" | "start" | "dropped";
 const FAILURE_LINE: Record<ChatFailureKind, CopyKey> = {
   budget: "chat.outOfTime",
   network: "chat.failNetwork",
   start: "chat.failStart",
   dropped: "chat.failDropped",
-  enough: "chat.enoughForNow",
 };
+/** Her words for each warning (src/lib/authoredLines.ts — recorded like every line she says). */
+const WARNING_LINE: Record<TimeWarning, string> = { soon: AUTHORED_LINES.chatTimeSoon, last: AUTHORED_LINES.chatTimeLast };
+/** How often the chat looks at its clock for a warning, and for her finishing at the limit. */
+const WARNING_TICK_MS = 250;
+/** A warning whose clip is still being fetched waits this long for it, then is shown without her voice. */
+const WARNING_CLIP_WAIT_MS = 4000;
+/** At the limit: she must have been quiet this long (turn complete, audio played out) before the chat closes. */
+const CLOSE_SETTLE_MS = 300;
+/** At the limit: the longest she may take to finish (a turn that never completes must not hold the chat open). */
+const CLOSE_GRACE_MS = 30_000;
 export interface ChatFailure {
   kind: ChatFailureKind;
   /** What Zara says on the panel. */
@@ -70,6 +91,10 @@ export interface LiveChatHandle {
   failure: ChatFailure | null;
   /** Today's chat time, as the server last told it (null until asked) — the debug overlay shows what is left. */
   budget: ChatBudgetView | null;
+  /** The last time warning she said in this chat (null before either). */
+  warning: TimeWarning | null;
+  /** The chat is at its limit: the microphone is off and it closes once she has finished her sentence. */
+  closing: boolean;
   /** Asks the server how much chat time is left today. */
   refreshBudget: () => Promise<void>;
   /** DEV_MODE / the harness: put a typed line to the model as if the child had said it. */
@@ -91,6 +116,10 @@ export interface LiveChatHandle {
     onBoardTool?: (name: string, args: Record<string, unknown>) => void;
     /** Why it could not go on (the runtime logs it to the debug overlay). */
     onFailure?: (failure: ChatFailure) => void;
+    /** Her recorded clip for an authored line, decoded (null: not recorded yet — the warning is then shown, not heard). */
+    loadLine?: (text: string) => Promise<AudioBuffer | null>;
+    /** A warning said, or the chat closing at its limit — for the debug overlay. */
+    onEvent?: (message: string) => void;
   }) => Promise<void>;
   /** Ends the chat now (the button, or the lesson stopping). */
   endChat: () => void;
@@ -104,6 +133,8 @@ export function useLiveChat(): LiveChatHandle {
   const [transcript, setTranscript] = useState<{ child: string; zara: string }>({ child: "", zara: "" });
   const [failure, setFailure] = useState<ChatFailure | null>(null);
   const [budget, setBudget] = useState<ChatBudgetView | null>(null);
+  const [warning, setWarning] = useState<TimeWarning | null>(null);
+  const [closing, setClosing] = useState(false);
   /** Whose line is being built: a new speaker starts a fresh line. */
   const speakingRef = useRef<"child" | "zara" | null>(null);
   const clientRef = useRef<GeminiLiveClient | null>(null);
@@ -133,12 +164,16 @@ export function useLiveChat(): LiveChatHandle {
       context,
       onBoardTool,
       onFailure,
+      loadLine,
+      onEvent,
     }: {
       stream: MediaStream;
       opener?: string;
       context?: ChatContext;
       onBoardTool?: (name: string, args: Record<string, unknown>) => void;
       onFailure?: (failure: ChatFailure) => void;
+      loadLine?: (text: string) => Promise<AudioBuffer | null>;
+      onEvent?: (message: string) => void;
     }) =>
       new Promise<void>((resolve) => {
         // Her replies are ONE chunk stream in the audio manager: back to back, one clip to the no-overlap rule, and
@@ -153,10 +188,28 @@ export function useLiveChat(): LiveChatHandle {
         let openId: string | null = null;
         let reported = false;
         let capTimer: ReturnType<typeof setTimeout> | null = null;
+        let warningTimer: ReturnType<typeof setInterval> | null = null;
         /** We closed the socket ourselves (a close after this is not a failure). */
         let closing = false;
+        /** How long this opening may run (the server's hold); the warnings count down to it. */
+        let allowedSeconds: number = CHAT_MAX_OPEN_SECONDS;
+        /** She is in a turn: from its first audio (or words) until the server says the turn is complete. */
+        let modelTurn = false;
+        const said: TimeWarning[] = [];
+        /** Her two warning clips, fetched when the chat connects: undefined while in flight, null when not recorded. */
+        const warningClip: Partial<Record<TimeWarning, AudioBuffer | null>> = {};
+        /** When a warning first fell due (its clip may still be on its way). */
+        const dueSince: Partial<Record<TimeWarning, number>> = {};
+        /** At the limit: the microphone is off and the chat closes once she is quiet. */
+        let atLimit = false;
+        /** For the harness: each warning as it is said, and how the chat closed at its limit (page clock). */
+        const trace = window as unknown as { __chatWarnings?: Array<{ kind: TimeWarning; line: string; at: number; remaining: number; clip: boolean }>; __chatClose?: { at: number; waitedMs: number; how: "quiet" | "grace" } | null };
+        trace.__chatWarnings = [];
+        trace.__chatClose = null;
         setFailure(null);
         setError(null);
+        setWarning(null);
+        setClosing(false);
         const connectedSeconds = () => (ready ? (Date.now() - connectedAt) / 1000 : 0);
         /** The chat's connected seconds, to the server — once: on close, or by beacon when the page goes away. */
         const report = (how: "close" | "beacon") => {
@@ -184,6 +237,9 @@ export function useLiveChat(): LiveChatHandle {
           idleTimerRef.current = null;
           if (capTimer) clearTimeout(capTimer);
           capTimer = null;
+          if (warningTimer) clearInterval(warningTimer);
+          warningTimer = null;
+          setClosing(false);
           window.removeEventListener("pagehide", onUnload);
           liveSecondsRef.current += Math.round(connectedSeconds());
           recorderRef.current?.stop();
@@ -226,6 +282,63 @@ export function useLiveChat(): LiveChatHandle {
           idleTimerRef.current = setTimeout(finish, CHAT_IDLE_TIMEOUT_MS);
         };
 
+        /** She is saying something: a turn in progress, or her audio (or a warning) still playing out. */
+        const speaking = () => modelTurn || speaker.queuedMs() > 0;
+        /**
+         * A warning, said the moment it is due and she is quiet: her line on the panel and her recorded clip in the same
+         * queue as her live voice, in one go — so it can never land inside a sentence of hers, and whatever she says next
+         * waits for it.
+         */
+        const sayWarning = (kind: TimeWarning, remaining: number) => {
+          said.push(kind);
+          const line = WARNING_LINE[kind];
+          speakingRef.current = null; // her next words start a fresh line under it
+          setTranscript((t) => ({ ...t, zara: line }));
+          setWarning(kind);
+          const clip = warningClip[kind] ?? null;
+          const heard = clip ? speaker.pushBuffer(clip, `✋ chat · ${kind} warning`) : false;
+          touchIdle();
+          trace.__chatWarnings?.push({ kind, line, at: performance.now(), remaining: Math.round(remaining * 10) / 10, clip: heard });
+          onEvent?.(`✋ ${kind === "soon" ? "five" : "one"}-minute warning (${Math.round(remaining)} s left${heard ? "" : ", no clip — shown only"})`);
+        };
+        /** The limit: no new question (the microphone stops), then the chat closes as soon as she has finished. */
+        const closeAtLimit = () => {
+          if (finished || failed || atLimit) return;
+          atLimit = true;
+          setClosing(true);
+          recorderRef.current?.stop();
+          recorderRef.current = null;
+          const began = performance.now();
+          let quietSince = speaking() ? 0 : began;
+          onEvent?.(`✋ this chat's ${allowedSeconds} s are up — closing ${speaking() ? "once she finishes her sentence" : "now"}`);
+          const settle = setInterval(() => {
+            if (finished || failed) {
+              clearInterval(settle);
+              return;
+            }
+            const now = performance.now();
+            if (speaking()) quietSince = 0;
+            else if (quietSince === 0) quietSince = now;
+            const quiet = quietSince > 0 && now - quietSince >= CLOSE_SETTLE_MS;
+            const grace = now - began >= CLOSE_GRACE_MS;
+            if (!quiet && !grace) return;
+            clearInterval(settle);
+            trace.__chatClose = { at: now, waitedMs: Math.round(now - began), how: quiet ? "quiet" : "grace" };
+            onEvent?.(`✋ chat closed at its limit after ${Math.round(now - began)} ms (${quiet ? "she had finished" : "she had not finished in 30 s"})`);
+            finish();
+          }, 100);
+        };
+        const checkWarnings = () => {
+          if (finished || failed || !ready || atLimit) return;
+          const remaining = allowedSeconds - connectedSeconds();
+          const due = warningDue(remaining, { startedWith: allowedSeconds, said });
+          if (!due || speaking()) return;
+          dueSince[due] ??= performance.now();
+          // Her clip was fetched when the chat connected; one still on its way is waited for a moment, then let go.
+          if (warningClip[due] === undefined && loadLine && performance.now() - dueSince[due]! < WARNING_CLIP_WAIT_MS) return;
+          sayWarning(due, remaining);
+        };
+
         void (async () => {
           try {
             let response: Response;
@@ -253,9 +366,8 @@ export function useLiveChat(): LiveChatHandle {
             const { token, model } = json;
             openId = json.chat?.openId ?? null;
             if (json.chat?.budget) setBudget(json.chat.budget);
-            // This opening's time: the client closes the chat when it is up (the day spent, or one chat's longest stretch).
-            const allowedSeconds = json.chat?.allowedSeconds ?? CHAT_MAX_OPEN_SECONDS;
-            const dayRunsOut = json.chat ? !json.chat.budget.exempt && allowedSeconds < CHAT_MAX_OPEN_SECONDS : false;
+            // This opening's time: warned at five minutes and one, and closed when it is up (the day spent, or one chat's longest stretch).
+            allowedSeconds = json.chat?.allowedSeconds ?? CHAT_MAX_OPEN_SECONDS;
 
             const client = new GeminiLiveClient({
               onReady: async () => {
@@ -266,7 +378,17 @@ export function useLiveChat(): LiveChatHandle {
                 setTranscript({ child: "", zara: "" });
                 setChatting(true);
                 touchIdle();
-                capTimer = setTimeout(() => fail(dayRunsOut ? "budget" : "enough", `this opening's ${allowedSeconds} s are up`), allowedSeconds * 1000);
+                for (const kind of ["soon", "last"] as const) {
+                  if (!loadLine) warningClip[kind] = null;
+                  else
+                    void loadLine(WARNING_LINE[kind])
+                      .catch(() => null)
+                      .then((clip) => {
+                        warningClip[kind] = clip;
+                      });
+                }
+                warningTimer = setInterval(checkWarnings, WARNING_TICK_MS);
+                capTimer = setTimeout(closeAtLimit, allowedSeconds * 1000);
                 recorderRef.current = await startPcmRecorder(stream, (chunk) => {
                   // Full duplex: everything goes, interruptions included.
                   client.sendAudioChunk(chunk);
@@ -283,6 +405,7 @@ export function useLiveChat(): LiveChatHandle {
               },
               onAudioChunk: (chunk) => {
                 touchIdle();
+                modelTurn = true;
                 speaker.push(chunk);
               },
               onInputTranscript: (text) => {
@@ -292,11 +415,18 @@ export function useLiveChat(): LiveChatHandle {
                 setTranscript((t) => ({ ...t, child: `${fresh ? "" : t.child}${text}`.slice(-140) }));
               },
               onOutputTranscript: (text) => {
+                modelTurn = true;
                 const fresh = speakingRef.current !== "zara";
                 speakingRef.current = "zara";
                 setTranscript((t) => ({ ...t, zara: `${fresh ? "" : t.zara}${text}`.slice(-140) }));
               },
-              onInterrupted: () => speaker.interrupt(),
+              onInterrupted: () => {
+                modelTurn = false;
+                speaker.interrupt();
+              },
+              onTurnComplete: () => {
+                modelTurn = false;
+              },
               onToolCall: async (calls: FunctionCall[]) => {
                 const responses = await Promise.all(
                   calls.map(async (call) => {
@@ -355,5 +485,5 @@ export function useLiveChat(): LiveChatHandle {
     setTranscript((t) => ({ child: lines.child ?? t.child, zara: lines.zara ?? t.zara }));
   }, []);
 
-  return { chatting, transcript, liveSecondsRef, runChat, endChat, error, failure, budget, refreshBudget, sendText, injectTranscript };
+  return { chatting, transcript, liveSecondsRef, runChat, endChat, error, failure, budget, warning, closing, refreshBudget, sendText, injectTranscript };
 }

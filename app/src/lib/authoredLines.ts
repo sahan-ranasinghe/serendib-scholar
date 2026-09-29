@@ -67,6 +67,16 @@ export const AUTHORED_LINES = {
   touchNudge: "ඕනෑම එකක් තෝරලා බලන්න.",
   /** The first ✋: the only moment the microphone is asked for, explained in her words before the browser asks. */
   micPermission: "ඔයාගේ කටහඬ අහන්න මට අවසර ඕනේ. හරි කියලා දෙන්නකෝ.",
+
+  // --- before a limit: two warnings, never a sudden stop (src/lib/timeWarnings.ts) ---
+  /** ✋ chat, five minutes before it must close — said in the chat panel once she has finished speaking. The owner's words. */
+  chatTimeSoon: "අපි තව පොඩ්ඩක් කතා කරමු, ඊට පස්සේ පාඩමට යමු නේද?",
+  /** ✋ chat, one minute before it closes; at the limit it closes after her sentence and the lesson carries on. The owner's words. */
+  chatTimeLast: "දැන් අන්තිම ප්‍රශ්නේ අහන්න, ඊට පස්සේ පාඩම දිගටම කරමු.",
+  /** The daily lesson limit, five minutes before it — between beats. DRAFT (LESSON_TIME_DRAFTS below). */
+  lessonTimeSoon: "අපි තව පොඩ්ඩක් වැඩ කරමු, ඊට පස්සේ අද පාඩම ඉවරයි.",
+  /** The daily lesson limit, one minute before it — between beats; the sitting then ends after its exercise. DRAFT. */
+  lessonTimeLast: "දැන් අන්තිම ටික කරලා, අද පාඩම ඉවර කරමු.",
   /**
    * The practice questions. The BOARD says which cell is being asked about
    * (the active blank is highlighted), so the words stay the same every
@@ -79,6 +89,16 @@ export const AUTHORED_LINES = {
   // --- hook (default praise; the blueprint file can override per concept) --
   hookPraiseDefault: "හරි! දහසේ එකක්, සීයේ එකක්, දහයේ එකක්, එකේ එකක් — ඒක තමයි අද අපි ඉගෙන ගන්න යන්නේ.",
 } as const;
+
+/**
+ * Lines written by the developer, not the owner, awaiting a native speaker's
+ * sign-off before they are recorded: listed in docs/review/app-copy.md
+ * (scripts/extract-copy.ts) with what each is meant to say.
+ */
+export const LESSON_TIME_DRAFTS: Array<{ key: keyof typeof AUTHORED_LINES; en: string }> = [
+  { key: "lessonTimeSoon", en: "Let's work a little more, then today's lesson is over. (5 minutes before the daily lesson limit)" },
+  { key: "lessonTimeLast", en: "Now let's do the last bit and finish today's lesson. (1 minute before the daily lesson limit)" },
+];
 
 /**
  * THE RETEACH LINE, ONE PER CONCEPT (20 Sep 2026).

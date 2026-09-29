@@ -11,6 +11,7 @@
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import path from "node:path";
 import { COPY, MISSING, APP_NAME_EN, APP_NAME_SI, COMPANY_NAME } from "../src/lib/appCopy";
+import { AUTHORED_LINES, LESSON_TIME_DRAFTS } from "../src/lib/authoredLines";
 
 async function main() {
   const authored = await readFile(path.resolve(process.cwd(), "src/data/lessons/authored/maths-5-1.json"), "utf8");
@@ -35,6 +36,9 @@ async function main() {
   for (const r of rows) lines.push(`| ${r.screen} | \`${r.key}\` | ${r.si.replace(/\|/gu, "\\|")} | ${r.en.replace(/\|/gu, "\\|")} | ${r.status} |`);
   lines.push("", "## Missing — no Sinhala in the export (not rendered)", "", "| screen | key | needed (English) | where |", "|---|---|---|---|");
   for (const m of MISSING) lines.push(`| ${m.screen} | \`${m.key}\` | ${m.en.replace(/\|/gu, "\\|")} | ${m.where.replace(/\|/gu, "\\|")} |`);
+  // Lines Zara speaks (src/lib/authoredLines.ts) that the developer drafted: recorded only once a native speaker signs them off.
+  lines.push("", "## Spoken lines drafted by the developer — need sign-off before recording", "", "Zara says these (src/lib/authoredLines.ts); they are in the render batch and read on the board until recorded.", "", "| key | Sinhala | English gloss | status |", "|---|---|---|---|");
+  for (const d of LESSON_TIME_DRAFTS) lines.push(`| \`${d.key}\` | ${String(AUTHORED_LINES[d.key]).replace(/\|/gu, "\\|")} | ${d.en.replace(/\|/gu, "\\|")} | drafted |`);
   const out = path.resolve(process.cwd(), "../docs/review/app-copy.md");
   await mkdir(path.dirname(out), { recursive: true });
   await writeFile(out, lines.join("\n") + "\n");
