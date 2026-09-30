@@ -28,7 +28,7 @@ import { EdgeState } from "@/components/app/EdgeState";
 import { PlaybackPanel } from "@/components/PlaybackPanel";
 import { leaveLessonDisplay } from "@/components/app/StartLessonButton";
 import { pageBuildStamp } from "@/components/app/UpdateBanner";
-import { t } from "@/lib/appCopy";
+import { t, type CopyKey } from "@/lib/appCopy";
 import { useAppState } from "@/lib/appStore";
 import type { BoardContent } from "@/lib/board";
 import TeachingBoard from "@/components/TeachingBoard";
@@ -38,6 +38,11 @@ import { SessionShell, type SessionConfirm, type SessionSheet } from "@/componen
 
 /** Lena dozes after this long of Zara talking without a turn. */
 const LENA_DOZE_AFTER_MS = 20000;
+
+/** A lesson's name from the copy sheet (lesson.N), or "පාඩම N" for a lesson it does not name. */
+function lessonName(lesson: number): string {
+  return lesson >= 1 && lesson <= 6 ? t(`lesson.${lesson}` as CopyKey) : t("common.lessonN", { n: lesson });
+}
 
 export default function LessonScreen() {
   const {
@@ -338,6 +343,7 @@ export default function LessonScreen() {
 
   return (
     <SessionShell
+      title={`${t("brand.maths")} · ${lessonName(lesson)}`}
       // While the panel scrubs, the board shows the SELECTED beat as its line ended — silently, never answerable.
       stage={navPreview?.stage ?? stage}
       yourTurn={!navPreview && (listening || pausing) ? yourTurn : null}
@@ -425,12 +431,12 @@ export default function LessonScreen() {
             }}
             style={{ display: "grid", gap: 12, justifyItems: "center", background: "var(--color-paper)", borderRadius: 16, padding: "16px 20px", boxShadow: "var(--shadow-lift)" }}
           >
-            <p style={{ margin: 0, font: "700 26px/1.4 var(--font-display)", color: "var(--color-ink)" }}>ප්‍රවේශ කේතය ඇතුළත් කරන්න</p>
-            <p style={{ margin: 0, font: "400 20px/1.5 var(--font-body)", color: "var(--color-ink-70)" }}>(දෙමාපියන් සඳහා — මේ උපකරණයේ එක වතාවක් පමණයි)</p>
+            <p style={{ margin: 0, font: "700 26px/1.4 var(--font-display)", color: "var(--color-ink)" }}>{t("gate.title")}</p>
+            <p style={{ margin: 0, font: "400 20px/1.5 var(--font-body)", color: "var(--color-ink-70)" }}>{t("gate.sub")}</p>
             <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
               <input type="password" inputMode="text" autoFocus value={codeDraft} onChange={(event) => setCodeDraft(event.target.value)} style={{ width: 176, height: 56, borderRadius: 12, border: "2px solid var(--color-ink-18)", background: "#fff", padding: "0 12px", textAlign: "center", font: "700 22px/1 var(--font-latin)", letterSpacing: "0.2em", color: "var(--color-ink)" }} />
               <button type="submit" style={{ height: 56, padding: "0 28px", border: 0, borderRadius: 12, background: "var(--color-teal)", color: "#fff", font: "700 24px/1.5 var(--font-display)", boxShadow: "var(--shadow-button)", cursor: "pointer" }}>
-                ඇතුල් වෙන්න
+                {t("gate.enter")}
               </button>
             </div>
             {error && <p style={{ margin: 0, font: "600 20px/1.5 var(--font-label)", color: "var(--color-coral-text)" }}>{error}</p>}

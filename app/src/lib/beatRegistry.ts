@@ -158,6 +158,13 @@ const CHILD_TURN_SECONDS = 8;
 /** A SOFT_CHECK's mic window (SOFT_CHECK_WINDOW_MS): brief, and silence just flows on. */
 const SOFT_CHECK_TURN_SECONDS = 3;
 
+/** The pace estimates the packer sizes sittings with — part of the script cache's fingerprint (lessonScriptBuilder PACKING). */
+export const PACE = {
+  spokenCharsPerSecond: SPOKEN_CHARS_PER_SECOND,
+  childTurnSeconds: CHILD_TURN_SECONDS,
+  softCheckTurnSeconds: SOFT_CHECK_TURN_SECONDS,
+} as const;
+
 /** How long the child holds the turn on a beat that opens the mic. */
 function childTurnSeconds(type: BeatType): number {
   if (type === "ASK" || type === "CHECK_MY_WORK") return CHILD_TURN_SECONDS;

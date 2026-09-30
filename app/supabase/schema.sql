@@ -425,9 +425,13 @@ create table if not exists actor_takes (
   sentences      jsonb,
   trim_start_ms  integer not null default 0,
   trim_end_ms    integer,
-  -- uploading → saved (audio in Storage, playable)
+  -- uploading → saved (audio in Storage, playable in the portal)
   -- pending_processing: raw is safe, ffmpeg has not run yet
   -- failed: upload or processing errored; the portal retries
+  -- approved / rejected: a reviewer's verdict on /portal/status. Only an
+  --   approved take is served to a child (VOICE_PROFILE=human); a new take
+  --   of the same clip puts its approval back to saved until it is heard.
+  --   (A text column, no check constraint: no migration is needed.)
   status         text not null default 'uploading',
   peak_dbfs      real,
   noise_dbfs     real,
@@ -445,15 +449,22 @@ alter table actor_takes enable row level security;
 -- ---------------------------------------------------------------------
 -- App shell (Integration C): the parent zone and the child profile.
 --
--- avatar          the onboarding avatar slot the parent picked (a key from
---                 the design's eight — the art is pending, see
---                 docs/design/art-needed.md)
+-- avatar          the onboarding avatar the parent picked, as its stable id
+--                 (elephant, peacock, squirrel, turtle, parrot, leopard, deer,
+--                 fish — src/lib/avatars.ts; the name shown comes from the
+--                 copy sheet). Rows written before 29 Sep 2026 held the
+--                 display name; `npm run migrate:avatars -- --apply` rewrites
+--                 them and the app reads both. The art is pending, see
+--                 docs/design/art-needed.md
 -- parent_pin_hash PBKDF2-SHA256 of the parent's 4-digit PIN, salted with the
 --                 child id (src/lib/childStore.ts); null until the parent
 --                 sets one from the parent zone
--- settings        { captions: bool, sound: bool, dailyLimitMinutes: 15|20|30 }
+-- settings        { captions: bool, sound: bool, dailyLimitMinutes, chatMinutes }
 --                 — captions default ON for a child (the design shows them
---                 on), the daily limit is enforced by the lesson runtime
+--                 on); the daily lesson limit (enforced by the lesson
+--                 runtime) and the ✋ chat's minutes a day each take one of
+--                 the choices in src/lib/settings.ts (DAILY_LIMIT_CHOICES,
+--                 CHAT_MINUTES_CHOICES) and default to its default
 --
 -- Until this ALTER has run on a database, src/lib/childStore.ts keeps the
 -- same three fields in a private storage object per child and says so in

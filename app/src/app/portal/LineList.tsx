@@ -14,7 +14,9 @@ import type { PortalLine } from "./types";
  * the one screen she uses to navigate unreadable.
  */
 const STATUS: Record<string, { dot: string; text: string; label: string }> = {
-  saved: { dot: "bg-emerald-600", text: "text-emerald-800", label: "kept" },
+  approved: { dot: "bg-emerald-700", text: "text-emerald-900", label: "approved" },
+  saved: { dot: "bg-emerald-600", text: "text-emerald-800", label: "kept · awaiting review" },
+  rejected: { dot: "bg-rose-600", text: "text-rose-800", label: "not approved — record again" },
   pending_processing: { dot: "bg-sky-600", text: "text-sky-800", label: "kept (processing)" },
   uploading: { dot: "bg-amber-500", text: "text-amber-800", label: "uploading" },
   failed: { dot: "bg-rose-600", text: "text-rose-800", label: "failed" },

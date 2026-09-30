@@ -1,6 +1,6 @@
 {
   "$comment": "The native review round of the app copy (docs/review/app-copy.md), 29 Sep 2026. Reviewer: docs/review/app-copy-gemini.md (its exact Sinhala), with the owner's accept / adjust / reject rulings. No API calls. scripts/extract-copy.ts reads this file for each string's status in docs/review/app-copy.md.",
-  "round": "app-copy native review, 29 Sep 2026 (+ two follow-ups)",
+  "round": "app-copy native review, 29 Sep 2026 (+ two follow-ups, + the CMS pre-migration round)",
   "source": "docs/review/app-copy-gemini.md",
   "statuses": {
     "accepted": "the reviewer's correction, applied as given",
@@ -10,7 +10,8 @@
     "added": "a string the sheet was missing, added from the review",
     "reviewed": "in the reviewed table with no correction",
     "fromScript": "verbatim in the authored lesson script",
-    "drafted": "drafted by the developer at the owner's request, in the lesson's own words — needs sign-off"
+    "drafted": "drafted by the developer at the owner's request, in the lesson's own words — needs sign-off",
+    "moved": "moved into the sheet from the code (§16 #9), wording unchanged — not yet through a native review"
   },
   "strings": {
     "common.sessionNth": {
@@ -352,6 +353,538 @@
       "after": "පොතේ පිටුව එනවා",
       "shownAt": "the page view's loading spinner — was \"Loading page image\" (accessible name)",
       "why": "The owner asked for Sinhala names for the last English ones on child controls, without wording: drafted from the lesson's own words (කූරට … පබළු … දානවා; හිස්තැන) — for sign-off."
+    },
+    "session.handAsk": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "සාරාගෙන් අහන්න",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "session.handClose": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "කතාව වහන්න",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "session.pause": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "විරාමය",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "session.captions": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "උපසිරැසි",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "session.captionsGlyph": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "සි",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "chat.panelName": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "සාරා එක්ක කතාව",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "chat.listening": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "අහගෙන ඉන්නවා",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "chat.connecting": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "සම්බන්ධ වෙනවා…",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "chat.closeToLesson": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "කතාව වහලා පාඩමට යන්න",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "edge.mic.whenAsked": {
+      "screen": "Edge",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "ඔයා ✋ ඔබලා මගෙන් ප්‍රශ්නයක් අහද්දී විතරයි මම අහන්නේ.",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "edge.mic.orType": {
+      "screen": "Edge",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "කැමති නැත්නම් ටයිප් කරලාත් අහන්න පුළුවන්.",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "session.minutesToday": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "අද විනාඩි {n}ක්",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "session.micDeclined": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "හරි, පාඩම දිගටම යමු",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "session.micRefused": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "කටහඬ නැතුව කතා කරන්න බෑ — පාඩම දිගටම යමු",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "session.rotateHint": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "දුරකථනය හරවන්න — පාඩම නවත්තලා",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "session.backgroundHint": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "ආයෙත් ආවම අපි දිගටම යමු",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "session.talkingHint": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "සාරා කතා කරනවා — ටිකක් ඉන්න, ඊළඟට ඔයාගේ වාරයයි",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "progress.lessonParts": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "පාඩමේ කොටස්",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "progress.masteredStar": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "ප්‍රවීණයි",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "board.numberPad": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "අංක පුවරුව",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "board.tapHint": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "👆 ඔබන්න",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "board.beads": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "පබළු",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "board.bookDigits": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "පොතේ ඉලක්කම්",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "board.builtNumbers": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "හදපු සංඛ්‍යා {n}",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "board.total": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "එකතුව",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "board.rupees": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "රු.",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "board.place.tenThousands": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "දස දහසේ ඒවා",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "board.place.thousands": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "දහසේ ඒවා",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "board.place.hundreds": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "සියයේ ඒවා",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "board.place.tens": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "දහයේ ඒවා",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "board.place.ones": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "එකේ ඒවා",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "board.rod.tenThousands": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "දසදා",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "board.rod.thousands": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "දා",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "board.rod.hundreds": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "සි",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "board.rod.tens": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "ද",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "board.rod.ones": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "එ",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "legacy.rod.lakhs": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "ලක්",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "legacy.rod.tenThousands": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "දද",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "legacy.childAnswer": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "ඔයාගේ උත්තරය: {answer}",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "legacy.thisOne": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "දැන් මේක",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "legacy.typeAnswer": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "ඔබේ පිළිතුර ටයිප් කරන්න",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "legacy.sendAnswer": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "පිළිතුර යවන්න",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "legacy.example": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "උදාහරණයක්:",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "legacy.col.name": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "නම",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "legacy.col.value": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "නිරූපිත අගය",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "legacy.col.before": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "පෙර සංඛ්‍යාව",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "legacy.col.after": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "පසු සංඛ්‍යාව",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "app.rateLimited": {
+      "screen": "shell",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "පොඩ්ඩක් ඉන්න — ටිකකින් ආයෙත් උත්සාහ කරන්න.",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "app.workLimit": {
+      "screen": "shell",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "අද වැඩ ගොඩක් කළා! පොඩ්ඩක් ඉන්න, පස්සේ ආයෙත් උත්සාහ කරන්න.",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "concept.lessonOpening": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "පාඩම පටන් ගමු",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "concept.readWrite4Digit": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "සංඛ්‍යා කියවමු, ලියමු",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "concept.placeValue4Digit": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "ස්ථානීය අගය",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "concept.abacusRepresentation": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "ගණක රාමුව",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "concept.expandedForm": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "විහිදුවා ලිවීම",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "concept.compareNumbers": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "සංඛ්‍යා සසඳමු",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "concept.orderNumbers": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "පිළිවෙළට තබමු",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "concept.numberNames": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "සංඛ්‍යා නාම",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "concept.fiveDigit": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "ඉලක්කම් පහේ සංඛ්‍යා",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "concept.expandedForm4Digit": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "විහිදුවා ලිවීම",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "concept.beyond9999": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "9 999ට එහා",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "concept.digitGroupingRule": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "ඉලක්කම් කණ්ඩායම්",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "concept.tenThousandsPlace": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "දසදහසස්ථානය",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "concept.placeValueTable5Digit": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "ස්ථානීය අගය · ඉලක්කම් පහ",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "concept.expandedForm5Digit": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "විහිදුවා ලිවීම · ඉලක්කම් පහ",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "item.7b58e436": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "ස්ථානීය අගය වගුව",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "item.4c2aa078": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "සංඛ්‍යා නාම වගුව",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "item.7daf0141": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "ඉලක්කම් කාඩ්පත් ප්‍රහේලිකාව",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "board.col.number": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "සංඛ්‍යාව",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "board.col.digit": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "ඉලක්කම",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "board.col.place": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "ස්ථානය",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "board.col.placeValue": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "ස්ථානීය අගය",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "board.col.value": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "අගය",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "board.col.numberName": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "සංඛ්‍යා නාමය",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "session.closeToday": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "අද ✓ {concepts}",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "session.closeNext": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "ඊළඟ පාර: {concepts}",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
+    },
+    "session.lessonDone": {
+      "screen": "Session",
+      "ruling": "move",
+      "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+      "after": "පාඩම ඉවරයි 🌟",
+      "why": "Written in the code before this round; moved into the sheet with its words unchanged so a copy editor (and the CMS) can own it."
     }
   },
   "consistency": {
@@ -539,5 +1072,58 @@
     ],
     "unchanged": "Session summary 0.913, Practice hub 0.962, Subscription 0.969, Quiz 0.982 — and every session frame and component section",
     "regressions": "none found; design:check exit 0 with the two explanations (exit 1 without them: below 0.9 and unexplained)"
+  },
+  "cmsPreMigration": {
+    "round": "CMS pre-migration, 29 Sep 2026 (docs/cms/content-inventory.md §16)",
+    "movedIntoTheSheet": 76,
+    "removedKeys": {
+      "never rendered (deleted)": [
+        "brand.zara",
+        "brand.abacus",
+        "progress.concept.1",
+        "progress.concept.2",
+        "progress.concept.3",
+        "progress.concept.4",
+        "progress.concept.5",
+        "progress.concept.6",
+        "progress.concept.7",
+        "progress.concept.8",
+        "progress.concept.9",
+        "progress.concept.10",
+        "progress.concept.11"
+      ],
+      "numbers only — now computed from src/lib/settings.ts": [
+        "parent.row.limitSub",
+        "parent.row.chatLimitSub"
+      ],
+      "superseded by board.col.*": [
+        "legacy.col.digit",
+        "legacy.col.number",
+        "legacy.col.place",
+        "legacy.col.placeValue"
+      ]
+    },
+    "nowRendered": {
+      "common.back": "the ‹ in every screen header (BackButton)",
+      "cert.body": "the certificate's sentence (was hard-coded beside it)"
+    },
+    "renamedKeys": {
+      "avatar.1…8": "avatar.<id> — elephant, peacock, squirrel, turtle, parrot, leopard, deer, fish (children.avatar now stores the id, src/lib/avatars.ts)"
+    },
+    "templates": {
+      "practice.subtitle": "{n} minutes (PRACTICE_MINUTES)",
+      "practice.rowSub": "{minutes} (PRACTICE_MINUTES) · {n} questions"
+    },
+    "duplicatesNowOnePlace": {
+      "gate.*": "the lesson screen's access-code gate",
+      "parent.pinWrong": "also the access code's wrong-code error",
+      "cert.body": "the certificate",
+      "edge.mic.*": "the first-✋ microphone sheet (the only live mic screen) now shows the reviewed edge.mic.title, edge.mic.body, edge.mic.allow, edge.mic.type, plus two moved points (edge.mic.whenAsked, edge.mic.orType). VISIBLE CHANGE: its title was 'මට ඔයාගේ කතාව අහන්න අවසර දෙනවද?' and is now 'මයික් එකට අවසර දෙන්න'; its allow button was 'හරි, අවසර දෙන්න' and is now 'අවසර දෙන්න'; its second point was 'ඔයාගේ කටහඬ කොහෙත් තියාගන්නේ නෑ — වචන විතරයි අකුරු වෙන්නේ.' and is now the reviewed edge.mic.body. Zara's spoken micPermission line still says 'හරි කියලා දෙන්නකෝ' — worth a look against the new button."
+    },
+    "spokenMovedToAuthoredLines": {
+      "giveUpMoveOn": "lessonOrchestrator (a give-up with no recorded answer)",
+      "rubricReveal": "useLessonRuntime (a phrase question's reveal)",
+      "builtReadBack": "composeNumberAudio's NUMBER_FRAMES.built"
+    }
   }
 }

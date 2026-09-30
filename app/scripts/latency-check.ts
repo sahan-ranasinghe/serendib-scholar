@@ -21,6 +21,7 @@
 import { supabaseAdmin } from "../src/lib/supabaseAdmin";
 import { launch, connect, openPage, evaluate, wait, type Cdp } from "./lib/cdp";
 import { ONBOARD_VIA_API_JS } from "./lib/onboard";
+import { ariaSel } from "./lib/copyText";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
@@ -43,7 +44,7 @@ const TARGETS: Target[] = [
   { name: "/rewards/certificate (push)", from: "/rewards", tap: "body", push: "/rewards/certificate", ready: '[data-screen-ready="certificate"]', kind: "route" },
   { name: "/session (start)", from: "/home", tap: '[data-testid="start-lesson"], a[href="/session"]', ready: '.lesson-screen', kind: "route" },
   { name: "outfit sheet", from: "/rewards", tap: '[data-testid="outfit"][data-outfit="0"]', ready: '[data-testid="outfit-sheet"]', kind: "sheet" },
-  { name: "stop confirm (lesson)", from: "/session", tap: 'button[aria-label="නවත්වන්න"]', ready: '[data-testid="confirm-sheet"]', kind: "sheet" },
+  { name: "stop confirm (lesson)", from: "/session", tap: `button${ariaSel("edge.paused.stop")}`, ready: '[data-testid="confirm-sheet"]', kind: "sheet" },
   { name: "PIN reset panel (parent)", from: "/parent/pin", tap: '[data-testid="pin-reset-open"]', ready: '[data-testid="pin-reset-code"]', kind: "sheet" },
 ];
 

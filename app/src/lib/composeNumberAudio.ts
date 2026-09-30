@@ -14,8 +14,9 @@
  *
  * The clips are keyed exactly like any other line — clipKey(lexeme, voice)
  * — so the portal records them as ordinary lines and the audio cache
- * serves them with no special case. A missing lexeme falls back to the AI
- * voice for the whole number rather than splicing two voices mid-word.
+ * serves them with no special case (hers where she has recorded the word,
+ * the AI clip where she has not). A word with no clip at all means nothing
+ * is composed: the caller falls back to the board.
  */
 import { clipKey, CLIP_SAMPLE_RATE, wavFromPcm16 } from "@/lib/audioCache";
 import { sinhalaNumberLexemes, sinhalaNumberName } from "@/lib/sinhalaNumber";
@@ -55,19 +56,26 @@ export function numberClipPlan(value: number, voice: string): NumberClipPlan {
 }
 
 /**
- * Joins PCM16 mono WAVs into one, with a gap between each.
+ * Joins PCM16 mono WAVs into one, with a gap between each — at ONE sample
+ * rate, whatever each clip was recorded at.
  *
- * Deliberately dumb: it reads each input's `data` chunk and copies the
- * samples. Every clip in this cache is mono PCM16 at CLIP_SAMPLE_RATE, so
- * there is nothing to resample; a clip that is not gets rejected rather
- * than silently pitch-shifted.
+ * A number can mix sources: the actor's words are processed at 48 kHz
+ * (src/lib/actorAudio.ts) while an AI word is 24 kHz (CLIP_SAMPLE_RATE),
+ * and /api/clip serves hers where it has one and the AI clip otherwise.
+ * Each clip's rate is read from its own WAV header; every clip is resampled
+ * to the highest rate among them (so her words are never degraded), and the
+ * result is stamped with that rate. It used to copy the samples and stamp
+ * 24 kHz on everything, so a 48 kHz word played at half speed (29 Sep 2026,
+ * docs/cms/content-inventory.md §16).
  */
 export function concatWavClips(clips: Uint8Array[], gapMs = NUMBER_WORD_GAP_MS): Uint8Array {
+  const decoded = clips.map(readWav);
+  const rate = decoded.reduce((max, clip) => Math.max(max, clip.sampleRate), 0) || CLIP_SAMPLE_RATE;
   const parts: Int16Array[] = [];
-  const gap = new Int16Array(Math.round((CLIP_SAMPLE_RATE * gapMs) / 1000));
-  clips.forEach((clip, index) => {
+  const gap = new Int16Array(Math.round((rate * gapMs) / 1000));
+  decoded.forEach((clip, index) => {
     if (index > 0) parts.push(gap);
-    parts.push(pcmOfWav(clip));
+    parts.push(resamplePcm16(clip.pcm, clip.sampleRate, rate));
   });
   const total = parts.reduce((sum, part) => sum + part.length, 0);
   const merged = new Int16Array(total);
@@ -76,31 +84,74 @@ export function concatWavClips(clips: Uint8Array[], gapMs = NUMBER_WORD_GAP_MS):
     merged.set(part, offset);
     offset += part.length;
   }
-  return wavFromPcm16(merged, CLIP_SAMPLE_RATE);
+  return wavFromPcm16(merged, rate);
 }
 
-/** The samples of a PCM16 mono WAV, found by walking its chunks. */
-export function pcmOfWav(wav: Uint8Array): Int16Array {
+/**
+ * PCM16 from one rate to another, by linear interpolation. The composer only
+ * ever raises a rate (to the highest among the clips), where interpolation
+ * adds no aliasing; a lowering call averages each output sample's span first.
+ */
+export function resamplePcm16(pcm: Int16Array, from: number, to: number): Int16Array {
+  if (from === to || pcm.length === 0) return pcm;
+  const length = Math.max(1, Math.round((pcm.length * to) / from));
+  const out = new Int16Array(length);
+  const step = from / to;
+  for (let i = 0; i < length; i += 1) {
+    const position = i * step;
+    if (step > 1) {
+      // Lowering the rate: the mean of the input samples this output sample covers.
+      const start = Math.floor(position);
+      const end = Math.min(pcm.length, Math.max(start + 1, Math.floor(position + step)));
+      let sum = 0;
+      for (let j = start; j < end; j += 1) sum += pcm[j]!;
+      out[i] = Math.round(sum / (end - start));
+      continue;
+    }
+    const left = Math.floor(position);
+    const right = Math.min(pcm.length - 1, left + 1);
+    const fraction = position - left;
+    out[i] = Math.round(pcm[left]! * (1 - fraction) + pcm[right]! * fraction);
+  }
+  return out;
+}
+
+/** A PCM16 mono WAV's samples and its own sample rate, found by walking its chunks. */
+export function readWav(wav: Uint8Array): { pcm: Int16Array; sampleRate: number } {
   const view = new DataView(wav.buffer, wav.byteOffset, wav.byteLength);
   let offset = 12;
+  let sampleRate = 0;
   while (offset + 8 <= wav.byteLength) {
     const id = String.fromCharCode(wav[offset]!, wav[offset + 1]!, wav[offset + 2]!, wav[offset + 3]!);
     const size = view.getUint32(offset + 4, true);
     if (id === "fmt ") {
       const channels = view.getUint16(offset + 10, true);
+      sampleRate = view.getUint32(offset + 12, true);
       const bits = view.getUint16(offset + 22, true);
       if (channels !== 1 || bits !== 16) {
         throw new Error(`number-word clip is not mono PCM16 (${channels}ch/${bits}bit) — refusing to splice it`);
       }
     }
     if (id === "data") {
+      if (!sampleRate) throw new Error("number-word clip has no fmt chunk before its data — refusing to splice it");
       const start = offset + 8;
       const length = Math.min(size, wav.byteLength - start);
-      return new Int16Array(wav.buffer.slice(wav.byteOffset + start, wav.byteOffset + start + (length - (length % 2))));
+      return { pcm: new Int16Array(wav.buffer.slice(wav.byteOffset + start, wav.byteOffset + start + (length - (length % 2)))), sampleRate };
     }
     offset += 8 + size + (size % 2);
   }
-  return new Int16Array(0);
+  return { pcm: new Int16Array(0), sampleRate: sampleRate || CLIP_SAMPLE_RATE };
+}
+
+/** The samples of a PCM16 mono WAV (its rate: readWav). */
+export function pcmOfWav(wav: Uint8Array): Int16Array {
+  return readWav(wav).pcm;
+}
+
+/** How long a PCM16 mono WAV plays, from its own header's rate. */
+export function wavDurationMs(wav: Uint8Array): number {
+  const { pcm, sampleRate } = readWav(wav);
+  return Math.round((pcm.length / sampleRate) * 1000);
 }
 
 /**
@@ -128,7 +179,7 @@ function splitAtValue(line: string): NumberFrame {
 
 export const NUMBER_FRAMES: { built: NumberFrame; heard: NumberFrame; answer: NumberFrame } = {
   /** After an open build task: the number alone follows "look at the board". */
-  built: { before: "ඔයා හැදුවේ", after: "නේද?" },
+  built: splitAtValue(AUTHORED_LINES.builtReadBack),
   /** CONFIRM — AUTHORED_LINES.confirmHeard around the heard number. */
   heard: splitAtValue(AUTHORED_LINES.confirmHeard),
   /** The give-up demonstration — AUTHORED_LINES.giveUpReveal around the answer. */

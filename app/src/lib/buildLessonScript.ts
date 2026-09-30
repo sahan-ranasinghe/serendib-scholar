@@ -1,9 +1,11 @@
 import "server-only";
-import { createHash } from "node:crypto";
 import { supabaseAdmin } from "@/lib/supabaseClient";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { buildScriptFromRows, type BankRow } from "@/lib/lessonScriptBuilder";
+import { buildScriptFromRows, PACKING, type BankRow } from "@/lib/lessonScriptBuilder";
+import { fingerprintScriptInputs } from "@/lib/scriptFingerprint";
+import { CONCEPT_TITLES, ITEM_TITLES } from "@/lib/choreography";
+import { AUTHORED_LINES } from "@/lib/authoredLines";
 import { parseAuthoredScript, type AuthoredScriptFile } from "@/lib/authoredScript";
 import { acceptedActorText } from "@/lib/actorStore";
 import type { LessonBlueprintOverride, LessonScript } from "@/lib/lessonOrchestrator";
@@ -28,30 +30,26 @@ import type { LessonBlueprintOverride, LessonScript } from "@/lib/lessonOrchestr
 const SCRIPT_FORMAT_VERSION = "15"; // 14: exercise-atomic packing, the close card names finished/next, sessions carry their exercises
 
 /**
- * A fingerprint of the verified rows a script was built from, salted with
- * the script format version. Stored with the cached script so verifying
- * more content_bank rows, re-running the populate script, OR changing the
- * builder's output shape invalidates it automatically rather than silently
- * serving a stale lesson.
+ * The cache's fingerprint (src/lib/scriptFingerprint.ts): the format version, every verified row's full content, the
+ * override and authored files (with the actor's accepted wording), every packing constant and the content the builder
+ * bakes in. Any of them changing rebuilds the script on the next request — no force_rebuild in normal use.
  */
-export function fingerprintRows(
-  rows: { id: string; component_type?: string }[],
-  overrideJson = "",
-  authoredJson = "",
-): string {
-  const hash = createHash("sha256");
-  hash.update(`format:${SCRIPT_FORMAT_VERSION};`);
-  // The override file shapes the script just as much as the rows do —
-  // editing it must invalidate the cache, not require deleting the row.
-  hash.update(`override:${overrideJson};`);
-  // Likewise the authored script: approving (or editing) it replaces whole
-  // concepts' beats, so the cached script must rebuild the moment that
-  // file changes.
-  hash.update(`authored:${authoredJson};`);
-  // id + component_type, so a migration that restructures rows in place
-  // (see scripts/migrate-content-bank-visuals.ts) also invalidates.
-  for (const key of rows.map((row) => `${row.id}:${row.component_type ?? ""}`).sort()) hash.update(key);
-  return hash.digest("hex").slice(0, 32);
+export async function scriptFingerprint(rows: BankRow[], overrideJson: string, authoredJson: string): Promise<string> {
+  const [{ LESSON_1_NUMBERS_TITLE }, descriptions] = await Promise.all([import("@/data/lessons/lesson1-numbers"), conceptDescriptions()]);
+  return fingerprintScriptInputs({
+    formatVersion: SCRIPT_FORMAT_VERSION,
+    rows: rows as unknown as Array<{ id: string } & Record<string, unknown>>,
+    overrideJson,
+    authoredJson,
+    packing: PACKING,
+    content: {
+      conceptTitles: CONCEPT_TITLES,
+      itemTitles: ITEM_TITLES,
+      lessonTitle: LESSON_1_NUMBERS_TITLE,
+      descriptions: Object.fromEntries(descriptions),
+      authoredLines: AUTHORED_LINES,
+    },
+  });
 }
 
 export interface BuildLessonScriptResult {
@@ -64,8 +62,10 @@ export interface BuildLessonScriptResult {
  * Builds (or returns the cached) lesson script for one lesson.
  *
  * The cache is keyed on (subject, grade, lesson) and guarded by the
- * fingerprint above, so a stale script is never served: if the bank has
- * changed, this rebuilds and overwrites.
+ * fingerprint above, so a stale script is never served: if anything in it
+ * has changed, this rebuilds and overwrites. `forceRebuild` stays for an
+ * emergency (a builder bug fixed without a format bump); normal edits never
+ * need it.
  */
 export async function buildLessonScript(
   subject: string,
@@ -92,7 +92,7 @@ export async function buildLessonScript(
   // words until something else happened to invalidate it.
   const actorText = await acceptedActorText();
   const actorSalt = [...actorText.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([id, text]) => `${id}=${text}`).join("|");
-  const fingerprint = fingerprintRows(rows, overrideJson ?? "", `${authoredJson ?? ""}${actorSalt}`);
+  const fingerprint = await scriptFingerprint(rows, overrideJson ?? "", `${authoredJson ?? ""}${actorSalt}`);
 
   if (!options.forceRebuild) {
     const cached = await supabaseAdmin
@@ -148,9 +148,10 @@ async function lessonTitle(): Promise<string> {
   return LESSON_1_NUMBERS_TITLE;
 }
 
+/** One English line per design concept, from the design file (src/lib/lessonDesign.ts CONCEPT_DESCRIPTIONS). */
 async function conceptDescriptions(): Promise<Map<string, string>> {
-  const { LESSON_1_NUMBERS_STEPS } = await import("@/data/lessons/lesson1-numbers");
-  return new Map(LESSON_1_NUMBERS_STEPS.map((step) => [step.conceptTag, step.conceptDescription]));
+  const { CONCEPT_DESCRIPTIONS } = await import("@/lib/lessonDesign");
+  return new Map(Object.entries(CONCEPT_DESCRIPTIONS));
 }
 
 /**

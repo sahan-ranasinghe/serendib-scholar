@@ -2,6 +2,11 @@
 
 29 Sep 2026 · the state of `master` at 32720c6 · no code changed to produce this.
 
+**Updated the same day, after the pre-migration fixes:** the data-integrity gaps in §16 are closed (§16 opens with
+what changed where). The tables below still describe where each item lived at 32720c6; §16's list says which rows
+moved (UI strings into the copy sheet, the duplicated settings into `app/src/lib/settings.ts`, the concept titles and
+board labels into the sheet, avatars to stable ids, the portal's lines and its one coverage count).
+
 Every piece of data in Serendib Scholar that a teacher, a copy editor or an admin should be able to change, where it
 lives today, what shape it has, who should own it, what it must pass before it reaches a child, and how it gets into
 the running app. It is the starting point for a CMS: what to move out of the code, and in what order.
@@ -269,6 +274,25 @@ belong with a developer and their tests.
     real screen.
 
 ## 16. Gaps found while taking the inventory
+
+### Closed before the migration (29 Sep 2026)
+
+| Gap | Fixed by |
+|---|---|
+| Actor clips (48 kHz) spliced with AI words (24 kHz) played at the wrong speed | `composeNumberAudio.concatWavClips` reads each clip's rate from its WAV header and resamples every word to the highest rate among them; the runtime times the result by its own rate. Test: a 48 kHz and a 24 kHz word in one number, each at its own pitch. |
+| A re-worded line lost its recording; a note reset an accepted re-wording | A portal row's clip key is the key of the words that will be SPOKEN (the built script carries the accepted re-wording); the take route derives the text and key server-side from the row id, never from the page. A note never changes a decision (`portalRules.statusAfterNote`). |
+| About 25 runtime lines could not be recorded | Every inline spoken string is in `AUTHORED_LINES` (the give-up with no answer, the rubric reveal, the built read-back). The portal lists every line the runtime can speak (`spokenLines.runtimeSpokenLines`, from the runtime's own builders): 768 rows, one per distinct line, grouped. Asserted by `spokenLines.test.ts` and a dry-run gate. |
+| Recording status computed three ways | One function, `voiceCoverage.coverageOf` — distinct clips needed against recorded, approved and AI, by group — used by `/portal`, `/portal/status`, `portal:coverage` and the dry run. |
+| Takes went live with no approval | `actor_takes.status` gains `approved` / `rejected`; only an approved take is served under `VOICE_PROFILE=human`; a new take of a clip withdraws its approval; `/portal/status` has approve / reject (behind the portal password). |
+| The script cache ignored in-place row edits and packing changes | The fingerprint hashes every row's full content, every packing constant (`PACKING`, with the pace estimates) and the content baked into the script (`scriptFingerprint.ts`). No `force_rebuild` in normal use. |
+| Concept descriptions keyed by old tags; vocabulary defined twice | Descriptions live on the design file's concepts; the app reads a generated slice (`npm run generate:design`); `VOCABULARY_INTRODUCED_BY` is derived from it; `lessonDesign.test.ts` fails if the two drift. |
+| Avatars stored by display text | Stable ids (`avatars.ts`); names from the copy sheet; the 7 existing children were migrated (`npm run migrate:avatars`). |
+| On-screen Sinhala outside the copy sheet; duplicates; never-rendered keys | 76 strings moved into the sheet with their words unchanged (status "moved" in `app-copy.md`, awaiting review); `gate.*`, `parent.pinWrong`, `cert.body`, `edge.mic.*` used from one place; 13 never-rendered keys deleted, `common.back` and `cert.body` rendered. `sourceAudit.test.ts`: no Sinhala literal in child- or parent-facing code outside `appCopy.ts` and `authoredLines.ts`. |
+| Duplicated values | One constant each in `app/src/lib/settings.ts` (the tagline: the copy sheet); `sourceAudit.test.ts` asserts each appears once. |
+| Harnesses embedded copy text | They read it from the sheet by key (`scripts/lib/copyText.ts`). |
+| Most content tests outside CI | CI runs every test file by glob. |
+
+The original list, as found:
 
 Marked ✔ where I re-checked the code for this document; the others come from reading the code, with the line
 cited.

@@ -12,6 +12,7 @@
  */
 import { spawn, type ChildProcess } from "node:child_process";
 import { connect, evaluate, harnessHeaders, launch, openPage, wait } from "./lib/cdp";
+import { copy } from "./lib/copyText";
 
 const PORT = Number(process.argv.find((a) => a.startsWith("--port="))?.slice(7) ?? 3007);
 const BASE = `http://127.0.0.1:${PORT}`;
@@ -94,7 +95,7 @@ async function main(): Promise<void> {
       if (!banner && i % 4 === 3) await evaluate(page, `document.dispatchEvent(new Event("visibilitychange")); true`).catch(() => undefined);
     }
     const bannerText = banner ? await evaluate<string>(page, `(document.querySelector('[data-testid="update-banner"]')?.textContent ?? '').trim()`) : "";
-    check("deploy B: the banner appears on the old page", "අලුත් අනුවාදයක් — යාවත්කාලීන කරන්න", banner ? bannerText : "NOT SHOWN", banner && bannerText.includes("අලුත් අනුවාදයක්"));
+    check("deploy B: the banner appears on the old page", copy("app.updateReady"), banner ? bannerText : "NOT SHOWN", banner && bannerText.includes(copy("app.updateReady").split(" — ")[0]!));
     const metaStale = await evaluate<string>(page, `document.querySelector('meta[name="ss-build"]')?.getAttribute('content') ?? ''`);
     check("deploy B: the loaded page is still A until it reloads", SHA_A, metaStale, metaStale === SHA_A);
 

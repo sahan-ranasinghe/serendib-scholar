@@ -28,14 +28,8 @@ export const CHAT_MIN_CHARGE_SECONDS = 15;
 export const CHAT_MAX_OPEN_SECONDS = 10 * 60;
 /** A reported duration may exceed the server's own clock by this much (the socket opens after the token is minted). */
 export const CHAT_CLOCK_SLACK_SECONDS = 5;
-/** What a parent may choose, per child per day (minutes) — alongside the lesson's own daily limit. */
-export const CHAT_MINUTES_CHOICES = [15, 30, 60] as const;
-export type ChatMinutes = (typeof CHAT_MINUTES_CHOICES)[number];
-export const DEFAULT_CHAT_MINUTES: ChatMinutes = 30;
-
-export function isChatMinutes(value: unknown): value is ChatMinutes {
-  return value === 15 || value === 30 || value === 60;
-}
+/** What a parent may choose per child per day, and the default — the app's settings module (src/lib/settings.ts). */
+export { CHAT_MINUTES_CHOICES, DEFAULT_CHAT_MINUTES, isChatMinutes, type ChatMinutes } from "@/lib/settings";
 
 /** What an opening may hold, given what is left today; null when too little is left to open a chat at all. */
 export function chatHold(remainingSeconds: number): number | null {

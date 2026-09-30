@@ -16,6 +16,7 @@ import { motion } from "framer-motion";
 import { HandNumber } from "./HandNumber";
 import { useTargetRef } from "./targets";
 import { BOARD, FONT_LABEL, FONT_SINHALA, SPRING } from "./tokens";
+import { t } from "@/lib/appCopy";
 
 export interface MoneyItem {
   denomination: 1000 | 100 | 10 | 1 | number;
@@ -54,7 +55,7 @@ export function Money({ items, counted = 0 }: MoneyProps) {
         })}
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }} data-testid="money-total">
-        <span style={{ font: `600 20px/1.5 ${FONT_LABEL}`, color: BOARD.inkSoft }}>එකතුව</span>
+        <span style={{ font: `600 20px/1.5 ${FONT_LABEL}`, color: BOARD.inkSoft }}>{t("board.total")}</span>
         <HandNumber text={total} size={32} draw={false} registerNumbers={false} />
       </div>
     </div>
@@ -66,7 +67,7 @@ function Piece({ denomination }: { denomination: number }) {
     const bg = denomination >= 1000 ? "#2E7D6E" : "#C9683B";
     return (
       <div aria-label={`Rs ${denomination}`} style={{ width: 100, height: 52, background: bg, borderRadius: 6, border: "2px solid rgba(255,255,255,.5)", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 8px", boxSizing: "border-box", color: "#fff", font: `700 20px/1 ${FONT_SINHALA}` }}>
-        <span>රු.</span>
+        <span>{t("board.rupees")}</span>
         <span>{denomination}</span>
       </div>
     );

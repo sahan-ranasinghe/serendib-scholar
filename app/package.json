@@ -52,7 +52,11 @@
     "crawl:check": "node --env-file=.env.local ./node_modules/.bin/tsx scripts/crawl-check.ts",
     "latency:check": "node --env-file=.env.local ./node_modules/.bin/tsx scripts/latency-check.ts",
     "audio:check": "node --env-file=.env.local ./node_modules/.bin/tsx scripts/audio-check.ts",
-    "chat:live-check": "node --env-file=.env.local ./node_modules/.bin/tsx scripts/chat-live-check.ts"
+    "chat:live-check": "node --env-file=.env.local ./node_modules/.bin/tsx scripts/chat-live-check.ts",
+    "generate:design": "tsx scripts/generate-design-data.ts",
+    "test:design": "tsx --test src/lib/lessonDesign.test.ts",
+    "migrate:avatars": "node --env-file=.env.local ./node_modules/.bin/tsx scripts/migrate-avatars.ts",
+    "audit:source": "tsx scripts/source-audit.ts"
   },
   "dependencies": {
     "@google/genai": "^2.19.0",

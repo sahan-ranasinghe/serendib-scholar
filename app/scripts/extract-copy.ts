@@ -26,7 +26,7 @@ async function main() {
     strings: Record<string, { ruling: string }>;
     spokenDrafts?: Array<{ key: string; si: string; en: string }>;
   } | null;
-  const RULING_STATUS: Record<string, string> = { accept: "accepted", adjust: "adjusted", reject: "kept", consistency: "consistency", add: "added", draft: "drafted" };
+  const RULING_STATUS: Record<string, string> = { accept: "accepted", adjust: "adjusted", reject: "kept", consistency: "consistency", add: "added", draft: "drafted", move: "moved" };
   const rows = Object.entries(COPY).map(([key, entry]) => {
     const probe = strip(entry.si).split(/\s*[{}]\s*/u).filter((p) => p.length >= 4)[0] ?? strip(entry.si);
     const fromScript = probe.length >= 4 && script.includes(probe);
@@ -34,7 +34,7 @@ async function main() {
     const status = ruling ? RULING_STATUS[ruling]! : fromScript ? "fromScript" : corrections ? "reviewed" : "drafted";
     return { key, screen: entry.screen, si: entry.si, en: entry.en, status };
   });
-  const order = ["accepted", "adjusted", "kept", "consistency", "added", "reviewed", "fromScript", "drafted"];
+  const order = ["accepted", "adjusted", "kept", "consistency", "added", "moved", "reviewed", "fromScript", "drafted"];
   const counts = Object.fromEntries([...order.map((status) => [status, rows.filter((r) => r.status === status).length] as const).filter(([, n]) => n > 0), ["missing", MISSING.length] as const]);
   const lines: string[] = [];
   lines.push("# App copy — review sheet", "");

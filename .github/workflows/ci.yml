@@ -31,21 +31,12 @@ jobs:
       - name: Lint
         run: npx eslint src scripts
 
+      # EVERY test file in the app, by glob (29 Sep 2026): eleven content tests — the copy sheet, the authored lines, the
+      # chat budget, the time warnings, the confirm policy, the speech rules, the distractors, the phrase judge, the
+      # answer modes, the author guards, the chat context — were outside CI because this was a hand-kept list. A new
+      # test file runs here without anyone remembering to add it.
       - name: Unit tests
-        run: |
-          npx tsx --test \
-            src/lib/lessonOrchestrator.test.ts \
-            src/lib/timeStretch.test.ts \
-            src/lib/sinhalaNumber.test.ts \
-            src/lib/scriptDistance.test.ts \
-            src/lib/addressToken.test.ts \
-            src/lib/boardContentParser.test.ts \
-            src/lib/pageReferenceDetection.test.ts \
-            src/lib/singleFire.test.ts \
-            src/lib/audioManager.test.ts \
-            scripts/lib/audioTruth.test.ts \
-            scripts/ingest-syllabus.test.ts \
-            scripts/lib/geminiRetry.test.ts
+        run: npx tsx --test src/lib/*.test.ts src/hooks/*.test.ts src/components/*.test.ts scripts/lib/*.test.ts scripts/*.test.ts
 
       # The dry run rebuilds the lesson from content_bank and walks its
       # assertions — it needs read access to the database. Add these two

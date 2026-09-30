@@ -40,6 +40,7 @@ import { Highlight, RING_PAD } from "./Highlight";
 import { FeedbackFX } from "./FeedbackFX";
 import { NumberPad } from "./NumberPad";
 import { BOARD, FONT_SINHALA, SPRING } from "./tokens";
+import { t } from "@/lib/appCopy";
 import { playSound } from "./sound";
 
 export interface YourTurn {
@@ -377,16 +378,16 @@ export const BoardStage = memo(function BoardStage({ stage, yourTurn, onAnswer, 
     chips ??
     (active && !soft && commit ? (
       <button type="button" className="wb-tap" data-testid="turn-commit" onClick={() => submit(commit)} style={{ height: 56, padding: "0 28px", border: 0, borderRadius: 12, background: BOARD.teal, color: "#fff", font: `700 24px/1.5 ${FONT_SINHALA}`, boxShadow: "var(--shadow-button)", cursor: "pointer" }}>
-        හරි ✓
+        {t("a11y.done")} ✓
       </button>
     ) : active && !soft && yourTurn?.numeric && !touchable && !padOpen ? (
-      <button type="button" data-testid="turn-pad-toggle" aria-label="අංක පුවරුව" onClick={() => setPadOpen(true)} className="wb-tap wb-glow" style={{ width: 56, height: 56, border: `2px solid ${BOARD.ink18}`, borderRadius: "50%", background: BOARD.paper, boxShadow: "0 2px 0 #D8D1C2", fontSize: 24, lineHeight: 1, cursor: "pointer" }}>
+      <button type="button" data-testid="turn-pad-toggle" aria-label={t("board.numberPad")} onClick={() => setPadOpen(true)} className="wb-tap wb-glow" style={{ width: 56, height: 56, border: `2px solid ${BOARD.ink18}`, borderRadius: "50%", background: BOARD.paper, boxShadow: "0 2px 0 #D8D1C2", fontSize: 24, lineHeight: 1, cursor: "pointer" }}>
         🔢
       </button>
     ) : null);
 
   // A rod-pick or a build waits on a touch: the tap hint, unless a runtime hint is up.
-  const tapHint = hint ?? (active && !soft && !stage.retry && (yourTurn?.rodPick !== undefined || (touchable && yourTurn?.surface === "digitPicker")) ? "👆 ඔබන්න" : null);
+  const tapHint = hint ?? (active && !soft && !stage.retry && (yourTurn?.rodPick !== undefined || (touchable && yourTurn?.surface === "digitPicker")) ? t("board.tapHint") : null);
 
   const frameSlot = (
     <>
@@ -403,7 +404,7 @@ export const BoardStage = memo(function BoardStage({ stage, yourTurn, onAnswer, 
             exit={{ opacity: 0, transition: { duration: 0.15 } }}
             transition={SPRING}
           >
-            ↺ ආයෙත් උත්සාහ කරන්න
+            ↺ {t("common.retry")}
           </motion.button>
         )}
       </AnimatePresence>

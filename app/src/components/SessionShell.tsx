@@ -57,6 +57,8 @@ export interface SessionConfirm {
 export const STRIP_H = 40;
 
 export interface SessionShellProps {
+  /** The strip's title: the subject and the lesson's name (from the copy sheet). */
+  title: string;
   stage: StageState;
   yourTurn: YourTurn | null;
   zaraState: ZaraState;
@@ -119,7 +121,7 @@ function BotIcon({ size = 30 }: { size?: number }) {
   );
 }
 
-export function SessionShell({ stage, yourTurn, zaraState, lenaState, pointerSide, talking, getAmplitude, zaraDimmed = false, paused = false, conceptStops, captionsOn, onToggleCaptions, caption, hint, sheet, charactersShown, handShown, chatting = false, onHand, onPause, onRepeat, onEnd, onAnswer, onTouch, onIdleTouch, onPointerSide, onInput, renderLegacy, onTitleTap, onRootPointerDown, data, children, confirm = null, sidePanel = null }: SessionShellProps) {
+export function SessionShell({ title, stage, yourTurn, zaraState, lenaState, pointerSide, talking, getAmplitude, zaraDimmed = false, paused = false, conceptStops, captionsOn, onToggleCaptions, caption, hint, sheet, charactersShown, handShown, chatting = false, onHand, onPause, onRepeat, onEnd, onAnswer, onTouch, onIdleTouch, onPointerSide, onInput, renderLegacy, onTitleTap, onRootPointerDown, data, children, confirm = null, sidePanel = null }: SessionShellProps) {
   const [pressed, setPressed] = useState<string | null>(null);
   const chatOpen = chatting || sheet?.kind === "chat";
   // Zara in the frame's corner. The mouth's amplitude is the portrait's
@@ -134,7 +136,7 @@ export function SessionShell({ stage, yourTurn, zaraState, lenaState, pointerSid
       handShown ? (
         // The chat's door, always there: a small bot with the ✋ it answers to. It opens the chat panel and closes it again —
         // the child comes and goes as they like, the board in front of them the whole time.
-        <button type="button" className="wb-hand wb-tap" data-testid="hand" data-open={chatOpen || undefined} onClick={onHand} aria-pressed={chatOpen} aria-label={chatOpen ? "කතාව වහන්න" : "සාරාගෙන් අහන්න"}>
+        <button type="button" className="wb-hand wb-tap" data-testid="hand" data-open={chatOpen || undefined} onClick={onHand} aria-pressed={chatOpen} aria-label={chatOpen ? t("session.handClose") : t("session.handAsk")}>
           <BotIcon />
           <span className="wb-hand-badge" aria-hidden>✋</span>
         </button>
@@ -153,22 +155,22 @@ export function SessionShell({ stage, yourTurn, zaraState, lenaState, pointerSid
       <header data-testid="session-strip" style={{ position: "relative", zIndex: 30, height: STRIP_H, flex: "none", background: "var(--color-teal)", display: "flex", alignItems: "center", padding: "0 0 0 14px", color: "#fff" }}>
         {/* not a control: five quick taps open the debug overlay — the one press the single-fire guard must never see */}
         <span data-testid="session-title" onClick={onTitleTap} style={{ font: `600 20px/${STRIP_H}px var(--font-label)`, whiteSpace: "nowrap" }}>
-          ගණිතය · සංඛ්‍යා - 1
+          {title}
         </span>
         <span style={{ flex: 1 }} />
         <ProgressStrip stops={conceptStops} />
         {/* ⏸ ↺ ⏹ සි: 28 px glyphs in 56×40 cells, the hit areas reaching 56 px down into the board frame; a long press names the control */}
-        <StripControl label={paused ? "දිගටම" : "විරාමය"} onPress={onPause} onLabel={setPressed} pressed={pressed}>
+        <StripControl label={paused ? t("edge.paused.resume") : t("session.pause")} onPress={onPause} onLabel={setPressed} pressed={pressed}>
           {paused ? "▶" : "⏸"}
         </StripControl>
-        <StripControl label="මුල ඉඳන් ආයෙත්" onPress={onRepeat} onLabel={setPressed} pressed={pressed}>
+        <StripControl label={t("detail.restart")} onPress={onRepeat} onLabel={setPressed} pressed={pressed}>
           ↺
         </StripControl>
-        <StripControl label="නවත්වන්න" onPress={onEnd} onLabel={setPressed} pressed={pressed}>
+        <StripControl label={t("edge.paused.stop")} onPress={onEnd} onLabel={setPressed} pressed={pressed}>
           ⏹
         </StripControl>
-        <StripControl label="උපසිරැසි" onPress={onToggleCaptions} onLabel={setPressed} pressed={pressed} pressedState={captionsOn}>
-          <span style={{ padding: "0 6px", border: "2px solid #fff", borderRadius: 6, font: `700 20px/26px var(--font-label)`, background: captionsOn ? "#fff" : "transparent", color: captionsOn ? "var(--color-teal)" : "#fff" }}>සි</span>
+        <StripControl label={t("session.captions")} onPress={onToggleCaptions} onLabel={setPressed} pressed={pressed} pressedState={captionsOn}>
+          <span style={{ padding: "0 6px", border: "2px solid #fff", borderRadius: 6, font: `700 20px/26px var(--font-label)`, background: captionsOn ? "#fff" : "transparent", color: captionsOn ? "var(--color-teal)" : "#fff" }}>{t("session.captionsGlyph")}</span>
         </StripControl>
       </header>
 
@@ -336,27 +338,27 @@ function MicAskSheet({ onAllow, onType }: { onAllow: () => void; onType: () => v
   const badge = (n: number, bg: string) => <span style={{ width: 28, height: 28, borderRadius: "50%", background: bg, color: "#fff", font: "700 15px/28px var(--font-latin)", textAlign: "center", flex: "none" }}>{n}</span>;
   return (
     <>
-      <span style={{ font: "700 26px/1.4 var(--font-display)", color: "var(--color-ink)" }}>මට ඔයාගේ කතාව අහන්න අවසර දෙනවද?</span>
+      <span style={{ font: "700 26px/1.4 var(--font-display)", color: "var(--color-ink)" }}>{t("edge.mic.title")}</span>
       <div style={{ display: "grid", gap: 8, font: "400 20px/1.5 var(--font-body)", color: "var(--color-ink)" }}>
         <div style={{ display: "flex", gap: 10 }}>
           {badge(1, "var(--color-teal)")}
-          <span>ඔයා ✋ ඔබලා මගෙන් ප්‍රශ්නයක් අහද්දී විතරයි මම අහන්නේ.</span>
+          <span>{t("edge.mic.whenAsked")}</span>
         </div>
         <div style={{ display: "flex", gap: 10 }}>
           {badge(2, "var(--color-success)")}
-          <span>ඔයාගේ කටහඬ කොහෙත් තියාගන්නේ නෑ — වචන විතරයි අකුරු වෙන්නේ.</span>
+          <span>{t("edge.mic.body")}</span>
         </div>
         <div style={{ display: "flex", gap: 10 }}>
           {badge(3, "var(--color-coral)")}
-          <span>කැමති නැත්නම් ටයිප් කරලාත් අහන්න පුළුවන්.</span>
+          <span>{t("edge.mic.orType")}</span>
         </div>
       </div>
       <div style={{ marginTop: "auto", display: "flex", gap: 10, justifyContent: "flex-end" }}>
         <button type="button" data-testid="mic-ask-type" onClick={onType} style={{ height: 56, padding: "0 22px", border: "2px solid var(--color-ink-18)", borderRadius: 12, background: "var(--color-paper)", color: "var(--color-teal)", font: "700 24px/1.5 var(--font-display)", cursor: "pointer" }}>
-          ටයිප් කරන්නම්
+          {t("edge.mic.type")}
         </button>
         <button type="button" data-testid="mic-ask-allow" onClick={onAllow} style={{ height: 56, padding: "0 28px", border: 0, borderRadius: 12, background: "var(--color-teal)", color: "#fff", font: "700 24px/1.5 var(--font-display)", boxShadow: "var(--shadow-button)", cursor: "pointer" }}>
-          හරි, අවසර දෙන්න
+          {t("edge.mic.allow")}
         </button>
       </div>
     </>
@@ -376,16 +378,16 @@ function MicAskSheet({ onAllow, onType }: { onAllow: () => void; onType: () => v
  */
 function ChatPanel({ childSpoke, zara, listening, failure, warning, closing, onClose, portrait }: { childSpoke: boolean; zara: string | null; listening: boolean; failure: string | null; warning: string | null; closing: boolean; onClose: () => void; portrait: ReactNode }) {
   return (
-    <aside className="chat-panel" data-testid="chat-sheet" data-chat-failure={failure ?? undefined} data-chat-warning={warning ?? undefined} data-chat-closing={closing || undefined} aria-label="සාරා එක්ක කතාව">
+    <aside className="chat-panel" data-testid="chat-sheet" data-chat-failure={failure ?? undefined} data-chat-warning={warning ?? undefined} data-chat-closing={closing || undefined} aria-label={t("chat.panelName")}>
       <div className="chat-panel-head">
         <span className="chat-panel-zara">{portrait}</span>
         {!failure && !closing && (
           <span data-testid="chat-listening" className="chat-panel-pill" style={{ opacity: listening ? 1 : 0.55 }}>
             <span className="chat-panel-dot" />
-            🎤 {listening ? "අහගෙන ඉන්නවා" : "සම්බන්ධ වෙනවා…"}
+            🎤 {listening ? t("chat.listening") : t("chat.connecting")}
           </span>
         )}
-        <button type="button" className="chat-panel-close wb-tap" data-testid="chat-return" onClick={onClose} aria-label="කතාව වහලා පාඩමට යන්න">
+        <button type="button" className="chat-panel-close wb-tap" data-testid="chat-return" onClick={onClose} aria-label={t("chat.closeToLesson")}>
           ✕
         </button>
       </div>

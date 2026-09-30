@@ -34,6 +34,7 @@ import { ONBOARD_VIA_API_JS } from "./lib/onboard";
 import { analyseTruth, AUDIO_TRUTH_JS, COLLECT_TRUTH_JS, type TruthLog, type TruthSummary } from "./lib/audioTruth";
 import { clipKey } from "../src/lib/audioCache";
 import { AUTHORED_LINES } from "../src/lib/authoredLines";
+import { ariaSel, copy, copyPattern } from "./lib/copyText";
 
 /** Sinhala number name → digits, for the questions that ask for a name. */
 const NAME_TO_NUMBER = new Map<string, number>();
@@ -64,7 +65,7 @@ const WRONG_BEAT = arg("wrong") ? `authored:${arg("wrong")!.replace(/^authored:/
 /** What the ✋ transcription channel might deliver for a Sinhala child (23 Sep 2026: wrong script, another language, fragments) — injected, never shown. */
 const INJECTED_TRANSCRIPT = "こんにちは 123 hello";
 /** What Zara says when the day's ✋ chat time is spent (src/lib/appCopy.ts chat.outOfTime — the owner's own words). */
-const OUT_OF_TIME = "අද කතා කරන්න පුළුවන් වෙලාව ඉවරයි, හෙට ආයෙත් කතා කරමු";
+const OUT_OF_TIME = copy("chat.outOfTime");
 /**
  * The chat drill's Live socket: a WebSocket to the Live API that only answers `setup` with `setupComplete` — the chat
  * is "connected" and nothing is ever sent to Google. Any other URL gets the real WebSocket.
@@ -310,7 +311,7 @@ async function main(): Promise<void> {
     // Always a full load: the in-memory store of the page under test may still hold the previous child (the API switch bypasses the app's own clear()).
     await page.send("Page.navigate", { url: `${BASE}/home` });
     await waitFor(`!!document.querySelector('[data-screen-ready="home"][data-store-status="fresh"]')`, 10000);
-    return evaluate<{ lesson: number; session: number } | null>(page, `(() => { const m = /ගණිතය · පාඩම (\\d+) · (\\d+) වෙනි සැසිය/u.exec(document.body.innerText); return m ? { lesson: Number(m[1]), session: Number(m[2]) } : null; })()`).catch(() => null);
+    return evaluate<{ lesson: number; session: number } | null>(page, `(() => { const m = new RegExp(${JSON.stringify(copyPattern("home.continueKicker"))}, "u").exec(document.body.innerText); return m ? { lesson: Number(m[1]), session: Number(m[2]) } : null; })()`).catch(() => null);
   };
   const waitFor = async (js: string, ms = 10000): Promise<boolean> => {
     for (let i = 0; i < ms / 200; i += 1) {
@@ -364,7 +365,7 @@ async function main(): Promise<void> {
   await tapInView('[data-testid="splash-start"]');
   // The device gate may cover the step the moment it mounts (a fresh device has no device cookie): the route is the assertion, the gate is handled next.
   const toOnboarding = await waitFor(`location.pathname === '/onboarding/1'`);
-  checkA("fresh device → onboarding", splash.screen === "Splash" && toOnboarding, `splash "පටන් ගමු" → ${(await where()).url}`);
+  checkA("fresh device → onboarding", splash.screen === "Splash" && toOnboarding, `splash "${copy("common.start")}" → ${(await where()).url}`);
   const gated1 = await gateIfShown();
   await waitFor(`!!document.querySelector('[data-testid="onb-next"]') && !!document.querySelector('[data-testid="onb-hydrated"]')`);
   await step(`onboarding 1 · phone + OTP${gated1 ? " (device gate: access code entered)" : ""}`);
@@ -378,7 +379,7 @@ async function main(): Promise<void> {
   await wait(200);
   await tapInView('[data-testid="onb-next"]');
   const toProfile = await waitFor(`location.pathname === '/onboarding/2'`);
-  checkA("step 1 with no SMS provider: dev notice shown, no countdown, any 4-digit code accepted", devNotice.includes("SMS තහවුරු කිරීම තවම සක්‍රීය නැහැ") && devNotice.includes("dev: any 4-digit code works") && noCountdown && toProfile, `notice "${devNotice.slice(0, 70)}" · countdown/send/resend controls absent ${noCountdown} · code 7319 → ${toProfile ? "/onboarding/2" : "stuck"}`);
+  checkA("step 1 with no SMS provider: dev notice shown, no countdown, any 4-digit code accepted", devNotice.includes(copy("onb.1.devNotice")) && devNotice.includes("dev: any 4-digit code works") && noCountdown && toProfile, `notice "${devNotice.slice(0, 70)}" · countdown/send/resend controls absent ${noCountdown} · code 7319 → ${toProfile ? "/onboarding/2" : "stuck"}`);
   // Step 1 with a (mocked) gateway: an explicit send, the code, one resend after 30 s that never loops.
   const mockOtpDrill = async () => {
     await page.send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
@@ -443,7 +444,7 @@ async function main(): Promise<void> {
     process.exit(clusterA.every((r) => r.startsWith("PASS")) ? 0 : 1);
   }
   await setInput('[data-testid="onb-name"]', "හසිනි");
-  await tapInView('[data-avatar="ලේනා"]');
+  await tapInView('[data-avatar="squirrel"]');
   await tapInView('[data-grade="5"]');
   await wait(200);
   await tapInView('[data-testid="onb-next"]');
@@ -451,7 +452,7 @@ async function main(): Promise<void> {
   await step(`onboarding 3 · consent${toConsent ? "" : " (NOT REACHED)"}`);
   await tapInView('[data-testid="onb-next"]');
   await waitFor(`location.pathname === '/onboarding/4'`);
-  await step("onboarding 4 · subscription (stub) — skipped with පසුව තීරණය කරන්නම්");
+  await step(`onboarding 4 · subscription (stub) — skipped with ${copy("onb.4.skip")}`);
   await tapInView('a[href="/home"]');
   const toHome = await waitFor(`location.pathname === '/home' && !!document.querySelector('[data-testid="start-lesson"]')`);
   const homeSession0 = toHome ? await homeSession() : null;
@@ -459,7 +460,7 @@ async function main(): Promise<void> {
   checkA("onboarding writes the child and lands home at session 1", toHome && homeSession0?.session === 1, `home continue card: ${JSON.stringify(homeSession0)}`);
   await tapInView('[data-testid="start-lesson"]');
   await waitFor(`location.pathname === '/session'`);
-  await step("session (\"පටන් ගමු\" on the continue card)");
+  await step(`session ("${copy("common.start")}" on the continue card)`);
   await page.send("Emulation.setDeviceMetricsOverride", { width: VIEW_W, height: VIEW_H, deviceScaleFactor: 2, mobile: true });
   // The child this run created — the DB is the ground truth for the assertions below.
   const { data: createdRows } = await supabaseAdmin.from("children").select("id, display_name").eq("parent_contact", "+94770000002").order("created_at", { ascending: false }).limit(1);
@@ -476,7 +477,7 @@ async function main(): Promise<void> {
       if (id !== "—" && id !== seen[seen.length - 1]) seen.push(id);
     }
     const leftAt = await beatNow();
-    await tapSelector('[aria-label="නවත්වන්න"]');
+    await tapSelector(ariaSel("edge.paused.stop"));
     const asked = await waitFor(`!!document.querySelector('[data-testid="confirm-sheet"][data-confirm="leave"]')`, 6000);
     const askText = await evaluate<string>(page, `(document.querySelector('[data-testid="confirm-sheet"]')?.innerText ?? '').replace(/\\n+/g, " ").trim()`).catch(() => "");
     await tapSelector('[data-testid="confirm-yes"]');
@@ -795,7 +796,7 @@ async function main(): Promise<void> {
       drillDone.add(`pause-${ordinal}`);
       const eventsBefore = await choreoCount();
       const consoleAt = consoleLines.length;
-      await tapSelector('[aria-label="විරාමය"]');
+      await tapSelector(ariaSel("session.pause"));
       await wait(400);
       const pausedNow = await isPaused();
       const eventsAtPause = await choreoCount();
@@ -812,8 +813,8 @@ async function main(): Promise<void> {
         lastRow = row;
       }
       const during = { paused: await isPaused(), events: await choreoCount(), beat: await evaluate<string>(page, `document.querySelector('.lesson-screen')?.dataset.beatId ?? '—'`) };
-      const underResume = await evaluate<string>(page, `(() => { const b = document.querySelector('[aria-label="දිගටම"]'); if (!b) return 'no ▶ in the page'; const r = b.getBoundingClientRect(); const h = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return h ? (h === b || b.contains(h) ? 'the strip ▶' : 'COVERED by ' + h.tagName + ' ' + (h.getAttribute('data-testid') || h.className || '')) : 'nothing'; })()`);
-      await tapSelector('[aria-label="දිගටම"]');
+      const underResume = await evaluate<string>(page, `(() => { const b = document.querySelector(${JSON.stringify(ariaSel("edge.paused.resume"))}); if (!b) return 'no ▶ in the page'; const r = b.getBoundingClientRect(); const h = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return h ? (h === b || b.contains(h) ? 'the strip ▶' : 'COVERED by ' + h.tagName + ' ' + (h.getAttribute('data-testid') || h.className || '')) : 'nothing'; })()`);
+      await tapSelector(ariaSel("edge.paused.resume"));
       await wait(300);
       const after = { paused: await isPaused(), beat: await evaluate<string>(page, `document.querySelector('.lesson-screen')?.dataset.beatId ?? '—'`) };
       const ok = pausedNow && during.paused && during.events === eventsAtPause && during.beat === beatAtPause && !after.paused && after.beat === beatAtPause;
@@ -836,7 +837,7 @@ async function main(): Promise<void> {
       const after = await snapshot();
       // The tap must not become an answer or a judge — she just keeps talking (the beat may end on its own meanwhile).
       const takenAsAnswer = after.status === "thinking" || answers.some((a) => a.beatId === snap.beatId);
-      drillNote("touch during playback", hint.includes("සාරා කතා කරනවා") && !takenAsAnswer, `hint "${hint}" · not taken as an answer ${takenAsAnswer ? "NO" : "yes"} · now ${after.beatId.replace(/^authored:/u, "")} (${after.status})`);
+      drillNote("touch during playback", hint.includes(copy("session.talkingHint")) && !takenAsAnswer, `hint "${hint}" · not taken as an answer ${takenAsAnswer ? "NO" : "yes"} · now ${after.beatId.replace(/^authored:/u, "")} (${after.status})`);
     }
     // 2. The phone turned to portrait mid-beat: the lesson holds, then resumes when turned back.
     if (short === "readWrite4Digit:3" && !drillDone.has("rotate") && snap.status === "teaching") {
@@ -963,7 +964,7 @@ async function main(): Promise<void> {
         await clickSelector('[data-testid="session-title"]');
         await wait(120);
       }
-      drillNote("the chat shows the child's turn as a neutral bubble, never the transcript", injected && bubble.turn === "spoke" && bubble.text === "ඔයා කතා කළා" && !bubble.leak && bubble.wave && overlayHas, `transcript injected ${injected ? "yes" : "NO (window.__dev.chatInject missing)"} · child bubble "${bubble.text}" (${bubble.turn ?? "—"}, waveform ${bubble.wave ? "yes" : "NO"}) · transcript text in the panel ${bubble.leak ? "LEAKED" : "none"} · in the debug overlay ${overlayHas ? "yes" : "NO"}`);
+      drillNote("the chat shows the child's turn as a neutral bubble, never the transcript", injected && bubble.turn === "spoke" && bubble.text === copy("chat.childSpoke") && !bubble.leak && bubble.wave && overlayHas, `transcript injected ${injected ? "yes" : "NO (window.__dev.chatInject missing)"} · child bubble "${bubble.text}" (${bubble.turn ?? "—"}, waveform ${bubble.wave ? "yes" : "NO"}) · transcript text in the panel ${bubble.leak ? "LEAKED" : "none"} · in the debug overlay ${overlayHas ? "yes" : "NO"}`);
       // The bot button closes it again — the child comes and goes freely.
       const returned = await tapSelector('[data-testid="hand"]');
       await wait(1200);
@@ -971,7 +972,7 @@ async function main(): Promise<void> {
       await page.send("Fetch.disable");
       holding = false;
       const status = (await snapshot()).status;
-      drillNote("first ✋ asks for the microphone; the chat is a panel beside the board", before === 0 && micAsk.up && micAsk.portrait >= 150 && micAsk.dimmed && micAsk.buttons === 2 && gumBeforeAllow === 0 && after === 1 && sheet.up && sheet.portrait > 0 && sheet.portrait <= 64 && sheet.lines === 2 && !sheet.dimmed && sheet.coverage === 0 && sheet.share <= 33.4 && sheet.bot && sheet.close && sheet.veil === 1 && returned && status !== "chatting", `getUserMedia calls before ✋: ${before} · P1 sheet ${micAsk.up ? "up" : "MISSING"} (Zara ${micAsk.portrait} px, dimmed ${micAsk.dimmed ? "yes" : "NO"}, ${micAsk.buttons} buttons, "${micAsk.title.trim().slice(0, 30)}") · calls before හරි: ${gumBeforeAllow} · after: ${after}${explained ? ` · her explanation: "${explained.slice(0, 40)}"` : ""} · chat panel ${sheet.up ? "up" : "MISSING"}: covers ${sheet.coverage} % of the board, takes ${sheet.share} % of the screen's long side, board dimmed ${sheet.dimmed ? "YES" : "no"} (opacity ${sheet.veil}), Zara ${sheet.portrait} px, ${sheet.lines} transcript lines, close button ${sheet.close ? "yes" : "NO"}, bot button ${sheet.bot ? "still there" : "GONE"}, board layout beside it ${sheet.boardOk ? "clean" : "HAS OVERLAPS"} · bot tapped to close ${returned ? "yes" : "NO"} → ${status}`);
+      drillNote("first ✋ asks for the microphone; the chat is a panel beside the board", before === 0 && micAsk.up && micAsk.portrait >= 150 && micAsk.dimmed && micAsk.buttons === 2 && gumBeforeAllow === 0 && after === 1 && sheet.up && sheet.portrait > 0 && sheet.portrait <= 64 && sheet.lines === 2 && !sheet.dimmed && sheet.coverage === 0 && sheet.share <= 33.4 && sheet.bot && sheet.close && sheet.veil === 1 && returned && status !== "chatting", `getUserMedia calls before ✋: ${before} · P1 sheet ${micAsk.up ? "up" : "MISSING"} (Zara ${micAsk.portrait} px, dimmed ${micAsk.dimmed ? "yes" : "NO"}, ${micAsk.buttons} buttons, "${micAsk.title.trim().slice(0, 30)}") · calls before "${copy("edge.mic.allow")}": ${gumBeforeAllow} · after: ${after}${explained ? ` · her explanation: "${explained.slice(0, 40)}"` : ""} · chat panel ${sheet.up ? "up" : "MISSING"}: covers ${sheet.coverage} % of the board, takes ${sheet.share} % of the screen's long side, board dimmed ${sheet.dimmed ? "YES" : "no"} (opacity ${sheet.veil}), Zara ${sheet.portrait} px, ${sheet.lines} transcript lines, close button ${sheet.close ? "yes" : "NO"}, bot button ${sheet.bot ? "still there" : "GONE"}, board layout beside it ${sheet.boardOk ? "clean" : "HAS OVERLAPS"} · bot tapped to close ${returned ? "yes" : "NO"} → ${status}`);
     }
     // 3c. THE ✋ CHAT'S TIME, AND NEVER A SILENT FAILURE (28 Sep 2026). A 429 from our own chat budget used to close the chat
     // at once (the panel flashed and vanished), and the day was charged 5 minutes per opening. No paid call here: the
@@ -1302,7 +1303,7 @@ async function main(): Promise<void> {
     const idOf = (index: number) => ((script?.beats ?? []) as Array<{ id: string }>)[index]?.id ?? `#${index}`;
     const shortId = (id: string) => id.replace(/^authored:/u, "");
     const openPanel = async () => {
-      await tapSelector('[aria-label="විරාමය"]');
+      await tapSelector(ariaSel("session.pause"));
       await waitFor(`!!document.querySelector('[data-testid="playback-panel"]')`, 3000);
       await wait(300);
     };
@@ -1408,7 +1409,7 @@ async function main(): Promise<void> {
       const navRow = (navRows ?? [])[0] as { beat_id: string; planner_decision: { from?: string; to?: string; steps?: number } } | undefined;
       // The first clip that REALLY sounded after ▶ is the selected beat's (its label is the beat id).
       const resumeOk = firstLine?.beatId === idOf(target) && back6Heard.sounding[0]?.label === idOf(target) && !afterResume.paused && !afterResume.panel;
-      drillNote("resume plays only the selected beat's clip", resumeOk, `▶ දිගටම → panel ${afterResume.panel ? "STILL UP" : "closed"}, ${afterResume.paused ? "STILL PAUSED" : "playing"} · the first line after ▶: ${firstLine ? `${shortId(firstLine.beatId)} (${firstLine.via})` : "NONE in 9 s"} (selected ${shortId(idOf(target))}) · the first clip heard: ${back6Heard.sounding[0] ? shortId(back6Heard.sounding[0].label ?? back6Heard.sounding[0].stream) : "none"}`);
+      drillNote("resume plays only the selected beat's clip", resumeOk, `▶ ${copy("edge.paused.resume")} → panel ${afterResume.panel ? "STILL UP" : "closed"}, ${afterResume.paused ? "STILL PAUSED" : "playing"} · the first line after ▶: ${firstLine ? `${shortId(firstLine.beatId)} (${firstLine.via})` : "NONE in 9 s"} (selected ${shortId(idOf(target))}) · the first clip heard: ${back6Heard.sounding[0] ? shortId(back6Heard.sounding[0].label ?? back6Heard.sounding[0].stream) : "none"}`);
       const back6Ok = resumeOk && back6.index >= origin && back6Heard.maxConcurrent === 1 && masteryAfter === masteryBefore && navRow?.beat_id === "nav:back" && navRow.planner_decision.steps === 6;
       drillNote("step back 6 beats then resume — peak audible 1 throughout", back6Ok, `back to ${shortId(back6.beat)} (index ${back6.index} ≥ ${origin} ${back6.index >= origin ? "yes" : "NO"}) · lines played in order: ${played.map((l) => shortId(l.beatId)).join(" → ")} · heard: ${heardText(back6Heard)} · child_progress ${masteryBefore} → ${masteryAfter} · NAV row ${navRow ? `${navRow.beat_id} ${shortId(navRow.planner_decision.from ?? "?")} → ${shortId(navRow.planner_decision.to ?? "?")}, ${navRow.planner_decision.steps} steps` : "NONE"}`);
       navTrace.push(`steps at ${short}: ${[doubleOk, fiveOk, resumeOk, back6Ok].every(Boolean) ? "ok" : "FAILED"} — double-tap → ${doubled.selected}; five taps → ${trail.join(",")}; ▶ → ${played.map((l) => shortId(l.beatId)).join(" → ")}; real peak ${back6Heard.maxConcurrent}`);
@@ -1485,7 +1486,7 @@ async function main(): Promise<void> {
       const portraitTrace = `10 portrait taps → beat ${afterTaps.beat === beforeTaps.beat ? "unchanged" : `CHANGED to ${afterTaps.beat}`}, status ${afterTaps.status === beforeTaps.status ? `unchanged (${afterTaps.status})` : `CHANGED to ${afterTaps.status}`}, clips started by the taps ${tapsHeard.starts.length}, heard: ${heardText(tapsHeard)} · the portrait has role ${portrait.role ?? "none"}, aria-label ${portrait.label ?? "none"}, cursor ${portrait.cursor}`;
       drillNote("Zara's portrait is not a control: ten taps change nothing and start no audio", inert, portraitTrace);
       for (let i = 0; i < 3; i += 1) {
-        await tapSelector('[aria-label="මුල ඉඳන් ආයෙත්"]');
+        await tapSelector(ariaSel("detail.restart"));
         await wait(90);
       }
       await wait(600);
@@ -1758,7 +1759,7 @@ async function main(): Promise<void> {
       const retry = await tapSelector('[data-testid="turn-retry"]');
       if (retry) {
         retryTaps += 1;
-        console.log(`      ↻ tapped ආයෙත් උත්සාහ කරන්න on ${snap.beatId.replace(/^authored:/u, "")}`);
+        console.log(`      ↻ tapped ${copy("common.retry")} on ${snap.beatId.replace(/^authored:/u, "")}`);
         await wait(400);
       }
     }
@@ -2054,7 +2055,6 @@ async function main(): Promise<void> {
     const firstAfterRestart = await firstBeatOfNewestSitting(childA, sittingsBefore);
     restartTrace = `restart session 1: ${restart.ok ? `${restart.rows} session_log row(s) in ${restart.sittings} sitting(s) removed` : "FAILED"} · session_log rows left ${logsLeft} · child_progress ${before} → ${after} · the new sitting starts at ${String(firstAfterRestart ?? "nothing logged").replace(/^authored:/u, "")} (beat 0 = ${beat0.replace(/^authored:/u, "")}) · page showed ${landed.replace(/^authored:/u, "")}`;
     checkA("restart lands on beat 0 with mastery intact", restart.ok && firstAfterRestart === beat0 && before === after && before > 0, restartTrace);
-    await evaluate(page, `(() => { const b = document.querySelector('[aria-label="අවසන් කරන්න"]'); b && b.click(); return true; })()`).catch(() => undefined);
     await page.send("Page.navigate", { url: "about:blank" });
   } else {
     checkA("two children on one device get separate resume points", false, "no child was created by onboarding");
@@ -2085,7 +2085,7 @@ async function main(): Promise<void> {
       const id = await evaluate<string>(page, `document.querySelector('.lesson-screen')?.dataset.beatId ?? '—'`).catch(() => "—");
       if (id !== "—") break;
     }
-    await tapSelector('[aria-label="මුල ඉඳන් ආයෙත්"]');
+    await tapSelector(ariaSel("detail.restart"));
     const askedRestart = await waitFor(`!!document.querySelector('[data-testid="confirm-sheet"][data-confirm="restart"]')`, 6000);
     await wait(400);
     const restartAsk = await evaluate<string>(page, `(document.querySelector('[data-testid="confirm-sheet"]')?.textContent ?? '').replace(/\s+/g, " ").trim()`).catch(() => "");
@@ -2155,7 +2155,7 @@ async function main(): Promise<void> {
     // The labels as SessionShell.tsx writes them today. They were renamed and this list was not,
     // so the filter matched only ⏸ and the run reported "UNDER 56 px" whatever the controls measured.
     // ⏸ carries two labels because it is also the resume control.
-    const controls = strip.filter((b) => ["විරාමය", "දිගටම", "මුල ඉඳන් ආයෙත්", "නවත්වන්න"].includes(b.label ?? ""));
+    const controls = strip.filter((b) => [copy("session.pause"), copy("edge.paused.resume"), copy("detail.restart"), copy("edge.paused.stop")].includes(b.label ?? ""));
     console.log(`strip controls ⏸ ↺ ⏹ hit areas: ${controls.map((b) => `${b.label} ${b.w}×${b.h}`).join(" · ") || "not seen"} — ${controls.length === 3 && controls.every((b) => b.h >= 56) ? "all reach 56 px" : controls.length !== 3 ? `only ${controls.length} of the 3 found — the labels in this filter no longer match the strip` : "UNDER 56 px"}`);
   }
   if (REDUCED_MOTION) {
@@ -2246,7 +2246,7 @@ async function main(): Promise<void> {
     for (const [via, n] of byVia) console.log(`  ${via.padEnd(34)} ${n}`);
     console.log(`  script: ${judged.length} judged questions carry an answerMode · speech-primary 0 (readAloud is unjudged practice; its judged step is the chips: ${judged.filter((b) => b.answerMode === "readAloud").length} such questions)`);
   }
-  if (WRONG_BEAT) console.log(`retry button (ආයෙත් උත්සාහ කරන්න) tapped ${retryTaps} time(s) — the visible way back after a miss`);
+  if (WRONG_BEAT) console.log(`retry button (${copy("common.retry")}) tapped ${retryTaps} time(s) — the visible way back after a miss`);
   console.log(`\nmastery (${stars.filter((s) => s.startsWith("★")).length} star(s)):`);
   for (const line of stars) console.log(`  ${line}`);
   if (!stars.length) console.log("  no concept finished before the run ended");
@@ -2422,7 +2422,7 @@ async function main(): Promise<void> {
       closeRow = (closeRows ?? []).find((r) => r.beat_type === "CLOSE_SESSION") as typeof closeRow;
     }
     const reason = closeRow?.planner_decision?.reason ?? "(none)";
-    const limitLine = cardText.includes("අද කාලය ඉවරයි");
+    const limitLine = cardText.includes(AUTHORED_LINES.closeSessionDailyLimit.replace(/[.—].*$/u, "").trim());
     const wholeTable = seenAfterArm.includes(TABLE_LAST);
     closeDrill =
       `limit set 65 s away at ${armedAt.replace(/^authored:/u, "")} (inside ${TABLE_FIRST.replace(/^authored:/u, "")}…${TABLE_LAST.replace(/^authored:/u, "")}) · ` +

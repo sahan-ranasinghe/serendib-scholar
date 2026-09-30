@@ -77,7 +77,7 @@ export function BackButton({ href, size = 56 }: { href: string; size?: 56 | 44 }
   const style = size === 56 ? "width:56px;height:56px;border-radius:50%;background:var(--color-paper);border:2px solid var(--color-ink-18);display:flex;align-items:center;justify-content:center;font:22px/1 var(--font-latin)" : "width:44px;height:44px;border-radius:50%;border:2px solid var(--color-ink-18);display:flex;align-items:center;justify-content:center;font:20px/1 var(--font-latin)";
   return (
     <Link href={href} aria-label={t("a11y.back")} style={sx(style, { flex: "none" })}>
-      ‹
+      {t("common.back")}
     </Link>
   );
 }

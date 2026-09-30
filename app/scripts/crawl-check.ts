@@ -16,6 +16,7 @@
 import { supabaseAdmin } from "../src/lib/supabaseAdmin";
 import { launch, connect, openPage, evaluate, wait, type Cdp } from "./lib/cdp";
 import { ONBOARD_VIA_API_JS } from "./lib/onboard";
+import { copy } from "./lib/copyText";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
@@ -213,7 +214,7 @@ async function pinCreateChecks(page: Cdp, checks: Check[]): Promise<void> {
   await apiWindow(page);
   await goto(page, "/parent");
   const labels = await evaluate<{ form: boolean; first: string; second: string; fields: number }>(page, `(() => ({ form: !!document.querySelector('[data-testid="pin-create"]'), first: (document.querySelector('[data-testid="pin-new-label"]') || {}).textContent || '', second: (document.querySelector('[data-testid="pin-again-label"]') || {}).textContent || '', fields: document.querySelectorAll('[data-testid="pin-create"] [data-pin-box]').length / 4 }))()`);
-  checks.push({ name: "set PIN: two fields, labelled PIN එක / ආයෙත් ටයිප් කරන්න", ok: labels.form && labels.fields === 2 && labels.first.trim() === "PIN එක" && labels.second.trim() === "ආයෙත් ටයිප් කරන්න", detail: `${labels.fields} field(s): "${labels.first}" / "${labels.second}"` });
+  checks.push({ name: `set PIN: two fields, labelled ${copy("pin.label")} / ${copy("pin.again")}`, ok: labels.form && labels.fields === 2 && labels.first.trim() === copy("pin.label") && labels.second.trim() === copy("pin.again"), detail: `${labels.fields} field(s): "${labels.first}" / "${labels.second}"` });
   const start = await evaluate<Field>(page, FIELD_JS("pin-new"));
   checks.push({ name: "set PIN: first field focused on arrival, caret visible in box 1", ok: start.active && start.caretBox === 0 && start.caretW >= 2 && start.caretH >= 20, detail: `focused ${start.active}, caret box ${start.caretBox + 1}, ${start.caretW}×${start.caretH} px ${start.caretShown}` });
   checks.push({ name: "set PIN: boxes ≥ 56 px, numeric keypad", ok: start.boxH >= 56 && start.inputMode === "numeric", detail: `${start.boxH} px · inputmode=${start.inputMode}` });

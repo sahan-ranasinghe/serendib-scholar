@@ -3,23 +3,19 @@
  *
  *   npm run portal:coverage
  *
- * The same report the dry run prints: how many lines exist in her voice,
- * how many in the rendered one, per concept, and every line still waiting
- * for her.
+ * The same report the dry run prints and the portal shows (src/lib/voiceCoverage.ts coverageOf): distinct clips
+ * needed — one per line the runtime can speak — against her recorded and approved clips and the AI ones, by group.
  */
-import { readFile } from "node:fs/promises";
-import path from "node:path";
-import { parseAuthoredScript } from "../src/lib/authoredScript";
-import { formatCoverage, voiceCoverage } from "../src/lib/voiceCoverage";
+import { coverageOf, formatCoverage, voiceShelf } from "../src/lib/voiceCoverage";
+import { runtimeSpokenLines } from "../src/lib/spokenLines";
 import { voiceProfile } from "../src/lib/humanClips";
+import { buildOfflineScript } from "./lib/offlineScript";
 
 async function main(): Promise<void> {
-  const file = parseAuthoredScript(
-    await readFile(path.join(process.cwd(), "src/data/lessons/authored/maths-5-1.json"), "utf8"),
-  );
-  if (!file) throw new Error("Nothing authored yet.");
-  console.log(`\nVOICE COVERAGE — ${file.beats.length} authored beats\n${"=".repeat(70)}`);
-  console.log(formatCoverage(await voiceCoverage(file), voiceProfile()));
+  // What the child hears: the built lesson with the actor's accepted re-wordings — every line it can speak.
+  const lines = runtimeSpokenLines(await buildOfflineScript({ actorWording: true }));
+  console.log(`\nVOICE COVERAGE — ${lines.length} distinct lines the runtime can speak\n${"=".repeat(70)}`);
+  console.log(formatCoverage(coverageOf(lines, await voiceShelf()), voiceProfile()));
 }
 
 main().catch((error) => {

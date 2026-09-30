@@ -28,6 +28,7 @@ export type { BeatType, DirectorContext };
 import type { PhraseRubric } from "@/lib/authoredScript";
 import type { AnswerMode } from "@/lib/answerMode";
 import { exampleAnswerFor } from "@/lib/answerCheck";
+import { renderNumberMarkers } from "@/lib/sinhalaNumber";
 import type { ChoiceSet } from "@/lib/distractors";
 import { exerciseUnits, unitAt } from "@/lib/exerciseUnits";
 export { BEAT_REGISTRY, beatSpec, estimateBeatSeconds };
@@ -422,7 +423,7 @@ export function buildConfirmBeat(asked: Beat, heardNumber: string): Beat {
     sayCandidates: undefined,
     goal:
       `You may have misheard the child's answer. Ask them, warmly and briefly, to confirm: did they say ` +
-      `${heardNumber}? (For example: "ඔයා කිව්වේ ${heardNumber} නේද?") Do not say whether it is right or wrong.`,
+      `${heardNumber}? (Her words: "${AUTHORED_LINES.confirmHeard.replace("{value}", heardNumber)}") Do not say whether it is right or wrong.`,
     maxSentences: 1,
     board: { kind: "none" },
     expectedAnswer: undefined,
@@ -504,6 +505,27 @@ export function buildReteachBeats(
   return { beats: [reteach, ...demo], angleUsed: angle };
 }
 
+/**
+ * A phrase question (a rubric) after the misses: she states its finding in her fixed frame (rubricReveal) — the
+ * rubric's Sinhala explanation, or its answer — and the lesson moves on. Shared by the runtime and the list of lines
+ * the voice actor records (src/lib/spokenLines.ts), so the two can never disagree about the words.
+ */
+export function buildRubricRevealBeat(asked: Beat): Beat {
+  const explanation = renderNumberMarkers(asked.rubric?.explainSi ?? "").spoken;
+  return {
+    ...asked,
+    id: `${asked.id}:reveal`,
+    type: "REVEAL_PART",
+    goal: "State the finding (verbatim) and move on.",
+    spokenText: AUTHORED_LINES.rubricReveal.replace("{value}", explanation || asked.expectedAnswer || "").trim(),
+    sayCandidates: undefined,
+    board: { kind: "none" },
+    expectedAnswer: undefined,
+    rubric: undefined,
+    endBy: "pausing",
+  };
+}
+
 /** ASK ladder stage 2: the help offer, exact words. */
 export function buildOfferHelpBeat(asked: Beat): Beat {
   return {
@@ -539,7 +561,7 @@ export function buildGiveUpBeat(asked: Beat): Beat {
     // pretending to reveal one.
     spokenText: value
       ? AUTHORED_LINES.giveUpReveal.replace("{value}", value)
-      : "කමක් නෑ {address}, අපි ඉදිරියට යමු.",
+      : AUTHORED_LINES.giveUpMoveOn,
     sayCandidates: undefined,
     board:
       asked.board.kind === "set_active_blank"

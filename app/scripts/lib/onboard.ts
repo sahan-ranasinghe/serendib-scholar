@@ -6,6 +6,8 @@
  * drill; session-check drives the real screens instead and only uses the
  * API helpers for the second child and the restart.
  */
+import { copyPattern } from "./copyText";
+
 export const ONBOARD_VIA_API_JS = (accessCode: string, name: string, siblingOf: string | null = null) => `(async () => {
   const post = async (url, body) => { const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body ?? {}) }); return { status: r.status, json: await r.json().catch(() => null) }; };
   const start = await post("/api/session-start", ${JSON.stringify(accessCode)} ? { access_code: ${JSON.stringify(accessCode)} } : {});
@@ -15,7 +17,7 @@ export const ONBOARD_VIA_API_JS = (accessCode: string, name: string, siblingOf: 
     const otp = await post("/api/onboarding/otp", { action: "verify", phone: "0770000001", code: "1234" });
     if (!otp.json || !otp.json.ok) return { ok: false, step: "otp", status: otp.status, error: otp.json && otp.json.error };
   }
-  const profile = await post("/api/onboarding/profile", { name: ${JSON.stringify(name)}, grade: 5, avatar: "ලේනා", sibling_of: ${JSON.stringify(siblingOf)} });
+  const profile = await post("/api/onboarding/profile", { name: ${JSON.stringify(name)}, grade: 5, avatar: "squirrel", sibling_of: ${JSON.stringify(siblingOf)} });
   if (!profile.json || !profile.json.ok) return { ok: false, step: "profile", status: profile.status, error: profile.json && profile.json.error };
   const consent = await post("/api/onboarding/consent", {});
   const session = await post("/api/session-start", {});
@@ -23,4 +25,4 @@ export const ONBOARD_VIA_API_JS = (accessCode: string, name: string, siblingOf: 
 })()`;
 
 /** Which packed session /home offers next ("N වෙනි සැසිය" in the continue card), read from the page's HTML. */
-export const HOME_SESSION_JS = `fetch("/home").then((r) => r.text()).then((html) => { const m = /ගණිතය · පාඩම (\\d+) · (\\d+) වෙනි සැසිය/u.exec(html); return m ? { lesson: Number(m[1]), session: Number(m[2]) } : null; })`;
+export const HOME_SESSION_JS = `fetch("/home").then((r) => r.text()).then((html) => { const m = new RegExp(${JSON.stringify(copyPattern("home.continueKicker"))}, "u").exec(html); return m ? { lesson: Number(m[1]), session: Number(m[2]) } : null; })`;

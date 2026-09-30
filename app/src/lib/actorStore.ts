@@ -19,7 +19,12 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 export const PORTAL_LESSON = "maths-5-1";
 
 export type ActorLineStatus = "pending" | "accepted" | "rejected" | "note_only";
-export type ActorTakeStatus = "uploading" | "saved" | "pending_processing" | "failed";
+/**
+ * uploading → pending_processing → saved (in storage, awaiting review) → approved | rejected.
+ * Only an APPROVED take is served to a child under VOICE_PROFILE=human (src/app/api/clip/[key]/route.ts); a new take
+ * of the same line (the same clip key) takes every earlier approval of that clip away until it is reviewed again.
+ */
+export type ActorTakeStatus = "uploading" | "saved" | "pending_processing" | "failed" | "approved" | "rejected";
 
 export interface ActorLine {
   beat_id: string;
@@ -109,4 +114,47 @@ export async function acceptedActorText(): Promise<Map<string, string>> {
     .not("actor_text", "is", null);
   warn("acceptedActorText", error);
   return new Map((data ?? []).map((row) => [row.beat_id as string, row.actor_text as string]));
+}
+
+/** Every take of this clip key (a line recorded under an older row id is still the same clip). */
+export async function takesForClip(clipKeyValue: string): Promise<ActorTake[]> {
+  const { data, error } = await supabaseAdmin.from("actor_takes").select("*").eq("clip_key", clipKeyValue);
+  warn("takesForClip", error);
+  return (data ?? []) as ActorTake[];
+}
+
+/**
+ * A new take of this clip replaces its audio: every approval of it lapses (approved → saved) until a reviewer hears
+ * the new one. The approved-key cache is dropped so the runtime stops serving it at once.
+ */
+export async function withdrawApproval(clipKeyValue: string): Promise<void> {
+  const { error } = await supabaseAdmin.from("actor_takes").update({ status: "saved", updated_at: new Date().toISOString() }).eq("clip_key", clipKeyValue).eq("status", "approved");
+  warn("withdrawApproval", error);
+  approvedCache = null;
+}
+
+/** A reviewer's verdict on the take of this clip (behind the portal password, /portal/status). */
+export async function setTakeReview(clipKeyValue: string, verdict: "approved" | "rejected"): Promise<number> {
+  const { data, error } = await supabaseAdmin
+    .from("actor_takes")
+    .update({ status: verdict, updated_at: new Date().toISOString() })
+    .eq("clip_key", clipKeyValue)
+    .in("status", ["saved", "approved", "rejected"])
+    .select("beat_id");
+  warn("setTakeReview", error);
+  approvedCache = null;
+  return (data ?? []).length;
+}
+
+let approvedCache: { at: number; keys: Set<string> } | null = null;
+const APPROVED_TTL_MS = 60_000;
+
+/** The clip keys a reviewer has approved — what VOICE_PROFILE=human may serve. Cached for a minute per server. */
+export async function approvedClipKeys(): Promise<Set<string>> {
+  if (approvedCache && Date.now() - approvedCache.at < APPROVED_TTL_MS) return approvedCache.keys;
+  const { data, error } = await supabaseAdmin.from("actor_takes").select("clip_key").eq("status", "approved");
+  warn("approvedClipKeys", error);
+  const keys = new Set(((data ?? []) as Array<{ clip_key: string | null }>).flatMap((r) => (r.clip_key ? [r.clip_key] : [])));
+  approvedCache = { at: Date.now(), keys };
+  return keys;
 }

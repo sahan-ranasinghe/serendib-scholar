@@ -78,6 +78,7 @@
       ],
       "timeWeightMinutes": 9,
       "objective": "9 999 තෙක් කුමන සංඛ්‍යාවක් වුව ද කියවයි. ඉලක්කමෙන් හා වචනයෙන් ලියයි. (Reads any number up to 9 999; writes it in digits and in words.)",
+      "description": "reading any number up to 9 999, and writing it in digits and as its number name",
       "guideSteps": [
         "Display a row of numbers with up to 3 digits and have students read each number's name aloud.",
         "Show what comes after 999 using a build-up: 9+1=10, 99+1=100, 999+1=1000.",
@@ -160,6 +161,7 @@
       ],
       "timeWeightMinutes": 21,
       "objective": "ඉලක්කම් හතරේ සංඛ්‍යාවල ස්ථානීය අගය දක්වයි.",
+      "description": "finding each digit's place in a 4-digit number, its place value, and the value it represents — on the abacus and in the table",
       "guideSteps": [
         "Set up an abacus visible to all students; a student comes forward and represents a number on the abacus.",
         "Ask the class about the digit shown by the beads at each place, the place value at each place, and the value represented by the digit at each place.",
@@ -229,6 +231,7 @@
       ],
       "timeWeightMinutes": 3,
       "objective": "ඉලක්කම් හතරේ සංඛ්‍යාවල ස්ථානීය අගය දක්වයි. (States the place value of digits in 4-digit numbers and writes them in expanded form.)",
+      "description": "writing a 4-digit number in expanded form, as the sum of its place-value parts",
       "guideSteps": [
         "Set up an abacus visible to all students and have a student represent a 4-digit number.",
         "Ask the class to identify the digit shown at each place, the place value, and the value represented by that digit.",
@@ -314,6 +317,7 @@
       ],
       "timeWeightMinutes": 21,
       "objective": "100 000 තෙක් සංඛ්‍යා කියයි. ලියයි. සංඛ්‍යා නාමය ලියයි. දස දහසස්ථානය තෙක් සංඛ්‍යාවල එක් එක් ඉලක්කමෙන් නිරූපිත අගය දක්වයි.",
+      "description": "counting past 9 999 — how a run of 9s rolls over to the next round number — and reading and writing numbers up to 100 000",
       "guideSteps": [
         "Write several numbers close to 9 999 in ascending order and have students say each number name.",
         "Establish the key fact explicitly: 9 999 + 1 = 10 000 (දස දහස).",
@@ -378,6 +382,7 @@
       "textbookContent": [],
       "timeWeightMinutes": 0,
       "objective": "100 000 තෙක් සංඛ්‍යා කියයි. ලියයි. සංඛ්‍යා නාමය ලියයි. (Focusing on writing formatting: separating digits in threes).",
+      "description": "writing numbers of five or more digits with the digits separated in threes from the ones place",
       "guideSteps": [
         "Introduce 99 999 + 1 = 100 000 (සියක් දහස).",
         "Explicit teaching point: when writing large numbers, leave a space starting from the ones place, in groups of three digits moving to the left, to make them easier to read (විශාල සංඛ්‍යා ලිවීමේ දී හඳුනා ගැනීමේ පහසුව සඳහා එකස්ථානයේ සිට වම් පැත්තට ඉලක්කම් තුනෙන් තුනට වෙන් වන බව හඳුන්වා දෙන්න)."
@@ -440,6 +445,7 @@
       ],
       "timeWeightMinutes": 3,
       "objective": "100 000 තෙක් සංඛ්‍යා කියයි. ලියයි. සංඛ්‍යා නාමය ලියයි.",
+      "description": "the ten-thousands place: reading and writing five-digit numbers, with a zero in any place that is empty",
       "guideSteps": [
         "Write numbers close to 9 999 ascending, establishing that 9 999 plus 1 equals 10 000.",
         "Build the ten-thousands sequence up to 100 000 collaboratively with students.",
@@ -518,6 +524,7 @@
       ],
       "timeWeightMinutes": 60,
       "objective": "100 000 තෙක් සංඛ්‍යා කියයි. ලියයි. සංඛ්‍යා නාමය ලියයි. දස දහසස්ථානය තෙක් සංඛ්‍යාවල එක් එක් ඉලක්කමෙන් නිරූපිත අගය දක්වයි.",
+      "description": "finding each digit's place in a 5-digit number and the value it represents, using the place-value table",
       "guideSteps": [
         "Write several numbers close to 9,999 in ascending order and have students say each number name.",
         "Establish explicitly that 9,999 + 1 = 10,000 (දස දහස).",
@@ -590,6 +597,7 @@
       ],
       "timeWeightMinutes": 6,
       "objective": "99 999ට නොවැඩි සංඛ්‍යා ස්ථානීය අගය අනුව විහිදුවා ලියයි. (Writes numbers up to 99 999 in expanded form by place value.)",
+      "description": "writing numbers up to 99 999 in expanded form by place value",
       "guideSteps": [
         "Give students a number below 100 000.",
         "Show the number in a place-value table spanning ten-thousands to ones.",

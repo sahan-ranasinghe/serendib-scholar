@@ -3,7 +3,8 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { AUDIO_BUCKET } from "@/lib/audioCache";
 import { humanClipPath, humanMetaPath, humanOpusPath, rawTakePath, type HumanClipMeta } from "@/lib/humanClips";
 import { processTake, resolveFfmpeg } from "@/lib/actorAudio";
-import { upsertTake } from "@/lib/actorStore";
+import { upsertTake, withdrawApproval } from "@/lib/actorStore";
+import { portalLineById } from "@/lib/portalLines";
 
 /**
  * One kept take, uploaded.
@@ -36,8 +37,6 @@ export async function POST(request: NextRequest) {
   if (!form) return NextResponse.json({ ok: false, error: "expected multipart form data" }, { status: 400 });
 
   const lineId = String(form.get("line_id") ?? "");
-  const text = String(form.get("text") ?? "");
-  const clipKeyForText = String(form.get("clip_key") ?? "");
   const trimStartMs = Number(form.get("trim_start_ms") ?? 0) || 0;
   const trimEndRaw = form.get("trim_end_ms");
   const trimEndMs = trimEndRaw === null || trimEndRaw === "" ? null : Number(trimEndRaw);
@@ -45,9 +44,16 @@ export async function POST(request: NextRequest) {
   const noiseDbfs = form.get("noise_dbfs") === null ? null : Number(form.get("noise_dbfs"));
   const audio = form.get("audio");
 
-  if (!lineId || !clipKeyForText || !(audio instanceof Blob)) {
-    return NextResponse.json({ ok: false, error: "line_id, clip_key and audio are required" }, { status: 400 });
+  if (!lineId || !(audio instanceof Blob)) {
+    return NextResponse.json({ ok: false, error: "line_id and audio are required" }, { status: 400 });
   }
+  // THE WORDS THAT WILL BE SPOKEN decide where her take is stored (29 Sep 2026): the line's text and clip key come from
+  // the server's own list of what the runtime says — her accepted re-wording where there is one — never from the page.
+  // (The page used to send the original words' key with the re-worded text, and a re-worded line lost its recording.)
+  const known = await portalLineById(lineId);
+  if (!known) return NextResponse.json({ ok: false, error: `no such line: ${lineId}` }, { status: 404 });
+  const text = known.line.text;
+  const clipKeyForText = known.clipKey;
   const raw = new Uint8Array(await audio.arrayBuffer());
   if (raw.byteLength === 0) return NextResponse.json({ ok: false, error: "empty take" }, { status: 400 });
   if (raw.byteLength > MAX_TAKE_BYTES) {
@@ -82,7 +88,9 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // 2. The line is now safe, whatever happens next.
+  // 2. The line is now safe, whatever happens next. Its clip is about to change: every approval of it lapses until a
+  //    reviewer hears the new take (only approved takes are served, VOICE_PROFILE=human).
+  await withdrawApproval(clipKeyForText);
   await upsertTake({
     beat_id: lineId,
     clip_key: clipKeyForText,

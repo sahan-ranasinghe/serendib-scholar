@@ -9,7 +9,7 @@ import { Abhaya_Libre, Gemunu_Libre, Inter, Yaldevi } from "next/font/google";
 import "./tokens.css";
 import "./fonts.css";
 import "./globals.css";
-import { APP_NAME_EN, APP_NAME_SI } from "@/lib/appCopy";
+import { APP_NAME_EN, APP_NAME_SI, t } from "@/lib/appCopy";
 
 // The design's four families (tokens.css → --font-display / body / label /
 // latin), self-hosted by next/font. Inter is for parent-zone English only.
@@ -20,7 +20,7 @@ const inter = Inter({ variable: "--font-inter", weight: ["400", "600", "700"], s
 
 export const metadata: Metadata = {
   title: APP_NAME_EN,
-  description: "ඔයාගේම ගුරුතුමිය, ඔයාගේ ෆෝන් එකේ",
+  description: t("splash.tagline"),
   applicationName: APP_NAME_EN,
   appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: APP_NAME_SI },
   icons: { icon: "/icons/icon-192.png", apple: "/icons/icon-192.png" },

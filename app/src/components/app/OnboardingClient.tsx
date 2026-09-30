@@ -5,7 +5,8 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import { ConsentStep, OnboardingCta, OnboardingScreen, OnboardingSkip, PayStep, PhoneStep, ProfileStep } from "./screens/Onboarding";
 import { AccessCodeGate } from "./AccessCodeGate";
 import { sx } from "./sx";
-import { AVATARS, t } from "@/lib/appCopy";
+import { t } from "@/lib/appCopy";
+import { AVATAR_IDS } from "@/lib/avatars";
 import { ensureSession, postJson } from "@/lib/clientSession";
 import { useAppState } from "@/lib/appStore";
 
@@ -102,7 +103,7 @@ export function OnboardingClient({ step, stub, smsMode = "dev", siblingOf }: { s
       }
       router.push("/onboarding/2");
     } else if (step === 2) {
-      const r = await postJson<{ ok: boolean; child_id: string }>("/api/onboarding/profile", { name, grade, avatar: avatar === null ? null : AVATARS[avatar], school, sibling_of: siblingOf ?? undefined });
+      const r = await postJson<{ ok: boolean; child_id: string }>("/api/onboarding/profile", { name, grade, avatar: avatar === null ? null : (AVATAR_IDS[avatar] ?? null), school, sibling_of: siblingOf ?? undefined });
       if (!r.ok) return fail(r);
       // A new child on this device: whatever the store cached belonged to someone else.
       clearAppState();

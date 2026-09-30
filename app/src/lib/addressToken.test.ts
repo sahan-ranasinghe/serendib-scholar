@@ -42,7 +42,8 @@ test("resolution covers every speakable field of a beat", () => {
 test("no authored line hard-codes an address word; tokens only", () => {
   for (const value of [...Object.values(AUTHORED_LINES), ...Object.values(RETEACH_LINES)]) {
     for (const line of Array.isArray(value) ? value : [value]) {
-      assert.ok(!/පුතේ|දුවේ/u.test(line), `hard-coded address in: ${line}`);
+      // Whole words only: "හැදුවේ" (built) ends in the letters of දුවේ and is no address.
+      assert.ok(!/(^|[\s,.!?—])(පුතේ|දුවේ)(?=$|[\s,.!?—])/u.test(line), `hard-coded address in: ${line}`);
     }
   }
 });

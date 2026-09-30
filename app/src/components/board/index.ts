@@ -5,7 +5,7 @@
  */
 export { Whiteboard, type WhiteboardProps, type Viewport } from "./Whiteboard";
 export { Abacus, type AbacusProps } from "./Abacus";
-export { PlaceValueStrip, PLACE_LABELS, type PlaceValueStripProps } from "./PlaceValueStrip";
+export { PlaceValueStrip, PLACE_LABEL_KEYS, type PlaceValueStripProps } from "./PlaceValueStrip";
 export { Expansion, partValue, type ExpansionProps, type ExpansionFlight } from "./Expansion";
 export { DigitPicker, type DigitPickerProps } from "./DigitPicker";
 export { NumberCards, type NumberCardsProps } from "./NumberCards";

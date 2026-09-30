@@ -22,8 +22,10 @@ import { HandNumber } from "./HandNumber";
 import { useTargetRef } from "./targets";
 import { BOARD, FONT_LABEL, FONT_SINHALA, SPRING_BOUNCY, TOUCH_MIN } from "./tokens";
 import { playSound } from "./sound";
+import { t, type CopyKey } from "@/lib/appCopy";
 
-export const PLACE_LABELS = ["දස දහසේ ඒවා", "දහසේ ඒවා", "සියයේ ඒවා", "දහයේ ඒවා", "එකේ ඒවා"];
+/** The columns' names, from the copy sheet (board.place.*), right-aligned like the rods. */
+export const PLACE_LABEL_KEYS: readonly CopyKey[] = ["board.place.tenThousands", "board.place.thousands", "board.place.hundreds", "board.place.tens", "board.place.ones"];
 
 export interface PlaceValueStripProps {
   digits: Array<number | null>;
@@ -40,7 +42,7 @@ export interface PlaceValueStripProps {
 
 export function PlaceValueStrip({ digits, glowColumn = null, interactive = false, onDigit, byChild = [], dropping = null }: PlaceValueStripProps) {
   const columns = digits.length;
-  const labels = PLACE_LABELS.slice(PLACE_LABELS.length - columns);
+  const labels = PLACE_LABEL_KEYS.slice(PLACE_LABEL_KEYS.length - columns).map((key) => t(key));
   const [active, setActive] = useState<number | null>(null);
   const number = digits.every((d) => d !== null) ? Number(digits.join("")) : null;
   const rootRef = useTargetRef(["component:placeValueStrip", ...(number !== null ? [`number:${number}`] : [])]);

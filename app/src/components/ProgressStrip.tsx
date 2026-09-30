@@ -1,5 +1,7 @@
 "use client";
 
+import { t } from "@/lib/appCopy";
+
 /**
  * The strip's concept stops, from the design: circles 10 px (the current
  * one 14 px), done ones filled green, the current saffron, the rest
@@ -17,7 +19,7 @@ export interface ConceptStop {
 export function ProgressStrip({ stops }: { stops: ConceptStop[] }) {
   if (stops.length === 0) return null;
   return (
-    <div style={{ display: "flex", gap: 7, alignItems: "center", padding: "0 10px" }} data-testid="progress-strip" aria-label="පාඩමේ කොටස්">
+    <div style={{ display: "flex", gap: 7, alignItems: "center", padding: "0 10px" }} data-testid="progress-strip" aria-label={t("progress.lessonParts")}>
       {stops.map((stop) => {
         const done = stop.status === "done" || stop.status === "mastered";
         const current = stop.status === "current";
@@ -43,7 +45,7 @@ export function ProgressStrip({ stops }: { stops: ConceptStop[] }) {
             }}
           >
             {stop.status === "mastered" && (
-              <span data-testid="stop-star" aria-label="ප්‍රවීණයි">
+              <span data-testid="stop-star" aria-label={t("progress.masteredStar")}>
                 ★
               </span>
             )}

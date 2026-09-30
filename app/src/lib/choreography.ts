@@ -27,6 +27,7 @@ import type { LessonComponent, PlaceValueBreakdownRow, PlaceValueNumberNameRow }
 import type { Target, TurnSurface } from "@/components/board/events";
 import { VOCABULARY } from "@/components/board/events";
 import { sinhalaNumberName } from "@/lib/sinhalaNumber";
+import { t, type CopyKey } from "@/lib/appCopy";
 
 // --- the storyboard file ----------------------------------------------------
 
@@ -605,16 +606,17 @@ function safeName(value: number): string {
 
 // --- the runtime's older boards, on the same stage ------------------------
 
+// The columns' names are copy (board.col.*): shorter than the textbook's own headings on purpose (the quiz uses those).
 const BREAKDOWN_COLUMNS: TableColumn[] = [
-  { key: "number", label: "සංඛ්‍යාව" },
-  { key: "digit", label: "ඉලක්කම" },
-  { key: "place", label: "ස්ථානය" },
-  { key: "placeValue", label: "ස්ථානීය අගය" },
-  { key: "valueRepresented", label: "අගය" },
+  { key: "number", label: t("board.col.number") },
+  { key: "digit", label: t("board.col.digit") },
+  { key: "place", label: t("board.col.place") },
+  { key: "placeValue", label: t("board.col.placeValue") },
+  { key: "valueRepresented", label: t("board.col.value") },
 ];
 const NUMBER_NAME_COLUMNS: TableColumn[] = [
-  { key: "number", label: "සංඛ්‍යාව" },
-  { key: "numberName", label: "සංඛ්‍යා නාමය" },
+  { key: "number", label: t("board.col.number") },
+  { key: "numberName", label: t("board.col.numberName") },
 ];
 
 /** A text card that is a row of numbers is a row of cards, never chalk. */
@@ -792,35 +794,16 @@ function describeBase(stage: StageState): string {
 // --- concepts, in the child's language -----------------------------------
 
 /** Sinhala titles for the progress strip and the session card. */
-export const CONCEPT_TITLES: Record<string, string> = {
-  lessonOpening: "පාඩම පටන් ගමු",
-  readWrite4Digit: "සංඛ්‍යා කියවමු, ලියමු",
-  placeValue4Digit: "ස්ථානීය අගය",
-  abacusRepresentation: "ගණක රාමුව",
-  expandedForm: "විහිදුවා ලිවීම",
-  compareNumbers: "සංඛ්‍යා සසඳමු",
-  orderNumbers: "පිළිවෙළට තබමු",
-  numberNames: "සංඛ්‍යා නාම",
-  fiveDigit: "ඉලක්කම් පහේ සංඛ්‍යා",
-  // The design's remaining concept tags (docs/design/maths-5-1.json), so a child's board never shows a raw tag.
-  expandedForm4Digit: "විහිදුවා ලිවීම",
-  beyond9999: "9 999ට එහා",
-  digitGroupingRule: "ඉලක්කම් කණ්ඩායම්",
-  tenThousandsPlace: "දසදහසස්ථානය",
-  placeValueTable5Digit: "ස්ථානීය අගය · ඉලක්කම් පහ",
-  expandedForm5Digit: "විහිදුවා ලිවීම · ඉලක්කම් පහ",
-};
+/** The concepts' names on the board, the cards and the certificate — copy (concept.<tag>), one per concept tag. */
+const CONCEPT_TAGS_WITH_TITLES = ["lessonOpening", "readWrite4Digit", "placeValue4Digit", "abacusRepresentation", "expandedForm", "compareNumbers", "orderNumbers", "numberNames", "fiveDigit", "expandedForm4Digit", "beyond9999", "digitGroupingRule", "tenThousandsPlace", "placeValueTable5Digit", "expandedForm5Digit"] as const;
+export const CONCEPT_TITLES: Record<string, string> = Object.fromEntries(CONCEPT_TAGS_WITH_TITLES.map((tag) => [tag, t(`concept.${tag}` as CopyKey)]));
 
 export function conceptTitle(tag: string, fallback?: string | null): string {
   return CONCEPT_TITLES[tag] ?? fallback ?? tag;
 }
 
 /** The textbook exercises a session works, by content_bank id prefix — named on the session's close card and the lesson detail. */
-export const ITEM_TITLES: Record<string, string> = {
-  "7b58e436": "ස්ථානීය අගය වගුව",
-  "4c2aa078": "සංඛ්‍යා නාම වගුව",
-  "7daf0141": "ඉලක්කම් කාඩ්පත් ප්‍රහේලිකාව",
-};
+export const ITEM_TITLES: Record<string, string> = Object.fromEntries(["7b58e436", "4c2aa078", "7daf0141"].map((prefix) => [prefix, t(`item.${prefix}` as CopyKey)]));
 
 export function itemTitle(itemId: string): string | null {
   return ITEM_TITLES[itemId.slice(0, 8)] ?? null;

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { upsertLine } from "@/lib/actorStore";
+import { listLines, upsertLine } from "@/lib/actorStore";
+import { statusAfterNote } from "@/lib/portalRules";
 
 /**
  * A note against one line: "this sentence is awkward", "say X instead".
@@ -16,11 +17,15 @@ export async function POST(request: NextRequest) {
   const originalText = typeof body.original_text === "string" ? body.original_text : "";
   if (!beatId) return NextResponse.json({ ok: false, error: "beat_id is required" }, { status: 400 });
 
+  // A note is a note: it never changes a decision already made on the line. An accepted re-wording stays accepted (it
+  // used to be reset to note_only, and the re-wording silently dropped out of the script), a rejected one stays
+  // rejected; only a line with no decision is marked note_only. The original words are the stored ones, if any.
+  const existing = (await listLines()).find((line) => line.beat_id === beatId);
   await upsertLine({
     beat_id: beatId,
-    original_text: originalText,
+    original_text: existing?.original_text || originalText,
     note: note || null,
-    status: "note_only",
+    status: statusAfterNote(existing?.status),
   });
   return NextResponse.json({ ok: true });
 }

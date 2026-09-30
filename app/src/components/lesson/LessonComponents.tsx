@@ -132,7 +132,7 @@ function AnswerCell({
     return (
       <span className="inline-flex flex-col items-center gap-1">
         <span className="rounded-full bg-rose-500 px-2 py-0.5 text-[10px] font-semibold whitespace-nowrap text-white">
-          දැන් මේක
+          {t("legacy.thisOne")}
         </span>
         <form
           onSubmit={(e) => {
@@ -149,13 +149,13 @@ function AnswerCell({
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             placeholder="?"
-            aria-label="ඔබේ පිළිතුර ටයිප් කරන්න"
+            aria-label={t("legacy.typeAnswer")}
             className="h-8 w-20 rounded border-2 border-dashed border-rose-500 bg-rose-50 px-2 text-center text-sm font-semibold text-rose-900 focus:border-solid focus:ring-2 focus:ring-rose-300 focus:outline-none"
           />
           <button
             type="submit"
             disabled={!draft.trim()}
-            aria-label="පිළිතුර යවන්න"
+            aria-label={t("legacy.sendAnswer")}
             className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-rose-500 text-sm text-white shadow-sm disabled:opacity-40"
           >
             ➤
@@ -183,7 +183,7 @@ function DigitPickerPuzzleView({ availableDigits, exampleAnswer, instructions }:
         ))}
       </div>
       <p className="text-sm text-orange-600">
-        උදාහරණයක්: <span className="font-semibold">{exampleAnswer}</span>
+        {t("legacy.example")} <span className="font-semibold">{exampleAnswer}</span>
       </p>
     </div>
   );
@@ -198,8 +198,8 @@ function PlaceValueTableView(props: PlaceValueTableProps & BlankState) {
         <table className="w-full min-w-max border-collapse overflow-hidden rounded-xl text-left">
           <thead>
             <tr className="bg-orange-400 text-white">
-              <th className="px-4 py-2 text-sm font-semibold whitespace-nowrap">ඉලක්කම</th>
-              <th className="px-4 py-2 text-sm font-semibold whitespace-nowrap">නම</th>
+              <th className="px-4 py-2 text-sm font-semibold whitespace-nowrap">{t("board.col.digit")}</th>
+              <th className="px-4 py-2 text-sm font-semibold whitespace-nowrap">{t("legacy.col.name")}</th>
             </tr>
           </thead>
           <tbody>
@@ -224,11 +224,11 @@ function PlaceValueTableView(props: PlaceValueTableProps & BlankState) {
       <table className="w-full min-w-max border-collapse overflow-hidden rounded-xl text-left">
         <thead>
           <tr className="bg-orange-400 text-white">
-            <th className="px-4 py-2 text-sm font-semibold whitespace-nowrap">සංඛ්‍යාව</th>
-            <th className="px-4 py-2 text-sm font-semibold whitespace-nowrap">ඉලක්කම</th>
-            <th className="px-4 py-2 text-sm font-semibold whitespace-nowrap">ස්ථානය</th>
-            <th className="px-4 py-2 text-sm font-semibold whitespace-nowrap">ස්ථානීය අගය</th>
-            <th className="px-4 py-2 text-sm font-semibold whitespace-nowrap">නිරූපිත අගය</th>
+            <th className="px-4 py-2 text-sm font-semibold whitespace-nowrap">{t("board.col.number")}</th>
+            <th className="px-4 py-2 text-sm font-semibold whitespace-nowrap">{t("board.col.digit")}</th>
+            <th className="px-4 py-2 text-sm font-semibold whitespace-nowrap">{t("board.col.place")}</th>
+            <th className="px-4 py-2 text-sm font-semibold whitespace-nowrap">{t("board.col.placeValue")}</th>
+            <th className="px-4 py-2 text-sm font-semibold whitespace-nowrap">{t("legacy.col.value")}</th>
           </tr>
         </thead>
         <tbody>
@@ -353,9 +353,9 @@ function SequenceTableView({ rows, filledAnswers, activeBlank, onSubmitTypedAnsw
       <table className="w-full min-w-max border-collapse overflow-hidden rounded-xl text-left">
         <thead>
           <tr className="bg-orange-400 text-white">
-            <th className="px-4 py-2 text-sm font-semibold whitespace-nowrap">පෙර සංඛ්‍යාව</th>
-            <th className="px-4 py-2 text-sm font-semibold whitespace-nowrap">සංඛ්‍යාව</th>
-            <th className="px-4 py-2 text-sm font-semibold whitespace-nowrap">පසු සංඛ්‍යාව</th>
+            <th className="px-4 py-2 text-sm font-semibold whitespace-nowrap">{t("legacy.col.before")}</th>
+            <th className="px-4 py-2 text-sm font-semibold whitespace-nowrap">{t("board.col.number")}</th>
+            <th className="px-4 py-2 text-sm font-semibold whitespace-nowrap">{t("legacy.col.after")}</th>
           </tr>
         </thead>
         <tbody>

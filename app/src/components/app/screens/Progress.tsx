@@ -2,6 +2,7 @@ import ZaraCharacter from "@/components/ZaraCharacter";
 import { BottomNav, Ring, Screen } from "../Screen";
 import { sx } from "../sx";
 import { t } from "@/lib/appCopy";
+import { MASTERY_PERCENT } from "@/lib/settings";
 import type { ProgressData } from "@/lib/appTypes";
 
 /** Screens C · Progress (child) — mastery map. */
@@ -17,7 +18,7 @@ export function ProgressScreen({ data, frame }: { data: ProgressData; frame?: bo
       </div>
       <div style={sx("padding:16px 20px 0;display:grid;gap:8px")}>
         {data.rows.map((m) => {
-          const c = m.pct >= 85 ? "#3C8C5A" : m.pct > 0 ? "#E9B44C" : "rgba(27,27,27,.3)";
+          const c = m.pct >= MASTERY_PERCENT ? "#3C8C5A" : m.pct > 0 ? "#E9B44C" : "rgba(27,27,27,.3)";
           return (
             <div key={m.title} data-testid="mastery-row" style={sx("display:flex;align-items:center;gap:12px;background:var(--color-paper);border:2px solid var(--color-ink-10);border-radius:14px;padding:8px 12px")}>
               <Ring size={48} color={c} fraction={m.pct / 100} />

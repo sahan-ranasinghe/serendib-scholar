@@ -13,6 +13,8 @@
  * The concept list below follows the guide's four activities, in order.
  */
 
+import DESIGN_DATA_JSON from "@/data/lessons/design/maths-5-1.json";
+
 /** The guide-derived concepts, in teaching order. */
 export const DESIGN_CONCEPTS = [
   "readWrite4Digit",
@@ -40,30 +42,38 @@ export const CONCEPT_ACTIVITY: Record<DesignConceptTag, 1 | 2 | 3 | 4> = {
 };
 
 /**
+ * The design file's concepts, as the app reads them: generated from docs/design/maths-5-1.json by
+ * `npm run generate:design` (the design file is the one source; src/lib/lessonDesign.test.ts fails if the two drift).
+ */
+const DESIGN_DATA = DESIGN_DATA_JSON as { concepts: Array<{ conceptTag: DesignConceptTag; description: string; objective: string; vocabularyIntroduced: string[] }> };
+
+/**
  * The guide's vocabulary terms, each pinned to the concept that INTRODUCES
- * it. The author asserts a term never appears in any earlier concept's
- * speech — introducing දස දහසස්ථානය while still on 4-digit numbers is
- * exactly the kind of drift a generator will do unchecked.
+ * it — each concept's `vocabularyIntroduced` in the design file. The author
+ * asserts a term never appears in any earlier concept's speech —
+ * introducing දස දහසස්ථානය while still on 4-digit numbers is exactly the
+ * kind of drift a generator will do unchecked.
  *
  * සංඛ්‍යාංකය is deliberately ABSENT. It is a guide term, but both native
  * reviewers independently struck it from every beat that used it, without
  * being asked: said aloud to one child it is a bookish way of pointing at
  * ඉලක්කම්. The child still meets it — it is printed in the textbook — but
- * from the page, not from Zara. Listing it here would have the gate expect
- * speech that should not exist.
+ * from the page, not from Zara. The design file lists it under
+ * `vocabularyNotSpoken` instead, so the gate never expects speech that
+ * should not exist.
  */
-export const VOCABULARY_INTRODUCED_BY: Record<string, DesignConceptTag> = {
-  "සංඛ්‍යාව": "readWrite4Digit",
-  "සංඛ්‍යා නාමය": "readWrite4Digit",
-  "එකස්ථානය": "placeValue4Digit",
-  "දහයස්ථානය": "placeValue4Digit",
-  "සියයස්ථානය": "placeValue4Digit",
-  "දහසස්ථානය": "placeValue4Digit",
-  "ස්ථානීය අගය": "placeValue4Digit",
-  "දස දහස": "beyond9999",
-  "සියක් දහස": "beyond9999",
-  "දස දහසස්ථානය": "tenThousandsPlace",
-};
+export const VOCABULARY_INTRODUCED_BY: Record<string, DesignConceptTag> = Object.fromEntries(
+  DESIGN_DATA.concepts.flatMap((concept) => concept.vocabularyIntroduced.map((term) => [term, concept.conceptTag])),
+);
+
+/**
+ * One English line per design concept — what it teaches, for the lesson's goal lines, the close card's preview and
+ * the ✋ chat's context. From the design file's `description` (they used to be keyed by the pre-design concept tags,
+ * so every design concept got none).
+ */
+export const CONCEPT_DESCRIPTIONS: Record<DesignConceptTag, string> = Object.fromEntries(
+  DESIGN_DATA.concepts.map((concept) => [concept.conceptTag, concept.description]),
+) as Record<DesignConceptTag, string>;
 
 /**
  * Textbook step → design concept. The textbook is walked in page order
@@ -105,8 +115,12 @@ export interface ConceptDesign {
   activity: 1 | 2 | 3 | 4;
   /** From A: the ඉගෙනුම් ඵල this concept serves. */
   objective: string;
-  /** From A, in the order A introduces them. */
+  /** Hand-written: one English line on what the concept teaches (the goal lines, the close card, the chat). */
+  description?: string;
+  /** From A, in the order A introduces them — THE source of VOCABULARY_INTRODUCED_BY. */
   vocabularyIntroduced: string[];
+  /** Hand-written: guide terms Zara must never say, with why (authoredLines.test enforces it on the reteach lines). */
+  vocabularyNotSpoken?: { terms: string[]; why: string };
   /** A's පියවර for this activity — official text, verbatim-safe. */
   guideSteps: string[];
   /** From B: pages, theory boxes, examples, exercise ids, in page order. */

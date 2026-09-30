@@ -1,5 +1,6 @@
 "use client";
 
+import { t } from "@/lib/appCopy";
 import { useEffect, useMemo, useState } from "react";
 import storyboardJson from "@/data/storyboard/maths-5-1-session-1.json";
 import type { Storyboard } from "@/lib/choreography";
@@ -35,6 +36,7 @@ export function DesignPreview({ frameId }: { frameId: string }) {
         : null;
   return (
     <SessionShell
+      title={`${t("brand.maths")} · ${t("lesson.1")}`}
       stage={staged.stage}
       yourTurn={staged.yourTurn}
       zaraState={frame.zara}
@@ -87,6 +89,7 @@ export function BeatPreview({ beatId, moment }: { beatId: string; moment: BeatMo
   if (!staged) return <div style={{ padding: 24, font: "14px/1.5 var(--font-latin)" }}>Unknown beat “{at.beatId}”.</div>;
   return (
     <SessionShell
+      title={`${t("brand.maths")} · ${t("lesson.1")}`}
       stage={staged.stage}
       yourTurn={staged.yourTurn}
       zaraState="talking"

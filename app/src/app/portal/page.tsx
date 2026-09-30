@@ -28,13 +28,14 @@ import { PortalGate } from "./PortalGate";
 import { LineList } from "./LineList";
 import { TrimEditor } from "./TrimEditor";
 import { LevelMeter, StopRing } from "./LevelMeter";
-import type { PortalLine, UploadState } from "./types";
+import type { PortalCoverage, PortalLine, UploadState } from "./types";
 import { audio } from "@/lib/audioManager";
 
 export default function PortalPage() {
   useRenderGuard("PortalPage");
   const [unlocked, setUnlocked] = useState<boolean | null>(null);
   const [lines, setLines] = useState<PortalLine[]>([]);
+  const [coverage, setCoverage] = useState<PortalCoverage | null>(null);
   const [index, setIndex] = useState(0);
   const [loadNote, setLoadNote] = useState("Loading…");
   const [pendingTake, setPendingTake] = useState<{ blob: Blob; durationMs: number; peakDbfs: number; noiseDbfs: number } | null>(null);
@@ -55,6 +56,7 @@ export default function PortalPage() {
     }
     const payload = await response.json();
     setLines(payload.lines ?? []);
+    setCoverage(payload.coverage ?? null);
     setLoadNote(payload.lines?.length ? "" : (payload.note ?? "Nothing authored yet."));
     setUnlocked(true);
   }, []);
@@ -112,8 +114,6 @@ export default function PortalPage() {
       setUploads((prev) => ({ ...prev, [line.id]: { state: "uploading", attempts: (prev[line.id]?.attempts ?? 0) + 1 } }));
       const form = new FormData();
       form.set("line_id", line.id);
-      form.set("text", line.canonicalText);
-      form.set("clip_key", line.clipKey);
       form.set("trim_start_ms", String(trim.startMs));
       if (trim.endMs != null) form.set("trim_end_ms", String(trim.endMs));
       form.set("peak_dbfs", String(take.peakDbfs));
@@ -167,9 +167,10 @@ export default function PortalPage() {
   const playPreviousIntoCurrent = useCallback(async () => {
     const previous = lines[index - 1];
     const play = (key: string) => audio.playUrl(`/api/portal/clip/${key}`, `take ${key}`).then(() => undefined);
-    if (previous?.take?.status === "saved" && previous.take.clipKey) await play(previous.take.clipKey);
+    const kept = (status: string | undefined) => status === "saved" || status === "approved";
+    if (kept(previous?.take?.status) && previous?.take?.clipKey) await play(previous.take.clipKey);
     if (pendingTake) playBlob(pendingTake.blob);
-    else if (current?.take?.status === "saved" && current.take.clipKey) await play(current.take.clipKey);
+    else if (kept(current?.take?.status) && current?.take?.clipKey) await play(current.take.clipKey);
   }, [lines, index, pendingTake, current, playBlob]);
 
   const playReference = useCallback(() => {
@@ -224,18 +225,13 @@ export default function PortalPage() {
     return () => window.removeEventListener("keydown", onKey);
   }, [recorder, record, keep, move, pendingTake]);
 
+  // Progress is THE coverage count the server computes (src/lib/voiceCoverage.ts) — the same number /portal/status,
+  // portal:coverage and the dry run show — never a second count made here.
   const progress = useMemo(() => {
-    const done = lines.filter((line) => line.take?.status === "saved").length;
-    const ms = lines.reduce((sum, line) => sum + (line.take?.status === "saved" ? (line.take.durationMs ?? 0) : 0), 0);
-    const byConcept = new Map<string, { total: number; done: number }>();
-    for (const line of lines) {
-      const entry = byConcept.get(line.concept) ?? { total: 0, done: 0 };
-      entry.total += 1;
-      if (line.take?.status === "saved") entry.done += 1;
-      byConcept.set(line.concept, entry);
-    }
-    return { done, total: lines.length, minutes: Math.round((ms / 60000) * 10) / 10, byConcept: [...byConcept] };
-  }, [lines]);
+    const kept = (status: string | undefined) => status === "saved" || status === "approved";
+    const ms = lines.reduce((sum, line) => sum + (kept(line.take?.status) ? (line.take?.durationMs ?? 0) : 0), 0);
+    return { done: coverage?.recorded ?? 0, total: coverage?.needed ?? lines.length, minutes: Math.round((ms / 60000) * 10) / 10 };
+  }, [lines, coverage]);
 
   if (unlocked === null) return <main className="p-8 text-stone-500">Loading…</main>;
   if (!unlocked) return <PortalGate onUnlocked={() => void load()} />;
@@ -409,7 +405,9 @@ export default function PortalPage() {
                 {upload.attempts > 1 && ` (attempt ${upload.attempts})`} — retrying.
               </span>
             )}
-            {current.take?.status === "saved" && <span className="text-emerald-700">Saved ✓ {Math.round((current.take.durationMs ?? 0) / 100) / 10}s</span>}
+            {current.take?.status === "saved" && <span className="text-emerald-700">Saved ✓ {Math.round((current.take.durationMs ?? 0) / 100) / 10}s — awaiting review</span>}
+            {current.take?.status === "approved" && <span className="text-emerald-800">Approved ✓ {Math.round((current.take.durationMs ?? 0) / 100) / 10}s</span>}
+            {current.take?.status === "rejected" && <span className="text-rose-800">Not approved — please record it again</span>}
             {current.take?.status === "pending_processing" && <span className="text-sky-700">Saved ✓ (conditioning pending)</span>}
           </p>
         </section>

@@ -15,9 +15,10 @@
  *   childAnswer  the child's number, second colour, or null
  */
 import { useEffect, useRef, useState } from "react";
+import { t, type CopyKey } from "@/lib/appCopy";
 
-/** Right-aligned rod labels: … දස දහස, දහස, සිය, දහය, එක. */
-const ROD_LABELS = ["ලක්", "දද", "දා", "සි", "ද", "එ"];
+/** Right-aligned rod labels (hundred-thousands … ones), from the copy sheet. */
+const ROD_LABELS: readonly CopyKey[] = ["legacy.rod.lakhs", "legacy.rod.tenThousands", "board.rod.thousands", "board.rod.hundreds", "board.rod.tens", "board.rod.ones"];
 
 const BEAD_COLORS = ["#D9534F", "#E8A33D", "#4C9E6B", "#4A7DBF", "#8A5BB8"];
 const SELF_ANIMATE_STEP_MS = 420;
@@ -68,7 +69,7 @@ export default function AnimatedAbacus({ digits, shown, selfAnimate, childAnswer
   }, [selfAnimate, animKey, digits]);
 
   const effectiveShown = selfAnimate ? selfShown : shown;
-  const labels = ROD_LABELS.slice(ROD_LABELS.length - digits.length);
+  const labels = ROD_LABELS.slice(ROD_LABELS.length - digits.length).map((key) => t(key));
 
   return (
     <div className="flex w-full flex-col items-center gap-3" data-testid="animated-abacus">
@@ -108,7 +109,7 @@ export default function AnimatedAbacus({ digits, shown, selfAnimate, childAnswer
       {/* the child's own number, second colour, for comparison */}
       {childAnswer && (
         <div className="text-xl font-bold text-sky-600 sm:text-2xl" data-testid="abacus-child-answer">
-          ඔයාගේ උත්තරය: {childAnswer}
+          {t("legacy.childAnswer", { answer: childAnswer })}
         </div>
       )}
       <style>{`

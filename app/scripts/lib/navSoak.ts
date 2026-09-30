@@ -22,6 +22,7 @@
  * the ⏮ targets' clips are fetched cold — the Slow 3G latency is real.
  */
 import { evaluate, wait, type Cdp } from "./cdp";
+import { ariaSel } from "./copyText";
 import { analyseTruth, COLLECT_TRUTH_JS, type TruthLog, type TruthSummary } from "./audioTruth";
 
 export interface SoakBeat {
@@ -143,7 +144,7 @@ export async function runNavSoak(page: Cdp, beats: SoakBeat[], origins: number[]
       for (let i = 0; i < 400 && !(await ended()); i += 1) await wait(25);
     }
     const tPause = await now();
-    await tapSelector('[aria-label="විරාමය"]');
+    await tapSelector(ariaSel("session.pause"));
     for (let i = 0; i < 40 && !(await evaluate<boolean>(page, `!!document.querySelector('[data-testid="playback-panel"]')`)); i += 1) await wait(75);
     await wait(500);
     for (let i = 0; i < steps; i += 1) {

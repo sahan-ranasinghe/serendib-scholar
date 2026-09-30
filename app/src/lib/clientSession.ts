@@ -1,5 +1,7 @@
 "use client";
 
+import { DEFAULT_DAILY_LIMIT } from "@/lib/settings";
+
 /**
  * The browser's side of /api/session-start: every app page that calls an
  * API needs the session cookie it mints (see proxy.ts). "locked" means
@@ -20,7 +22,7 @@ export async function ensureSession(accessCode?: string): Promise<{ status: "ok"
     });
     if (response.ok) {
       const json = await response.json();
-      return { status: "ok", info: { settings: json.settings ?? { captions: true, sound: true, dailyLimitMinutes: 30 }, minutesToday: json.minutes_today ?? 0 } };
+      return { status: "ok", info: { settings: json.settings ?? { captions: true, sound: true, dailyLimitMinutes: DEFAULT_DAILY_LIMIT }, minutesToday: json.minutes_today ?? 0 } };
     }
     if (response.status === 401) {
       const payload = await response.json().catch(() => ({}));

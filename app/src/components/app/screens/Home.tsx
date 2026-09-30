@@ -4,6 +4,7 @@ import LenaCharacter from "@/components/LenaCharacter";
 import { ArtSlot, BottomNav, Ring, Screen } from "../Screen";
 import { sx } from "../sx";
 import { t } from "@/lib/appCopy";
+import { PRACTICE_MINUTES, STICKER_SLOTS } from "@/lib/settings";
 import type { HomeData } from "@/lib/appTypes";
 
 /** The first letter of a name as a reader sees it (a Sinhala letter with its vowel sign is one). */
@@ -89,7 +90,7 @@ export function HomeScreen({ data, frame, start, child }: { data: HomeData; fram
             <Link href="/practice" style={sx(card)}>
               <span style={sx("width:12px;height:12px;border-radius:50%;background:var(--color-success)")} />
               <span style={sx("font:700 20px/1.5 var(--font-display);color:var(--color-ink)")}>{t("home.practice")}</span>
-              <span style={sx("font:600 20px/1.5 var(--font-label);color:var(--color-ink-70)")}>{t("common.minutesN", { n: 3 })}</span>
+              <span style={sx("font:600 20px/1.5 var(--font-label);color:var(--color-ink-70)")}>{t("common.minutesN", { n: PRACTICE_MINUTES })}</span>
             </Link>
             <Link href="/practice" style={sx(card)}>
               <span style={sx("width:12px;height:12px;border-radius:50%;background:var(--color-coral)")} />
@@ -114,7 +115,7 @@ export function HomeScreen({ data, frame, start, child }: { data: HomeData; fram
             <ArtSlot size={28} />
           </div>
           <div style={sx("flex:1;display:grid")}>
-            <span style={sx("font:700 20px/1.5 var(--font-display);color:var(--color-ink)")}>{data.badge ? t("home.newBadge", { name: data.badge.name }) : t("home.badgesCount", { earned: 0, total: 12 })}</span>
+            <span style={sx("font:700 20px/1.5 var(--font-display);color:var(--color-ink)")}>{data.badge ? t("home.newBadge", { name: data.badge.name }) : t("home.badgesCount", { earned: 0, total: STICKER_SLOTS })}</span>
             <span style={sx("font:600 20px/1.5 var(--font-label);color:var(--color-ink-70)")}>{data.badge ? t("home.badgeReason", { concept: data.badge.conceptTitle }) : t("common.notYet")}</span>
           </div>
           <span style={sx("font:20px/1 var(--font-latin);color:var(--color-ink-40)")}>›</span>

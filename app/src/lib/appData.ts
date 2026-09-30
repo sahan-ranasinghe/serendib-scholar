@@ -3,7 +3,8 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { getActiveChild, getActiveChildId } from "@/lib/activeChild";
 import { readChildExtras, type ChildExtras } from "@/lib/childStore";
 import { conceptTitle, itemTitle } from "@/lib/choreography";
-import { DAY_LETTERS, LESSON_NAMES, OUTFITS, STICKERS, STICKER_SLOTS, t } from "@/lib/appCopy";
+import { DAY_LETTERS, LESSON_NAMES, OUTFITS, STICKERS, t } from "@/lib/appCopy";
+import { MASTERY_PERCENT, PRACTICE_MINUTES, STICKER_SLOTS, stickersForOutfit } from "@/lib/settings";
 import type { CertificateData, HomeData, LessonDetailData, LessonMapData, MapNode, NodeKind, ParentZoneData, PracticeData, ProfilesData, ProgressData, ReportData, RewardsData, SummaryData } from "@/lib/appTypes";
 import type { LessonScript } from "@/lib/lessonOrchestrator";
 
@@ -19,13 +20,13 @@ import type { LessonScript } from "@/lib/lessonOrchestrator";
  * (name, grade, settings, PIN).
  *
  * Mastery, in one place: a concept's score is correct ÷ answered from
- * child_progress. MASTERED at ≥ 85 % with at least three answers; a lesson's
+ * child_progress. MASTERED at MASTERY_PERCENT (src/lib/settings.ts) with at least three answers; a lesson's
  * stars are its mastered concepts scaled to three; a mastered concept earns
  * the next sticker; the latest one has a certificate.
  */
 
 const TZ = "Asia/Colombo";
-const MASTERY_PCT = 85;
+const MASTERY_PCT = MASTERY_PERCENT;
 const MASTERY_MIN_ANSWERS = 3;
 const GOOD_PCT = 60;
 const BEST_PCT = 95;
@@ -429,7 +430,7 @@ export async function practiceData(state: ChildState): Promise<PracticeData> {
     .filter((tag) => (counts.get(tag) ?? 0) > 0)
     .map((tag) => {
       const m = mastery.get(tag);
-      return { tag, title: title(tag, state.lessons), sub: t("practice.rowSub", { n: Math.min(5, counts.get(tag) ?? 0) }), pct: m ? m.pct : null };
+      return { tag, title: title(tag, state.lessons), sub: t("practice.rowSub", { minutes: PRACTICE_MINUTES, n: Math.min(5, counts.get(tag) ?? 0) }), pct: m ? m.pct : null };
     })
     .sort((a, b) => (a.pct ?? 50) - (b.pct ?? 50));
   return { rows };
@@ -446,7 +447,7 @@ export function rewardsData(state: ChildState): RewardsData {
     certificates: masteredInOrder.length,
     stickers,
     // Outfits are earned one per three stickers; none of the art exists yet (docs/design/art-needed.md).
-    outfits: OUTFITS.map((o, i) => ({ name: o.name, hat: o.hat, owned: masteredInOrder.length >= (i + 1) * 3 })),
+    outfits: OUTFITS.map((o, i) => ({ name: o.name, hat: o.hat, owned: masteredInOrder.length >= stickersForOutfit(i) })),
     certificate: latest ? { conceptTitle: title(latest.tag, state.lessons) } : null,
   };
 }

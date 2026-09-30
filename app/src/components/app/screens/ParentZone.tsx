@@ -7,6 +7,7 @@ import ZaraCharacter from "@/components/ZaraCharacter";
 import { BackButton, LangToggle, Screen } from "../Screen";
 import { sx } from "../sx";
 import { t } from "@/lib/appCopy";
+import { DAILY_LIMIT_CHOICES } from "@/lib/settings";
 import type { ParentZoneData, ProfilesData, ReportData } from "@/lib/appTypes";
 
 const ROOT = "background:#FFFDF8;display:flex;flex-direction:column;padding:0 20px";
@@ -29,7 +30,8 @@ export function ParentHeader({ title, sub, back, lang, onLang }: { title: string
 }
 
 /** One settings row of the parent zone (min-height 56, a 1 px rule beneath). */
-export function SettingsRow({ label, value, sub, href, onClick, color = "#1B1B1B", testId, chevron = true }: { label: string; value?: string; sub?: string; href?: string; onClick?: () => void; color?: string; testId?: string; chevron?: boolean }) {
+/** `state`: a toggle row's own on/off, exposed as data-state so a probe reads the tap's result at once (the ✓ is a one-character change; the saved mark waits on the network). */
+export function SettingsRow({ label, value, sub, href, onClick, color = "#1B1B1B", testId, chevron = true, state }: { label: string; value?: string; sub?: string; href?: string; onClick?: () => void; color?: string; testId?: string; chevron?: boolean; state?: "on" | "off" }) {
   const inner = (
     <>
       <div style={sx("flex:1;display:grid")}>
@@ -49,7 +51,7 @@ export function SettingsRow({ label, value, sub, href, onClick, color = "#1B1B1B
     );
   }
   return (
-    <div role={onClick ? "button" : undefined} onClick={onClick} data-testid={testId} style={css}>
+    <div role={onClick ? "button" : undefined} onClick={onClick} data-testid={testId} data-state={state} style={css}>
       {inner}
     </div>
   );
@@ -78,7 +80,7 @@ export function ParentZoneScreen({ data, frame, lang, onLang, subscriptionValue 
       <div style={sx("margin-top:14px;display:grid;gap:2px")} data-testid="parent-settings">
         <SettingsRow label={t("parent.row.report")} value={data.reportRange} href="/parent/report" testId="row-report" />
         <SettingsRow label={t("parent.row.billing")} value={subscriptionValue ?? t("common.soon")} href="/parent/subscription" testId="row-billing" />
-        <SettingsRow label={t("parent.row.limit")} value={t("common.minutesN", { n: data.settings.dailyLimitMinutes })} sub={t("parent.row.limitSub")} href="/parent/settings" testId="row-limit" />
+        <SettingsRow label={t("parent.row.limit")} value={t("common.minutesN", { n: data.settings.dailyLimitMinutes })} sub={DAILY_LIMIT_CHOICES.join(" · ")} href="/parent/settings" testId="row-limit" />
         <SettingsRow label={t("parent.row.sound")} value={[data.settings.sound ? t("parent.row.soundOn") : null, data.settings.captions ? t("parent.row.captionsOn") : null].filter(Boolean).join(" · ")} href="/parent/settings" testId="row-sound" />
         <SettingsRow label={t("parent.row.profiles")} value={String(data.childrenCount)} sub={t("parent.row.profilesSub")} href="/parent/profiles" testId="row-profiles" />
         <SettingsRow label={t("parent.row.pin")} value={data.pinSet ? t("parent.pinSet") : ""} href="/parent/pin" testId="row-pin" />

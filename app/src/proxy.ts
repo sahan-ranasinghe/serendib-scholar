@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { DEVICE_COOKIE, SESSION_COOKIE, readCookie, verifyToken } from "@/lib/sessionAuth";
 import { hasPortalAccess } from "@/lib/portalAuth";
 import { HARNESS_HEADER } from "@/lib/harness";
+import { t } from "@/lib/appCopy";
 
 /**
  * The API's front door (Next 16's proxy — the artist formerly known as
@@ -120,7 +121,7 @@ export default async function proxy(request: NextRequest) {
   if (verdict === "limited") {
     console.warn(`[proxy] 429 ${harness ? "harness-limit" : "ip-limit"} ${ip} ${path}`);
     return NextResponse.json(
-      { ok: false, error: "rate_limited", message: "පොඩ්ඩක් ඉන්න — ටිකකින් ආයෙත් උත්සාහ කරන්න." },
+      { ok: false, error: "rate_limited", message: t("app.rateLimited") },
       { status: 429 },
     );
   }

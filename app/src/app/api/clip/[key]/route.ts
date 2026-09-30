@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseClient";
 import { AUDIO_BUCKET, clipMetaPath, clipPath } from "@/lib/audioCache";
 import { humanClipPath, humanMetaPath, voiceProfile } from "@/lib/humanClips";
+import { approvedClipKeys } from "@/lib/actorStore";
 import { requireSession } from "@/lib/sessionAuth";
 
 /**
@@ -39,7 +40,9 @@ export async function GET(request: NextRequest, context: { params: Promise<{ key
   // that line yet — so a half-recorded lesson still plays end to end, in
   // the AI voice only where it has to. Which shelf answered is logged, so
   // coverage is observable from the logs as well as from the dry run.
-  if (voiceProfile() === "human") {
+  // Only a take a reviewer APPROVED is served (29 Sep 2026): a saved take waits for /portal/status, and a new take of
+  // the same line withdraws the old approval until it is heard (src/lib/actorStore.ts).
+  if (voiceProfile() === "human" && (await approvedClipKeys()).has(key)) {
     const humanUrl = await sign(wantMeta ? humanMetaPath(key) : humanClipPath(key));
     if (humanUrl) {
       console.log(`[clip] ${key} → human`);
@@ -53,6 +56,6 @@ export async function GET(request: NextRequest, context: { params: Promise<{ key
     // client falls back to /api/speak-line, which renders and caches it.
     return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
   }
-  console.log(`[clip] ${key} → ai${voiceProfile() === "human" ? " (no human take)" : ""}`);
+  console.log(`[clip] ${key} → ai${voiceProfile() === "human" ? " (no approved human take)" : ""}`);
   return NextResponse.redirect(aiUrl, 302);
 }

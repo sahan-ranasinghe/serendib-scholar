@@ -9,6 +9,7 @@ import { ParentHeader, SettingsRow } from "./screens/ParentZone";
 import { PinBoxes, PinEye } from "./PinGate";
 import { sx } from "./sx";
 import { t } from "@/lib/appCopy";
+import { CHAT_MINUTES_CHOICES, DAILY_LIMIT_CHOICES, DEFAULT_CHAT_MINUTES } from "@/lib/settings";
 import { postJson } from "@/lib/clientSession";
 import type { ChildSettings, ProfilesData } from "@/lib/appTypes";
 
@@ -17,7 +18,7 @@ const LABEL = "font:600 16px/1.5 var(--font-label);color:var(--color-ink-70)";
 const PIN_LABEL = "font:600 18px/1.5 var(--font-label);color:var(--color-ink-70)";
 const PRIMARY = "height:52px;border:2px solid var(--color-teal);border-radius:12px;background:var(--color-card);color:var(--color-teal);font:600 18px/1.5 var(--font-body)";
 
-/** Daily limit (15 · 20 · 30), the ✋ chat's daily time (15 · 30 · 60), sound and captions — saved as they change. */
+/** The daily limit, the ✋ chat's daily time (their choices: src/lib/settings.ts), sound and captions — saved as they change. */
 export function SettingsClient({ settings: initial, source }: { settings: ChildSettings; source: string }) {
   useLang();
   const { refresh } = useAppState();
@@ -39,21 +40,21 @@ export function SettingsClient({ settings: initial, source }: { settings: ChildS
       <ParentHeader title={t("settings.title")} back="/parent" />
       <div style={sx("display:grid;gap:14px;margin-top:16px")}>
         <div style={sx("display:grid;gap:6px")}>
-          <span style={sx(LABEL)}>{t("parent.row.limitSub")}</span>
+          <span style={sx(LABEL)}>{t("parent.row.limit")}</span>
           <div style={sx("display:flex;gap:10px")} data-testid="limit-choices">
-            {([15, 20, 30] as const).map((m) => (
+            {DAILY_LIMIT_CHOICES.map((m) => (
               <div key={m} role="button" data-limit={m} data-selected={settings.dailyLimitMinutes === m || undefined} onClick={() => void save({ dailyLimitMinutes: m })} style={sx(choice(settings.dailyLimitMinutes === m))}>
                 {m}
               </div>
             ))}
           </div>
         </div>
-        {/* The ✋ chat's own day, beside the lesson's (28 Sep 2026): charged by the connected second, 30 minutes by default. */}
+        {/* The ✋ chat's own day, beside the lesson's (28 Sep 2026): charged by the connected second. */}
         <div style={sx("display:grid;gap:6px")}>
           <span style={sx(LABEL)}>{t("parent.row.chatLimit")}</span>
           <div style={sx("display:flex;gap:10px")} data-testid="chat-limit-choices">
-            {([15, 30, 60] as const).map((m) => (
-              <div key={m} role="button" data-chat-limit={m} data-selected={(settings.chatMinutes ?? 30) === m || undefined} onClick={() => void save({ chatMinutes: m })} style={sx(choice((settings.chatMinutes ?? 30) === m))}>
+            {CHAT_MINUTES_CHOICES.map((m) => (
+              <div key={m} role="button" data-chat-limit={m} data-selected={(settings.chatMinutes ?? DEFAULT_CHAT_MINUTES) === m || undefined} onClick={() => void save({ chatMinutes: m })} style={sx(choice((settings.chatMinutes ?? DEFAULT_CHAT_MINUTES) === m))}>
                 {m}
               </div>
             ))}
@@ -61,8 +62,8 @@ export function SettingsClient({ settings: initial, source }: { settings: ChildS
         </div>
         <div style={sx("display:grid;gap:2px;margin-top:8px")}>
           <span style={sx(LABEL)}>{t("parent.row.sound")}</span>
-          <SettingsRow label={t("parent.row.soundOn").replace(" ✓", "")} value={settings.sound ? "✓" : ""} onClick={() => void save({ sound: !settings.sound })} chevron={false} testId="toggle-sound" />
-          <SettingsRow label={t("parent.row.captionsOn").replace(" ✓", "")} value={settings.captions ? "✓" : ""} onClick={() => void save({ captions: !settings.captions })} chevron={false} testId="toggle-captions" />
+          <SettingsRow label={t("parent.row.soundOn").replace(" ✓", "")} value={settings.sound ? "✓" : ""} onClick={() => void save({ sound: !settings.sound })} chevron={false} testId="toggle-sound" state={settings.sound ? "on" : "off"} />
+          <SettingsRow label={t("parent.row.captionsOn").replace(" ✓", "")} value={settings.captions ? "✓" : ""} onClick={() => void save({ captions: !settings.captions })} chevron={false} testId="toggle-captions" state={settings.captions ? "on" : "off"} />
         </div>
         {saved && <span data-testid="settings-saved" data-source={saved} style={sx("font:400 16px/1.5 var(--font-body);color:var(--color-ink-70)")}>{saved === "error" ? t("app.saveFailed") : "✓"}</span>}
       </div>
@@ -257,7 +258,7 @@ export function ProfilesClient({ profiles }: { profiles: ProfilesData }) {
       <ParentHeader title={t("profiles.title")} back="/parent" />
       <div style={sx("margin-top:16px;display:grid;gap:8px")} data-testid="profiles">
         {profiles.children.map((c) => (
-          <div key={c.id} role="button" onClick={() => void pick(c.id)} data-testid="profile-row" data-active={c.active || undefined} style={sx(`display:flex;align-items:center;gap:12px;border:${c.active ? "2px solid var(--color-saffron)" : "1px solid var(--color-ink-18)"};border-radius:14px;padding:10px 12px;background:${c.active ? "var(--color-saffron-soft)" : "transparent"};opacity:${busy === c.id ? 0.6 : 1}`)}>
+          <div key={c.id} role="button" onClick={() => void pick(c.id)} data-testid="profile-row" data-active={c.active || undefined} data-busy={busy === c.id || undefined} style={sx(`display:flex;align-items:center;gap:12px;border:${c.active ? "2px solid var(--color-saffron)" : "1px solid var(--color-ink-18)"};border-radius:14px;padding:10px 12px;background:${c.active ? "var(--color-saffron-soft)" : "transparent"};opacity:${busy === c.id ? 0.6 : 1}`)}>
             <div style={sx("width:44px;height:44px;border-radius:50%;background:var(--color-saffron-soft);border:2px solid var(--color-saffron)")} />
             <div style={sx("flex:1;display:grid")}>
               <span style={sx("font:600 18px/1.4 var(--font-body)")}>{c.name}</span>

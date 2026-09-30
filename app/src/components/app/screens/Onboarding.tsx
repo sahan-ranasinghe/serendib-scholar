@@ -5,7 +5,8 @@ import type { ReactNode } from "react";
 import ZaraCharacter, { type ZaraState } from "@/components/ZaraCharacter";
 import { ArtSlot, LangToggle, Screen } from "../Screen";
 import { sx } from "../sx";
-import { AVATARS, t } from "@/lib/appCopy";
+import { t } from "@/lib/appCopy";
+import { AVATAR_IDS, avatarName } from "@/lib/avatars";
 
 /** Screens B's onboarding rows — step, Zara's state, her bubble, the title, the CTA. */
 export const ONBOARDING_STEPS: Array<{ label: string; zara: ZaraState; bubble: string; title: string; cta: string; skip?: string }> = [
@@ -154,9 +155,9 @@ export function ProfileStep({ name, avatarIndex, grade, school, onName, onAvatar
       <div style={sx("display:grid;gap:6px")}>
         <span style={sx(LABEL)}>{t("onb.2.avatar")}</span>
         <div style={sx("display:grid;grid-template-columns:repeat(4,1fr);gap:10px")} data-testid="onb-avatars">
-          {AVATARS.map((a, i) => (
-            <div key={a} role={onAvatar ? "button" : undefined} onClick={onAvatar ? () => onAvatar(i) : undefined} data-avatar={a} data-selected={i === avatarIndex || undefined} style={sx(`aspect-ratio:1;border-radius:50%;background:${i === avatarIndex ? "#FBEFD3" : "#EEF4F5"};border:3px solid ${i === avatarIndex ? "#E9B44C" : "transparent"};display:flex;align-items:center;justify-content:center;box-sizing:border-box`)}>
-              <ArtSlot size="60%" label={a} alpha=".14" font="9px/1" />
+          {AVATAR_IDS.map((a, i) => (
+            <div key={a} role={onAvatar ? "button" : undefined} onClick={onAvatar ? () => onAvatar(i) : undefined} data-avatar={a} aria-label={avatarName(a)} data-selected={i === avatarIndex || undefined} style={sx(`aspect-ratio:1;border-radius:50%;background:${i === avatarIndex ? "#FBEFD3" : "#EEF4F5"};border:3px solid ${i === avatarIndex ? "#E9B44C" : "transparent"};display:flex;align-items:center;justify-content:center;box-sizing:border-box`)}>
+              <ArtSlot size="60%" label={avatarName(a)} alpha=".14" font="9px/1" />
             </div>
           ))}
         </div>

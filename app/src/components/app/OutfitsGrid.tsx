@@ -5,6 +5,7 @@ import LenaCharacter from "@/components/LenaCharacter";
 import { ArtSlot } from "./Screen";
 import { sx } from "./sx";
 import { t } from "@/lib/appCopy";
+import { stickersForOutfit } from "@/lib/settings";
 import type { RewardsData } from "@/lib/appTypes";
 
 /**
@@ -16,7 +17,7 @@ import type { RewardsData } from "@/lib/appTypes";
 export function OutfitsGrid({ outfits, masteredCount }: { outfits: RewardsData["outfits"]; masteredCount: number }) {
   const [open, setOpen] = useState<number | null>(null);
   const selected = open === null ? null : outfits[open] ?? null;
-  const needed = (index: number) => (index + 1) * 3;
+  const needed = stickersForOutfit;
   return (
     <>
       <div style={sx("display:grid;grid-template-columns:repeat(3,1fr);gap:10px")} data-testid="outfits">

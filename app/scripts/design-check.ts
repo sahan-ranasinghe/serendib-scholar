@@ -21,6 +21,7 @@
  */
 import { sinhalaNumberName } from "../src/lib/sinhalaNumber";
 import { APP_NAME_EN, APP_NAME_SI } from "../src/lib/appCopy";
+import { copy } from "./lib/copyText";
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import http from "node:http";
@@ -570,17 +571,17 @@ const CHILD_SCREENS = new Set(["Splash", "Home", "Lesson map", "Lesson detail", 
 const LATIN_ALLOWED = new Set(["A4", "art", "Loading", "Offline", "Paused", "Rotate", "phone", "Mic", "permission", "Error", "EN", "Wi", "Fi"]);
 /** Explained gaps per app screen (the export's frame vs the app's component). */
 const SCREEN_GAPS: Record<string, string> = {
-  Home: "since 18 Sep (the device walk, cluster M) the header carries a top bar the export does not have — the child's avatar + name (the child switcher) on the left, the labelled parent entry (≥ 56 px, \"දෙමාපිය\") on the right, under a 36 px strip kept clear for the updating/offline pill — where the export had only a 48 px 🔒 in the corner; everything below it sits 44 px lower than in the export",
+  Home: `since 18 Sep (the device walk, cluster M) the header carries a top bar the export does not have — the child's avatar + name (the child switcher) on the left, the labelled parent entry (≥ 56 px, "${copy("home.parent")}") on the right, under a 36 px strip kept clear for the updating/offline pill — where the export had only a 48 px 🔒 in the corner; everything below it sits 44 px lower than in the export`,
   // Found unexplained on 19 Sep 2026 while verifying the second device walk; neither screen's code was touched by that work.
   // Both come from f8d4688 ("names"): the export's "නිවස" became "මුල් පිටුව" — a wider label in the bottom nav and on the
   // error state's second button — and Rewards' locked outfits carry a 🔒 the export does not draw.
-  Rewards: "since f8d4688 the bottom nav's first tab reads මුල් පිටුව (the export: නිවස), wider and wrapping the nav taller, and locked outfits carry a 🔒 the export does not draw",
+  Rewards: `since f8d4688 the bottom nav's first tab reads ${copy("nav.home")} (the export: නිවස), wider and wrapping the nav taller, and locked outfits carry a 🔒 the export does not draw`,
   // The app-copy native review (29 Sep 2026, docs/review/app-copy-corrections.json): the reviewed body is longer than the
   // export's and wraps to a third line, so the column (Zara, title, body, buttons) sits one line lower — nothing clipped,
   // nothing overlapping, the buttons inside the 412 px frame. Text only (0.910 → 0.650 and 0.923 → 0.693 that day).
-  "Mic permission": "since the app-copy review (29 Sep 2026) the body reads \"ඔයා දෙන උත්තර මට අහන්න ඕනේ. කටහඬ රෙකෝඩ් කරන්නේ නෑ — වචන විතරයි.\" (the export: \"ඔයා කියන පිළිතුරු …\") — three lines where the export has two, so the whole column sits one line lower; nothing clipped or overlapping",
-  Offline: "since the app-copy review (29 Sep 2026) the body reads \"Wi-Fi හරි ඩේටා හරි බලලා ආයෙත් උත්සාහ කරමු. ඔයා කරපු දේවල් සුරැකිලා තියෙනවා.\" (the export: \"Wi-Fi එක හරි දත්ත හරි …\") — three lines where the export has two, so the whole column sits one line lower; nothing clipped or overlapping",
-  Error: "since f8d4688 the second button reads මුල් පිටුවට (the export: නිවසට), wider, which shifts the button pair; Zara's portrait is the talking state where the export drew her mouth closed",
+  "Mic permission": `since the app-copy review (29 Sep 2026) the body reads "${copy("edge.mic.body")}" (the export: "ඔයා කියන පිළිතුරු …") — three lines where the export has two, so the whole column sits one line lower; nothing clipped or overlapping`,
+  Offline: `since the app-copy review (29 Sep 2026) the body reads "${copy("edge.offline.body")}" (the export: "Wi-Fi එක හරි දත්ත හරි …") — three lines where the export has two, so the whole column sits one line lower; nothing clipped or overlapping`,
+  Error: `since f8d4688 the second button reads ${copy("edge.error.home")} (the export: නිවසට), wider, which shifts the button pair; Zara's portrait is the talking state where the export drew her mouth closed`,
 };
 
 interface ScreenRef extends RenderedRef {
@@ -930,7 +931,7 @@ async function checkPwa(page: Cdp, root: Cdp): Promise<PwaRow[]> {
   await page.send("Page.navigate", { url: `${BASE}/progress?offline-probe=1` }).catch(() => undefined);
   await wait(2500);
   const offline = await evaluate<{ title: string | null; edge: string | null }>(page, `(() => { const e = document.querySelector('[data-edge]'); return { edge: e ? e.getAttribute('data-edge') : null, title: e ? (e.querySelector('div') || {}).textContent : (document.body.textContent || '').slice(0, 60) }; })()`).catch(() => ({ title: null, edge: null }));
-  add("offline navigation → the designed offline state", "offline · අන්තර්ජාලය නෑ වගේ", `${offline.edge} · ${String(offline.title).trim().slice(0, 30)}`, offline.edge === "offline");
+  add("offline navigation → the designed offline state", `offline · ${copy("edge.offline.title")}`, `${offline.edge} · ${String(offline.title).trim().slice(0, 30)}`, offline.edge === "offline");
   await page.send("Network.emulateNetworkConditions", { offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1 });
   if (workerSession) await root.send("Network.emulateNetworkConditions", { offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1 }, workerSession);
 
@@ -1140,8 +1141,8 @@ async function main(): Promise<void> {
     expect("caption left", plain.caption?.l, 94);
     expect("caption right", plain.caption?.r, 82);
     expect("caption bottom", plain.caption?.b, 26);
-    expect("strip ⏸ ↺ ⏹ සි cells (40 px tall)", Math.min(...((plain.ctrl as unknown as Array<{ h: number }>) ?? []).map((c) => c.h)), 40);
-    expect("strip ⏸ ↺ ⏹ සි cells (56 px wide)", Math.min(...((plain.ctrl as unknown as Array<{ w: number }>) ?? []).map((c) => c.w)), 56);
+    expect(`strip ⏸ ↺ ⏹ ${copy("session.captionsGlyph")} cells (40 px tall)`, Math.min(...((plain.ctrl as unknown as Array<{ h: number }>) ?? []).map((c) => c.h)), 40);
+    expect(`strip ⏸ ↺ ⏹ ${copy("session.captionsGlyph")} cells (56 px wide)`, Math.min(...((plain.ctrl as unknown as Array<{ w: number }>) ?? []).map((c) => c.w)), 56);
     numeric.push({ item: "strip icons drawn at 28 px", expected: "28px", actual: String(plain.ctrlFont), ok: String(plain.ctrlFont) === "28px" });
     if (String(plain.ctrlFont) !== "28px") failures.push(`numeric: strip icons expected 28px got ${plain.ctrlFont}`);
     numeric.push({ item: "strip icons white on the teal", expected: "rgb(255, 255, 255)", actual: String(plain.ctrlColor), ok: String(plain.ctrlColor) === "rgb(255, 255, 255)" });

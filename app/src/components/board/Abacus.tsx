@@ -23,7 +23,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { HandNumber } from "./HandNumber";
 import { useTargetRef } from "./targets";
-import { FONT_SINHALA, BOARD, ROD_LABELS, ROD_VALUE_LABELS, SPRING_BOUNCY, FONT_LABEL } from "./tokens";
+import { FONT_SINHALA, BOARD, ROD_LABELS, ROD_VALUE_LABELS, SPRING_BOUNCY, FONT_LABEL, rodLabel } from "./tokens";
 import { playSound } from "./sound";
 import { hitTest, useDrag, type DragPoint } from "./useDrag";
 import { t } from "@/lib/appCopy";
@@ -196,7 +196,7 @@ export function Abacus({
                 colour={colours[rod] ?? BOARD.beadExtra}
                 count={count}
                 digit={digit}
-                label={labels[rod] ?? ""}
+                label={labels[rod] ? rodLabel(labels[rod]) : ""}
                 glow={isGlow}
                 veiled={anyGlow && !isGlow}
                 hover={overRod === rod}
@@ -286,7 +286,7 @@ export function Abacus({
           {[colours[0], colours[0], colours[1], colours[2], colours[3]].map((c, i) => (
             <div key={i} style={{ width: 38, height: 14, borderRadius: "50%", background: c, border: "1.5px solid rgba(27,27,27,.18)" }} />
           ))}
-          <div style={{ font: `600 20px/1.5 ${FONT_LABEL}`, color: BOARD.inkSoft }}>පබළු</div>
+          <div style={{ font: `600 20px/1.5 ${FONT_LABEL}`, color: BOARD.inkSoft }}>{t("board.beads")}</div>
           {ghost &&
             createPortal(
               <div style={{ position: "fixed", left: ghost.x - 21, top: ghost.y - 8 - 14, pointerEvents: "none", zIndex: 1000, filter: "drop-shadow(0 14px 10px rgba(27,27,27,.3))" }}>

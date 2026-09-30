@@ -1,7 +1,7 @@
 import { orderConceptTags, videoTimestampSeconds } from "@/lib/conceptOrdering";
 import { blanksForItem, workedStepsForItem, solutionForItem, describeItem, type ItemBlank } from "@/lib/lessonBlanks";
 import { parseBoardContent, blockToBoardAction, parseAbacusStep, type BoardBlock } from "@/lib/boardContentParser";
-import { estimateBeatSeconds } from "@/lib/beatRegistry";
+import { estimateBeatSeconds, PACE } from "@/lib/beatRegistry";
 import { AUTHORED_LINES } from "@/lib/authoredLines";
 import { AUTHORED_OPENING_CONCEPT, toRuntimeBeats, type AuthoredScriptFile } from "@/lib/authoredScript";
 import { DESIGN_CONCEPTS } from "@/lib/lessonDesign";
@@ -17,6 +17,7 @@ import type {
 } from "@/lib/lessonOrchestrator";
 import { FRAMING_CONCEPT } from "@/lib/lessonOrchestrator";
 import { conceptTitle, itemTitle } from "@/lib/choreography";
+import { t } from "@/lib/appCopy";
 
 /**
  * Turns the content bank into a session-partitioned lesson script — the
@@ -623,6 +624,25 @@ import { exerciseUnits, insideExerciseUnit } from "@/lib/exerciseUnits";
  */
 const MAX_LESSON_GOALS_BEATS = 40;
 
+/**
+ * Every number that shapes how the lesson is packed into sittings, in one object — the lesson_scripts cache's
+ * fingerprint hashes it (src/lib/scriptFingerprint.ts), so changing any of these rebuilds the script on its own; the
+ * dry run's packer-contract gate reads its budgets from here too.
+ */
+export const PACKING = {
+  referenceWordingMaxChars: REFERENCE_WORDING_MAX_CHARS,
+  sentenceBudget: SENTENCE_BUDGET,
+  maxRevealsPerItem: MAX_REVEALS_PER_ITEM,
+  maxAsksPerItem: MAX_ASKS_PER_ITEM,
+  maxExplainBeats: MAX_EXPLAIN_BEATS,
+  sessionTeachingTargetSeconds: SESSION_TEACHING_TARGET_SECONDS,
+  breakAfterTeachingSeconds: BREAK_AFTER_TEACHING_SECONDS,
+  sessionTeachingMinSeconds: SESSION_TEACHING_MIN_SECONDS,
+  sessionAskLimit: SESSION_ASK_LIMIT,
+  maxLessonGoalsBeats: MAX_LESSON_GOALS_BEATS,
+  pace: PACE,
+} as const;
+
 function buildLessonGoalsBeats(openingRows: BankRow[], orderedTags: string[], descriptions: Map<string, string>, lessonTitle: string): Beat[] {
   const primary = [...openingRows].sort((a, b) => a.source.localeCompare(b.source))[0];
   if (!primary) return [];
@@ -812,7 +832,7 @@ function assembleSessions(
     const nextTags = nextSlice ? nextSlice.map((b) => b.conceptTag) : [];
     const nextTitles = taught(nextTags);
     const nextExercises = nextSlice ? exercisesOf(nextSlice).map(itemTitle).filter((t): t is string => t !== null) : [];
-    const closeCard = `අද ✓ ${finishedTitles.join(" · ")}\n${nextSlice ? `ඊළඟ පාර: ${nextTitles.join(" · ")}` : "පාඩම ඉවරයි 🌟"}`;
+    const closeCard = `${t("session.closeToday", { concepts: finishedTitles.join(" · ") })}\n${nextSlice ? t("session.closeNext", { concepts: nextTitles.join(" · ") }) : t("session.lessonDone")}`;
     beats.push({
       ...framingBeat(
         sessionIndex,

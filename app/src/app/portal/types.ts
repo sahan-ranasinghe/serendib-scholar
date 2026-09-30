@@ -1,7 +1,8 @@
 /** Shared shapes between the portal page and its parts. */
 
 export interface PortalTake {
-  status: "uploading" | "saved" | "pending_processing" | "failed";
+  /** saved = kept, awaiting a reviewer; approved = served to children (VOICE_PROFILE=human); rejected = record it again. */
+  status: "uploading" | "saved" | "pending_processing" | "failed" | "approved" | "rejected";
   durationMs: number | null;
   clipKey: string | null;
   trimStartMs: number;
@@ -13,10 +14,12 @@ export interface PortalTake {
 export interface PortalLine {
   id: string;
   beatId: string;
-  /** "if right" / "if wrong" for a branch line, else null. */
+  /** Kept for older rows; every line is its own row now (one recording per distinct line). */
   branchLabel: string | null;
-  /** "lesson" or "number words" — the reusable library recorded once. */
+  /** Which group of the runtime's lines this is (src/lib/spokenLines.ts): lesson, fixed lines, later sessions, … */
   group?: string;
+  /** How many places in the lesson say this very line (one recording covers them all). */
+  uses?: number;
   concept: string;
   type: string;
   pauseType: string | null;
@@ -43,4 +46,13 @@ export interface UploadState {
   blob?: Blob;
   /** The server's own message, shown verbatim — never a generic string. */
   error?: string;
+}
+
+/** THE voice coverage count (src/lib/voiceCoverage.ts): distinct clips needed against hers recorded and approved, by group. */
+export interface PortalCoverage {
+  needed: number;
+  recorded: number;
+  approved: number;
+  ai: number;
+  groups: Array<{ group: string; needed: number; recorded: number; approved: number; ai: number }>;
 }

@@ -2,28 +2,27 @@
 
 Every child-facing and parent-facing string outside the session, extracted from `src/lib/appCopy.ts` by `scripts/extract-copy.ts`.
 
-Last review round: **app-copy native review, 29 Sep 2026 (+ two follow-ups)** — every ruling and its reason in `docs/review/app-copy-corrections.json`.
+Last review round: **app-copy native review, 29 Sep 2026 (+ two follow-ups, + the CMS pre-migration round)** — every ruling and its reason in `docs/review/app-copy-corrections.json`.
 
 - **accepted**: the reviewer's correction, applied as given.
 - **adjusted**: the reviewer's correction, adjusted by the owner (loanwords with a natural Sinhala equivalent replaced).
 - **kept**: the reviewer's correction rejected by the owner; the string stays.
 - **consistency**: changed only by the consistency pass (ආයෙ → ආයෙත්).
 - **added**: a string the sheet was missing, added from the review.
+- **moved**: moved into the sheet from the code (§16 #9), wording unchanged — not yet through a native review.
 - **reviewed**: in the reviewed table with no correction.
 - **fromScript**: verbatim in the authored lesson script.
 - **drafted**: drafted by the developer at the owner's request, in the lesson's own words — needs sign-off.
 - **missing**: the app needs the line and has no Sinhala for it; the screen leaves the spot empty or reuses another string, and the English gloss says what is needed.
 
-Counts: accepted 7 · adjusted 3 · kept 1 · consistency 4 · added 21 · reviewed 236 · fromScript 21 · drafted 3 · missing 0
+Counts: accepted 7 · adjusted 3 · kept 1 · consistency 4 · added 21 · moved 76 · reviewed 226 · fromScript 16 · drafted 3 · missing 0
 
 Terms: ගණක රාමුව (never අබකසය) · සාරා · සාරා ටීචර් (Latin "Zara Teacher" only on the splash wordmark, the manifest and the parent zone's English; "Serendib Scholar" is the company, parent-zone footer only). `{name}`-style holes are filled at runtime.
 
 | screen | key | Sinhala | English gloss | status |
 |---|---|---|---|---|
 | Splash | `brand.wordmarkSi` | සාරා ටීචර් | Zara Teacher (Sinhala wordmark) | reviewed |
-| all | `brand.zara` | සාරා | Zara | reviewed |
 | Certificate | `brand.zaraTeacher` | සාරා ගුරුතුමිය | Teacher Zara | reviewed |
-| all | `brand.abacus` | ගණක රාමුව | abacus (never අබකසය) | fromScript |
 | all | `brand.maths` | ගණිතය | Maths | reviewed |
 | all | `common.soon` | ළඟදීම | Coming soon | reviewed |
 | all | `common.minutesN` | මිනිත්තු {n} | {n} minutes | reviewed |
@@ -91,8 +90,8 @@ Terms: ගණක රාමුව (never අබකසය) · සාරා · ස�
 | Session summary | `summary.looked` | බැලුවා | looked at (a concept seen, nothing asked) | reviewed |
 | Session summary | `summary.plusOne` | +1 | +1 (streak) | reviewed |
 | Practice hub | `practice.title` | පුහුණුව | Practice | reviewed |
-| Practice hub | `practice.subtitle` | මිනිත්තු 3ක් — එක් සංකල්පයක් | 3 minutes — one concept | reviewed |
-| Practice hub | `practice.rowSub` | මිනිත්තු 3 · ප්‍රශ්න {n} | 3 minutes · {n} questions | reviewed |
+| Practice hub | `practice.subtitle` | මිනිත්තු {n}ක් — එක් සංකල්පයක් | {n} minutes — one concept | reviewed |
+| Practice hub | `practice.rowSub` | මිනිත්තු {minutes} · ප්‍රශ්න {n} | {minutes} minutes · {n} questions | reviewed |
 | Practice hub | `practice.pastPapers` | 🔒 පසුගිය ප්‍රශ්න | Past papers (locked) | reviewed |
 | Practice hub | `practice.challenge` | ⏱ අභියෝගය | Challenge | reviewed |
 | Practice hub | `practice.challengeSub` | මිනිත්තු 5 · ප්‍රශ්න 10 | 5 minutes · 10 questions | reviewed |
@@ -138,17 +137,6 @@ Terms: ගණක රාමුව (never අබකසය) · සාරා · ස�
 | Progress | `progress.status.good` | හොඳයි | Good | reviewed |
 | Progress | `progress.status.practise` | පුරුදු වෙමු | Let's practise | fromScript |
 | Progress | `progress.sentence.both` | {name}, {best} හොඳට තේරුම් ගත්තා. {weak} තව පොඩ්ඩක් පුරුදු වෙමු! | {name}, you understood {best} well. Let's practise {weak} a little more! | reviewed |
-| Progress | `progress.concept.1` | සංඛ්‍යා කියවීම | Reading numbers | reviewed |
-| Progress | `progress.concept.2` | දහසස්ථානය | The thousands place | fromScript |
-| Progress | `progress.concept.3` | බිංදුව ඇති ස්ථාන | Places with a zero | reviewed |
-| Progress | `progress.concept.4` | දස දහස | Ten thousand | fromScript |
-| Progress | `progress.concept.5` | ගණක රාමුව කියවීම | Reading the abacus | reviewed |
-| Progress | `progress.concept.6` | සංඛ්‍යා නාම | Number names | fromScript |
-| Progress | `progress.concept.7` | විහිදුවා ලිවීම | Expanded form | reviewed |
-| Progress | `progress.concept.8` | ස්ථානීය අගය | Place value | fromScript |
-| Progress | `progress.concept.9` | සංඛ්‍යා කියවීම · ගණක රාමුව | Reading numbers · abacus (session subtitle) | reviewed |
-| Progress | `progress.concept.10` | ස්ථානීය අගය · විහිදුවා ලිවීම | Place value · expanded form (session subtitle) | reviewed |
-| Progress | `progress.concept.11` | දස දහස දක්වා | Up to ten thousand (session subtitle) | reviewed |
 | Onboarding | `onb.stepOf` | පියවර {n} / 4 | Step {n} / 4 | reviewed |
 | Onboarding | `onb.toggleSi` | සිං | සිං | reviewed |
 | Onboarding 1 | `onb.1.bubble` | ආයුබෝවන්! මම සාරා. දරුවාගේ ගිණුම හදන්න මිනිත්තු දෙකක් විතර යනවා. | Hello! I'm Zara. Setting up your child's account takes about two minutes. | reviewed |
@@ -168,14 +156,14 @@ Terms: ගණක රාමුව (never අබකසය) · සාරා · ස�
 | Onboarding 2 | `onb.2.grade` | ශ්‍රේණිය | Grade | fromScript |
 | Onboarding 2 | `onb.2.school` | පාසල (අත්‍යවශ්‍ය නොවේ) | School (optional) | reviewed |
 | Onboarding 2 | `onb.2.schoolPlaceholder` | පාසලේ නම | School name | reviewed |
-| Onboarding 2 | `avatar.1` | අලියා | Elephant | reviewed |
-| Onboarding 2 | `avatar.2` | මොනරා | Peacock | reviewed |
-| Onboarding 2 | `avatar.3` | ලේනා | Squirrel | reviewed |
-| Onboarding 2 | `avatar.4` | කැස්බෑවා | Turtle | reviewed |
-| Onboarding 2 | `avatar.5` | ගිරවා | Parrot | reviewed |
-| Onboarding 2 | `avatar.6` | කොටියා | Leopard | reviewed |
-| Onboarding 2 | `avatar.7` | මුවා | Deer | reviewed |
-| Onboarding 2 | `avatar.8` | මාළුවා | Fish | reviewed |
+| Onboarding 2 | `avatar.elephant` | අලියා | Elephant | reviewed |
+| Onboarding 2 | `avatar.peacock` | මොනරා | Peacock | reviewed |
+| Onboarding 2 | `avatar.squirrel` | ලේනා | Squirrel | reviewed |
+| Onboarding 2 | `avatar.turtle` | කැස්බෑවා | Turtle | reviewed |
+| Onboarding 2 | `avatar.parrot` | ගිරවා | Parrot | reviewed |
+| Onboarding 2 | `avatar.leopard` | කොටියා | Leopard | reviewed |
+| Onboarding 2 | `avatar.deer` | මුවා | Deer | reviewed |
+| Onboarding 2 | `avatar.fish` | මාළුවා | Fish | reviewed |
 | Onboarding 3 | `onb.3.bubble` | ඔබ දැනගත යුතු දේවල් තුනක් — සරලව. | Three things you should know — simply. | reviewed |
 | Onboarding 3 | `onb.3.title` | අපි කරන දේ, නොකරන දේ | What we do, what we don't | reviewed |
 | Onboarding 3 | `onb.3.c1.t` | දරුවා කියන දේ අකුරු වලට හැරෙනවා | What your child says becomes text | reviewed |
@@ -209,9 +197,7 @@ Terms: ගණක රාමුව (never අබකසය) · සාරා · ස�
 | Parent zone | `parent.row.report` | සතිපතා වාර්තාව | Weekly report | reviewed |
 | Parent zone | `parent.row.billing` | දායකත්වය සහ බිල්පත් | Subscription and billing | reviewed |
 | Parent zone | `parent.row.limit` | දිනපතා කාල සීමාව | Daily time limit | reviewed |
-| Parent zone | `parent.row.limitSub` | 15 · 20 · 30 | 15 · 20 · 30 (minutes) | reviewed |
 | Parent zone | `parent.row.chatLimit` | සාරා එක්ක කතා කරන කාලය (දිනකට) | Time to talk with Zara (per day) | reviewed |
-| Parent zone | `parent.row.chatLimitSub` | 15 · 30 · 60 | 15 · 30 · 60 (minutes of ✋ chat a day) | reviewed |
 | Parent zone | `parent.row.sound` | ශබ්දය සහ උපසිරැසි | Sound and captions | reviewed |
 | Parent zone | `parent.row.soundOn` | ශබ්දය ✓ | Sound ✓ | reviewed |
 | Parent zone | `parent.row.captionsOn` | උපසිරැසි ✓ | Captions ✓ | reviewed |
@@ -316,6 +302,82 @@ Terms: ගණක රාමුව (never අබකසය) · සාරා · ස�
 | all | `a11y.beadDrag` | පබළුවක් කූරකට දාන්න | Put a bead on a rod (the abacus tray's bead, dragged onto a rod) | drafted |
 | all | `a11y.blank` | හිස්තැන | Blank (an empty box in the older lesson view) | drafted |
 | all | `a11y.pageLoading` | පොතේ පිටුව එනවා | The book's page is loading (the page view's spinner) | drafted |
+| Session | `session.handAsk` | සාරාගෙන් අහන්න | Ask Zara (the ✋ door's name while the chat is closed) | moved |
+| Session | `session.handClose` | කතාව වහන්න | Close the chat (the ✋ door's name while the chat is open) | moved |
+| Session | `session.pause` | විරාමය | Pause (⏸ in the strip) | moved |
+| Session | `session.captions` | උපසිරැසි | Captions (the strip's captions control) | moved |
+| Session | `session.captionsGlyph` | සි | The captions control's glyph (සි for සිංහල) | moved |
+| Session | `chat.panelName` | සාරා එක්ක කතාව | Talking with Zara (the chat panel's name) | moved |
+| Session | `chat.listening` | අහගෙන ඉන්නවා | Listening (the chat panel's pill) | moved |
+| Session | `chat.connecting` | සම්බන්ධ වෙනවා… | Connecting… (the chat panel's pill) | moved |
+| Session | `chat.closeToLesson` | කතාව වහලා පාඩමට යන්න | Close the chat and go back to the lesson (✕) | moved |
+| Edge | `edge.mic.whenAsked` | ඔයා ✋ ඔබලා මගෙන් ප්‍රශ්නයක් අහද්දී විතරයි මම අහන්නේ. | I only listen when you press ✋ and ask me something (the mic sheet's first point) | moved |
+| Edge | `edge.mic.orType` | කැමති නැත්නම් ටයිප් කරලාත් අහන්න පුළුවන්. | If you'd rather not, you can type your question instead (the mic sheet's third point) | moved |
+| Session | `session.minutesToday` | අද විනාඩි {n}ක් | {n} minutes today (the daily-limit close card) | moved |
+| Session | `session.micDeclined` | හරි, පාඩම දිගටම යමු | OK, let's carry on with the lesson (after 'I'll type' on the mic sheet) | moved |
+| Session | `session.micRefused` | කටහඬ නැතුව කතා කරන්න බෑ — පාඩම දිගටම යමු | Can't talk without the microphone — let's carry on (the browser refused it) | moved |
+| Session | `session.rotateHint` | දුරකථනය හරවන්න — පාඩම නවත්තලා | Turn the phone — the lesson is paused | moved |
+| Session | `session.backgroundHint` | ආයෙත් ආවම අපි දිගටම යමු | We'll carry on when you come back (the tab was hidden) | moved |
+| Session | `session.talkingHint` | සාරා කතා කරනවා — ටිකක් ඉන්න, ඊළඟට ඔයාගේ වාරයයි | Zara is talking — wait a moment, your turn is next (a tap while she talks) | moved |
+| Session | `progress.lessonParts` | පාඩමේ කොටස් | The lesson's parts (the strip's concept stops) | moved |
+| Session | `progress.masteredStar` | ප්‍රවීණයි | Mastered (a stop's star) | moved |
+| Session | `board.numberPad` | අංක පුවරුව | Number pad (the 🔢 button's name) | moved |
+| Session | `board.tapHint` | 👆 ඔබන්න | 👆 Tap (the hint on a touch turn) | moved |
+| Session | `board.beads` | පබළු | Beads (the abacus's bead tray) | moved |
+| Session | `board.bookDigits` | පොතේ ඉලක්කම් | The book's digits (the digit puzzle's cards) | moved |
+| Session | `board.builtNumbers` | හදපු සංඛ්‍යා {n} | Numbers made {n} (the digit puzzle's ledger) | moved |
+| Session | `board.total` | එකතුව | Total (under the money) | moved |
+| Session | `board.rupees` | රු. | Rs. (on a note) | moved |
+| Session | `board.place.tenThousands` | දස දහසේ ඒවා | Ten-thousands (the place-value strip's column) | moved |
+| Session | `board.place.thousands` | දහසේ ඒවා | Thousands | moved |
+| Session | `board.place.hundreds` | සියයේ ඒවා | Hundreds | moved |
+| Session | `board.place.tens` | දහයේ ඒවා | Tens | moved |
+| Session | `board.place.ones` | එකේ ඒවා | Ones | moved |
+| Session | `board.rod.tenThousands` | දසදා | Ten-thousands (the label under the abacus rod) | moved |
+| Session | `board.rod.thousands` | දා | Thousands (rod label) | moved |
+| Session | `board.rod.hundreds` | සි | Hundreds (rod label) | moved |
+| Session | `board.rod.tens` | ද | Tens (rod label) | moved |
+| Session | `board.rod.ones` | එ | Ones (rod label) | moved |
+| Session | `legacy.rod.lakhs` | ලක් | Hundred-thousands (the older abacus's rod label) | moved |
+| Session | `legacy.rod.tenThousands` | දද | Ten-thousands (the older abacus's rod label) | moved |
+| Session | `legacy.childAnswer` | ඔයාගේ උත්තරය: {answer} | Your answer: {answer} (under the older abacus) | moved |
+| Session | `legacy.thisOne` | දැන් මේක | This one now (the older table's active blank) | moved |
+| Session | `legacy.typeAnswer` | ඔබේ පිළිතුර ටයිප් කරන්න | Type your answer (the older table's input) | moved |
+| Session | `legacy.sendAnswer` | පිළිතුර යවන්න | Send the answer | moved |
+| Session | `legacy.example` | උදාහරණයක්: | For example: | moved |
+| Session | `legacy.col.name` | නම | Name | moved |
+| Session | `legacy.col.value` | නිරූපිත අගය | Value represented | moved |
+| Session | `legacy.col.before` | පෙර සංඛ්‍යාව | The number before | moved |
+| Session | `legacy.col.after` | පසු සංඛ්‍යාව | The number after | moved |
+| shell | `app.rateLimited` | පොඩ්ඩක් ඉන්න — ටිකකින් ආයෙත් උත්සාහ කරන්න. | Wait a moment — try again shortly (too many requests) | moved |
+| shell | `app.workLimit` | අද වැඩ ගොඩක් කළා! පොඩ්ඩක් ඉන්න, පස්සේ ආයෙත් උත්සාහ කරන්න. | You've done a lot today! Wait a little, then try again (a daily budget reached) | moved |
+| Session | `concept.lessonOpening` | පාඩම පටන් ගමු | Let's start the lesson | moved |
+| Session | `concept.readWrite4Digit` | සංඛ්‍යා කියවමු, ලියමු | Reading and writing numbers | moved |
+| Session | `concept.placeValue4Digit` | ස්ථානීය අගය | Place value | moved |
+| Session | `concept.abacusRepresentation` | ගණක රාමුව | The abacus | moved |
+| Session | `concept.expandedForm` | විහිදුවා ලිවීම | Expanded form | moved |
+| Session | `concept.compareNumbers` | සංඛ්‍යා සසඳමු | Comparing numbers | moved |
+| Session | `concept.orderNumbers` | පිළිවෙළට තබමු | Putting numbers in order | moved |
+| Session | `concept.numberNames` | සංඛ්‍යා නාම | Number names | moved |
+| Session | `concept.fiveDigit` | ඉලක්කම් පහේ සංඛ්‍යා | Five-digit numbers | moved |
+| Session | `concept.expandedForm4Digit` | විහිදුවා ලිවීම | Expanded form | moved |
+| Session | `concept.beyond9999` | 9 999ට එහා | Beyond 9 999 | moved |
+| Session | `concept.digitGroupingRule` | ඉලක්කම් කණ්ඩායම් | Grouping the digits | moved |
+| Session | `concept.tenThousandsPlace` | දසදහසස්ථානය | The ten-thousands place | moved |
+| Session | `concept.placeValueTable5Digit` | ස්ථානීය අගය · ඉලක්කම් පහ | Place value · five digits | moved |
+| Session | `concept.expandedForm5Digit` | විහිදුවා ලිවීම · ඉලක්කම් පහ | Expanded form · five digits | moved |
+| Session | `item.7b58e436` | ස්ථානීය අගය වගුව | The place-value table | moved |
+| Session | `item.4c2aa078` | සංඛ්‍යා නාම වගුව | The number-name table | moved |
+| Session | `item.7daf0141` | ඉලක්කම් කාඩ්පත් ප්‍රහේලිකාව | The digit-card puzzle | moved |
+| Session | `board.col.number` | සංඛ්‍යාව | Number (a board table's column) | moved |
+| Session | `board.col.digit` | ඉලක්කම | Digit | moved |
+| Session | `board.col.place` | ස්ථානය | Place | moved |
+| Session | `board.col.placeValue` | ස්ථානීය අගය | Place value | moved |
+| Session | `board.col.value` | අගය | Value (the value the digit represents) | moved |
+| Session | `board.col.numberName` | සංඛ්‍යා නාමය | Number name | moved |
+| Session | `session.closeToday` | අද ✓ {concepts} | Today ✓ {concepts} (the close card) | moved |
+| Session | `session.closeNext` | ඊළඟ පාර: {concepts} | Next time: {concepts} | moved |
+| Session | `session.lessonDone` | පාඩම ඉවරයි 🌟 | Lesson finished 🌟 | moved |
 
 ## Missing — no Sinhala in the export (not rendered)
 

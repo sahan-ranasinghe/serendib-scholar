@@ -28,6 +28,12 @@ export const AUTHORED_LINES = {
   offerHelp: "උදව්වක් ඕනද? මම පොඩි ඉඟියක් දෙන්නද?",
   /** ASK ladder stage 3 — she shows the answer and moves on. {value} = the answer. */
   giveUpReveal: "කමක් නෑ {address}, බලන්න — උත්තරේ {value}. පස්සේ ආයෙ මේක එකට කරමු.",
+  /** ASK ladder stage 3 on a question with no recorded answer (a transcript question): she moves on without pretending to reveal one. */
+  giveUpMoveOn: "කමක් නෑ {address}, අපි ඉදිරියට යමු.",
+  /** A phrase question (a rubric) after the misses: she states its finding. {value} = the rubric's Sinhala explanation, or its answer. */
+  rubricReveal: "කමක් නෑ {address}, බලන්න — {value}",
+  /** After an open build task, the number read back in her voice (NUMBER_FRAMES.built): {value} = the number built. */
+  builtReadBack: "ඔයා හැදුවේ {value} නේද?",
   /** SOFT_CHECK acknowledgement when the child chimes in — then her own words continue. */
   softAck: "හරි!",
   /** Said once when a concept's beats are finished — before the strip lights its stop. */

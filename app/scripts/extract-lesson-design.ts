@@ -31,7 +31,6 @@ import {
   CONCEPT_ACTIVITY,
   DESIGN_CONCEPTS,
   TEXTBOOK_STEP_CONCEPT,
-  VOCABULARY_INTRODUCED_BY,
   type ConceptDesign,
   type DesignConceptTag,
   type LessonDesign,
@@ -390,6 +389,14 @@ async function main() {
   console.log("Her minutes per concept:", JSON.stringify(minutes));
 
   const concepts: ConceptDesign[] = checkpoint.concepts ?? [];
+  // The design file is the source of each concept's vocabulary, description and never-say terms (the app derives
+  // VOCABULARY_INTRODUCED_BY from it): a re-extraction keeps what a person wrote there rather than overwriting it.
+  const previous = new Map<string, ConceptDesign>();
+  try {
+    for (const concept of (JSON.parse(await readFile(OUT_PATH, "utf8")) as LessonDesign).concepts) previous.set(concept.conceptTag, concept);
+  } catch {
+    // no design file yet: the extraction starts it
+  }
   for (const conceptTag of DESIGN_CONCEPTS) {
     if (concepts.some((concept) => concept.conceptTag === conceptTag)) continue; // checkpointed
     const own = segments.filter((segment) => segmentMap.get(segment.segmentStart) === conceptTag);
@@ -414,9 +421,9 @@ async function main() {
     concepts.push({
       conceptTag,
       activity: CONCEPT_ACTIVITY[conceptTag],
-      vocabularyIntroduced: Object.entries(VOCABULARY_INTRODUCED_BY)
-        .filter(([, tag]) => tag === conceptTag)
-        .map(([term]) => term),
+      vocabularyIntroduced: previous.get(conceptTag)?.vocabularyIntroduced ?? [],
+      ...(previous.get(conceptTag)?.description ? { description: previous.get(conceptTag)!.description } : {}),
+      ...(previous.get(conceptTag)?.vocabularyNotSpoken ? { vocabularyNotSpoken: previous.get(conceptTag)!.vocabularyNotSpoken } : {}),
       textbookContent: await textbookContentFor(conceptTag),
       timeWeightMinutes: minutes[conceptTag] ?? 0,
       ...extracted,

@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { APP_NAME_EN, APP_NAME_SI } from "@/lib/appCopy";
+import { APP_NAME_EN, APP_NAME_SI, t } from "@/lib/appCopy";
 
 /**
  * The web app manifest: installable, standalone (no browser chrome, so a
@@ -12,7 +12,7 @@ export default function manifest(): MetadataRoute.Manifest {
     // Latin is allowed in the manifest (the OS install dialog); the child sees the Sinhala name on the home screen.
     name: APP_NAME_EN,
     short_name: APP_NAME_SI,
-    description: "ඔයාගේම ගුරුතුමිය, ඔයාගේ ෆෝන් එකේ",
+    description: t("splash.tagline"),
     start_url: "/",
     scope: "/",
     display: "standalone",

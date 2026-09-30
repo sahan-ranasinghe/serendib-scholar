@@ -6,6 +6,7 @@
  * rod labels, place maths, number formatting — live here too.
  */
 import type { Transition } from "framer-motion";
+import { t, type CopyKey } from "@/lib/appCopy";
 
 export const BOARD = {
   surface: "var(--color-board)",
@@ -53,8 +54,17 @@ export const SHADOW = {
   edge: "0 2px 0 #D8D1C2",
 } as const;
 
-/** Rod labels, right-aligned: the last four are the four-digit abacus. */
+/**
+ * The rods' IDENTIFIERS, right-aligned: the last four are the four-digit abacus. The storyboard's events are keyed by
+ * them (docs/storyboard/*.json — `{ rod: "සි" }`), so they are data and never change with the copy. What the child reads
+ * under a rod is rodLabel(place), from the copy sheet (board.rod.*).
+ */
 export const ROD_LABELS = ["දසදා", "දා", "සි", "ද", "එ"] as const;
+const ROD_COPY: readonly CopyKey[] = ["board.rod.tenThousands", "board.rod.thousands", "board.rod.hundreds", "board.rod.tens", "board.rod.ones"];
+/** The label printed under a rod, from the copy sheet. */
+export function rodLabel(place: (typeof ROD_LABELS)[number]): string {
+  return t(ROD_COPY[ROD_LABELS.indexOf(place)]!);
+}
 export type Place = (typeof ROD_LABELS)[number];
 export const PLACES_4 = ["දා", "සි", "ද", "එ"] as const;
 /** What the design prints beneath the rods. */

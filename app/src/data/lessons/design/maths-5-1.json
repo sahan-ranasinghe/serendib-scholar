@@ -1,0 +1,70 @@
+{
+  "$comment": "GENERATED from docs/design/maths-5-1.json by `npm run generate:design` — edit the design file, not this.",
+  "subject": "maths",
+  "grade": 5,
+  "lesson": 1,
+  "concepts": [
+    {
+      "conceptTag": "readWrite4Digit",
+      "description": "reading any number up to 9 999, and writing it in digits and as its number name",
+      "objective": "9 999 තෙක් කුමන සංඛ්‍යාවක් වුව ද කියවයි. ඉලක්කමෙන් හා වචනයෙන් ලියයි. (Reads any number up to 9 999; writes it in digits and in words.)",
+      "vocabularyIntroduced": [
+        "සංඛ්‍යාව",
+        "සංඛ්‍යා නාමය"
+      ]
+    },
+    {
+      "conceptTag": "placeValue4Digit",
+      "description": "finding each digit's place in a 4-digit number, its place value, and the value it represents — on the abacus and in the table",
+      "objective": "ඉලක්කම් හතරේ සංඛ්‍යාවල ස්ථානීය අගය දක්වයි.",
+      "vocabularyIntroduced": [
+        "එකස්ථානය",
+        "දහයස්ථානය",
+        "සියයස්ථානය",
+        "දහසස්ථානය",
+        "ස්ථානීය අගය"
+      ]
+    },
+    {
+      "conceptTag": "expandedForm4Digit",
+      "description": "writing a 4-digit number in expanded form, as the sum of its place-value parts",
+      "objective": "ඉලක්කම් හතරේ සංඛ්‍යාවල ස්ථානීය අගය දක්වයි. (States the place value of digits in 4-digit numbers and writes them in expanded form.)",
+      "vocabularyIntroduced": []
+    },
+    {
+      "conceptTag": "beyond9999",
+      "description": "counting past 9 999 — how a run of 9s rolls over to the next round number — and reading and writing numbers up to 100 000",
+      "objective": "100 000 තෙක් සංඛ්‍යා කියයි. ලියයි. සංඛ්‍යා නාමය ලියයි. දස දහසස්ථානය තෙක් සංඛ්‍යාවල එක් එක් ඉලක්කමෙන් නිරූපිත අගය දක්වයි.",
+      "vocabularyIntroduced": [
+        "දස දහස",
+        "සියක් දහස"
+      ]
+    },
+    {
+      "conceptTag": "digitGroupingRule",
+      "description": "writing numbers of five or more digits with the digits separated in threes from the ones place",
+      "objective": "100 000 තෙක් සංඛ්‍යා කියයි. ලියයි. සංඛ්‍යා නාමය ලියයි. (Focusing on writing formatting: separating digits in threes).",
+      "vocabularyIntroduced": []
+    },
+    {
+      "conceptTag": "tenThousandsPlace",
+      "description": "the ten-thousands place: reading and writing five-digit numbers, with a zero in any place that is empty",
+      "objective": "100 000 තෙක් සංඛ්‍යා කියයි. ලියයි. සංඛ්‍යා නාමය ලියයි.",
+      "vocabularyIntroduced": [
+        "දස දහසස්ථානය"
+      ]
+    },
+    {
+      "conceptTag": "placeValueTable5Digit",
+      "description": "finding each digit's place in a 5-digit number and the value it represents, using the place-value table",
+      "objective": "100 000 තෙක් සංඛ්‍යා කියයි. ලියයි. සංඛ්‍යා නාමය ලියයි. දස දහසස්ථානය තෙක් සංඛ්‍යාවල එක් එක් ඉලක්කමෙන් නිරූපිත අගය දක්වයි.",
+      "vocabularyIntroduced": []
+    },
+    {
+      "conceptTag": "expandedForm5Digit",
+      "description": "writing numbers up to 99 999 in expanded form by place value",
+      "objective": "99 999ට නොවැඩි සංඛ්‍යා ස්ථානීය අගය අනුව විහිදුවා ලියයි. (Writes numbers up to 99 999 in expanded form by place value.)",
+      "vocabularyIntroduced": []
+    }
+  ]
+}

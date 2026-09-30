@@ -7,8 +7,7 @@ import { closeRecordingContext, recordAnswer as recordAnswerClip, type AnswerRec
 import { clipKey, AUDIO_FORMAT_VERSION, type ClipMeta } from "@/lib/audioCache";
 import { parseAnswerPredicate } from "@/lib/answerCheck";
 import { isNumberWord, sinhalaNumberName } from "@/lib/sinhalaNumber";
-import { concatWavClips, numberClipPlan, pcmOfWav, NUMBER_FRAMES, type NumberFrame } from "@/lib/composeNumberAudio";
-import { CLIP_SAMPLE_RATE } from "@/lib/audioCache";
+import { concatWavClips, numberClipPlan, wavDurationMs, NUMBER_FRAMES, type NumberFrame } from "@/lib/composeNumberAudio";
 import { useLiveChat } from "@/hooks/useLiveChat";
 import STORYBOARD_JSON from "@/data/storyboard/maths-5-1-session-1.json";
 import {
@@ -32,11 +31,11 @@ import {
   type StoryboardEvent,
 } from "@/lib/choreography";
 import { AUTHORED_LINES } from "@/lib/authoredLines";
-import { t } from "@/lib/appCopy";
+import { t, type CopyKey } from "@/lib/appCopy";
+import { DEFAULT_DAILY_LIMIT } from "@/lib/settings";
 import { warningDue, type TimeWarning } from "@/lib/timeWarnings";
 import { confirmValueFor, CONFIRM_LIMIT } from "@/lib/confirmPolicy";
 import { judgePhrase, judgePhraseLocally } from "@/lib/phraseJudge";
-import { renderNumberMarkers } from "@/lib/sinhalaNumber";
 import { parseTargetKey } from "@/lib/choreography";
 import { valueOfAnswer } from "@/lib/answerMode";
 import type { TurnSurface } from "@/components/board/events";
@@ -89,6 +88,7 @@ import {
   buildGiveUpBeat,
   buildNudgeBeat,
   buildReteachBeats,
+  buildRubricRevealBeat,
   buildDirectorLine,
   conceptSummary,
   createInitialState,
@@ -416,7 +416,7 @@ export function useLessonRuntime(subject = "maths", grade = 5, lesson = 1) {
    * The limit is enforced here: when the sitting's clock crosses it the
    * runtime jumps to the sitting's close, exactly as ⏹ does.
    */
-  const settingsRef = useRef<ChildRuntimeSettings>({ captions: true, sound: true, dailyLimitMinutes: 30, minutesToday: 0, devMode: false });
+  const settingsRef = useRef<ChildRuntimeSettings>({ captions: true, sound: true, dailyLimitMinutes: DEFAULT_DAILY_LIMIT, minutesToday: 0, devMode: false });
   const [childSettings, setChildSettings] = useState<ChildRuntimeSettings | null>(null);
   const limitEndedRef = useRef(false);
   const [limitEnded, setLimitEnded] = useState(false);
@@ -1411,7 +1411,8 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
         return false;
       }
       if (!buffer) return false;
-      const durationMs = Math.round((pcmOfWav(spliced).length / CLIP_SAMPLE_RATE) * 1000);
+      // Its own rate: the words may be hers (48 kHz) or the AI voice (24 kHz), resampled to one (composeNumberAudio).
+      const durationMs = wavDurationMs(spliced);
       setCaption(words.join(" "));
       beatAudioMsRef.current += durationMs;
       logEvent(`composed number ${value} (${plan.spoken}) from ${clips.length} clip(s)`);
@@ -1548,7 +1549,7 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
     return {
       ...beat,
       spokenText: AUTHORED_LINES.closeSessionDailyLimit,
-      board: { kind: "text_card", text: `${AUTHORED_LINES.closeSessionDailyLimit}\nඅද විනාඩි ${minutes}ක්${card ? `\n${card}` : ""}` },
+      board: { kind: "text_card", text: `${AUTHORED_LINES.closeSessionDailyLimit}\n${t("session.minutesToday", { n: minutes })}${card ? `\n${card}` : ""}` },
     };
   };
 
@@ -1593,7 +1594,7 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
     dispatchStage({ primitive: "turn", event: "retry", args: {} });
     const tapped = await awaitTap(TOUCH_NUDGE_MS);
     if (cut()) return;
-    logEvent(tapped ? "retry: the child tapped ආයෙත් උත්සාහ කරන්න" : "retry: reopened on its own after 12s");
+    logEvent(tapped ? "retry: the child tapped the retry button" : "retry: reopened on its own after 12s");
     padAnswerRef.current = null;
     setStage({ ...reduceStage(stageRef.current, { primitive: "turn", event: "over", args: {} }) });
   };
@@ -1893,19 +1894,7 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
     const answer = exampleAnswerFor(beat.expectedAnswer).replace(/[\s,]/g, "");
     const answerValue = /^\d+$/.test(answer) ? Number(answer) : NaN;
     if (beat.rubric) {
-      const explanation = renderNumberMarkers(beat.rubric.explainSi ?? "").spoken;
-      const reveal: Beat = {
-        ...beat,
-        id: `${beat.id}:reveal`,
-        type: "REVEAL_PART",
-        goal: "State the finding (verbatim) and move on.",
-        spokenText: `කමක් නෑ {address}, බලන්න — ${explanation || beat.expectedAnswer || ""}`.trim(),
-        sayCandidates: undefined,
-        board: { kind: "none" },
-        expectedAnswer: undefined,
-        rubric: undefined,
-        endBy: "pausing",
-      };
+      const reveal = buildRubricRevealBeat(beat);
       await deliverBeat(reveal);
       await finishBeatLog(reveal, null);
       return;
@@ -1940,9 +1929,9 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
     }
     return {
       subject,
-      lesson: `${lesson} · සංඛ්‍යා - 1`,
+      lesson: `${lesson} · ${lesson >= 1 && lesson <= 6 ? t(`lesson.${lesson}` as CopyKey) : t("common.lessonN", { n: lesson })}`,
       concept: { tag, title: conceptTitle(tag, summary?.description), objective: summary?.description ?? "" },
-      session: `සැසිය ${Math.max(0, sessionIndexRef.current) + 1}`,
+      session: t("common.sessionNth", { n: Math.max(0, sessionIndexRef.current) + 1 }),
       recentLines: recentLinesRef.current.slice(-5),
       nextLine: next?.spokenText ? resolveAddress(next.spokenText, childGenderRef.current) : null,
       board: serializeStage(stageRef.current),
@@ -1978,7 +1967,7 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
       setMicAsk(false);
       if (!granted) {
         logEvent("microphone not asked — the child chose not to (typed chat is not available yet)");
-        showHint("හරි, පාඩම දිගටම යමු", 2000);
+        showHint(t("session.micDeclined"), 2000);
         return;
       }
       try {
@@ -1987,7 +1976,7 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
         logEvent("microphone granted (chat)");
       } catch {
         logEvent("microphone refused — no chat");
-        showHint("කටහඬ නැතුව කතා කරන්න බෑ — පාඩම දිගටම යමු", 3000);
+        showHint(t("session.micRefused"), 3000);
         return;
       }
     }
@@ -2331,7 +2320,7 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
         const next: ChildRuntimeSettings = {
           captions: typeof raw.captions === "boolean" ? raw.captions : true,
           sound: typeof raw.sound === "boolean" ? raw.sound : true,
-          dailyLimitMinutes: typeof raw.dailyLimitMinutes === "number" ? raw.dailyLimitMinutes : 30,
+          dailyLimitMinutes: typeof raw.dailyLimitMinutes === "number" ? raw.dailyLimitMinutes : DEFAULT_DAILY_LIMIT,
           minutesToday: typeof payload?.minutes_today === "number" ? payload.minutes_today : 0,
           devMode: payload?.dev_mode === true,
         };
@@ -2341,7 +2330,7 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
       }
       if (response.status === 401) {
         const payload = await response.json().catch(() => ({}));
-        if (payload?.error === "wrong_code") setError("කේතය වැරදියි. ආයෙත් බලලා ලියන්න.");
+        if (payload?.error === "wrong_code") setError(t("parent.pinWrong"));
         return "locked";
       }
       return "error";
@@ -2572,14 +2561,14 @@ const CLIP_AUDIO_TIMEOUT_MS = 25_000;
     if (on) holdsRef.current.add(reason);
     else holdsRef.current.delete(reason);
     if (on && reason !== "asking") {
-      showHint(reason === "portrait" ? "දුරකථනය හරවන්න — පාඩම නවත්තලා" : "ආයෙත් ආවම අපි දිගටම යමු", 2500);
+      showHint(reason === "portrait" ? t("session.rotateHint") : t("session.backgroundHint"), 2500);
     }
     applyPause();
   }, [applyPause]);
 
   /** A tap on the board while she is talking: not an answer, and not ignored either. */
   const noteIdleTouch = useCallback(() => {
-    if (statusRef.current === "teaching") showHint("සාරා කතා කරනවා — ටිකක් ඉන්න, ඊළඟට ඔයාගේ වාරයයි");
+    if (statusRef.current === "teaching") showHint(t("session.talkingHint"));
   }, []);
 
   const toggleMute = useCallback(() => {

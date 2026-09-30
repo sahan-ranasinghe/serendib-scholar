@@ -199,15 +199,19 @@ install-as-app all work. On 20 Sep these checks passed:
 - **Review.** No qualified teacher has reviewed anything. So far the only
   reviews are the owner's (as a native speaker) and an AI second pass.
 - **Voice.** Zara's voice is AI-rendered. `portal:coverage` shows how much
-  the actor has recorded.
+  the actor has recorded — distinct lines the lesson can speak, recorded and
+  approved; only takes approved on `/portal/status` reach a child.
 - **Accounts and payments.** There is one shared access code and no parent
   logins. The phone code check (OTP) and PayHere billing are stand-ins. The
   privacy-policy link is empty.
 - **Art and copy.** Art slots are placeholders
-  ([art-needed.md](design/art-needed.md)). 233 app strings await sign-off
-  and 16 are missing ([app-copy.md](review/app-copy.md)).
+  ([art-needed.md](design/art-needed.md)). Of the 357 app strings, 79
+  await a native sign-off (76 moved into the sheet from the code with their
+  words unchanged, 3 drafted) and none are missing
+  ([app-copy.md](review/app-copy.md)).
 - **Script.** Two script notes are still open.
-- **Checks.** CI runs only some unit tests and one browser check.
+- **Checks.** CI runs every unit test file, the lesson dry run and one
+  browser check; the other browser checks are run by hand.
 - **Unconfirmed in production.** Rate limits only work once the
   `api_rate_limits` table exists, and branch protection on `master` hasn't
   been confirmed. Check both.

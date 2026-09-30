@@ -24,15 +24,20 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import assert from "node:assert/strict";
 import { supabaseAdmin } from "../src/lib/supabaseAdmin";
-import { buildScriptFromRows, exerciseUnits, insideExerciseUnit, type BankRow } from "../src/lib/lessonScriptBuilder";
+import { buildScriptFromRows, exerciseUnits, insideExerciseUnit, PACKING, type BankRow } from "../src/lib/lessonScriptBuilder";
 import { blanksForItem } from "../src/lib/lessonBlanks";
-import { LESSON_1_NUMBERS_STEPS, LESSON_1_NUMBERS_TITLE } from "../src/data/lessons/lesson1-numbers";
+import { LESSON_1_NUMBERS_TITLE } from "../src/data/lessons/lesson1-numbers";
+import { CONCEPT_DESCRIPTIONS } from "../src/lib/lessonDesign";
 import {
   advance,
   beatSpec,
   estimateBeatSeconds,
   buildDirectorLine,
   buildFeedbackBeat,
+  buildGiveUpBeat,
+  buildNudgeBeat,
+  buildReteachBeats,
+  buildRubricRevealBeat,
   buildWaitBeat,
   createInitialState,
   currentBeat,
@@ -54,7 +59,9 @@ import { parseAuthoredScript, type AuthoredScriptFile } from "../src/lib/authore
 import { describeStage, eventKey, initialStage, isKnownEvent, reduceStage, rodsNamedIn, rowOfCards, type Storyboard } from "../src/lib/choreography";
 import { sentencesOf } from "../src/lib/scriptDistance";
 import { checkSpeechRules, formatSpeechFindings } from "../src/lib/speechRules";
-import { formatCoverage, voiceCoverage } from "../src/lib/voiceCoverage";
+import { coverageOf, formatCoverage, voiceShelf } from "../src/lib/voiceCoverage";
+import { runtimeSpokenLines, SPOKEN_GROUPS } from "../src/lib/spokenLines";
+import { resolveAddress } from "../src/lib/addressToken";
 import { voiceProfile } from "../src/lib/humanClips";
 
 type ChildBehaviour = "correct" | "wrong" | "silent" | "offtopic";
@@ -307,7 +314,7 @@ async function main() {
     );
   }
 
-  const descriptions = new Map(LESSON_1_NUMBERS_STEPS.map((step) => [step.conceptTag, step.conceptDescription]));
+  const descriptions = new Map<string, string>(Object.entries(CONCEPT_DESCRIPTIONS));
   const blueprintOverride = await loadOverride("maths", 5, 1);
   // The authored (original) script rides the same approved-only gate the
   // server uses, so the dry run always shows what a child would hear.
@@ -357,7 +364,8 @@ async function runAssertions(
   // the assembled script: it must report even when a later structural
   // assertion aborts the run.
   assertSpeechRules(authoredScript);
-  await reportVoiceCoverage(authoredScript);
+  assertPortalCoversRuntime(script);
+  await reportVoiceCoverage(script);
 
   // 1. Every non-chat beat runs against a non-empty board: it either
   //    stages something (item, cell patch, title card) or inherits content
@@ -916,8 +924,9 @@ async function runAssertions(
   // stop. Once it is BOTH over the ceiling and past the 12-minute floor,
   // every later beat must be a non-boundary — because the packer would
   // have cut at the first boundary it saw.
-  const ASK_CEILING = 12;
-  const FLOOR_SECONDS = 720;
+  // The packer's own budgets (lessonScriptBuilder PACKING) — never a second copy of them.
+  const ASK_CEILING = PACKING.sessionAskLimit;
+  const FLOOR_SECONDS = PACKING.sessionTeachingMinSeconds;
   const isCut = (type: string): boolean =>
     type === "SHOW_BOARD" || type === "EXPLAIN" || type === "HOOK" || type === "TRANSITION";
 
@@ -1033,14 +1042,40 @@ function assertSpeechRules(authoredScript: AuthoredScriptFile | null): void {
 }
 
 /**
- * Which lines exist in which voice. Printed, never asserted: a
- * part-recorded lesson is the normal state while the actor works through
- * it, and a dry run that failed on it would be red for weeks.
+ * EVERY STRING THE RUNTIME CAN SPEAK HAS A PORTAL ROW, over the whole built lesson (every session): each beat's words
+ * and candidates, and — through the orchestrator's own builders — each question's feedback, nudge, give-up, rubric
+ * reveal and reteach. The portal lists runtimeSpokenLines(script); this re-derives the spoken side independently and
+ * asserts it is covered, one row per distinct line (src/lib/spokenLines.test.ts checks the fixed tables).
  */
-async function reportVoiceCoverage(authoredScript: AuthoredScriptFile | null): Promise<void> {
-  if (!authoredScript) return;
+function assertPortalCoversRuntime(script: LessonScript): void {
+  const lines = runtimeSpokenLines(script);
+  const rows = new Set(lines.map((l) => l.text));
+  assert.equal(rows.size, lines.length, "one portal row per distinct line");
+  const said = (text: string | undefined) => (text ? resolveAddress(text, "unspecified").trim() : "");
+  const missing: string[] = [];
+  const need = (where: string, text: string | undefined) => {
+    if (said(text) && !rows.has(said(text))) missing.push(`${where}: "${said(text).slice(0, 50)}"`);
+  };
+  for (const beat of script.beats) {
+    for (const text of [beat.spokenText, ...(beat.sayCandidates ?? []), beat.praiseText]) need(beat.id, text);
+    if (!beat.expectedAnswer) continue;
+    for (const built of [buildFeedbackBeat(beat, true), buildFeedbackBeat(beat, false), buildFeedbackBeat(beat, false, undefined, { reteachFollows: true }), buildNudgeBeat(beat), buildGiveUpBeat(beat), ...(beat.rubric ? [buildRubricRevealBeat(beat)] : []), ...buildReteachBeats(script, beat, []).beats]) {
+      for (const text of [built.spokenText, ...(built.sayCandidates ?? [])]) need(built.id, text);
+    }
+  }
+  assert.deepEqual(missing, [], "a spoken line with no portal row");
+  const byGroup = SPOKEN_GROUPS.map((g) => `${g} ${lines.filter((l) => l.group === g).length}`).join(" · ");
+  console.log(`  PASS  every string the runtime can speak has a portal row: ${lines.length} rows, one per distinct line (${byGroup})`);
+}
+
+/**
+ * Which lines exist in which voice — THE one count (src/lib/voiceCoverage.ts coverageOf), over every line the runtime
+ * can speak (src/lib/spokenLines.ts). Printed, never asserted: a part-recorded lesson is the normal state while the
+ * actor works through it, and a dry run that failed on it would be red for weeks.
+ */
+async function reportVoiceCoverage(script: LessonScript): Promise<void> {
   try {
-    const coverage = await voiceCoverage(authoredScript);
+    const coverage = coverageOf(runtimeSpokenLines(script), await voiceShelf());
     console.log(`\n  VOICE COVERAGE`);
     console.log(formatCoverage(coverage, voiceProfile()));
   } catch (error) {

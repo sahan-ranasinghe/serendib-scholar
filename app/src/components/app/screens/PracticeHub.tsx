@@ -3,6 +3,7 @@ import ZaraCharacter from "@/components/ZaraCharacter";
 import { BottomNav, Ring, Screen } from "../Screen";
 import { sx } from "../sx";
 import { t } from "@/lib/appCopy";
+import { MASTERY_PERCENT, PRACTICE_MINUTES } from "@/lib/settings";
 import type { PracticeData } from "@/lib/appTypes";
 
 /** Screens C · Practice hub. `rings` lets the preview pass the export's literal ring colours/offsets. */
@@ -12,7 +13,7 @@ export function PracticeHubScreen({ data, frame, rings }: { data: PracticeData; 
       <div style={sx("padding:52px 20px 0;display:flex;align-items:center;gap:12px")}>
         <div style={sx("display:grid;flex:1")}>
           <span style={sx("font:700 28px/1.5 var(--font-display)")}>{t("practice.title")}</span>
-          <span style={sx("font:600 20px/1.5 var(--font-label);color:var(--color-ink-70)")}>{t("practice.subtitle")}</span>
+          <span style={sx("font:600 20px/1.5 var(--font-label);color:var(--color-ink-70)")}>{t("practice.subtitle", { n: PRACTICE_MINUTES })}</span>
         </div>
         <ZaraCharacter state="idle" amplitude={0} portrait size={64} />
       </div>
@@ -20,7 +21,7 @@ export function PracticeHubScreen({ data, frame, rings }: { data: PracticeData; 
         {data.rows.map((p, i) => {
           const ring = rings?.[i];
           const pct = p.pct ?? 0;
-          const color = ring?.c ?? (pct >= 85 ? "#3C8C5A" : pct > 0 ? "#E9B44C" : "rgba(27,27,27,.3)");
+          const color = ring?.c ?? (pct >= MASTERY_PERCENT ? "#3C8C5A" : pct > 0 ? "#E9B44C" : "rgba(27,27,27,.3)");
           const fraction = ring ? 1 - ring.o / 138 : pct / 100;
           return (
             <Link key={p.tag} href={`/practice/quiz?concept=${encodeURIComponent(p.tag)}`} data-testid="practice-row" style={sx("background:var(--color-paper);border:2px solid var(--color-ink-10);border-radius:16px;padding:12px 14px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 0 #D8D1C2")}>

@@ -1,4 +1,5 @@
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { t } from "@/lib/appCopy";
 
 /**
  * Server-side spending budgets, counted in Postgres (api_rate_limits in
@@ -76,6 +77,6 @@ export function limitedResponseBody() {
   return {
     ok: false,
     error: "rate_limited",
-    message: "අද වැඩ ගොඩක් කළා! පොඩ්ඩක් ඉන්න, පස්සේ ආයෙත් උත්සාහ කරන්න.",
+    message: t("app.workLimit"),
   };
 }

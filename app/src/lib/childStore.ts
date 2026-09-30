@@ -1,6 +1,7 @@
 import "server-only";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { DEFAULT_CHAT_MINUTES, isChatMinutes, type ChatMinutes } from "@/lib/chatBudgetRules";
+import { avatarIdOf, type AvatarId } from "@/lib/avatars";
+import { DEFAULT_CHAT_MINUTES, DEFAULT_DAILY_LIMIT, isChatMinutes, isDailyLimit, type ChatMinutes, type DailyLimitMinutes } from "@/lib/settings";
 
 /**
  * The per-child fields the app shell needs beyond the lesson: the avatar
@@ -17,22 +18,22 @@ import { DEFAULT_CHAT_MINUTES, isChatMinutes, type ChatMinutes } from "@/lib/cha
 export interface ChildSettings {
   captions: boolean;
   sound: boolean;
-  dailyLimitMinutes: 15 | 20 | 30;
+  dailyLimitMinutes: DailyLimitMinutes;
   /** The ✋ chat's daily budget (src/lib/chatBudgetRules.ts): charged by the connected second, 30 by default. */
   chatMinutes: ChatMinutes;
 }
 
 export interface ChildExtras {
-  avatar: string | null;
+  /** A stable avatar id (src/lib/avatars.ts), never the display name. */
+  avatar: AvatarId | null;
   parentPinHash: string | null;
   settings: ChildSettings;
   /** Which store answered. */
   source: "columns" | "bucket" | "defaults";
 }
 
-// 30 by default (the device walk, 17 Sep: a 15-minute limit closed a sitting
-// in the middle of the abacus reading). A parent can bring it down to 20 or 15.
-export const DEFAULT_SETTINGS: ChildSettings = { captions: true, sound: true, dailyLimitMinutes: 30, chatMinutes: DEFAULT_CHAT_MINUTES };
+// The limits' choices and defaults live in the settings module (src/lib/settings.ts); a parent picks among them.
+export const DEFAULT_SETTINGS: ChildSettings = { captions: true, sound: true, dailyLimitMinutes: DEFAULT_DAILY_LIMIT, chatMinutes: DEFAULT_CHAT_MINUTES };
 
 const BUCKET = "child-extras";
 const MISSING_COLUMN = /column .* does not exist|schema cache/u;
@@ -43,7 +44,7 @@ function normaliseSettings(raw: unknown): ChildSettings {
   return {
     captions: typeof o.captions === "boolean" ? o.captions : DEFAULT_SETTINGS.captions,
     sound: typeof o.sound === "boolean" ? o.sound : DEFAULT_SETTINGS.sound,
-    dailyLimitMinutes: limit === 15 || limit === 20 || limit === 30 ? limit : DEFAULT_SETTINGS.dailyLimitMinutes,
+    dailyLimitMinutes: isDailyLimit(limit) ? limit : DEFAULT_SETTINGS.dailyLimitMinutes,
     chatMinutes: isChatMinutes(o.chatMinutes) ? o.chatMinutes : DEFAULT_SETTINGS.chatMinutes,
   };
 }
@@ -77,7 +78,8 @@ export async function readChildExtras(childId: string): Promise<ChildExtras> {
   const { data, error } = await supabaseAdmin.from("children").select("avatar, parent_pin_hash, settings").eq("id", childId).maybeSingle();
   if (!error && data) {
     return {
-      avatar: typeof data.avatar === "string" ? data.avatar : null,
+      // A stable id (src/lib/avatars.ts); a row written before the ids is read as the id its display name maps to.
+      avatar: avatarIdOf(data.avatar),
       parentPinHash: typeof data.parent_pin_hash === "string" ? data.parent_pin_hash : null,
       settings: normaliseSettings(data.settings),
       source: "columns",
@@ -85,7 +87,7 @@ export async function readChildExtras(childId: string): Promise<ChildExtras> {
   }
   if (error && !MISSING_COLUMN.test(error.message)) console.error("[childStore] read failed:", error.message);
   const fromBucket = await readBucket(childId);
-  if (fromBucket) return { avatar: fromBucket.avatar ?? null, parentPinHash: fromBucket.parentPinHash ?? null, settings: normaliseSettings(fromBucket.settings), source: "bucket" };
+  if (fromBucket) return { avatar: avatarIdOf(fromBucket.avatar), parentPinHash: fromBucket.parentPinHash ?? null, settings: normaliseSettings(fromBucket.settings), source: "bucket" };
   return { avatar: null, parentPinHash: null, settings: { ...DEFAULT_SETTINGS }, source: "defaults" };
 }
 

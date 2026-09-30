@@ -3,7 +3,7 @@ import { supabaseAdmin } from "@/lib/supabaseClient";
 import { writeChildExtras } from "@/lib/childStore";
 import { childCookieHeader, mintChildCookie } from "@/lib/parentAuth";
 import { readCookie } from "@/lib/sessionAuth";
-import { AVATARS } from "@/lib/appCopy";
+import { avatarIdOf } from "@/lib/avatars";
 
 /**
  * Onboarding step 2 (and "add a second child"): creates the row in
@@ -14,7 +14,8 @@ export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => ({}));
   const name = typeof body.name === "string" ? body.name.trim().slice(0, 60) : "";
   const grade = body.grade === 4 || body.grade === 5 ? body.grade : null;
-  const avatar = typeof body.avatar === "string" && AVATARS.includes(body.avatar) ? body.avatar : null;
+  // Stored as a stable id (src/lib/avatars.ts); an old client that still sends the display name is mapped to it.
+  const avatar = avatarIdOf(body.avatar);
   if (!name || !grade) return NextResponse.json({ ok: false, error: "name and grade required" }, { status: 400 });
   // Step 1 leaves "+94…|1" (verified through the SMS gateway) or "+94…|0" (no gateway: unverified).
   const phoneCookie = readCookie(request.headers.get("cookie"), "ss_onb_phone");

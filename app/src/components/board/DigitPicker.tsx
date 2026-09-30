@@ -19,6 +19,7 @@ import { createPortal } from "react-dom";
 import { HandNumber } from "./HandNumber";
 import { useTargetRef } from "./targets";
 import { BOARD, FONT_SINHALA, FONT_LABEL, FONT_LATIN, SPRING, TOUCH_MIN } from "./tokens";
+import { t } from "@/lib/appCopy";
 import { playSound } from "./sound";
 import { hitTest, useDrag, type DragPoint } from "./useDrag";
 
@@ -101,7 +102,7 @@ export function DigitPicker({ pool, built, length, builtName = null, builtBy = "
       {/* the puzzle's hand and its ledger stand side by side and keep their own widths: where the room is short the board scales the pair down (BoardStage's fit) — it never wraps the ledger under the tiles or squeezes the ring */}
       <div ref={rootRef} data-testid="digit-picker" style={{ display: "flex", gap: ledger ? 28 : 40, alignItems: "center", justifyContent: "center", flexWrap: ledger ? "nowrap" : "wrap", maxWidth: ledger ? undefined : "100%" }}>
         <div style={{ display: "grid", gap: 12, justifyItems: "center", flex: "none" }}>
-          {ledger && <div style={{ font: `600 20px/1.5 ${FONT_LABEL}`, color: BOARD.inkSoft }}>පොතේ ඉලක්කම්</div>}
+          {ledger && <div style={{ font: `600 20px/1.5 ${FONT_LABEL}`, color: BOARD.inkSoft }}>{t("board.bookDigits")}</div>}
           {/* the slot row — the puzzle has none: its number forms in the ledger's current row (G6) */}
           {!ledger && (
           <div style={{ display: "flex", gap: 8 }} data-testid="digit-picker-slots" data-entry={entered ? number : undefined} data-entry-verdict={entered ?? undefined}>
@@ -188,7 +189,7 @@ export function DigitPicker({ pool, built, length, builtName = null, builtBy = "
         </div>
         {ledger && (
           <div data-testid="picker-ledger" style={{ display: "grid", gap: 6, flex: "none" }}>
-            <div style={{ font: `600 20px/1.5 ${FONT_LABEL}`, color: BOARD.inkSoft }}>හදපු සංඛ්‍යා {ledgerRows}</div>
+            <div style={{ font: `600 20px/1.5 ${FONT_LABEL}`, color: BOARD.inkSoft }}>{t("board.builtNumbers", { n: ledgerRows })}</div>
             {/* the row being built is always ON the ledger: once it is full (the example counted as one), the five rows shown slide down to keep it */}
             {Array.from({ length: ledgerRows }, (_, i) => i + Math.max(0, ledger.length + (interactive || entered !== null ? 1 : 0) - ledgerRows)).map((row) => {
               const done = ledger[row];

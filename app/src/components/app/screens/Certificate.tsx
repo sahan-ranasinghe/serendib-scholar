@@ -5,6 +5,18 @@ import { t } from "@/lib/appCopy";
 import type { CertificateData } from "@/lib/appTypes";
 
 /** Screens C · Certificate — printable A4 preview. `actions` are the caller's share/print buttons. */
+/** cert.body, with the concept's name in the display face: the template split at its {concept} hole. */
+function certBody(grade: number, concept: string) {
+  const [before = "", after = ""] = t("cert.body", { grade }).split("{concept}");
+  return (
+    <>
+      {before}
+      <b style={sx("font-family:var(--font-display)")}>{concept}</b>
+      {after}
+    </>
+  );
+}
+
 export function CertificateScreen({ data, frame, actions }: { data: CertificateData; frame?: boolean; actions?: React.ReactNode }) {
   return (
     <Screen label="Certificate" frame={frame} root="background:var(--color-board);display:flex;flex-direction:column;align-items:center">
@@ -26,7 +38,7 @@ export function CertificateScreen({ data, frame, actions }: { data: CertificateD
         <div style={sx("font:400 20px/1.5 var(--font-body);color:var(--color-ink);text-wrap:balance;margin-top:4px")}>
           {data.conceptTitle ? (
             <>
-              {data.grade} ශ්‍රේණියේ ගණිතය — <b style={sx("font-family:var(--font-display)")}>{data.conceptTitle}</b> සංකල්පය මනාව ප්‍රගුණ කළ බවයි.
+              {certBody(data.grade, data.conceptTitle)}
             </>
           ) : (
             <span style={sx("color:var(--color-ink-40)")}>{t("common.notYet")}</span>
