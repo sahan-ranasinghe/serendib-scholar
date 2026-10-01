@@ -340,7 +340,7 @@ function Rod({
       animate={{ opacity: veiled ? 0.38 : 1 }}
       transition={{ duration: 0.3 }}
       role={tappable ? "button" : undefined}
-      aria-label={tappable ? `${label}: ${count} beads — tap` : `${label}: ${count} of ${digit}`}
+      aria-label={tappable ? t("a11y.rodTap", { rod: label, n: count }) : `${label}: ${count} of ${digit}`}
       onClick={tappable ? onTap : undefined}
       // A rod in a build takes one bead off per tap: two quick taps are two beads (the single-fire guard's repeat rule).
       data-tap-repeat={tappable && repeatTaps ? true : undefined}

@@ -696,7 +696,7 @@ async function checkCarryOver(page: Cdp, gotoFrame: (id: string) => Promise<void
   const glow = await q<{ shadow: string; dur: string; veil: string | null; groups: number } | null>(`(() => { const el = document.querySelector('.wb-glow, [data-glow="true"]'); if (!el) return null; const cs = getComputedStyle(el); const dur = getComputedStyle(document.documentElement).getPropertyValue('--dur-glow').trim(); const veil = document.querySelector('.wb-veil'); const glows = [...document.querySelectorAll('.wb-glow, [data-glow="true"]')]; const groups = new Set(glows.map((g) => g.closest('[data-testid="abacus"]') || g)); return { shadow: cs.boxShadow, dur, veil: veil ? getComputedStyle(veil).opacity : null, groups: groups.size }; })()`);
   add("5 glow", "shadow 0 0 0 4px saffron, 0 0 24px 6px saffron-glow", "rgb(233, 180, 76) 0px 0px 0px 4px, rgba(233, 180, 76, 0.55) 0px 0px 24px 6px", glow?.shadow, glow?.shadow === "rgb(233, 180, 76) 0px 0px 0px 4px, rgba(233, 180, 76, 0.55) 0px 0px 24px 6px");
   add("5 glow", "breathes 2.4 s (--dur-glow; 0 under reduced motion)", "2400ms | 0ms", glow?.dur, glow?.dur === "2400ms" || glow?.dur === "0ms" || glow?.dur === "0s");
-  const glowSource = await readFile(path.resolve(process.cwd(), "src/app/tokens.css"), "utf8");
+  const glowSource = await readFile(path.resolve(process.cwd(), "src/app/(app)/tokens.css"), "utf8");
   add("5 glow", "tokens.css --dur-glow", "2400ms", /--dur-glow:\s*2400ms/u.exec(glowSource) ? "2400ms" : "missing", /--dur-glow:\s*2400ms/u.test(glowSource));
   add("5 glow", "one glow group", "1", glow?.groups, glow?.groups === 1);
   await gotoFrame("M7");

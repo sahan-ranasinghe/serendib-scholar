@@ -22,7 +22,7 @@ export class NoChildError extends Error {
  * `children` and sets a signed ss_child cookie naming it, and every
  * server route and page that needs the id calls this — no client code
  * ever supplies one. A device with no child is sent to onboarding by the
- * splash (src/app/page.tsx) and by every child page.
+ * splash (src/app/(app)/page.tsx) and by every child page.
  *
  * A development machine may point DEV_CHILD_ID at a test row, but only
  * with DEV_MODE=on and only in a development build: the production

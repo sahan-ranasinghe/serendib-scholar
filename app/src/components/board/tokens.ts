@@ -1,6 +1,6 @@
 /**
  * The board reads tokens.css and nothing else. Every value here is a
- * `var(--…)` reference into src/app/tokens.css (the design's token sheet,
+ * `var(--…)` reference into src/app/(app)/tokens.css (the design's token sheet,
  * verbatim), so nothing on the board can resolve to a colour, size or
  * easing the design did not name. The few helpers that are not tokens —
  * rod labels, place maths, number formatting — live here too.

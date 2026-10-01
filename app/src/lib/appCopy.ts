@@ -341,6 +341,8 @@ export const COPY = {
   "a11y.back": { screen: "all", si: "ආපහු", en: "Back (the ‹ in a screen's header)" },
   // Drafted (29 Sep 2026, second follow-up) in the lesson's own words — කූරට … පබළු … දානවා, හිස්තැන — for sign-off.
   "a11y.beadDrag": { screen: "all", si: "පබළුවක් කූරකට දාන්න", en: "Put a bead on a rod (the abacus tray's bead, dragged onto a rod)" },
+  // Drafted (1 Oct 2026) from two reviewed strings — board.beads (පබළු) and board.tapHint (ඔබන්න) — for sign-off.
+  "a11y.rodTap": { screen: "all", si: "{rod}: පබළු {n} — ඔබන්න", en: "{rod}: {n} beads — tap (a rod of the abacus the child may tap; {rod} is the rod's own label)" },
   "a11y.blank": { screen: "all", si: "හිස්තැන", en: "Blank (an empty box in the older lesson view)" },
   "a11y.pageLoading": { screen: "all", si: "පොතේ පිටුව එනවා", en: "The book's page is loading (the page view's spinner)" },
   // --- moved from the code into the sheet (29 Sep 2026, docs/cms/content-inventory.md §16): wording unchanged ---

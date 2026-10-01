@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { COPY, LATIN_ALLOWED_SCREENS, MISSING } from "./appCopy";
+import { COPY, LATIN_ALLOWED_SCREENS, MISSING, t } from "./appCopy";
 
 /**
  * The copy sheet after the native review round (29 Sep 2026, docs/review/app-copy-corrections.json): every string has
@@ -69,4 +69,7 @@ test("the child sees සාරා, never the Latin name", () => {
 
 test("the child's controls have Sinhala accessible names", () => {
   for (const key of ["a11y.backspace", "a11y.done", "a11y.close", "a11y.back", "a11y.beadDrag", "a11y.blank", "a11y.pageLoading"] as const) assert.match(COPY[key].si, /^[\u0D80-\u0DFF\u200D ]+$/u, key);
+  // The abacus's tappable rod: its own label, the bead count, and nothing Latin around them.
+  assert.equal(t("a11y.rodTap", { rod: "සි", n: 4 }), "සි: පබළු 4 — ඔබන්න");
+  assert.doesNotMatch(COPY["a11y.rodTap"].si.replace(/\{(rod|n)\}/gu, ""), /[A-Za-z]/u);
 });

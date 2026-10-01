@@ -338,6 +338,14 @@
       "shownAt": "the abacus tray's bead (dragged onto a rod) — was \"drag a bead onto a rod\" (accessible name)",
       "why": "The owner asked for Sinhala names for the last English ones on child controls, without wording: drafted from the lesson's own words (කූරට … පබළු … දානවා; හිස්තැන) — for sign-off."
     },
+    "a11y.rodTap": {
+      "screen": "all",
+      "ruling": "draft",
+      "round": "third follow-up, 1 Oct 2026 (with the CMS install)",
+      "after": "{rod}: පබළු {n} — ඔබන්න",
+      "shownAt": "a rod of the abacus the child may tap — was \"{rod}: {n} beads — tap\" (accessible name)",
+      "why": "The abacus's last English accessible name. Drafted from two reviewed strings — board.beads (පබළු) and board.tapHint (ඔබන්න) — in the table's own count order (තරු {n}) — for sign-off."
+    },
     "a11y.blank": {
       "screen": "all",
       "ruling": "draft",
@@ -1028,6 +1036,12 @@
         "LangToggle group": "splash.language — the reviewed භාෂාව"
       },
       "stillEnglish": "none on child controls (the DEV-only debug overlay's session/beat inputs aside)"
+    },
+    "thirdFollowUp": {
+      "round": "third follow-up, 1 Oct 2026 (with the CMS install)",
+      "changed": {
+        "Abacus tappable rod": "a11y.rodTap (drafted)"
+      }
     }
   },
   "designCheck": {

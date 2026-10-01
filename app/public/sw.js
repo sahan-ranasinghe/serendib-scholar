@@ -9,7 +9,10 @@
  *    play and served from the cache after — lesson audio is content, not
  *    child data;
  *  - EVERY OTHER /api/* response is never cached: those carry the child's
- *    own records (session log, progress, settings) and are always fetched.
+ *    own records (session log, progress, settings) and are always fetched;
+ *  - the CMS panel (/admin, docs/cms/SETUP.md) is never touched at all: its
+ *    pages carry the editors' work behind two locks, and a copy in this
+ *    cache would sit outside both.
  */
 // One cache generation per build: the registration URL carries the build's
 // SHA (?v=…), so a new deploy installs a new worker with its own caches and
@@ -58,6 +61,13 @@ self.addEventListener("activate", (event) => {
   );
 });
 
+// Payload's panel: everything under /admin except the app's own QA galleries
+// (src/cms/routes.ts APP_ADMIN_PAGES — src/lib/cmsGate.test.ts keeps the two lists equal).
+const APP_ADMIN_PAGES = ["/admin/board-gallery", "/admin/design-gallery", "/admin/design-preview"];
+const isCmsPanel = (url) =>
+  url.origin === self.location.origin &&
+  (url.pathname === "/admin" || url.pathname.startsWith("/admin/")) &&
+  !APP_ADMIN_PAGES.some((page) => url.pathname === page || url.pathname.startsWith(`${page}/`));
 const isClip = (url) => url.origin === self.location.origin && /^\/api\/clip\/[0-9a-f]+$/u.test(url.pathname);
 const isStatic = (url) => url.origin === self.location.origin && (url.pathname.startsWith("/_next/static/") || url.pathname.startsWith("/icons/") || url.pathname === "/manifest.webmanifest");
 
@@ -65,6 +75,9 @@ self.addEventListener("fetch", (event) => {
   const request = event.request;
   if (request.method !== "GET") return;
   const url = new URL(request.url);
+
+  // The CMS panel: straight to the network, never cached, never answered from a cache.
+  if (isCmsPanel(url)) return;
 
   if (request.mode === "navigate") {
     // The app shell's own routes are static: answer from the cache at once

@@ -3,6 +3,7 @@ import { DEVICE_COOKIE, SESSION_COOKIE, readCookie, verifyToken } from "@/lib/se
 import { hasPortalAccess } from "@/lib/portalAuth";
 import { HARNESS_HEADER } from "@/lib/harness";
 import { t } from "@/lib/appCopy";
+import { cmsArea, cmsGateVerdict } from "@/cms/routes";
 
 /**
  * The API's front door (Next 16's proxy — the artist formerly known as
@@ -42,6 +43,21 @@ import { t } from "@/lib/appCopy";
  *    HARNESS_TOKEN unset (the production default) means the header is
  *    ignored entirely — there is no way to opt into the bigger bucket on
  *    a server that has not deliberately configured one.
+ *
+ * 3. THE CMS (30 Sep 2026, docs/cms/SETUP.md). Payload's panel (/admin) and
+ *    its API (/api/payload) are a third door with a lock of their own: the
+ *    DEVICE grant — the ss_device cookie a device earns by entering
+ *    ACCESS_CODE once — and nothing else. A child's session cookie does not
+ *    open it and the actor's portal cookie does not either. Past this door
+ *    Payload asks for its own login, so the panel needs both. A page view
+ *    with no grant is sent to /device-gate (the app's own access-code entry)
+ *    and returned afterwards; every other request is refused with a 401.
+ *    "Create first user" and its endpoint are closed to everyone (403): the
+ *    first admin comes from the seed script, never from the panel.
+ *    The app's QA galleries under /admin are not Payload's and are left as
+ *    they were (src/cms/routes.ts names them). The panel's API is counted in
+ *    its own per-IP bucket: an editor's afternoon must not spend the 60/min
+ *    a child's phone on the same wifi lives on, nor the reverse.
  */
 
 // /api/build carries no child data — it is the running build's identity, and
@@ -50,6 +66,8 @@ const PUBLIC_API_ROUTES = new Set(["/api/session-start", "/api/build"]);
 const IP_LIMIT_PER_MINUTE = 60;
 /** A whole headless lesson, its drills and its screenshots, with room for a second check on the same machine. */
 const HARNESS_LIMIT_PER_MINUTE = 6_000;
+/** The CMS panel's API: a person editing, not a lesson — list views, preferences and document locks add up. */
+const CMS_LIMIT_PER_MINUTE = 300;
 const RATE_CHECK_TIMEOUT_MS = 400;
 
 /**
@@ -106,8 +124,24 @@ async function takeIpToken(ip: string, limit: number, bucketPrefix: string): Pro
   }
 }
 
+/** Has this device passed the ACCESS_CODE gate? (Development with no code configured has no gate — as in /api/session-start.) */
+async function deviceGrant(cookieHeader: string | null): Promise<{ granted: boolean; waived: boolean }> {
+  const device = await verifyToken(readCookie(cookieHeader, DEVICE_COOKIE), "device");
+  const waived = !(process.env.ACCESS_CODE ?? "").trim() && process.env.NODE_ENV !== "production";
+  return { granted: device !== null, waived };
+}
+
 export default async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
+  const cms = cmsArea(path);
+  // Payload's panel: the device gate, then Payload's own login. (Pages are not rate-limited here, the panel's included.)
+  if (cms === "panel") {
+    const { granted, waived } = await deviceGrant(request.headers.get("cookie"));
+    const gate = cmsGateVerdict({ path, search: request.nextUrl.search, method: request.method, deviceGranted: granted, waived });
+    if (gate.action === "pass") return NextResponse.next();
+    if (gate.action === "redirect") return NextResponse.redirect(new URL(gate.to, request.url));
+    return NextResponse.json({ ok: false, error: gate.error }, { status: gate.status });
+  }
   if (!path.startsWith("/api/")) return NextResponse.next();
 
   const ip =
@@ -117,7 +151,9 @@ export default async function proxy(request: NextRequest) {
   const harness = isHarness(request);
   const verdict = harness
     ? await takeIpToken(ip, HARNESS_LIMIT_PER_MINUTE, "harness")
-    : await takeIpToken(ip, IP_LIMIT_PER_MINUTE, "ip");
+    : cms === "api"
+      ? await takeIpToken(ip, CMS_LIMIT_PER_MINUTE, "cms")
+      : await takeIpToken(ip, IP_LIMIT_PER_MINUTE, "ip");
   if (verdict === "limited") {
     console.warn(`[proxy] 429 ${harness ? "harness-limit" : "ip-limit"} ${ip} ${path}`);
     return NextResponse.json(
@@ -127,6 +163,14 @@ export default async function proxy(request: NextRequest) {
   }
 
   if (PUBLIC_API_ROUTES.has(path)) return NextResponse.next();
+
+  // Payload's API: the device grant and only it; Payload then checks its own user and that user's role.
+  if (cms === "api") {
+    const { granted, waived } = await deviceGrant(request.headers.get("cookie"));
+    const gate = cmsGateVerdict({ path, method: request.method, deviceGranted: granted, waived });
+    if (gate.action === "pass") return NextResponse.next();
+    return NextResponse.json({ ok: false, error: gate.action === "deny" ? gate.error : "device_required" }, { status: gate.action === "deny" ? gate.status : 401 });
+  }
 
   // The actor's routes: her cookie, and only hers. /api/portal/enter is
   // where that cookie is minted, so it cannot require one.
@@ -154,5 +198,5 @@ export default async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: "/api/:path*",
+  matcher: ["/api/:path*", "/admin/:path*"],
 };

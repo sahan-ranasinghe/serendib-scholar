@@ -7,7 +7,7 @@ export function generateStaticParams() {
   return (numbers.length ? numbers : ["1"]).map((id) => ({ id }));
 }
 
-/** `/lessons/[id]` — a static shell around the client route (see src/app/home/page.tsx). */
+/** `/lessons/[id]` — a static shell around the client route (see src/app/(app)/home/page.tsx). */
 export default async function LessonDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   return <LessonDetailRoute lessonNumber={Number(id)} />;

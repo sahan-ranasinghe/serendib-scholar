@@ -29,8 +29,9 @@ const rel = (file: string) => path.relative(APP, file);
  * Child- and parent-facing code: every screen, hook and route, and the lib modules that write screen text. Out of
  * scope, each for its reason:
  *   - src/lib/appCopy.ts, src/lib/authoredLines.ts — the two tables themselves;
- *   - src/app/admin/**, src/app/portal/**, src/app/api/portal/** — the developer's galleries and the voice actor's
- *     portal (neither a child's nor a parent's screen);
+ *   - src/app/(app)/admin/**, src/app/(app)/portal/**, src/app/api/portal/** — the developer's galleries and the
+ *     voice actor's portal (neither a child's nor a parent's screen);
+ *   - src/app/(payload)/** — Payload's own generated route files (the CMS panel, docs/cms/SETUP.md);
  *   - tests and the design-export fixtures (src/lib/appFixtures.ts, src/lib/designFrames.ts), which must match the
  *     design export word for word;
  *   - lesson content and the language itself — src/data/** (the script, the storyboard, the transcripts), the number
@@ -52,7 +53,7 @@ export const UI_SCOPE = (file: string): boolean => {
   const r = rel(file);
   if (/\.test\.tsx?$/u.test(r)) return false;
   if (r === "src/lib/appCopy.ts" || r === "src/lib/authoredLines.ts") return false;
-  if (/^src\/app\/(admin|portal)\//u.test(r) || /^src\/app\/api\/portal\//u.test(r) || MODEL_PROMPT_ROUTES.test(r)) return false;
+  if (/^src\/app\/\(app\)\/(admin|portal)\//u.test(r) || /^src\/app\/\(payload\)\//u.test(r) || /^src\/app\/api\/portal\//u.test(r) || MODEL_PROMPT_ROUTES.test(r)) return false;
   return (
     /^src\/(components|hooks|app)\//u.test(r) ||
     ["src/proxy.ts", "src/lib/rateLimit.ts", "src/lib/appData.ts", "src/lib/avatars.ts", "src/lib/settings.ts", "src/lib/choreography.ts", "src/lib/lessonScriptBuilder.ts", "src/lib/composeNumberAudio.ts", "src/lib/lessonOrchestrator.ts", "src/lib/recapBeat.ts", "src/lib/spokenLines.ts"].includes(r)

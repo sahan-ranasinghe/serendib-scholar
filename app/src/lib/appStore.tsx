@@ -189,6 +189,6 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
 
 export function useAppState(): AppStore {
   const store = useContext(AppStoreContext);
-  if (!store) throw new Error("useAppState needs <AppStateProvider> (src/app/layout.tsx)");
+  if (!store) throw new Error("useAppState needs <AppStateProvider> (src/app/(app)/layout.tsx)");
   return store;
 }

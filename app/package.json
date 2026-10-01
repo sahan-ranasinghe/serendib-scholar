@@ -56,13 +56,28 @@
     "generate:design": "tsx scripts/generate-design-data.ts",
     "test:design": "tsx --test src/lib/lessonDesign.test.ts",
     "migrate:avatars": "node --env-file=.env.local ./node_modules/.bin/tsx scripts/migrate-avatars.ts",
-    "audit:source": "tsx scripts/source-audit.ts"
+    "audit:source": "tsx scripts/source-audit.ts",
+    "payload": "PAYLOAD_CONFIG_PATH=payload.config.mts payload",
+    "cms:migrate": "PAYLOAD_CONFIG_PATH=payload.config.mts payload migrate",
+    "cms:migrate:create": "PAYLOAD_CONFIG_PATH=payload.config.mts payload migrate:create",
+    "cms:migrate:status": "PAYLOAD_CONFIG_PATH=payload.config.mts payload migrate:status",
+    "cms:types": "PAYLOAD_CONFIG_PATH=payload.config.mts payload generate:types",
+    "cms:importmap": "PAYLOAD_CONFIG_PATH=payload.config.mts payload generate:importmap",
+    "cms:seed-admin": "PAYLOAD_CONFIG_PATH=payload.config.mts payload run scripts/cms-seed-admin.mts",
+    "cms:check": "PAYLOAD_CONFIG_PATH=payload.config.mts payload run scripts/cms-check.mts --"
   },
   "dependencies": {
     "@google/genai": "^2.19.0",
+    "@payloadcms/db-postgres": "3.90.2",
+    "@payloadcms/next": "3.90.2",
+    "@payloadcms/richtext-lexical": "3.90.2",
+    "@payloadcms/storage-s3": "3.90.2",
+    "@payloadcms/ui": "3.90.2",
     "@supabase/supabase-js": "^2.109.0",
     "framer-motion": "^13.2.0",
+    "graphql": "16.14.2",
     "next": "16.3.3",
+    "payload": "3.90.2",
     "pdf-parse": "^2.4.5",
     "react": "19.2.8",
     "react-dom": "19.2.8",
@@ -80,5 +95,10 @@
     "tailwindcss": "^4",
     "tsx": "^4.23.12",
     "typescript": "^5"
+  },
+  "overrides": {
+    "payload": {
+      "undici": "7.29.1"
+    }
   }
 }

@@ -31,7 +31,7 @@ Follow `Abacus.tsx` / `NumberCards.tsx`:
   makes; a transient event (a fly, a pulse) is a `key`/nonce prop.
 - Colours, shadows and springs from `tokens.ts` only (`BOARD`, `SHADOW`,
   `SPRING`, `SPRING_BOUNCY`) — every value is a `var(--…)` from the design's
-  `src/app/tokens.css`; nothing may resolve to a colour that is not a token.
+  `src/app/(app)/tokens.css`; nothing may resolve to a colour that is not a token.
   Sinhala words through `WriteOn` (Gemunu Libre 700, never under 28 px on
   the board), numbers through `HandNumber` (the design's StrokeNum glyphs,
   `HandGlyphs.ts`; every number in a string registers as a `number:<n>`
@@ -63,7 +63,7 @@ Follow `Abacus.tsx` / `NumberCards.tsx`:
 - `serializeStage` (`src/lib/chatContext.ts`) should say it in Sinhala for
   the ✋ chat.
 
-## 5. Show every state — `src/app/admin/board-gallery/Gallery.tsx`
+## 5. Show every state — `src/app/(app)/admin/board-gallery/Gallery.tsx`
 
 A section per primitive: a button per event (with `data-event`), one
 `data-action="animate-in"` button for the state to photograph, one
@@ -97,7 +97,7 @@ DESIGN.md rules 1–9 and a–h, `components.dc.html`, `Session*.dc.html`,
 `Zara.dc.html`, `Lena.dc.html`, `StrokeNum.dc.html`, `Abacus.dc.html`).
 The runtime decides what happens; the export decides how it looks.
 
-- `src/app/tokens.css` is the export's file verbatim; `src/app/fonts.css`
+- `src/app/(app)/tokens.css` is the export's file verbatim; `src/app/(app)/fonts.css`
   points its `--font-*` names at the `next/font` faces (Gemunu Libre,
   Abhaya Libre, Yaldevi; Inter for parent-zone English; Noto Sans Sinhala
   only as the fallback).

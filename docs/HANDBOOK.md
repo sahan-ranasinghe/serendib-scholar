@@ -44,7 +44,7 @@ nothing overlaps. To add a primitive, see
 - The **storyboard** (`app/src/data/storyboard/`) says what the board does
   on each sentence.
 
-**Design system.** `app/src/app/tokens.css` holds the tokens (named colours,
+**Design system.** `app/src/app/(app)/tokens.css` holds the tokens (named colours,
 sizes and fonts that every screen reuses). The screens are in
 `app/src/components/app/`. Both follow the designer's handoff in
 `docs/design/export/handoff/`, and that handoff's `DESIGN.md` is the
@@ -138,6 +138,7 @@ CLIP_RENDER=off DEV_ONBOARDING=stub DEV_MODE=on npx next start -p 3001
 | `npm run board:check` | Mis-drawn primitives or strokes. `--only=overlap` checks every beat (about 10 min) |
 | `npm run design:check` | Drift from the design export (pixel comparison), DESIGN.md rules, and install/offline behaviour |
 | `npm run crawl:check` (in CI) | A button anywhere that does nothing |
+| `npm run cms:check -- <url>` | A CMS installation gone wrong: a Payload table outside its own schema, a role that may do too much, a public media bucket, or `/admin` reachable without both locks ([cms/SETUP.md](cms/SETUP.md)) |
 | `npm run latency:check` | A tap that takes over 100 ms to respond, or a screen over 500 ms to appear, on a throttled phone (run alone) |
 | `npm run audio:check -- <url>` | Two clips playing at once: ⏸ → ⏮ (once or five times) → ▶, forty times on Slow 3G and 4× CPU, measured from the browser's own audio API, not the app's (run alone, about 25 min) |
 | `npm run build:check` | A phone stuck on an old version after a deploy |

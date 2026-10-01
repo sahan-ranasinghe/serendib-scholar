@@ -12,11 +12,18 @@
  * Onboards its own child through the API (device-bound identity), and
  * removes it at the end. Needs the production build (`npm run build &&
  * DEV_ONBOARDING=stub DEV_MODE=on npx next start -p 3001`).
+ *
+ * THE CMS IS NOT THE CRAWL'S (1 Oct 2026, docs/cms/SETUP.md). Payload's panel (/admin, the app's own QA galleries
+ * aside) and its API (/api/payload) hold the editors' work: a crawler that clicks every control there would save,
+ * delete and sign out. So the crawl never goes in — no route of its list is the CMS's, a control whose link leads
+ * there is recorded and NOT clicked, and every request the browser makes is watched: one request to the CMS, from a
+ * click, a redirect or a prefetch, fails the run.
  */
 import { supabaseAdmin } from "../src/lib/supabaseAdmin";
 import { launch, connect, openPage, evaluate, wait, type Cdp } from "./lib/cdp";
 import { ONBOARD_VIA_API_JS } from "./lib/onboard";
 import { copy } from "./lib/copyText";
+import { cmsArea } from "../src/cms/routes";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
@@ -25,13 +32,27 @@ const CHILD_NAME = "ක්‍රෝල් දරුවා";
 /** `--only-m`: skip the dead-control crawl and run only cluster M's parent-zone / home-header assertions. */
 const ONLY_M = process.argv.includes("--only-m");
 
-interface Result { route: string; control: string; verdict: "navigates" | "opens" | "changes" | "prints" | "external" | "disabled" | "selected" | "DEAD"; detail: string }
+interface Result { route: string; control: string; verdict: "navigates" | "opens" | "changes" | "prints" | "external" | "cms" | "disabled" | "selected" | "DEAD"; detail: string }
 
 /** Every route to crawl. Sheets and dialogs are discovered from the controls that open them. */
 const ROUTE_FILTER = process.argv.find((a) => a.startsWith("--routes="))?.slice(9).split(",") ?? null;
 const ALL_ROUTES = ["/home", "/lessons", "/lessons/1", "/practice", "/rewards", "/rewards/certificate", "/progress", "/session/summary", "/parent", "/parent/settings", "/parent/pin", "/parent/profiles", "/parent/subscription", "/parent/report", "/parent/delete", "/offline"];
 /** `--routes=/parent,/home` narrows the crawl (debugging one screen); the gate is the full list. */
 const ROUTES = ROUTE_FILTER ? ALL_ROUTES.filter((r) => ROUTE_FILTER.includes(r)) : ALL_ROUTES;
+
+/** Is this URL (absolute on this server, or a path) the CMS's — the panel or its API? */
+const inCms = (url: string): boolean => {
+  try {
+    const parsed = new URL(url, BASE);
+    return parsed.origin === new URL(BASE).origin && cmsArea(parsed.pathname) !== null;
+  } catch {
+    return false;
+  }
+};
+const cmsRoutes = ALL_ROUTES.filter(inCms);
+if (cmsRoutes.length > 0) throw new Error(`crawl-check: the route list names the CMS (${cmsRoutes.join(", ")}) — the crawl never enters it`);
+/** Every request the crawl's browser made to the CMS. The gate is that this stays empty. */
+const cmsRequests: string[] = [];
 
 const CONTROLS_JS = `(() => {
   const els = [...document.querySelectorAll('a[href], button, [role="button"], input[type="submit"], [role="tab"], summary')];
@@ -304,6 +325,12 @@ async function main(): Promise<void> {
   // window.print() opens a native dialog a headless browser cannot show: count the call instead.
   await page.send("Page.addScriptToEvaluateOnNewDocument", { source: "window.__printed = 0; window.print = () => { window.__printed += 1; };" });
   await page.send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
+  // The CMS watch: every request of this tab, whatever started it.
+  await page.send("Network.enable");
+  page.on("Network.requestWillBeSent", (params) => {
+    const url = (params.request as { url?: string } | undefined)?.url ?? "";
+    if (inCms(url)) cmsRequests.push(url.replace(BASE, ""));
+  });
   await page.send("Page.navigate", { url: `${BASE}/` });
   await wait(1500);
   const onboarded = await evaluate<{ ok: boolean; child_id?: string; step?: string; status?: number; error?: string }>(page, ONBOARD_VIA_API_JS(accessCode, CHILD_NAME)).catch((e): { ok: boolean; child_id?: string; step?: string; status?: number; error?: string } => ({ ok: false, error: String(e) }));
@@ -363,6 +390,10 @@ async function main(): Promise<void> {
       }
       if (control.href && /^https?:\/\//u.test(control.href) && !control.href.startsWith(BASE)) {
         results.push({ route: label, control: control.label, verdict: "external", detail: control.href.slice(0, 40) });
+        continue;
+      }
+      if (control.href && inCms(control.href)) {
+        results.push({ route: label, control: control.label, verdict: "cms", detail: `${control.href.slice(0, 40)} — the CMS panel, not clicked` });
         continue;
       }
       // A fresh render for every control, so one click never poisons the next.
@@ -449,6 +480,11 @@ async function main(): Promise<void> {
   console.log(`\nwidth check at 390 px: ${measured.length} screen state(s) measured · ${overflows.length} string(s) overflow`);
   for (const o of overflows) console.log(`    ✗ ${o.screen.padEnd(34)} [${o.id}] "${o.text}" — ${o.why}`);
   checks.push({ name: "width check: no button or label string overflows at 390 px", ok: overflows.length === 0 && measured.length > 0, detail: `${measured.length} screen states, ${overflows.length} overflow(s)` });
+
+  const cmsLinks = results.filter((r) => r.verdict === "cms");
+  console.log(`\nthe CMS (/admin, /api/payload): ${cmsRequests.length} request(s) from the crawl · ${cmsLinks.length} link(s) into it left unclicked`);
+  for (const url of [...new Set(cmsRequests)].slice(0, 10)) console.log(`    ✗ ${url}`);
+  checks.push({ name: "the crawl never entered the CMS panel or called its API", ok: cmsRequests.length === 0, detail: cmsRequests.length === 0 ? `0 requests to /admin (Payload's) or /api/payload in the whole run` : `${cmsRequests.length} request(s): ${[...new Set(cmsRequests)].slice(0, 3).join(", ")}` });
 
   console.log(`\ncluster M — parent zone and navigation (${checks.length} assertions):`);
   for (const c of checks) console.log(`    ${c.ok ? "✓" : "✗"} ${c.name.padEnd(64)} ${c.detail}`);

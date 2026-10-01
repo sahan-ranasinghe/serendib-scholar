@@ -1,9 +1,9 @@
 /**
  * Which build is this? The git short SHA and the build time, baked in by
- * next.config.ts and overridable at runtime (BUILD_SHA / BUILD_TIME) so a
+ * next.config.mjs and overridable at runtime (BUILD_SHA / BUILD_TIME) so a
  * deploy — or a harness standing in for one — can say what it is serving.
  *
- * The page carries its own identity in a <meta> tag (src/app/layout.tsx);
+ * The page carries its own identity in a <meta> tag (src/app/(app)/layout.tsx);
  * /api/build reports the server's. When they differ the page is running
  * older code than the server now serves, and the update banner appears
  * (src/components/app/UpdateBanner.tsx) — the answer to "was the phone on

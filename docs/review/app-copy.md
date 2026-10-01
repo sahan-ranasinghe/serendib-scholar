@@ -15,7 +15,7 @@ Last review round: **app-copy native review, 29 Sep 2026 (+ two follow-ups, + th
 - **drafted**: drafted by the developer at the owner's request, in the lesson's own words — needs sign-off.
 - **missing**: the app needs the line and has no Sinhala for it; the screen leaves the spot empty or reuses another string, and the English gloss says what is needed.
 
-Counts: accepted 7 · adjusted 3 · kept 1 · consistency 4 · added 21 · moved 76 · reviewed 226 · fromScript 16 · drafted 3 · missing 0
+Counts: accepted 7 · adjusted 3 · kept 1 · consistency 4 · added 21 · moved 76 · reviewed 226 · fromScript 16 · drafted 4 · missing 0
 
 Terms: ගණක රාමුව (never අබකසය) · සාරා · සාරා ටීචර් (Latin "Zara Teacher" only on the splash wordmark, the manifest and the parent zone's English; "Serendib Scholar" is the company, parent-zone footer only). `{name}`-style holes are filled at runtime.
 
@@ -300,6 +300,7 @@ Terms: ගණක රාමුව (never අබකසය) · සාරා · ස�
 | all | `a11y.close` | වහන්න | Close (the quiz's ✕, the page view's ✕) | added |
 | all | `a11y.back` | ආපහු | Back (the ‹ in a screen's header) | added |
 | all | `a11y.beadDrag` | පබළුවක් කූරකට දාන්න | Put a bead on a rod (the abacus tray's bead, dragged onto a rod) | drafted |
+| all | `a11y.rodTap` | {rod}: පබළු {n} — ඔබන්න | {rod}: {n} beads — tap (a rod of the abacus the child may tap; {rod} is the rod's own label) | drafted |
 | all | `a11y.blank` | හිස්තැන | Blank (an empty box in the older lesson view) | drafted |
 | all | `a11y.pageLoading` | පොතේ පිටුව එනවා | The book's page is loading (the page view's spinner) | drafted |
 | Session | `session.handAsk` | සාරාගෙන් අහන්න | Ask Zara (the ✋ door's name while the chat is closed) | moved |
