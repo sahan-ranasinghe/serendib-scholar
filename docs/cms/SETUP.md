@@ -291,3 +291,9 @@ Against the live database and bucket, and a production build (`next build`, `nex
 
 The first `next build` failed once with `next/font/google queries have exactly one entry` (the font download);
 the second succeeded with no change.
+
+**2 Oct 2026, after two fixes.** `next` is 16.3.8 and `npm audit` reports nothing high or critical. `board:check`
+exits 0: its limit for a hand with no clean spot is now the hand's 1.3 s wait plus 200 ms, counted from the tap
+(DESIGN.md, "the hand waits"). `crawl:check` passed once that day and failed on other runs, on this tree and on the
+commit before alike, while the link to Supabase was slow: the parent zone's choices show their change to the crawler
+only when the server's write returns.

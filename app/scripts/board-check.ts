@@ -244,11 +244,18 @@ async function main(): Promise<void> {
         const rest = await shoot("rest");
         // Ring completion (cluster F): every ringed target's ring, at rest, must be 100 % of its length.
         for (const stroke of rest.strokes) if (/ring|circle/iu.test(stroke.label)) ringRows.push(`${viewport.name}/${probe.name} ${stroke.label}: ${Math.round(stroke.drawn * 100)} %`);
-        const problems = [...judgeAtRest(probe, rest), ...judgeJump(probe, mid, rest)];
+        // Did the hand go out of sight at any time since the tap? (The page's own log of its data-waiting changes.)
+        const waited = probe.expect.pointerAt ? await evaluate<boolean>(page, `!!(window.__handWaits && window.__handWaits.changes.some((c) => c.waiting))`) : false;
+        const stillWaiting = rest.pointer?.waiting === true;
+        // A hand that waited and has come out is judged below on WHEN it came out and WHERE it landed, never on this one
+        // frame (2 Oct 2026): the rest probe fires 1.25–1.4 s after the tap, which is exactly when a hand with no clean
+        // spot comes out, so by chance it caught the hand waiting, shown, or part-way through its 150 ms fade — and the
+        // last read as "hidden or aimed at nothing", a second failure message for the same event.
+        const problems = [...(waited && !stillWaiting ? [] : judgeAtRest(probe, rest)), ...judgeJump(probe, mid, rest)];
         // A hand with no clean spot is out of sight at rest ON PURPOSE (Pointer.tsx): wait for it, then judge when and where it
         // appeared — within POINTER_WAIT_MS of the tap, touching its target like any other hand.
         let waitNote = "";
-        if (probe.expect.pointerAt && rest.pointer?.waiting) {
+        if (probe.expect.pointerAt && (stillWaiting || waited)) {
           // The FIRST time it comes out of hiding: this audit's own screenshots (captureBeyondViewport resizes the page) move
           // the board under it, and a hand whose target moved looks again — hiding anew, as it should on a real resize.
           const firstShow = `(() => { const log = window.__handWaits; const shown = log ? log.changes.find((c) => !c.waiting) : null; return shown ? shown.t : null; })()`;
@@ -263,7 +270,8 @@ async function main(): Promise<void> {
           const shown = await shoot("rest");
           const timeline = await evaluate<Array<{ t: number; waiting: boolean }>>(page, `window.__handWaits?.changes ?? []`);
           problems.push(...judgePointerWait(probe, appearedMs, shown));
-          waitNote = ` · no clean spot (best covers ${rest.pointer.covers} px²): hidden at rest, appeared ${appearedMs === null ? "NEVER" : `${Math.round(appearedMs)} ms`} after the tap (≤ ${POINTER_WAIT_MS}) as the ${shown.pointer?.placed ?? "?"} hand, opacity ${shown.pointer?.opacity ?? "?"} (waits: ${timeline.map((c) => `${c.waiting ? "hide" : "show"} ${Math.round(c.t)}`).join(", ")} ms)`;
+          const covers = shown.pointer?.covers || rest.pointer?.covers || 0;
+          waitNote = ` · ${covers > 0 ? `no clean spot (best covers ${covers} px²)` : "a clean spot found on a later look"}: out of sight while it looked, appeared ${appearedMs === null ? "NEVER" : `${Math.round(appearedMs)} ms`} after the tap (≤ ${POINTER_WAIT_MS}) as the ${shown.pointer?.placed ?? "?"} hand, opacity ${shown.pointer?.opacity ?? "?"} (waits: ${timeline.map((c) => `${c.waiting ? "hide" : "show"} ${Math.round(c.t)}`).join(", ")} ms)`;
         }
         console.log(`  ${problems.length ? "✗" : "✓"} ${probe.name.padEnd(30)} mid: ${describeMid(mid)}${waitNote}`);
         for (const problem of problems) {

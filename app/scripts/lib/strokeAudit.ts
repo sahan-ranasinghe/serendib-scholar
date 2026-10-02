@@ -234,8 +234,16 @@ export function judgeAtRest(probe: StrokeProbe, m: Measured): string[] {
   return problems;
 }
 
-/** How long a hand with no clean spot may wait out of sight: the last of Pointer.tsx's SETTLE_MS re-checks. */
-export const POINTER_WAIT_MS = 1300;
+/** Pointer.tsx's last re-check (the last of its SETTLE_MS): how long a hand with no clean spot waits out of sight, by design. */
+export const POINTER_SETTLE_MS = 1300;
+/**
+ * How long after the TAP such a hand may take to appear (2 Oct 2026, DESIGN.md "the hand waits"). The hand's 1.3 s is
+ * counted from the moment it first measures its target — one animation frame after the tap (useTargetRect measures
+ * after paint) — and one more render then shows it. So it can never appear within 1300 ms of the tap: measured
+ * 1306–1369 ms in the board gallery at 844×390, on two builds. The limit is the wait plus 200 ms for that frame and
+ * render. It was 1300 — the wait itself, with no room for either — and failed every run.
+ */
+export const POINTER_WAIT_MS = POINTER_SETTLE_MS + 200;
 
 /**
  * A hand that was waiting at rest (judgeAtRest let it pass): `appearedMs` is when it came out of hiding, counted from the
