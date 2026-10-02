@@ -76,7 +76,7 @@
     "@supabase/supabase-js": "^2.109.0",
     "framer-motion": "^13.2.0",
     "graphql": "16.14.2",
-    "next": "16.3.3",
+    "next": "16.3.8",
     "payload": "3.90.2",
     "pdf-parse": "^2.4.5",
     "react": "19.2.8",

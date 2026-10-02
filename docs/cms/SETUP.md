@@ -20,7 +20,7 @@ Paths below are relative to `app/`.
 | `@payloadcms/richtext-lexical` | **3.90.2** | Same. |
 | `@payloadcms/storage-s3` | **3.90.2** | Same. |
 | `graphql` | 16.14.2 | A peer dependency of `@payloadcms/next` (`^16.8.1`). |
-| `next` | 16.3.3 | Unchanged: what the app already ran. |
+| `next` | 16.3.8 | 16.3.3 when Payload was installed; raised on 2 Oct 2026 for the security fixes in 16.3.6 and 16.3.8 (below). Inside Payload's range. |
 | `react`, `react-dom` | 19.2.8 | Unchanged. |
 
 Every Payload package is pinned without a caret, so `npm install` can never mix two Payload versions. `npm ls` shows
@@ -28,10 +28,18 @@ one copy of each, including the ones the six bring in (`@payloadcms/drizzle`, `@
 `@payloadcms/translations`, `@payloadcms/plugin-cloud-storage`).
 
 **Why 3.90.2 and not an older release.** The 3.90 line is the first whose `@payloadcms/next` names this repo's Next.js:
-its peer range is `>=16.3.3 <17.0.0`, and the app runs exactly 16.3.3. Releases up to 3.89.0 name `>=16.2.6`, which
-also admits 16.3.3, but 3.90.0 raised the floor to 16.3.3, so 3.90 is what Payload itself tests against this Next.
+its peer range is `>=16.3.3 <17.0.0`, and the app ran exactly 16.3.3 on the day of the install. Releases up to 3.89.0
+name `>=16.2.6`, which also admits 16.3.3, but 3.90.0 raised the floor to 16.3.3, so 3.90 is what Payload itself
+tests against this Next.
 `@payloadcms/ui` asks for React `^19.2.1`; the app's 19.2.8 satisfies it. Payload needs Node `^18.20.2 || >=20.9.0`;
 CI runs Node 20 and the development machine Node 22.
+
+**Next 16.3.8 (2 Oct 2026).** `npm audit` reported a critical advisory against `next` 16.2.0–16.3.5
+(GHSA-vcvr-r3jv-pc5j, remote code execution in `next/og`'s `ImageResponse`, fixed in 16.3.6). The app does not use
+`next/og`, but the audit step in CI fails on it. 16.3.8 also carries the fixes of that release (server-side request
+forgery in image optimization, and cache poisoning of static pages). Only `next` and its `@next/*` packages changed
+in the lockfile. `eslint-config-next` stays at 16.3.3: it is a lint preset, not the runtime, and moving it could
+change the lint findings.
 
 **One override.** `payload@3.90.2` pins `undici` to exactly 7.29.0, which has a published advisory
 (GHSA-pmjh-fq2x-6v4x, denial of service, fixed in 7.29.1). `package.json` overrides it to 7.29.1 for `payload` only.
@@ -242,9 +250,9 @@ environment.
 - **Bucket:** `cms-media` is private; a file uploaded through Payload lands in it and has no public URL.
 - **The two locks** (with a base URL): no grant, the grant alone, Payload's login alone, and both.
 
-It creates three or four users named `cms-check+…@example.invalid` and a few 1×1 images, and deletes them before it
-exits. It signs in as `ADMIN_EMAIL` with `ADMIN_INITIAL_PASSWORD`; once that password has been changed, the
-signed-in checks are reported as skipped.
+It creates a few users named `cms-check+…@example.invalid` and a few 1×1 images, and deletes them before it exits.
+The signed-in checks use the check's own temporary admin, with a password made for that run. It never signs in as
+the real admin, so it works the same after `ADMIN_INITIAL_PASSWORD` has been changed and removed.
 
 The unit tests `src/lib/cmsRoles.test.ts`, `src/lib/cmsCollections.test.ts` and `src/lib/cmsGate.test.ts` run with
 every other test in CI.

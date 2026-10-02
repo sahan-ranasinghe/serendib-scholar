@@ -10,10 +10,10 @@
  *                    grant, with the grant alone, with Payload's login alone, and with both; "create first user" closed;
  *                    the app's own pages untouched by Payload's headers.
  *
- * It writes to the live database and bucket only what it removes again: three users named cms-check+<role>@… and one
- * 1×1 PNG, deleted in a `finally`. It signs in as ADMIN_EMAIL with ADMIN_INITIAL_PASSWORD and signs out; if that
- * password has been changed (as the seed script tells the admin to), step 4's signed-in checks are reported as
- * skipped, not failed. No secret is printed.
+ * It writes to the live database and bucket only what it removes again: a few users named cms-check+<role>@… and a
+ * few 1×1 PNGs, deleted in a `finally`. Step 4 signs in as the check's OWN temporary admin, with a password made for
+ * this run — never as the real admin, whose password the check does not know and does not need (the seed password is
+ * changed and removed from the environment after the first sign-in). No secret is printed.
  *
  * `.mts` and run through `payload run`, like the seed script: Payload is ESM-only.
  */
@@ -51,6 +51,8 @@ const allowed = async (run: () => Promise<unknown>): Promise<boolean> => {
 };
 
 const tempUsers: Array<{ id: number; role: Role; email: string }> = [];
+/** The check's own admin, and the password made for it this run: what step 4 signs in with. */
+let checkAdmin: { email: string; password: string } | null = null;
 
 try {
   // ── 1. the database ────────────────────────────────────────────────────────────────────────────────────────────
@@ -73,8 +75,10 @@ try {
   // ── 2. the roles, through Payload's own access evaluation ──────────────────────────────────────────────────────
   for (const role of ROLES) {
     const email = `cms-check+${role}-${STAMP}@example.invalid`;
-    const made = await payload.create({ collection: "users", data: { email, password: `${STAMP}-${Math.random().toString(36).slice(2)}-Aa1!`, role } });
+    const password = `${STAMP}-${Math.random().toString(36).slice(2)}-Aa1!`;
+    const made = await payload.create({ collection: "users", data: { email, password, role } });
     tempUsers.push({ id: made.id, role, email });
+    if (role === "admin") checkAdmin = { email, password };
   }
   const as = (role: Role) => ({ ...tempUsers.find((u) => u.role === role)!, collection: "users" as const });
   const file = (name: string) => ({ data: PNG, mimetype: "image/png", name, size: PNG.length });
@@ -148,8 +152,8 @@ try {
     add("locks", "no grant: even Payload's login form is not shown", strangerLogin.status === 307 && (strangerLogin.headers.get("location") ?? "").includes("/device-gate"), where(strangerLogin));
     const strangerApi = await get("/api/payload/users/me");
     add("locks", "no grant: the CMS API answers 401", strangerApi.status === 401, where(strangerApi));
-    const password = process.env.ADMIN_INITIAL_PASSWORD ?? "";
-    const strangerSignIn = await post("/api/payload/users/login", { email: adminEmail, password });
+    const admin = checkAdmin!;
+    const strangerSignIn = await post("/api/payload/users/login", admin);
     add("locks", "no grant: the RIGHT email and password still get 401 — Payload's login alone opens nothing", strangerSignIn.status === 401 && !cookieOf(strangerSignIn, "payload-token"), `${where(strangerSignIn)}, no token issued`);
 
     // The device grant, earned the way a device earns it.
@@ -182,7 +186,7 @@ try {
     add("locks", "'create first user' is closed, page and endpoint, in any spelling (the seed script is the only way)", firstUser.status === 403 && firstRegister.status === 403 && firstRegisterCased.status === 403 && casedBody.error === "seed_only", `page ${firstUser.status} · endpoint ${firstRegister.status} · /users/First-Register ${firstRegisterCased.status} ${casedBody.error ?? "(answered by Payload, not the gate)"}`);
 
     // Both: the panel.
-    const signIn = await post("/api/payload/users/login", { email: adminEmail, password }, device);
+    const signIn = await post("/api/payload/users/login", admin, device);
     const token = cookieOf(signIn, "payload-token");
     if (signIn.status === 200 && token) {
       const both = `${device}; ${token}`;
@@ -198,7 +202,7 @@ try {
       add("locks", "Payload login only (no grant): the panel and the API are still closed", tokenOnlyPanel.status === 307 && (tokenOnlyPanel.headers.get("location") ?? "").includes("/device-gate") && tokenOnlyApi.status === 401, `/admin ${where(tokenOnlyPanel)} · API ${tokenOnlyApi.status}`);
       await get("/api/payload/users/logout", both, { method: "POST" });
     } else {
-      add("locks", "both: /admin loads (signed in as ADMIN_EMAIL)", null, `SKIPPED — sign-in with ADMIN_INITIAL_PASSWORD answered ${signIn.status}; the admin has probably changed the password, as the seed script asks`);
+      add("locks", "both: /admin loads (the dashboard, with Users and Media)", false, `the check's own admin could not sign in through the gate: ${signIn.status}`);
     }
 
     // The app is as it was.
