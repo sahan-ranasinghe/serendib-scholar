@@ -72,6 +72,11 @@ if (cmsRoutes.length > 0) throw new Error(`crawl-check: the route list names the
 /** Every request the crawl's browser made to the CMS. The gate is that this stays empty. */
 const cmsRequests: string[] = [];
 
+/**
+ * `selected`: a control already in its chosen state — the pressed half of a pair, the current tab, the chosen one of a
+ * group — which is recorded and not clicked. A toggle with an on/off of its own (`data-state`: the sound and captions
+ * rows) is NOT one of those even when it is on: tapping it turns it off, and that is what the crawl judges.
+ */
 const CONTROLS_JS = `(() => {
   const els = [...document.querySelectorAll('a[href], button, [role="button"], input[type="submit"], [role="tab"], summary')];
   const seen = new Set();
@@ -85,7 +90,7 @@ const CONTROLS_JS = `(() => {
     if (seen.has(key)) return null;
     seen.add(key);
     el.setAttribute('data-crawl', String(i));
-    return { index: i, label, href: el.getAttribute('href'), disabled: el.hasAttribute('disabled') || el.getAttribute('aria-disabled') === 'true', selected: el.getAttribute('aria-pressed') === 'true' || el.getAttribute('aria-current') === 'page' || el.getAttribute('aria-selected') === 'true' || el.hasAttribute('data-selected'), tag: el.tagName.toLowerCase(), inDialog: !!el.closest('[role="dialog"], [data-sheet]') };
+    return { index: i, label, href: el.getAttribute('href'), disabled: el.hasAttribute('disabled') || el.getAttribute('aria-disabled') === 'true', selected: (el.getAttribute('aria-pressed') === 'true' && !el.hasAttribute('data-state')) || el.getAttribute('aria-current') === 'page' || el.getAttribute('aria-selected') === 'true' || el.hasAttribute('data-selected'), tag: el.tagName.toLowerCase(), inDialog: !!el.closest('[role="dialog"], [data-sheet]') };
   }).filter(Boolean);
 })()`;
 
@@ -325,18 +330,25 @@ async function settingsChoiceChecks(page: Cdp, checks: Check[]): Promise<void> {
     const ok = !!group && group.said.length === 3 && group.said.every((s) => /^\d+ (true|false)$/u.test(s)) && group.said.filter((s) => s.endsWith(" true")).length === 1 && group.agrees;
     checks.push({ name: `settings: ${id} says which choice is chosen (aria-pressed)`, ok, detail: group ? `${group.said.join(" · ")} · the pressed one is the one shown as chosen: ${group.agrees}` : "the group is not on the screen" });
   }
+  // The sound and captions rows are toggles: each says on or off, and what it says is what its ✓ and its data-state show.
+  const rows = await evaluate<Array<{ id: string; pressed: string | null; state: string | null; tick: boolean }>>(page, `['toggle-sound', 'toggle-captions'].map((id) => { const el = document.querySelector('[data-testid="' + id + '"]'); return { id, pressed: el ? el.getAttribute('aria-pressed') : null, state: el ? el.getAttribute('data-state') : null, tick: !!el && (el.textContent || '').includes('✓') }; })`).catch((): Array<{ id: string; pressed: string | null; state: string | null; tick: boolean }> => []);
+  const rowsOk = rows.length === 2 && rows.every((r) => (r.pressed === "true" || r.pressed === "false") && (r.pressed === "true") === (r.state === "on") && (r.pressed === "true") === r.tick);
+  checks.push({ name: "settings: the sound and captions rows say whether they are on (aria-pressed)", ok: rowsOk, detail: rows.length ? rows.map((r) => `${r.id} ${r.pressed} (data-state ${r.state}, ✓ ${r.tick ? "shown" : "not shown"})`).join(" · ") : "the rows are not on the screen" });
 }
 
 /**
- * The onboarding avatar picker and the quiz's answer options: nothing is chosen on arrival, so every choice says
- * aria-pressed="false"; one is tapped (local state only — no profile is saved, no answer is checked or logged) and
- * exactly that one says "true", the one shown as chosen.
+ * The onboarding avatar picker, grade picker and pay-method picker, and the quiz's answer options. Every choice says
+ * aria-pressed, "true" or "false": none is chosen on arrival in the avatar picker and the quiz, one is in the other
+ * two (grade 5, card). A choice that is not chosen is tapped (local state only — no profile or payment is saved, no
+ * answer is checked or logged) and exactly that one says "true", the one shown as chosen.
  */
 async function tappedChoiceChecks(page: Cdp, checks: Check[]): Promise<void> {
-  const groups: Array<{ name: string; route: string; choices: string }> = [
-    { name: "onboarding: the avatar picker says which avatar is chosen (aria-pressed)", route: "/onboarding/2", choices: '[data-testid="onb-avatars"] [role="button"]' },
+  const groups: Array<{ name: string; route: string; choices: string; chosenOnArrival: 0 | 1 }> = [
+    { name: "onboarding: the avatar picker says which avatar is chosen (aria-pressed)", route: "/onboarding/2", choices: '[data-testid="onb-avatars"] [role="button"]', chosenOnArrival: 0 },
+    { name: "onboarding: the grade picker says which grade is chosen (aria-pressed)", route: "/onboarding/2", choices: '[role="button"][data-grade]', chosenOnArrival: 1 },
+    { name: "onboarding: the pay-method picker says which method is chosen (aria-pressed)", route: "/onboarding/4", choices: '[role="button"][data-method]', chosenOnArrival: 1 },
     // Lesson 1's first concept (src/lib/lessonDesign.ts): its questions come from the verified bank, whoever the child is.
-    { name: "quiz: the answer options say which one is chosen (aria-pressed)", route: "/practice/quiz?concept=readWrite4Digit", choices: '[data-testid="quiz-chips"] button' },
+    { name: "quiz: the answer options say which one is chosen (aria-pressed)", route: "/practice/quiz?concept=readWrite4Digit", choices: '[data-testid="quiz-chips"] button', chosenOnArrival: 0 },
   ];
   for (const group of groups) {
     await apiWindow(page);
@@ -344,11 +356,13 @@ async function tappedChoiceChecks(page: Cdp, checks: Check[]): Promise<void> {
     for (let i = 0; i < 100 && !(await evaluate<boolean>(page, `document.querySelectorAll(${JSON.stringify(group.choices)}).length >= 2`).catch(() => false)); i += 1) await wait(150);
     const read = () => evaluate<{ said: string[]; agrees: boolean }>(page, `(() => { const els = [...document.querySelectorAll(${JSON.stringify(group.choices)})]; return { said: els.map((el) => String(el.getAttribute('aria-pressed'))), agrees: els.every((el) => (el.getAttribute('aria-pressed') === 'true') === el.hasAttribute('data-selected')) }; })()`).catch(() => ({ said: [] as string[], agrees: false }));
     const before = await read();
-    const tapped = before.said.length >= 2 ? 1 : -1;
+    // The one to tap: a choice that is not the chosen one — the second, unless the second is.
+    const free = before.said.map((s, i) => (s === "false" ? i : -1)).filter((i) => i >= 0);
+    const tapped = before.said.length >= 2 && free.length > 0 ? (free.includes(1) ? 1 : free[0]!) : -1;
     if (tapped >= 0) await evaluate(page, `document.querySelectorAll(${JSON.stringify(group.choices)})[${tapped}].click()`).catch(() => undefined);
     await wait(250);
     const after = await read();
-    const ok = before.said.length >= 2 && before.said.every((s) => s === "false") && before.agrees && after.said.length === before.said.length && after.said.every((s, i) => s === (i === tapped ? "true" : "false")) && after.agrees;
+    const ok = tapped >= 0 && before.said.every((s) => s === "true" || s === "false") && before.said.filter((s) => s === "true").length === group.chosenOnArrival && before.agrees && after.said.length === before.said.length && after.said.every((s, i) => s === (i === tapped ? "true" : "false")) && after.agrees;
     checks.push({ name: group.name, ok, detail: before.said.length >= 2 ? `${before.said.length} choices · on arrival: ${before.said.join(" ")} · after tapping no. ${tapped + 1}: ${after.said.join(" ")} · the pressed one is the one shown as chosen: ${after.agrees}` : `${before.said.length} choice(s) on the screen` });
   }
 }

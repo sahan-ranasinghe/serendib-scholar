@@ -30,7 +30,11 @@ export function ParentHeader({ title, sub, back, lang, onLang }: { title: string
 }
 
 /** One settings row of the parent zone (min-height 56, a 1 px rule beneath). */
-/** `state`: a toggle row's own on/off, exposed as data-state so a probe reads the tap's result at once (the ✓ is a one-character change; the saved mark waits on the network). */
+/**
+ * `state`: a toggle row's own on/off, exposed as data-state so a probe reads the tap's result at once (the ✓ is a
+ * one-character change; the saved mark waits on the network) — and SAID, as aria-pressed, so a screen reader hears
+ * on or off where a sighted parent sees the ✓ (src/lib/choiceA11y.test.ts).
+ */
 export function SettingsRow({ label, value, sub, href, onClick, color = "#1B1B1B", testId, chevron = true, state }: { label: string; value?: string; sub?: string; href?: string; onClick?: () => void; color?: string; testId?: string; chevron?: boolean; state?: "on" | "off" }) {
   const inner = (
     <>
@@ -51,7 +55,7 @@ export function SettingsRow({ label, value, sub, href, onClick, color = "#1B1B1B
     );
   }
   return (
-    <div role={onClick ? "button" : undefined} onClick={onClick} data-testid={testId} data-state={state} style={css}>
+    <div role={onClick ? "button" : undefined} aria-pressed={onClick && state ? state === "on" : undefined} onClick={onClick} data-testid={testId} data-state={state} style={css}>
       {inner}
     </div>
   );

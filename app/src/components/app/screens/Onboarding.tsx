@@ -154,7 +154,7 @@ export function ProfileStep({ name, avatarIndex, grade, school, onName, onAvatar
       </div>
       <div style={sx("display:grid;gap:6px")}>
         <span style={sx(LABEL)}>{t("onb.2.avatar")}</span>
-        {/* Each avatar says whether it is the chosen one (aria-pressed, wherever it is a button): the ring tells a sighted parent, a screen reader is told the same (src/lib/choiceA11y.test.ts). */}
+        {/* Each avatar says whether it is the chosen one (aria-pressed, wherever it is a button): the ring tells a sighted parent, a screen reader is told the same (src/lib/choiceA11y.test.ts). The grade below and the pay method on step 4 do too. */}
         <div style={sx("display:grid;grid-template-columns:repeat(4,1fr);gap:10px")} data-testid="onb-avatars">
           {AVATAR_IDS.map((a, i) => (
             <div key={a} role={onAvatar ? "button" : undefined} aria-pressed={onAvatar ? i === avatarIndex : undefined} onClick={onAvatar ? () => onAvatar(i) : undefined} data-avatar={a} aria-label={avatarName(a)} data-selected={i === avatarIndex || undefined} style={sx(`aspect-ratio:1;border-radius:50%;background:${i === avatarIndex ? "#FBEFD3" : "#EEF4F5"};border:3px solid ${i === avatarIndex ? "#E9B44C" : "transparent"};display:flex;align-items:center;justify-content:center;box-sizing:border-box`)}>
@@ -167,7 +167,7 @@ export function ProfileStep({ name, avatarIndex, grade, school, onName, onAvatar
         <span style={sx(LABEL)}>{t("onb.2.grade")}</span>
         <div style={sx("display:flex;gap:10px")}>
           {([4, 5] as const).map((g) => (
-            <div key={g} role={onGrade ? "button" : undefined} onClick={onGrade ? () => onGrade(g) : undefined} data-grade={g} style={sx(gradeBox(g))}>
+            <div key={g} role={onGrade ? "button" : undefined} aria-pressed={onGrade ? g === grade : undefined} onClick={onGrade ? () => onGrade(g) : undefined} data-grade={g} data-selected={g === grade || undefined} style={sx(gradeBox(g))}>
               {g}
             </div>
           ))}
@@ -237,8 +237,8 @@ export function PayStep({ method, onMethod }: { method: "card" | "bank"; onMetho
       <div style={sx("display:grid;gap:6px;margin-top:4px")}>
         <span style={sx(LABEL)}>{t("onb.4.payment")}</span>
         <div style={sx("display:flex;gap:8px")}>
-          <div role={onMethod ? "button" : undefined} onClick={onMethod ? () => onMethod("card") : undefined} style={sx(box(method === "card"))}>{t("onb.4.card")}</div>
-          <div role={onMethod ? "button" : undefined} onClick={onMethod ? () => onMethod("bank") : undefined} style={sx(box(method === "bank"))}>{t("onb.4.bank")}</div>
+          <div role={onMethod ? "button" : undefined} aria-pressed={onMethod ? method === "card" : undefined} onClick={onMethod ? () => onMethod("card") : undefined} data-method="card" data-selected={method === "card" || undefined} style={sx(box(method === "card"))}>{t("onb.4.card")}</div>
+          <div role={onMethod ? "button" : undefined} aria-pressed={onMethod ? method === "bank" : undefined} onClick={onMethod ? () => onMethod("bank") : undefined} data-method="bank" data-selected={method === "bank" || undefined} style={sx(box(method === "bank"))}>{t("onb.4.bank")}</div>
         </div>
       </div>
       <span style={sx("font:400 16px/1.5 var(--font-body);color:var(--color-ink-70)")}>{t("onb.4.sms")}</span>
