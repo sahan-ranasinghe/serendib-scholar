@@ -297,3 +297,8 @@ exits 0: its limit for a hand with no clean spot is now the hand's 1.3 s wait pl
 (DESIGN.md, "the hand waits"). `crawl:check` passed once that day and failed on other runs, on this tree and on the
 commit before alike, while the link to Supabase was slow: the parent zone's choices show their change to the crawler
 only when the server's write returns.
+
+**3 Oct 2026.** The crawler now reads a choice from its own selection, so the daily-limit and chat-minute choices no
+longer depend on the link (`npm run crawl:check -- <url> --routes=/parent/settings --slow-settings=3000` shows it
+with the write's answer held 3 s). Profile rows and links into the gated zone are still judged by what the server
+does.

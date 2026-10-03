@@ -6,8 +6,16 @@
  * open — and clicks every tappable element on it. Each click must do
  * something the child can see: navigate, open something, or change state
  * (aria-pressed / aria-expanded / a data-* attribute / a DOM change within
- * 700 ms). A control that does nothing is a failure; the run prints the
+ * 1500 ms). A control that does nothing is a failure; the run prints the
  * route × control table and exits 1 on any dead control.
+ *
+ * A CHOICE IS READ FROM ITS OWN SELECTION (3 Oct 2026). A choice in a group (the parent's daily limit and chat
+ * minutes: `data-selected` on the chosen one) moves its selection the moment it is tapped, before the server has
+ * answered. The crawl used to see only HOW MANY were selected — one before, one after — and so waited for the
+ * "saved" note the server's answer brings: on a slow link that note came after the 1500 ms and the choice was
+ * called dead. Each selected choice is now known by its label, so the move itself is the change, and the one already
+ * chosen is "selected" like the pressed half of a toggle. Controls whose effect IS the server's (a profile row, a
+ * link to a gated screen) are judged as before. `--slow-settings=<ms>` shows it on any link.
  *
  * Onboards its own child through the API (device-bound identity), and
  * removes it at the end. Needs the production build (`npm run build &&
@@ -39,6 +47,12 @@ const ROUTE_FILTER = process.argv.find((a) => a.startsWith("--routes="))?.slice(
 const ALL_ROUTES = ["/home", "/lessons", "/lessons/1", "/practice", "/rewards", "/rewards/certificate", "/progress", "/session/summary", "/parent", "/parent/settings", "/parent/pin", "/parent/profiles", "/parent/subscription", "/parent/report", "/parent/delete", "/offline"];
 /** `--routes=/parent,/home` narrows the crawl (debugging one screen); the gate is the full list. */
 const ROUTES = ROUTE_FILTER ? ALL_ROUTES.filter((r) => ROUTE_FILTER.includes(r)) : ALL_ROUTES;
+/**
+ * `--slow-settings=3000`: a slow link, on demand. The page hears the answer to every settings write that many ms late
+ * (the write itself reaches the server at once). Off by default; it is how "a choice responds before the server
+ * answers" is shown on a day when the link is fast.
+ */
+const SLOW_SETTINGS_MS = Number(process.argv.find((a) => a.startsWith("--slow-settings="))?.slice(16) ?? 0);
 
 /** Is this URL (absolute on this server, or a path) the CMS's — the panel or its API? */
 const inCms = (url: string): boolean => {
@@ -67,7 +81,7 @@ const CONTROLS_JS = `(() => {
     if (seen.has(key)) return null;
     seen.add(key);
     el.setAttribute('data-crawl', String(i));
-    return { index: i, label, href: el.getAttribute('href'), disabled: el.hasAttribute('disabled') || el.getAttribute('aria-disabled') === 'true', selected: el.getAttribute('aria-pressed') === 'true' || el.getAttribute('aria-current') === 'page' || el.getAttribute('aria-selected') === 'true', tag: el.tagName.toLowerCase(), inDialog: !!el.closest('[role="dialog"], [data-sheet]') };
+    return { index: i, label, href: el.getAttribute('href'), disabled: el.hasAttribute('disabled') || el.getAttribute('aria-disabled') === 'true', selected: el.getAttribute('aria-pressed') === 'true' || el.getAttribute('aria-current') === 'page' || el.getAttribute('aria-selected') === 'true' || el.hasAttribute('data-selected'), tag: el.tagName.toLowerCase(), inDialog: !!el.closest('[role="dialog"], [data-sheet]') };
   }).filter(Boolean);
 })()`;
 
@@ -76,9 +90,21 @@ const STATE_JS = `(() => ({
   html: document.body.innerHTML.length,
   dialogs: document.querySelectorAll('[role="dialog"], [data-sheet], [data-testid$="-sheet"]').length,
   printed: window.__printed || 0,
-  pressed: [...document.querySelectorAll('[aria-pressed], [aria-expanded], [aria-current], [data-selected], [data-open], [data-confirm], [data-busy], [data-state], [data-mode]')].map((el) => (el.getAttribute('data-testid') || el.tagName) + '=' + (el.getAttribute('aria-pressed') ?? el.getAttribute('aria-expanded') ?? el.getAttribute('aria-current') ?? el.getAttribute('data-selected') ?? el.getAttribute('data-open') ?? el.getAttribute('data-confirm') ?? el.getAttribute('data-busy') ?? el.getAttribute('data-state') ?? el.getAttribute('data-mode'))).join('|'),
+  pressed: [...document.querySelectorAll('[aria-pressed], [aria-expanded], [aria-current], [data-selected], [data-open], [data-confirm], [data-busy], [data-state], [data-mode]')].map((el) => (el.getAttribute('data-testid') || el.tagName) + (el.hasAttribute('data-selected') ? ':' + (el.textContent || '').trim().replace(/\\s+/g, ' ').slice(0, 28) : '') + '=' + (el.getAttribute('aria-pressed') ?? el.getAttribute('aria-expanded') ?? el.getAttribute('aria-current') ?? el.getAttribute('data-selected') ?? el.getAttribute('data-open') ?? el.getAttribute('data-confirm') ?? el.getAttribute('data-busy') ?? el.getAttribute('data-state') ?? el.getAttribute('data-mode'))).join('|'),
   focus: document.activeElement ? (document.activeElement.getAttribute('data-testid') || document.activeElement.tagName) : '',
 }))()`;
+
+/** What changed between two readings of STATE_JS's `pressed`, for the table: "state: DIV:30=true → DIV:15=true". */
+const stateChange = (before: string, after: string): string => {
+  // Entry for entry: two groups may each have a choice labelled 30, and only one of them moved.
+  const come = after.split("|");
+  const gone = before.split("|").filter((entry) => {
+    const at = come.indexOf(entry);
+    if (at >= 0) come.splice(at, 1);
+    return at < 0;
+  });
+  return `state: ${gone.join(", ") || "—"} → ${come.join(", ") || "—"}`;
+};
 
 async function ready(page: Cdp): Promise<void> {
   for (let i = 0; i < 180; i += 1) {
@@ -322,8 +348,15 @@ async function main(): Promise<void> {
   process.on("exit", () => { try { browser.kill(); } catch { /* already gone */ } });
   const root = await connect(wsUrl, "crawl");
   const page = await openPage(root);
+  // A script for every new document only runs once the Page domain is enabled (3 Oct 2026): without this line the
+  // print counter below was never installed, and a print button was judged by its busy state instead.
+  await page.send("Page.enable");
   // window.print() opens a native dialog a headless browser cannot show: count the call instead.
   await page.send("Page.addScriptToEvaluateOnNewDocument", { source: "window.__printed = 0; window.print = () => { window.__printed += 1; };" });
+  if (SLOW_SETTINGS_MS > 0) {
+    await page.send("Page.addScriptToEvaluateOnNewDocument", { source: `(() => { const real = window.fetch.bind(window); window.fetch = (input, init) => { const url = String((input && input.url) || input); const answer = real(input, init); return url.includes('/api/parent/settings') ? answer.then((r) => new Promise((done) => setTimeout(() => done(r), ${SLOW_SETTINGS_MS}))) : answer; }; })();` });
+    console.log(`--slow-settings: the answer to every settings write is held ${SLOW_SETTINGS_MS} ms`);
+  }
   await page.send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
   // The CMS watch: every request of this tab, whatever started it.
   await page.send("Network.enable");
@@ -385,7 +418,7 @@ async function main(): Promise<void> {
       }
       if (control.selected) {
         // The pressed half of a toggle, the current tab: tapping what is already chosen is a no-op by design.
-        results.push({ route: label, control: control.label, verdict: "selected", detail: "already the chosen state (aria-pressed / aria-current)" });
+        results.push({ route: label, control: control.label, verdict: "selected", detail: "already the chosen state (aria-pressed / aria-current / data-selected)" });
         continue;
       }
       if (control.href && /^https?:\/\//u.test(control.href) && !control.href.startsWith(BASE)) {
@@ -426,7 +459,7 @@ async function main(): Promise<void> {
         if (after.url !== before.url) { verdict = "navigates"; detail = `→ ${after.url}`; break; }
         if (after.printed > before.printed) { verdict = "prints"; detail = "window.print()"; break; }
         if (after.dialogs > before.dialogs) { verdict = "opens"; detail = "a sheet / dialog"; break; }
-        if (after.pressed !== before.pressed || Math.abs(after.html - before.html) > 40 || (after.focus !== before.focus && after.focus !== "BODY")) { verdict = "changes"; detail = after.pressed !== before.pressed ? "state" : Math.abs(after.html - before.html) > 40 ? `DOM Δ ${after.html - before.html}` : `focus → ${after.focus}`; break; }
+        if (after.pressed !== before.pressed || Math.abs(after.html - before.html) > 40 || (after.focus !== before.focus && after.focus !== "BODY")) { verdict = "changes"; detail = after.pressed !== before.pressed ? stateChange(before.pressed, after.pressed) : Math.abs(after.html - before.html) > 40 ? `DOM Δ ${after.html - before.html}` : `focus → ${after.focus}`; break; }
       }
       results.push({ route: label, control: control.label, verdict, detail });
       if (control.label === "delete-confirm") await fitProbe(page, `${label} › deleted`);
