@@ -11,7 +11,8 @@ import { postJson } from "@/lib/clientSession";
  * "Switch child" on the splash: a device with more than one child picks
  * who is sitting down. Tapping a name makes that child active
  * (/api/child/switch) and goes home. Labelled with the export's
- * "දරුවන්ගේ පැතිකඩ"; the names come from the children table.
+ * "දරුවන්ගේ පැතිකඩ"; the names come from the children table. The active
+ * child's button says so (aria-pressed, as on the home child switcher).
  */
 export function ChildChooser({ kids }: { kids: Array<{ id: string; name: string; grade: number; active: boolean }> }) {
   const router = useRouter();
@@ -31,7 +32,7 @@ export function ChildChooser({ kids }: { kids: Array<{ id: string; name: string;
     <div data-testid="child-chooser" style={sx("display:grid;gap:8px")}>
       <div style={sx("font:600 20px/1.5 var(--font-label);color:var(--color-ink-70)")}>{t("parent.row.profiles")}</div>
       {kids.map((k) => (
-        <button key={k.id} type="button" onClick={() => void pick(k.id)} disabled={busy !== null} data-testid="choose-child" data-child={k.id} data-active={k.active || undefined} style={sx(`height:56px;border:${k.active ? "2px solid var(--color-saffron)" : "2px solid var(--color-ink-18)"};border-radius:12px;background:${k.active ? "var(--color-saffron-soft)" : "var(--color-paper)"};color:var(--color-ink);font:700 24px/1.5 var(--font-display)`, { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 14px", opacity: busy && busy !== k.id ? 0.5 : 1 })}>
+        <button key={k.id} type="button" aria-pressed={k.active} onClick={() => void pick(k.id)} disabled={busy !== null} data-testid="choose-child" data-child={k.id} data-active={k.active || undefined} style={sx(`height:56px;border:${k.active ? "2px solid var(--color-saffron)" : "2px solid var(--color-ink-18)"};border-radius:12px;background:${k.active ? "var(--color-saffron-soft)" : "var(--color-paper)"};color:var(--color-ink);font:700 24px/1.5 var(--font-display)`, { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 14px", opacity: busy && busy !== k.id ? 0.5 : 1 })}>
           <span>{k.name}</span>
           <span style={sx("font:600 20px/1.5 var(--font-label);color:var(--color-ink-70)")}>{t("common.gradeN", { n: k.grade })}</span>
         </button>

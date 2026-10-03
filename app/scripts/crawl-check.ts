@@ -17,6 +17,13 @@
  * chosen is "selected" like the pressed half of a toggle. Controls whose effect IS the server's (a profile row, a
  * link to a gated screen) are judged as before. `--slow-settings=<ms>` shows it on any link.
  *
+ * A LINK'S JOB IS TO NAVIGATE (3 Oct 2026). A link is judged on the navigation STARTING within 1500 ms: the URL
+ * changes, or the browser asks for the page — a page load, or the router's own fetch of the route (not a prefetch).
+ * A link to a page the server renders (/parent/profiles/new) changes the URL only when the server has answered, and
+ * was "dead" whenever that took longer than 1500 ms: a slow Supabase, not a dead link. What the link leads to is
+ * asserted separately: the target page must be on the screen within 10 s of the tap, or the row reads NO PAGE and
+ * the run fails. Both hold for everything that navigates. `--slow-links=<ms>` shows it on any link.
+ *
  * THE GATED ZONE IS CRAWLED WHILE THE CRAWL'S CHILD EXISTS (3 Oct 2026): after the PIN is set, before the unlocked
  * crawl — whose last control, the delete screen's confirm, really deletes the child. It used to come last, and so
  * drew the PIN gate for a child the server no longer had, from the app's cached snapshot alone.
@@ -44,7 +51,7 @@ const CHILD_NAME = "ක්‍රෝල් දරුවා";
 /** `--only-m`: skip the dead-control crawl and run only cluster M's parent-zone / home-header assertions. */
 const ONLY_M = process.argv.includes("--only-m");
 
-interface Result { route: string; control: string; verdict: "navigates" | "opens" | "changes" | "prints" | "external" | "cms" | "disabled" | "selected" | "DEAD"; detail: string }
+interface Result { route: string; control: string; verdict: "navigates" | "opens" | "changes" | "prints" | "external" | "cms" | "disabled" | "selected" | "DEAD" | "NO PAGE"; detail: string }
 
 /** Every route to crawl. Sheets and dialogs are discovered from the controls that open them. */
 const ROUTE_FILTER = process.argv.find((a) => a.startsWith("--routes="))?.slice(9).split(",") ?? null;
@@ -57,6 +64,32 @@ const ROUTES = ROUTE_FILTER ? ALL_ROUTES.filter((r) => ROUTE_FILTER.includes(r))
  * answers" is shown on a day when the link is fast.
  */
 const SLOW_SETTINGS_MS = Number(process.argv.find((a) => a.startsWith("--slow-settings="))?.slice(16) ?? 0);
+/**
+ * `--slow-links=3000`: a slow server, on demand. While a tapped control is being judged, every answer the tab asks
+ * for — a page load, the router's fetch of a route, an API call — comes that many ms late. Off by default; it is how
+ * "a link is not dead because the server is slow" is shown on a day when the server is fast. (It goes round the
+ * service worker while it is on, so the delay reaches page loads too; the gate itself runs with the worker in place.)
+ */
+const SLOW_LINKS_MS = Number(process.argv.find((a) => a.startsWith("--slow-links="))?.slice(13) ?? 0);
+/** How long a tapped control has to do something visible, and how long the page a navigation leads to has to appear. */
+const ACT_MS = 1500;
+const PAGE_MS = 10_000;
+/** The navigations the browser has started since the last tap: where to, and how (a page load, or the router's own fetch). */
+const navStarts: Array<{ path: string; how: "page load" | "router fetch" }> = [];
+const pathOf = (url: string): string | null => {
+  try {
+    const parsed = new URL(url, BASE);
+    return parsed.origin === new URL(BASE).origin ? parsed.pathname : null;
+  } catch {
+    return null;
+  }
+};
+/** A request that IS a navigation: a document, or the app router asking for a route's payload — and not prefetching it. */
+const navigationRequest = (type: unknown, headers: Record<string, string> | undefined): "page load" | "router fetch" | null => {
+  if (type === "Document") return "page load";
+  const lower = Object.fromEntries(Object.entries(headers ?? {}).map(([k, v]) => [k.toLowerCase(), v]));
+  return lower["rsc"] === "1" && !("next-router-prefetch" in lower) && !("next-router-segment-prefetch" in lower) ? "router fetch" : null;
+};
 
 /** Is this URL (absolute on this server, or a path) the CMS's — the panel or its API? */
 const inCms = (url: string): boolean => {
@@ -75,7 +108,9 @@ const cmsRequests: string[] = [];
 /**
  * `selected`: a control already in its chosen state — the pressed half of a pair, the current tab, the chosen one of a
  * group — which is recorded and not clicked. A toggle with an on/off of its own (`data-state`: the sound and captions
- * rows) is NOT one of those even when it is on: tapping it turns it off, and that is what the crawl judges.
+ * rows) is NOT one of those even when it is on: tapping it turns it off, and that is what the crawl judges. Nor is the
+ * active child's row in a list of children (`data-active`): tapping it makes that child active again and goes home —
+ * the server's doing, and one of the things this crawl is here to see.
  */
 const CONTROLS_JS = `(() => {
   const els = [...document.querySelectorAll('a[href], button, [role="button"], input[type="submit"], [role="tab"], summary')];
@@ -90,7 +125,7 @@ const CONTROLS_JS = `(() => {
     if (seen.has(key)) return null;
     seen.add(key);
     el.setAttribute('data-crawl', String(i));
-    return { index: i, label, href: el.getAttribute('href'), disabled: el.hasAttribute('disabled') || el.getAttribute('aria-disabled') === 'true', selected: (el.getAttribute('aria-pressed') === 'true' && !el.hasAttribute('data-state')) || el.getAttribute('aria-current') === 'page' || el.getAttribute('aria-selected') === 'true' || el.hasAttribute('data-selected'), tag: el.tagName.toLowerCase(), inDialog: !!el.closest('[role="dialog"], [data-sheet]') };
+    return { index: i, label, href: el.getAttribute('href'), disabled: el.hasAttribute('disabled') || el.getAttribute('aria-disabled') === 'true', selected: (el.getAttribute('aria-pressed') === 'true' && !el.hasAttribute('data-state') && !el.hasAttribute('data-active')) || el.getAttribute('aria-current') === 'page' || el.getAttribute('aria-selected') === 'true' || el.hasAttribute('data-selected'), tag: el.tagName.toLowerCase(), inDialog: !!el.closest('[role="dialog"], [data-sheet]') };
   }).filter(Boolean);
 })()`;
 
@@ -98,13 +133,17 @@ const CONTROLS_JS = `(() => {
  * What a click is judged on. The "updating" badge (AppStateBadge) is left out of it altogether (3 Oct 2026): it comes
  * and goes with the store's background fetch, not with anything a control did, and while it counted a dead control
  * tapped during a revalidation passed on the badge going away — as a state change, and as ~300 characters of DOM.
+ *
+ * `pressed` reads EVERY state an element carries, in one order, joined by "/" (3 Oct 2026). It used to read the first
+ * one only, so a row that says it is the active one (aria-pressed) hid its own data-busy — the profile row's
+ * immediate answer to a tap — behind a "true" that never changed.
  */
-const STATE_JS = `(() => { const badge = document.querySelector('[data-testid="app-state-badge"]'); return {
+const STATE_JS = `(() => { const badge = document.querySelector('[data-testid="app-state-badge"]'); const STATES = ['aria-pressed', 'aria-expanded', 'aria-current', 'data-selected', 'data-open', 'data-confirm', 'data-busy', 'data-state', 'data-mode']; return {
   url: location.pathname + location.search,
   html: document.body.innerHTML.length - (badge ? badge.outerHTML.length : 0),
   dialogs: document.querySelectorAll('[role="dialog"], [data-sheet], [data-testid$="-sheet"]').length,
   printed: window.__printed || 0,
-  pressed: [...document.querySelectorAll('[aria-pressed], [aria-expanded], [aria-current], [data-selected], [data-open], [data-confirm], [data-busy], [data-state], [data-mode]')].filter((el) => el !== badge).map((el) => (el.getAttribute('data-testid') || el.tagName) + (el.hasAttribute('data-selected') ? ':' + (el.textContent || '').trim().replace(/\\s+/g, ' ').slice(0, 28) : '') + '=' + (el.getAttribute('aria-pressed') ?? el.getAttribute('aria-expanded') ?? el.getAttribute('aria-current') ?? el.getAttribute('data-selected') ?? el.getAttribute('data-open') ?? el.getAttribute('data-confirm') ?? el.getAttribute('data-busy') ?? el.getAttribute('data-state') ?? el.getAttribute('data-mode'))).join('|'),
+  pressed: [...document.querySelectorAll('[aria-pressed], [aria-expanded], [aria-current], [data-selected], [data-open], [data-confirm], [data-busy], [data-state], [data-mode]')].filter((el) => el !== badge).map((el) => (el.getAttribute('data-testid') || el.tagName) + (el.hasAttribute('data-selected') ? ':' + (el.textContent || '').trim().replace(/\\s+/g, ' ').slice(0, 28) : '') + '=' + STATES.map((a) => el.getAttribute(a)).filter((v) => v !== null).join('/')).join('|'),
   focus: document.activeElement ? (document.activeElement.getAttribute('data-testid') || document.activeElement.tagName) : '',
 }; })()`;
 
@@ -337,6 +376,21 @@ async function settingsChoiceChecks(page: Cdp, checks: Check[]): Promise<void> {
 }
 
 /**
+ * Which child is active: the profile rows on /parent/profiles say it (aria-pressed) as the home child switcher does
+ * (homeHeaderChecks reads that one) — every row true or false, exactly one true, and that one the row shown as
+ * active (the ✓, the saffron border's data-active) and the crawl's own child.
+ */
+async function activeChildChecks(page: Cdp, checks: Check[]): Promise<void> {
+  await apiWindow(page);
+  await goto(page, "/parent/profiles");
+  for (let i = 0; i < 100 && !(await evaluate<boolean>(page, `!!document.querySelector('[data-testid="profiles"] [data-testid="profile-row"]')`).catch(() => false)); i += 1) await wait(150);
+  const rows = await evaluate<Array<{ pressed: string | null; active: boolean; tick: boolean; text: string }>>(page, `[...document.querySelectorAll('[data-testid="profiles"] [data-testid="profile-row"]')].map((el) => ({ pressed: el.getAttribute('aria-pressed'), active: el.hasAttribute('data-active'), tick: (el.textContent || '').includes('✓'), text: (el.textContent || '').trim().replace(/\\s+/g, ' ').slice(0, 30) }))`).catch((): Array<{ pressed: string | null; active: boolean; tick: boolean; text: string }> => []);
+  const pressed = rows.filter((r) => r.pressed === "true");
+  const ok = rows.length >= 1 && rows.every((r) => (r.pressed === "true" || r.pressed === "false") && (r.pressed === "true") === r.active && (r.pressed === "true") === r.tick) && pressed.length === 1 && pressed[0]!.text.includes(CHILD_NAME);
+  checks.push({ name: "profiles: the rows say which child is active (aria-pressed), like the home switcher", ok, detail: rows.length ? rows.map((r) => `"${r.text}" ${r.pressed} (shown active: ${r.active && r.tick})`).join(" · ") : "no profile row on the screen" });
+}
+
+/**
  * The onboarding avatar picker, grade picker and pay-method picker, and the quiz's answer options. Every choice says
  * aria-pressed, "true" or "false": none is chosen on arrival in the avatar picker and the quiz, one is in the other
  * two (grade 5, card). A choice that is not chosen is tapped (local state only — no profile or payment is saved, no
@@ -425,7 +479,25 @@ async function main(): Promise<void> {
   page.on("Network.requestWillBeSent", (params) => {
     const url = (params.request as { url?: string } | undefined)?.url ?? "";
     if (inCms(url)) cmsRequests.push(url.replace(BASE, ""));
+    // A navigation starting: the browser asks for a page, or the router for a route.
+    const how = navigationRequest(params.type, (params.request as { headers?: Record<string, string> } | undefined)?.headers);
+    const path = pathOf(url);
+    if (how && path) navStarts.push({ path, how });
   });
+  // A link the browser follows itself (a plain <a>) says so before any request goes out.
+  page.on("Page.frameRequestedNavigation", (params) => {
+    const path = pathOf(String(params.url ?? ""));
+    if (path) navStarts.push({ path, how: "page load" });
+  });
+  if (SLOW_LINKS_MS > 0) {
+    // The service worker would make the page loads itself, out of this tab's sight: go round it, so the delay reaches them.
+    await page.send("Network.setBypassServiceWorker", { bypass: true });
+    console.log(`--slow-links: while a tapped control is judged, every answer from the server comes ${SLOW_LINKS_MS} ms late`);
+  }
+  /** `--slow-links`: the slow server, on for the judging of one control and off again for the crawl's own page loads. */
+  const slowServer = async (on: boolean): Promise<void> => {
+    if (SLOW_LINKS_MS > 0) await page.send("Network.emulateNetworkConditions", { offline: false, latency: on ? SLOW_LINKS_MS : 0, downloadThroughput: -1, uploadThroughput: -1 });
+  };
   await page.send("Page.navigate", { url: `${BASE}/` });
   await wait(1500);
   const onboarded = await evaluate<{ ok: boolean; child_id?: string; step?: string; status?: number; error?: string }>(page, ONBOARD_VIA_API_JS(accessCode, CHILD_NAME)).catch((e): { ok: boolean; child_id?: string; step?: string; status?: number; error?: string } => ({ ok: false, error: String(e) }));
@@ -510,21 +582,52 @@ async function main(): Promise<void> {
       // …and so is the app's cached snapshot (localStorage): what the next fresh render draws before the server answers.
       const cacheBefore = await evaluate<Array<[string, string]>>(page, `(() => { try { return Object.keys(localStorage).filter((k) => k.startsWith('ss:app-state')).map((k) => [k, localStorage.getItem(k)]); } catch { return []; } })()`).catch((): Array<[string, string]> => []);
       const before = await evaluate<{ url: string; html: number; dialogs: number; pressed: string; focus: string; printed: number }>(page, STATE_JS);
+      navStarts.length = 0;
+      await slowServer(true);
+      const tappedAt = Date.now();
       const clicked = await evaluate<boolean>(page, `(() => { const labelOf = (el) => (el.getAttribute('aria-label') || el.getAttribute('data-testid') || (el.textContent || '').trim().replace(/\\s+/g, ' ').slice(0, 28) || el.tagName.toLowerCase()); let el = document.querySelector('[data-crawl="${control.index}"]'); if (!el) el = [...document.querySelectorAll('[data-crawl]')].filter((e) => labelOf(e) === ${JSON.stringify(control.label)})[${ordinals.get(control.index) ?? 0}] ?? null; if (!el) return false; el.scrollIntoView({ block: 'center' }); el.click(); return true; })()`).catch(() => false);
       if (!clicked) {
+        await slowServer(false);
         results.push({ route: label, control: control.label, verdict: "DEAD", detail: "control vanished before it could be clicked" });
         continue;
       }
       let verdict: Result["verdict"] = "DEAD";
-      let detail = "nothing visible changed within 1500 ms";
-      for (let i = 0; i < 15; i += 1) {
+      let detail = `nothing visible changed within ${ACT_MS} ms`;
+      // Where a link leads (this server only): the navigation it must start.
+      const linkTo = control.href ? pathOf(control.href) : null;
+      for (let i = 0; i < ACT_MS / 100; i += 1) {
         await wait(100);
-        const after = await evaluate<{ url: string; html: number; dialogs: number; pressed: string; focus: string; printed: number }>(page, STATE_JS).catch(() => before);
-        if (after.url !== before.url) { verdict = "navigates"; detail = `→ ${after.url}`; break; }
-        if (after.printed > before.printed) { verdict = "prints"; detail = "window.print()"; break; }
-        if (after.dialogs > before.dialogs) { verdict = "opens"; detail = "a sheet / dialog"; break; }
+        // A page in the middle of leaving may not answer at once: it is given 250 ms, and what the browser has asked
+        // for (navStarts, the crawl's own record) does not wait on it.
+        const after = await Promise.race([evaluate<{ url: string; html: number; dialogs: number; pressed: string; focus: string; printed: number }>(page, STATE_JS).catch(() => before), wait(250).then(() => null)]);
+        if (after && after.url !== before.url) { verdict = "navigates"; detail = `→ ${after.url}`; break; }
+        if (after && after.printed > before.printed) { verdict = "prints"; detail = "window.print()"; break; }
+        if (after && after.dialogs > before.dialogs) { verdict = "opens"; detail = "a sheet / dialog"; break; }
+        // A link whose page the server has not answered yet: the URL has not changed, but the navigation has started.
+        const started = linkTo ? navStarts.find((n) => n.path === linkTo) : undefined;
+        if (started) { verdict = "navigates"; detail = `→ ${control.href} (${started.how} started)`; break; }
+        if (!after) continue;
         if (after.pressed !== before.pressed || Math.abs(after.html - before.html) > 40 || (after.focus !== before.focus && after.focus !== "BODY")) { verdict = "changes"; detail = after.pressed !== before.pressed ? stateChange(before.pressed, after.pressed) : Math.abs(after.html - before.html) > 40 ? `DOM Δ ${after.html - before.html}` : `focus → ${after.focus}`; break; }
       }
+      // …and what it navigates to must come: the target page on the screen within PAGE_MS of the tap. A separate
+      // assertion with its own verdict — a link that started is not dead, and a page that never came is not fine.
+      if (verdict === "navigates") {
+        let shown: { url: string; hydrated: boolean; screen: boolean } | null = null;
+        let ms = 0;
+        for (;;) {
+          shown = await evaluate<{ url: string; hydrated: boolean; screen: boolean }>(page, `({ url: location.pathname + location.search, hydrated: document.documentElement.hasAttribute('data-hydrated'), screen: !!document.querySelector('[data-screen-ready], [data-app-screen], form, main, .lesson-screen') })`).catch(() => null);
+          ms = Date.now() - tappedAt;
+          if ((shown && shown.url !== before.url && shown.hydrated && shown.screen) || ms >= PAGE_MS) break;
+          await wait(100);
+        }
+        // One poll of slack: a page that came at 9.95 s is seen at the next look.
+        if (shown && shown.url !== before.url && shown.hydrated && shown.screen && ms <= PAGE_MS + 150) detail += ` · page in ${(ms / 1000).toFixed(1)} s`;
+        else {
+          verdict = "NO PAGE";
+          detail += ` — but the page was not on the screen ${PAGE_MS / 1000} s after the tap (${!shown ? "the page did not answer" : shown.url === before.url ? `still on ${shown.url}` : !shown.hydrated ? `${shown.url} loaded but never hydrated` : !shown.screen ? `${shown.url} has no screen` : `it came after ${(ms / 1000).toFixed(1)} s`})`;
+        }
+      }
+      await slowServer(false);
       results.push({ route: label, control: control.label, verdict, detail });
       if (control.label === "delete-confirm") await fitProbe(page, `${label} › deleted`);
       const cookiesAfter = ((await page.send("Network.getCookies")) as { cookies: Array<Record<string, unknown>> }).cookies;
@@ -555,6 +658,7 @@ async function main(): Promise<void> {
   await pinCreateChecks(page, checks);
   // The zone is unlocked now: the settings screen itself is on show.
   await settingsChoiceChecks(page, checks);
+  await activeChildChecks(page, checks);
   // …and two choices that start with nothing chosen say so, and say which once one is tapped.
   await tappedChoiceChecks(page, checks);
   // The parent's cookie goes, and the zone is GATED. It is crawled now, while the crawl's child still exists: the gate
@@ -584,10 +688,14 @@ async function main(): Promise<void> {
   let currentRoute = "";
   for (const r of results) {
     if (r.route !== currentRoute) { currentRoute = r.route; console.log(`  ${currentRoute}`); }
-    console.log(`    ${r.verdict === "DEAD" ? "✗" : "✓"} ${r.control.padEnd(30)} ${r.verdict.padEnd(10)} ${r.detail}`);
+    console.log(`    ${r.verdict === "DEAD" || r.verdict === "NO PAGE" ? "✗" : "✓"} ${r.control.padEnd(30)} ${r.verdict.padEnd(10)} ${r.detail}`);
   }
   const dead = results.filter((r) => r.verdict === "DEAD");
+  const noPage = results.filter((r) => r.verdict === "NO PAGE");
+  const navigated = results.filter((r) => r.verdict === "navigates");
+  const slowest = navigated.map((r) => Number(/page in ([\d.]+) s/u.exec(r.detail)?.[1] ?? 0)).reduce((a, b) => Math.max(a, b), 0);
   console.log(`\ncrawl: ${ROUTES.length} routes, ${[...crawled].filter((c) => c.includes("›")).length} sheet(s), ${results.length} controls · dead ${dead.length}`);
+  console.log(`navigations: ${navigated.length + noPage.length} started within ${ACT_MS} ms · ${navigated.filter((r) => r.detail.includes("started)")).length} of them before the server had answered · target page on the screen within ${PAGE_MS / 1000} s: ${navigated.length}/${navigated.length + noPage.length} (slowest ${slowest.toFixed(1)} s)`);
 
   console.log(`\nwidth check at 390 px: ${measured.length} screen state(s) measured · ${overflows.length} string(s) overflow`);
   for (const o of overflows) console.log(`    ✗ ${o.screen.padEnd(34)} [${o.id}] "${o.text}" — ${o.why}`);
@@ -607,7 +715,7 @@ async function main(): Promise<void> {
   await cleanup();
   page.close();
   browser.kill();
-  process.exit(dead.length === 0 && failed.length === 0 ? 0 : 1);
+  process.exit(dead.length === 0 && noPage.length === 0 && failed.length === 0 ? 0 : 1);
 }
 
 const cleanup = async (): Promise<void> => {

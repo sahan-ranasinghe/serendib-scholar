@@ -240,7 +240,10 @@ export function ReportShare() {
   );
 }
 
-/** The children this parent looks after; tapping one makes it the active child on this device. */
+/**
+ * The children this parent looks after; tapping one makes it the active child on this device. The active one says
+ * so (aria-pressed, as on the home child switcher) as well as showing it — the saffron border and the ✓.
+ */
 export function ProfilesClient({ profiles }: { profiles: ProfilesData }) {
   useLang();
   const router = useRouter();
@@ -262,7 +265,7 @@ export function ProfilesClient({ profiles }: { profiles: ProfilesData }) {
       <ParentHeader title={t("profiles.title")} back="/parent" />
       <div style={sx("margin-top:16px;display:grid;gap:8px")} data-testid="profiles">
         {profiles.children.map((c) => (
-          <div key={c.id} role="button" onClick={() => void pick(c.id)} data-testid="profile-row" data-active={c.active || undefined} data-busy={busy === c.id || undefined} style={sx(`display:flex;align-items:center;gap:12px;border:${c.active ? "2px solid var(--color-saffron)" : "1px solid var(--color-ink-18)"};border-radius:14px;padding:10px 12px;background:${c.active ? "var(--color-saffron-soft)" : "transparent"};opacity:${busy === c.id ? 0.6 : 1}`)}>
+          <div key={c.id} role="button" aria-pressed={c.active} onClick={() => void pick(c.id)} data-testid="profile-row" data-active={c.active || undefined} data-busy={busy === c.id || undefined} style={sx(`display:flex;align-items:center;gap:12px;border:${c.active ? "2px solid var(--color-saffron)" : "1px solid var(--color-ink-18)"};border-radius:14px;padding:10px 12px;background:${c.active ? "var(--color-saffron-soft)" : "transparent"};opacity:${busy === c.id ? 0.6 : 1}`)}>
             <div style={sx("width:44px;height:44px;border-radius:50%;background:var(--color-saffron-soft);border:2px solid var(--color-saffron)")} />
             <div style={sx("flex:1;display:grid")}>
               <span style={sx("font:600 18px/1.4 var(--font-body)")}>{c.name}</span>

@@ -308,3 +308,9 @@ a change, so a control is judged only on what it did. And when the crawler resto
 the app's cached snapshot back as it was instead of clearing it. The gated `/parent` crawl was also moved to run
 before the crawl deletes its own child, so the PIN gate it clicks is the server's answer for a real child and not a
 picture kept in the cache.
+
+Last, links. A link is judged on its navigation starting within 1.5 s (the URL changes, or the browser asks for the
+page), and the page it leads to must be on the screen within 10 s, as a separate assertion. A link to a page the
+server renders used to be "dead" whenever the server took longer than 1.5 s to answer.
+`npm run crawl:check -- <url> --routes=/home,/parent/profiles,/parent/subscription --slow-links=3000` shows it with
+every answer 3 s late.

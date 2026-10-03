@@ -8,7 +8,9 @@ import path from "node:path";
  * this way: the parent's daily limit and ✋ chat minutes, the onboarding avatar, grade and pay-method pickers, the
  * quiz's answer options. Every choice carries aria-pressed, bound to the very condition that draws the chosen look,
  * so it is rendered "true" on the chosen one and "false" on the others. The parent's sound and captions rows are
- * toggles and say on or off the same way. (crawl:check's cluster M reads all of it from the real screens.)
+ * toggles and say on or off the same way, and every list of children says which child is active. (crawl:check's
+ * cluster M reads these from the real screens — all but the splash's child chooser, which only a device with two
+ * children shows.)
  */
 interface Group {
   name: string;
@@ -88,5 +90,24 @@ test("the sound and captions rows are toggles that say on or off: aria-pressed f
     assert.equal(attribute(use[0]!, "state"), `${setting} ? "on" : "off"`, `${testId}: state`);
     assert.equal(attribute(use[0]!, "value"), `${setting} ? "✓" : ""`, `${testId}: the ✓`);
     assert.ok(attribute(use[0]!, "onClick"), `${testId}: a handler, so it is a button`);
+  }
+});
+
+test("which child is active is said by every list of children: aria-pressed from the same `active` that draws the saffron look", () => {
+  // The home switcher was the first to say it; the profile rows and the splash's chooser match it.
+  const LISTS = [
+    { name: "home · child switcher", file: "components/app/ChildSwitcher.tsx", mark: 'data-testid="switch-child"', active: "k.active", marked: null, shown: 'border:2px solid ${k.active ? "var(--color-saffron)"' },
+    { name: "parent · profile rows", file: "components/app/ParentClients.tsx", mark: 'data-testid="profile-row"', active: "c.active", marked: "c.active || undefined", shown: 'border:${c.active ? "2px solid var(--color-saffron)"' },
+    { name: "splash · child chooser", file: "components/app/ChildChooser.tsx", mark: 'data-testid="choose-child"', active: "k.active", marked: "k.active || undefined", shown: 'border:${k.active ? "2px solid var(--color-saffron)"' },
+  ];
+  for (const list of LISTS) {
+    const tags = tagOf(list);
+    assert.equal(tags.length, 1, `${list.name}: one opening tag with ${list.mark}`);
+    const tag = tags[0]!;
+    assert.ok(isButton(tag), `${list.name} is a button`);
+    // A boolean: the active child's says "true", every other child's "false".
+    assert.equal(attribute(tag, "aria-pressed"), list.active, list.name);
+    if (list.marked) assert.equal(attribute(tag, "data-active"), list.marked, `${list.name}: data-active`);
+    assert.ok(tag.includes(list.shown), `${list.name}: the active look's condition`);
   }
 });
