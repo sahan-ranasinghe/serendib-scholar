@@ -18,7 +18,11 @@ const LABEL = "font:600 16px/1.5 var(--font-label);color:var(--color-ink-70)";
 const PIN_LABEL = "font:600 18px/1.5 var(--font-label);color:var(--color-ink-70)";
 const PRIMARY = "height:52px;border:2px solid var(--color-teal);border-radius:12px;background:var(--color-card);color:var(--color-teal);font:600 18px/1.5 var(--font-body)";
 
-/** The daily limit, the ✋ chat's daily time (their choices: src/lib/settings.ts), sound and captions — saved as they change. */
+/**
+ * The daily limit, the ✋ chat's daily time (their choices: src/lib/settings.ts), sound and captions — saved as they change.
+ * Each choice says whether it is the chosen one (aria-pressed, true or false): the saffron border tells a sighted
+ * parent, and a screen reader is told the same thing (src/lib/choiceA11y.test.ts).
+ */
 export function SettingsClient({ settings: initial, source }: { settings: ChildSettings; source: string }) {
   useLang();
   const { refresh } = useAppState();
@@ -43,7 +47,7 @@ export function SettingsClient({ settings: initial, source }: { settings: ChildS
           <span style={sx(LABEL)}>{t("parent.row.limit")}</span>
           <div style={sx("display:flex;gap:10px")} data-testid="limit-choices">
             {DAILY_LIMIT_CHOICES.map((m) => (
-              <div key={m} role="button" data-limit={m} data-selected={settings.dailyLimitMinutes === m || undefined} onClick={() => void save({ dailyLimitMinutes: m })} style={sx(choice(settings.dailyLimitMinutes === m))}>
+              <div key={m} role="button" aria-pressed={settings.dailyLimitMinutes === m} data-limit={m} data-selected={settings.dailyLimitMinutes === m || undefined} onClick={() => void save({ dailyLimitMinutes: m })} style={sx(choice(settings.dailyLimitMinutes === m))}>
                 {m}
               </div>
             ))}
@@ -54,7 +58,7 @@ export function SettingsClient({ settings: initial, source }: { settings: ChildS
           <span style={sx(LABEL)}>{t("parent.row.chatLimit")}</span>
           <div style={sx("display:flex;gap:10px")} data-testid="chat-limit-choices">
             {CHAT_MINUTES_CHOICES.map((m) => (
-              <div key={m} role="button" data-chat-limit={m} data-selected={(settings.chatMinutes ?? DEFAULT_CHAT_MINUTES) === m || undefined} onClick={() => void save({ chatMinutes: m })} style={sx(choice((settings.chatMinutes ?? DEFAULT_CHAT_MINUTES) === m))}>
+              <div key={m} role="button" aria-pressed={(settings.chatMinutes ?? DEFAULT_CHAT_MINUTES) === m} data-chat-limit={m} data-selected={(settings.chatMinutes ?? DEFAULT_CHAT_MINUTES) === m || undefined} onClick={() => void save({ chatMinutes: m })} style={sx(choice((settings.chatMinutes ?? DEFAULT_CHAT_MINUTES) === m))}>
                 {m}
               </div>
             ))}

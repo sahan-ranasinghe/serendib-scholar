@@ -85,14 +85,19 @@ const CONTROLS_JS = `(() => {
   }).filter(Boolean);
 })()`;
 
-const STATE_JS = `(() => ({
+/**
+ * What a click is judged on. The "updating" badge (AppStateBadge) is left out of it altogether (3 Oct 2026): it comes
+ * and goes with the store's background fetch, not with anything a control did, and while it counted a dead control
+ * tapped during a revalidation passed on the badge going away — as a state change, and as ~300 characters of DOM.
+ */
+const STATE_JS = `(() => { const badge = document.querySelector('[data-testid="app-state-badge"]'); return {
   url: location.pathname + location.search,
-  html: document.body.innerHTML.length,
+  html: document.body.innerHTML.length - (badge ? badge.outerHTML.length : 0),
   dialogs: document.querySelectorAll('[role="dialog"], [data-sheet], [data-testid$="-sheet"]').length,
   printed: window.__printed || 0,
-  pressed: [...document.querySelectorAll('[aria-pressed], [aria-expanded], [aria-current], [data-selected], [data-open], [data-confirm], [data-busy], [data-state], [data-mode]')].map((el) => (el.getAttribute('data-testid') || el.tagName) + (el.hasAttribute('data-selected') ? ':' + (el.textContent || '').trim().replace(/\\s+/g, ' ').slice(0, 28) : '') + '=' + (el.getAttribute('aria-pressed') ?? el.getAttribute('aria-expanded') ?? el.getAttribute('aria-current') ?? el.getAttribute('data-selected') ?? el.getAttribute('data-open') ?? el.getAttribute('data-confirm') ?? el.getAttribute('data-busy') ?? el.getAttribute('data-state') ?? el.getAttribute('data-mode'))).join('|'),
+  pressed: [...document.querySelectorAll('[aria-pressed], [aria-expanded], [aria-current], [data-selected], [data-open], [data-confirm], [data-busy], [data-state], [data-mode]')].filter((el) => el !== badge).map((el) => (el.getAttribute('data-testid') || el.tagName) + (el.hasAttribute('data-selected') ? ':' + (el.textContent || '').trim().replace(/\\s+/g, ' ').slice(0, 28) : '') + '=' + (el.getAttribute('aria-pressed') ?? el.getAttribute('aria-expanded') ?? el.getAttribute('aria-current') ?? el.getAttribute('data-selected') ?? el.getAttribute('data-open') ?? el.getAttribute('data-confirm') ?? el.getAttribute('data-busy') ?? el.getAttribute('data-state') ?? el.getAttribute('data-mode'))).join('|'),
   focus: document.activeElement ? (document.activeElement.getAttribute('data-testid') || document.activeElement.tagName) : '',
-}))()`;
+}; })()`;
 
 /** What changed between two readings of STATE_JS's `pressed`, for the table: "state: DIV:30=true → DIV:15=true". */
 const stateChange = (before: string, after: string): string => {
@@ -305,6 +310,19 @@ async function pinCreateChecks(page: Cdp, checks: Check[]): Promise<void> {
   checks.push({ name: "set PIN: saving it opens the zone (no second ask)", ok: zone, detail: zone ? "parent zone shown" : `zone never appeared (${saveState})` });
 }
 
+/** The settings' two groups of choices tell a screen reader which one is chosen: aria-pressed on every choice, true on exactly the one shown as chosen. */
+async function settingsChoiceChecks(page: Cdp, checks: Check[]): Promise<void> {
+  await apiWindow(page);
+  await goto(page, "/parent/settings");
+  for (let i = 0; i < 100 && !(await evaluate<boolean>(page, `!!document.querySelector('[data-testid="limit-choices"] [role="button"]')`).catch(() => false)); i += 1) await wait(150);
+  const groups = await evaluate<Array<{ id: string; said: string[]; agrees: boolean }>>(page, `['limit-choices', 'chat-limit-choices'].map((id) => { const els = [...document.querySelectorAll('[data-testid="' + id + '"] [role="button"]')]; return { id, said: els.map((el) => (el.textContent || '').trim() + ' ' + el.getAttribute('aria-pressed')), agrees: els.every((el) => (el.getAttribute('aria-pressed') === 'true') === el.hasAttribute('data-selected')) }; })`).catch((): Array<{ id: string; said: string[]; agrees: boolean }> => []);
+  for (const id of ["limit-choices", "chat-limit-choices"]) {
+    const group = groups.find((g) => g.id === id);
+    const ok = !!group && group.said.length === 3 && group.said.every((s) => /^\d+ (true|false)$/u.test(s)) && group.said.filter((s) => s.endsWith(" true")).length === 1 && group.agrees;
+    checks.push({ name: `settings: ${id} says which choice is chosen (aria-pressed)`, ok, detail: group ? `${group.said.join(" · ")} · the pressed one is the one shown as chosen: ${group.agrees}` : "the group is not on the screen" });
+  }
+}
+
 /** Issue 5: entering the PIN is ONCE — with a background revalidation of /api/app-state in the air when the PIN is submitted. */
 async function pinEntryChecks(page: Cdp, checks: Check[]): Promise<void> {
   await apiWindow(page);
@@ -445,6 +463,8 @@ async function main(): Promise<void> {
       // which surfaced as every later parent route "gated" and its controls "vanished". The cookies are snapshotted here
       // and put back after the verdict, so one click never changes the device the next control is judged on.
       const cookiesBefore = ((await page.send("Network.getCookies")) as { cookies: Array<Record<string, unknown>> }).cookies;
+      // …and so is the app's cached snapshot (localStorage): what the next fresh render draws before the server answers.
+      const cacheBefore = await evaluate<Array<[string, string]>>(page, `(() => { try { return Object.keys(localStorage).filter((k) => k.startsWith('ss:app-state')).map((k) => [k, localStorage.getItem(k)]); } catch { return []; } })()`).catch((): Array<[string, string]> => []);
       const before = await evaluate<{ url: string; html: number; dialogs: number; pressed: string; focus: string; printed: number }>(page, STATE_JS);
       const clicked = await evaluate<boolean>(page, `(() => { const labelOf = (el) => (el.getAttribute('aria-label') || el.getAttribute('data-testid') || (el.textContent || '').trim().replace(/\\s+/g, ' ').slice(0, 28) || el.tagName.toLowerCase()); let el = document.querySelector('[data-crawl="${control.index}"]'); if (!el) el = [...document.querySelectorAll('[data-crawl]')].filter((e) => labelOf(e) === ${JSON.stringify(control.label)})[${ordinals.get(control.index) ?? 0}] ?? null; if (!el) return false; el.scrollIntoView({ block: 'center' }); el.click(); return true; })()`).catch(() => false);
       if (!clicked) {
@@ -468,9 +488,14 @@ async function main(): Promise<void> {
       if (!sameCookies) {
         await page.send("Network.clearBrowserCookies");
         await page.send("Network.setCookies", { cookies: cookiesBefore.map((c) => ({ name: c.name, value: c.value, domain: c.domain, path: c.path, secure: c.secure, httpOnly: c.httpOnly, sameSite: c.sameSite, expires: c.expires })) });
-        // The app's own cache of the snapshot went with the switch; the next fresh render refetches it for the restored child.
-        await evaluate(page, `(() => { try { Object.keys(localStorage).filter((k) => k.startsWith('ss:app-state')).forEach((k) => localStorage.removeItem(k)); } catch {} return true; })()`).catch(() => undefined);
-        results.push({ route: label, control: control.label, verdict: "changes", detail: "(persisted device state — the crawl's cookies were restored)" });
+        // The cached snapshot goes back to what it was before the click too (3 Oct 2026). It used to be CLEARED here, for
+        // the case this was written for — a switch of the active child leaves the other child's snapshot in the cache.
+        // But a routine re-mint of the session cookies landing in a click's window takes this branch as well, and by the
+        // gated crawl the crawl has deleted its own child: the cache is then the only thing the gate can be drawn from,
+        // and with it gone the next control (the PIN eye) was "dead". The snapshot from before the click is the crawl's
+        // own child's in both cases.
+        await evaluate(page, `(() => { try { Object.keys(localStorage).filter((k) => k.startsWith('ss:app-state')).forEach((k) => localStorage.removeItem(k)); for (const [k, v] of ${JSON.stringify(cacheBefore)}) localStorage.setItem(k, v); } catch {} return true; })()`).catch(() => undefined);
+        results.push({ route: label, control: control.label, verdict: "changes", detail: "(persisted device state — the crawl's cookies and cached snapshot were restored)" });
       }
       if (verdict === "opens" && !opener) await crawl(route, control.label, state);
     }
@@ -484,6 +509,8 @@ async function main(): Promise<void> {
   await evaluate(page, `(() => { try { localStorage.setItem("ss:lang", "si"); } catch {} })()`);
   await homeHeaderChecks(page, checks);
   await pinCreateChecks(page, checks);
+  // The zone is unlocked now: the settings screen itself is on show.
+  await settingsChoiceChecks(page, checks);
   // …and ENTERED once, even with a revalidation in the air. (Before the unlocked crawl: that one ends by really deleting the child.)
   await page.send("Network.deleteCookies", { name: "ss_parent", url: BASE });
   await pinEntryChecks(page, checks);

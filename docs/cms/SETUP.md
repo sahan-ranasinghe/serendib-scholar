@@ -302,3 +302,8 @@ only when the server's write returns.
 longer depend on the link (`npm run crawl:check -- <url> --routes=/parent/settings --slow-settings=3000` shows it
 with the write's answer held 3 s). Profile rows and links into the gated zone are still judged by what the server
 does.
+
+Later the same day, two more of the crawler's slow-link hazards were closed. The "updating" badge no longer counts as
+a change, so a control is judged only on what it did. And when the crawler restores its cookies after a click, it puts
+the app's cached snapshot back as it was instead of clearing it: by the gated crawl the crawl has deleted its own
+child, and that cache is the only thing the PIN gate can be drawn from.
