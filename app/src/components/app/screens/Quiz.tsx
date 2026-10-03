@@ -40,9 +40,10 @@ export function QuizScreen({ question, index, results, selected, onSelect, onChe
         {question?.asking && <div style={sx("font:600 20px/1.5 var(--font-label);color:var(--color-ink-70)")}>{question.asking}</div>}
         <div style={sx("display:grid;gap:10px;width:100%")} data-testid="quiz-chips">
           {(question?.options ?? []).map((o, i) => {
+            // Said as well as shown: aria-pressed from the very condition that draws the saffron pill (src/lib/choiceA11y.test.ts).
             const sel = i === selected;
             return (
-              <button key={i} type="button" onClick={onSelect ? () => onSelect(i) : undefined} data-selected={sel || undefined} style={sx(`height:56px;border:2px solid ${sel ? "#E9B44C" : "rgba(27,27,27,.18)"};border-radius:999px;background:${sel ? "#FBEFD3" : "#FFFDF8"};display:flex;align-items:center;justify-content:center;font:700 24px/1.5 var(--font-display);color:var(--color-ink);box-shadow:0 2px 0 #D8D1C2`, { boxSizing: "content-box", width: "auto", padding: 0 })}>
+              <button key={i} type="button" aria-pressed={sel} onClick={onSelect ? () => onSelect(i) : undefined} data-selected={sel || undefined} style={sx(`height:56px;border:2px solid ${sel ? "#E9B44C" : "rgba(27,27,27,.18)"};border-radius:999px;background:${sel ? "#FBEFD3" : "#FFFDF8"};display:flex;align-items:center;justify-content:center;font:700 24px/1.5 var(--font-display);color:var(--color-ink);box-shadow:0 2px 0 #D8D1C2`, { boxSizing: "content-box", width: "auto", padding: 0 })}>
                 {o}
               </button>
             );

@@ -154,9 +154,10 @@ export function ProfileStep({ name, avatarIndex, grade, school, onName, onAvatar
       </div>
       <div style={sx("display:grid;gap:6px")}>
         <span style={sx(LABEL)}>{t("onb.2.avatar")}</span>
+        {/* Each avatar says whether it is the chosen one (aria-pressed, wherever it is a button): the ring tells a sighted parent, a screen reader is told the same (src/lib/choiceA11y.test.ts). */}
         <div style={sx("display:grid;grid-template-columns:repeat(4,1fr);gap:10px")} data-testid="onb-avatars">
           {AVATAR_IDS.map((a, i) => (
-            <div key={a} role={onAvatar ? "button" : undefined} onClick={onAvatar ? () => onAvatar(i) : undefined} data-avatar={a} aria-label={avatarName(a)} data-selected={i === avatarIndex || undefined} style={sx(`aspect-ratio:1;border-radius:50%;background:${i === avatarIndex ? "#FBEFD3" : "#EEF4F5"};border:3px solid ${i === avatarIndex ? "#E9B44C" : "transparent"};display:flex;align-items:center;justify-content:center;box-sizing:border-box`)}>
+            <div key={a} role={onAvatar ? "button" : undefined} aria-pressed={onAvatar ? i === avatarIndex : undefined} onClick={onAvatar ? () => onAvatar(i) : undefined} data-avatar={a} aria-label={avatarName(a)} data-selected={i === avatarIndex || undefined} style={sx(`aspect-ratio:1;border-radius:50%;background:${i === avatarIndex ? "#FBEFD3" : "#EEF4F5"};border:3px solid ${i === avatarIndex ? "#E9B44C" : "transparent"};display:flex;align-items:center;justify-content:center;box-sizing:border-box`)}>
               <ArtSlot size="60%" label={avatarName(a)} alpha=".14" font="9px/1" />
             </div>
           ))}

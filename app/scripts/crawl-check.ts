@@ -17,6 +17,10 @@
  * chosen is "selected" like the pressed half of a toggle. Controls whose effect IS the server's (a profile row, a
  * link to a gated screen) are judged as before. `--slow-settings=<ms>` shows it on any link.
  *
+ * THE GATED ZONE IS CRAWLED WHILE THE CRAWL'S CHILD EXISTS (3 Oct 2026): after the PIN is set, before the unlocked
+ * crawl — whose last control, the delete screen's confirm, really deletes the child. It used to come last, and so
+ * drew the PIN gate for a child the server no longer had, from the app's cached snapshot alone.
+ *
  * Onboards its own child through the API (device-bound identity), and
  * removes it at the end. Needs the production build (`npm run build &&
  * DEV_ONBOARDING=stub DEV_MODE=on npx next start -p 3001`).
@@ -323,6 +327,32 @@ async function settingsChoiceChecks(page: Cdp, checks: Check[]): Promise<void> {
   }
 }
 
+/**
+ * The onboarding avatar picker and the quiz's answer options: nothing is chosen on arrival, so every choice says
+ * aria-pressed="false"; one is tapped (local state only — no profile is saved, no answer is checked or logged) and
+ * exactly that one says "true", the one shown as chosen.
+ */
+async function tappedChoiceChecks(page: Cdp, checks: Check[]): Promise<void> {
+  const groups: Array<{ name: string; route: string; choices: string }> = [
+    { name: "onboarding: the avatar picker says which avatar is chosen (aria-pressed)", route: "/onboarding/2", choices: '[data-testid="onb-avatars"] [role="button"]' },
+    // Lesson 1's first concept (src/lib/lessonDesign.ts): its questions come from the verified bank, whoever the child is.
+    { name: "quiz: the answer options say which one is chosen (aria-pressed)", route: "/practice/quiz?concept=readWrite4Digit", choices: '[data-testid="quiz-chips"] button' },
+  ];
+  for (const group of groups) {
+    await apiWindow(page);
+    await goto(page, group.route);
+    for (let i = 0; i < 100 && !(await evaluate<boolean>(page, `document.querySelectorAll(${JSON.stringify(group.choices)}).length >= 2`).catch(() => false)); i += 1) await wait(150);
+    const read = () => evaluate<{ said: string[]; agrees: boolean }>(page, `(() => { const els = [...document.querySelectorAll(${JSON.stringify(group.choices)})]; return { said: els.map((el) => String(el.getAttribute('aria-pressed'))), agrees: els.every((el) => (el.getAttribute('aria-pressed') === 'true') === el.hasAttribute('data-selected')) }; })()`).catch(() => ({ said: [] as string[], agrees: false }));
+    const before = await read();
+    const tapped = before.said.length >= 2 ? 1 : -1;
+    if (tapped >= 0) await evaluate(page, `document.querySelectorAll(${JSON.stringify(group.choices)})[${tapped}].click()`).catch(() => undefined);
+    await wait(250);
+    const after = await read();
+    const ok = before.said.length >= 2 && before.said.every((s) => s === "false") && before.agrees && after.said.length === before.said.length && after.said.every((s, i) => s === (i === tapped ? "true" : "false")) && after.agrees;
+    checks.push({ name: group.name, ok, detail: before.said.length >= 2 ? `${before.said.length} choices · on arrival: ${before.said.join(" ")} · after tapping no. ${tapped + 1}: ${after.said.join(" ")} · the pressed one is the one shown as chosen: ${after.agrees}` : `${before.said.length} choice(s) on the screen` });
+  }
+}
+
 /** Issue 5: entering the PIN is ONCE — with a background revalidation of /api/app-state in the air when the PIN is submitted. */
 async function pinEntryChecks(page: Cdp, checks: Check[]): Promise<void> {
   await apiWindow(page);
@@ -490,10 +520,10 @@ async function main(): Promise<void> {
         await page.send("Network.setCookies", { cookies: cookiesBefore.map((c) => ({ name: c.name, value: c.value, domain: c.domain, path: c.path, secure: c.secure, httpOnly: c.httpOnly, sameSite: c.sameSite, expires: c.expires })) });
         // The cached snapshot goes back to what it was before the click too (3 Oct 2026). It used to be CLEARED here, for
         // the case this was written for — a switch of the active child leaves the other child's snapshot in the cache.
-        // But a routine re-mint of the session cookies landing in a click's window takes this branch as well, and by the
-        // gated crawl the crawl has deleted its own child: the cache is then the only thing the gate can be drawn from,
-        // and with it gone the next control (the PIN eye) was "dead". The snapshot from before the click is the crawl's
-        // own child's in both cases.
+        // But a routine re-mint of the session cookies landing in a click's window takes this branch as well, and then
+        // clearing threw away the crawl's own child's snapshot for nothing (when the gated crawl still ran after the
+        // child was deleted, that left the PIN gate nothing to be drawn from: the eye was "dead"). The snapshot from
+        // before the click is the crawl's own child's in both cases.
         await evaluate(page, `(() => { try { Object.keys(localStorage).filter((k) => k.startsWith('ss:app-state')).forEach((k) => localStorage.removeItem(k)); for (const [k, v] of ${JSON.stringify(cacheBefore)}) localStorage.setItem(k, v); } catch {} return true; })()`).catch(() => undefined);
         results.push({ route: label, control: control.label, verdict: "changes", detail: "(persisted device state — the crawl's cookies and cached snapshot were restored)" });
       }
@@ -511,12 +541,20 @@ async function main(): Promise<void> {
   await pinCreateChecks(page, checks);
   // The zone is unlocked now: the settings screen itself is on show.
   await settingsChoiceChecks(page, checks);
-  // …and ENTERED once, even with a revalidation in the air. (Before the unlocked crawl: that one ends by really deleting the child.)
+  // …and two choices that start with nothing chosen say so, and say which once one is tapped.
+  await tappedChoiceChecks(page, checks);
+  // The parent's cookie goes, and the zone is GATED. It is crawled now, while the crawl's child still exists: the gate
+  // is the server's answer for a real child, not a picture kept in the cache (see the header).
   await page.send("Network.deleteCookies", { name: "ss_parent", url: BASE });
+  if (!ONLY_M) {
+    await crawl("/parent", null, "gated");
+    // The language toggle was among its controls: everything after runs in Sinhala, as it did before the move.
+    await evaluate(page, `(() => { try { localStorage.setItem("ss:lang", "si"); } catch {} })()`).catch(() => undefined);
+  }
+  // …then the PIN is ENTERED once, even with a revalidation in the air, which unlocks the zone again…
   await pinEntryChecks(page, checks);
+  // …for the unlocked crawl. It goes last of the three: it ends by really deleting the child.
   if (!ONLY_M) for (const route of PARENT_ROUTES) await crawl(route, null, "unlocked");
-  await page.send("Network.deleteCookies", { name: "ss_parent", url: BASE });
-  if (!ONLY_M) await crawl("/parent", null, "gated");
   if (!ONLY_M) {
     await page.send("Page.navigate", { url: `${BASE}/admin/design-preview?screen=list` });
     await wait(1200);
